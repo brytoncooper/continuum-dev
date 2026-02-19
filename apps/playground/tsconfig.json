@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../../packages/session"
+    },
+    {
+      "path": "../../packages/runtime"
+    },
+    {
+      "path": "../../packages/contract"
+    },
+    {
+      "path": "../../packages/react"
+    },
+    {
+      "path": "./tsconfig.e2e.json"
+    }
+  ]
+}

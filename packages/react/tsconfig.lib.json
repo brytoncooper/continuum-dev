@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "rootDir": "src",
+    "outDir": "../../dist/packages/react",
+    "types": ["node"]
+  },
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../session/tsconfig.lib.json"
+    },
+    {
+      "path": "../contract/tsconfig.lib.json"
+    }
+  ]
+}

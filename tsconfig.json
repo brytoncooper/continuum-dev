@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/contract"
+    },
+    {
+      "path": "./packages/runtime"
+    },
+    {
+      "path": "./packages/session"
+    },
+    {
+      "path": "./packages/react"
+    },
+    {
+      "path": "./apps/playground"
+    }
+  ]
+}
