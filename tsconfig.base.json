@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2022"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "customConditions": ["@continuum/source"],
+    "paths": {
+      "@continuum/contract": ["./packages/contract/src/index.ts"],
+      "@continuum/runtime": ["./packages/runtime/src/index.ts"],
+      "@continuum/utils": ["./packages/utils/src/index.ts"],
+      "@continuum/strings": ["./packages/strings/src/index.ts"],
+      "@continuum/colors": ["./packages/colors/src/index.ts"],
+      "@continuum/async": ["./packages/async/src/index.ts"],
+      "@continuum/session": ["./packages/session/src/index.ts"],
+      "@continuum/react": ["./packages/react/src/index.ts"]
+    }
+  }
+}
