@@ -1,4 +1,4 @@
-import type { ComponentDefinition, StateSnapshot } from '@continuum/contract';
+import type { ComponentDefinition, ComponentState, StateSnapshot, ValueMeta } from '@continuum/contract';
 
 export interface ReconciliationResult {
   reconciledState: StateSnapshot;
@@ -48,3 +48,11 @@ export type MigrationStrategy = (
   newSchema: ComponentDefinition,
   oldState: unknown
 ) => unknown | null;
+
+export interface ComponentResolutionAccumulator {
+  values: Record<string, ComponentState>;
+  valuesMeta: Record<string, ValueMeta>;
+  diffs: StateDiff[];
+  trace: ReconciliationTrace[];
+  issues: ReconciliationIssue[];
+}
