@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@continuum/adapters": "*",
     "@continuum/contract": "*",
     "@continuum/react": "*",
     "@continuum/runtime": "*",
