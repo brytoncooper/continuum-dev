@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
     "types": ["vite/client"],
     "composite": false,
     "declaration": false,
@@ -24,6 +25,9 @@
     },
     {
       "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/adapters"
     },
     {
       "path": "./tsconfig.e2e.json"
