@@ -26,6 +26,7 @@
       "@continuum/colors": ["./packages/colors/src/index.ts"],
       "@continuum/async": ["./packages/async/src/index.ts"],
       "@continuum/session": ["./packages/session/src/index.ts"],
+      "@continuum/adapters": ["./packages/adapters/src/index.ts"],
       "@continuum/react": ["./packages/react/src/index.ts"]
     }
   }
