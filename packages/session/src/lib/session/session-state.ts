@@ -25,7 +25,7 @@ export interface SessionState {
   destroyed: boolean;
 }
 
-export function createInitialState(sessionId: string, clock: () => number): SessionState {
+export function createEmptySessionState(sessionId: string, clock: () => number): SessionState {
   return {
     sessionId,
     clock,

@@ -32,7 +32,7 @@ export function cancelAction(internal: SessionState, actionId: string): void {
   if (action) action.status = ACTION_STATUS.CANCELLED;
 }
 
-export function stalePendingActions(internal: SessionState): void {
+export function markAllPendingActionsAsStale(internal: SessionState): void {
   for (const action of internal.pendingActions) {
     if (action.status === ACTION_STATUS.PENDING) {
       action.status = ACTION_STATUS.STALE;

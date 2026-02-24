@@ -2,8 +2,8 @@ import type { SchemaSnapshot } from '@continuum/contract';
 import { reconcile } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 import { autoCheckpoint } from './checkpoint-manager.js';
-import { stalePendingActions } from './action-manager.js';
-import { notifyAllListeners } from './listeners.js';
+import { markAllPendingActionsAsStale } from './action-manager.js';
+import { notifySnapshotAndIssueListeners } from './listeners.js';
 
 export function pushSchema(internal: SessionState, schema: SchemaSnapshot): void {
   if (internal.destroyed) return;
@@ -31,9 +31,9 @@ export function pushSchema(internal: SessionState, schema: SchemaSnapshot): void
   internal.trace = result.trace;
 
   if (priorVersion && priorVersion !== schema.version) {
-    stalePendingActions(internal);
+    markAllPendingActionsAsStale(internal);
   }
 
   autoCheckpoint(internal);
-  notifyAllListeners(internal);
+  notifySnapshotAndIssueListeners(internal);
 }

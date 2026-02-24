@@ -1,16 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState } from './session-state.js';
+import { createEmptySessionState } from './session-state.js';
 import { autoCheckpoint, createManualCheckpoint, restoreFromCheckpoint, rewind } from './checkpoint-manager.js';
 import type { SchemaSnapshot, StateSnapshot, Checkpoint } from '@continuum/contract';
 
-function setupWithSnapshot(internal: ReturnType<typeof createInitialState>) {
+function setupWithSnapshot(internal: ReturnType<typeof createEmptySessionState>) {
   internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
   internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 's' } };
 }
 
 describe('autoCheckpoint', () => {
   it('adds a checkpoint to the stack', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
 
     autoCheckpoint(internal);
@@ -21,7 +21,7 @@ describe('autoCheckpoint', () => {
   });
 
   it('does nothing when snapshot is null', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
 
     autoCheckpoint(internal);
 
@@ -31,7 +31,7 @@ describe('autoCheckpoint', () => {
 
 describe('createManualCheckpoint', () => {
   it('returns a checkpoint without modifying the stack', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
 
     const cp = createManualCheckpoint(internal);
@@ -44,7 +44,7 @@ describe('createManualCheckpoint', () => {
 
 describe('restoreFromCheckpoint', () => {
   it('restores schema and state from the checkpoint', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
 
@@ -56,7 +56,7 @@ describe('restoreFromCheckpoint', () => {
   });
 
   it('clears issues, diffs, trace, and pending actions', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.issues = [{ severity: 'info', message: 'test', code: 'TEST' }];
@@ -71,7 +71,7 @@ describe('restoreFromCheckpoint', () => {
   });
 
   it('does nothing when destroyed', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.destroyed = true;
@@ -81,12 +81,26 @@ describe('restoreFromCheckpoint', () => {
 
     expect(internal.currentState).toBe(stateBefore);
   });
+
+  it('restores into isolated state objects that do not mutate checkpoint snapshots', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    setupWithSnapshot(internal);
+
+    const cp = createManualCheckpoint(internal);
+    restoreFromCheckpoint(internal, cp);
+
+    internal.currentState!.values['a'] = { value: 'mutated' };
+    internal.currentSchema!.schemaId = 'changed';
+
+    expect(cp.snapshot.state.values['a']).toEqual({ value: 'hello' });
+    expect(cp.snapshot.schema.schemaId).toBe('s1');
+  });
 });
 
 describe('rewind', () => {
   it('restores to the specified checkpoint and trims the stack', () => {
     let time = 1000;
-    const internal = createInitialState('s', () => time++);
+    const internal = createEmptySessionState('s', () => time++);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.currentSchema = { schemaId: 's2', version: '2.0', components: [] };
@@ -103,7 +117,7 @@ describe('rewind', () => {
   });
 
   it('throws when checkpoint id is not found', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
 
