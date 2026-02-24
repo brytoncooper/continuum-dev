@@ -1,6 +1,6 @@
-import { useContext, useCallback, useSyncExternalStore } from 'react';
+import { useContext, useCallback, useState, useEffect, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
-import type { ComponentState } from '@continuum/contract';
+import type { ContinuitySnapshot, ComponentState } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 
 export function useContinuumSession(): Session {
@@ -38,4 +38,57 @@ export function useContinuumState(
   );
 
   return [value, setValue];
+}
+
+export function useContinuumSnapshot(): ContinuitySnapshot | null {
+  const session = useContinuumSession();
+  const [snapshot, setSnapshot] = useState<ContinuitySnapshot | null>(
+    () => session.getSnapshot()
+  );
+
+  useEffect(() => {
+    setSnapshot(session.getSnapshot());
+    return session.onSnapshot(setSnapshot);
+  }, [session]);
+
+  return snapshot;
+}
+
+export function useContinuumDiagnostics() {
+  const session = useContinuumSession();
+
+  const read = useCallback(
+    () => ({
+      issues: session.getIssues(),
+      diffs: session.getDiffs(),
+      trace: session.getTrace(),
+      checkpoints: session.getCheckpoints(),
+    }),
+    [session]
+  );
+
+  const [state, setState] = useState(read);
+
+  useEffect(() => {
+    setState(read());
+    const refresh = () => setState(read());
+    const unsub1 = session.onSnapshot(refresh);
+    const unsub2 = session.onIssues(refresh);
+    return () => {
+      unsub1();
+      unsub2();
+    };
+  }, [session, read]);
+
+  return state;
+}
+
+export function useContinuumHydrated(): boolean {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumHydrated must be used within a <ContinuumProvider>'
+    );
+  }
+  return ctx.wasHydrated;
 }
