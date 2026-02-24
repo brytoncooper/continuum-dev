@@ -1,0 +1,52 @@
+import type {
+  Interaction,
+  ComponentState,
+  ValueMeta,
+} from '@continuum/contract';
+import type { SessionState } from './session-state.js';
+import { generateId } from './session-state.js';
+import { notifySnapshotListeners } from './listeners.js';
+
+export function recordIntent(
+  internal: SessionState,
+  partial: Omit<Interaction, 'id' | 'timestamp' | 'sessionId' | 'schemaVersion'>
+): void {
+  if (internal.destroyed || !internal.currentState || !internal.currentSchema) return;
+
+  const now = internal.clock();
+  const id = generateId('int', internal.clock);
+
+  const interaction: Interaction = {
+    id,
+    sessionId: internal.sessionId,
+    schemaVersion: internal.currentSchema.version,
+    timestamp: now,
+    componentId: partial.componentId,
+    type: partial.type,
+    payload: partial.payload,
+  };
+
+  internal.eventLog.push(interaction);
+
+  internal.currentState = {
+    ...internal.currentState,
+    values: {
+      ...internal.currentState.values,
+      [partial.componentId]: partial.payload as ComponentState,
+    },
+    meta: {
+      ...internal.currentState.meta,
+      timestamp: now,
+      lastInteractionId: id,
+    },
+    valuesMeta: {
+      ...internal.currentState.valuesMeta,
+      [partial.componentId]: {
+        lastUpdated: now,
+        lastInteractionId: id,
+      } as ValueMeta,
+    },
+  };
+
+  notifySnapshotListeners(internal);
+}

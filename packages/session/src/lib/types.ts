@@ -4,7 +4,6 @@ import type {
   PendingAction,
   Checkpoint,
   SchemaSnapshot,
-  StateSnapshot,
 } from '@continuum/contract';
 import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@continuum/runtime';
 
@@ -28,6 +27,8 @@ export interface Session {
   cancelAction(actionId: string): void;
   checkpoint(): Checkpoint;
   restoreFromCheckpoint(checkpoint: Checkpoint): void;
+  getCheckpoints(): Checkpoint[];
+  rewind(checkpointId: string): void;
   onSnapshot(listener: (snapshot: ContinuitySnapshot) => void): () => void;
   onIssues(listener: (issues: ReconciliationIssue[]) => void): () => void;
   serialize(): unknown;
