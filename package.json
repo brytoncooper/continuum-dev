@@ -25,6 +25,7 @@
     "eslint": "~8.57.0",
     "eslint-plugin-playwright": "^1.6.2",
     "jiti": "2.4.2",
+    "jsdom": "^28.1.0",
     "jsonc-eslint-parser": "^2.1.0",
     "nx": "22.5.0",
     "prettier": "^2.6.2",
@@ -51,6 +52,5 @@
         }
       }
     }
-  },
-  "dependencies": {}
+  }
 }
