@@ -21,7 +21,6 @@ export type TraceAction = (typeof TRACE_ACTIONS)[keyof typeof TRACE_ACTIONS];
 export const DIFF_TYPES = {
   ADDED: 'added',
   REMOVED: 'removed',
-  MODIFIED: 'modified',
   MIGRATED: 'migrated',
   TYPE_CHANGED: 'type-changed',
 } as const;

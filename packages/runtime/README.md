@@ -74,7 +74,6 @@ interface ReconciliationResult {
 
 ```typescript
 interface ReconciliationOptions {
-  strictMode?: boolean;              // reject untrusted carries (default: false)
   allowPartialRestore?: boolean;     // allow partial state restoration (default: false)
   allowBlindCarry?: boolean;         // carry state by ID when no prior schema exists (default: true)
   migrationStrategies?: Record<string, MigrationStrategy>;  // per-component migration overrides
@@ -88,7 +87,7 @@ interface ReconciliationOptions {
 ```typescript
 interface StateDiff {
   componentId: string;
-  type: 'added' | 'removed' | 'modified' | 'migrated' | 'type-changed';
+  type: 'added' | 'removed' | 'migrated' | 'type-changed';
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
@@ -160,23 +159,23 @@ function findPriorComponent(
 ): ComponentDefinition | null;
 ```
 
-### `buildPriorValueMap()`
+### `buildPriorValueLookupByIdAndKey()`
 
 Maps prior state values to new component IDs using key-based matching.
 
 ```typescript
-function buildPriorValueMap(
+function buildPriorValueLookupByIdAndKey(
   priorState: StateSnapshot,
   ctx: ReconciliationContext
 ): Map<string, unknown>;
 ```
 
-### `determineMatchType()`
+### `determineComponentMatchStrategy()`
 
 Returns how a match was found (`'id'`, `'key'`, or `null`).
 
 ```typescript
-function determineMatchType(
+function determineComponentMatchStrategy(
   ctx: ReconciliationContext,
   newComponent: ComponentDefinition,
   priorComponent: ComponentDefinition | null
