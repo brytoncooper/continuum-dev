@@ -4,15 +4,18 @@ const btn = {
   prev: '[data-testid="btn-prev"]',
   next: '[data-testid="btn-next"]',
   hallucinate: '[data-testid="btn-hallucinate"]',
-  copyHistory: '[data-testid="btn-copy-history"]',
 };
 
 const panel = {
   diffs: '[data-testid="panel-diffs"]',
   issues: '[data-testid="panel-issues"]',
   trace: '[data-testid="panel-trace"]',
-  history: '[data-testid="panel-history"]',
+  snapshot: '[data-testid="panel-snapshot"]',
   stepLabel: '[data-testid="step-label"]',
+  rewindTimeline: '[data-testid="rewind-timeline"]',
+  refreshBanner: '[data-testid="refresh-banner"]',
+  generatedUi: '[data-testid="generated-ui"]',
+  devtools: '[data-testid="devtools"]',
 };
 
 function component(id: string) {
@@ -20,23 +23,28 @@ function component(id: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.evaluate(() => localStorage.clear());
   await page.goto('/');
-  await expect(page.locator('h1')).toContainText('Continuum Playground');
+  await expect(page.locator('h1')).toContainText('Continuum');
 });
 
 test.describe('Scenario 1: Forward navigation preserves state', () => {
   test('state carries across key-matched id rename', async ({ page }) => {
-    await page.locator(`${component('name')} input`).fill('Bryton Cooper');
-    await page.locator(`${component('subscribe')} input[type="checkbox"]`).check();
+    await page.locator(`${component('first_name')} input`).fill('Bryton');
+    await page.locator(`${component('last_name')} input`).fill('Cooper');
+    await page.locator(`${component('agree_terms')} input[type="checkbox"]`).check();
 
     await page.locator(btn.next).click();
     await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
 
     await expect(
-      page.locator(`${component('full_name')} input`)
-    ).toHaveValue('Bryton Cooper');
+      page.locator(`${component('given_name')} input`)
+    ).toHaveValue('Bryton');
     await expect(
-      page.locator(`${component('subscribe')} input[type="checkbox"]`)
+      page.locator(`${component('last_name')} input`)
+    ).toHaveValue('Cooper');
+    await expect(
+      page.locator(`${component('agree_terms')} input[type="checkbox"]`)
     ).toBeChecked();
   });
 });
@@ -45,18 +53,15 @@ test.describe('Scenario 2: Type mismatch drops state', () => {
   test('input->select type change drops state and shows type-changed diff', async ({
     page,
   }) => {
-    await page.locator(`${component('name')} input`).fill('Test');
-    await page.locator(`${component('subscribe')} input[type="checkbox"]`).check();
+    await page.locator(`${component('first_name')} input`).fill('Test');
+    await page.locator(`${component('agree_terms')} input[type="checkbox"]`).check();
 
     for (let i = 0; i < 3; i++) {
       await page.locator(btn.next).click();
     }
     await expect(page.locator(panel.stepLabel)).toContainText('Step 4');
 
-    await expect(page.locator(`${component('full_name')} select`)).toBeVisible();
-    await expect(
-      page.locator(`${component('full_name')} select`)
-    ).toHaveValue('');
+    await expect(page.locator(`${component('loan_amount')} select`)).toBeVisible();
 
     const diffsText = await page.locator(panel.diffs).innerText();
     expect(diffsText).toContain('type-changed');
@@ -66,30 +71,23 @@ test.describe('Scenario 2: Type mismatch drops state', () => {
   });
 });
 
-test.describe('Scenario 3: Backward navigation after state loss', () => {
-  test('state lost at step 5 cannot be recovered by navigating back', async ({
+test.describe('Scenario 3: Component removal', () => {
+  test('removed components generate COMPONENT_REMOVED warnings', async ({
     page,
   }) => {
-    await page.locator(`${component('name')} input`).fill('Bryton Cooper');
-    await page.locator(`${component('subscribe')} input[type="checkbox"]`).check();
-
     for (let i = 0; i < 4; i++) {
       await page.locator(btn.next).click();
     }
     await expect(page.locator(panel.stepLabel)).toContainText('Step 5');
 
-    for (let i = 0; i < 4; i++) {
-      await page.locator(btn.prev).click();
-    }
-    await expect(page.locator(panel.stepLabel)).toContainText('Step 1');
-
-    await expect(page.locator(`${component('name')} input`)).toHaveValue('');
+    const issuesText = await page.locator(panel.issues).innerText();
+    expect(issuesText).toContain('COMPONENT_REMOVED');
   });
 });
 
 test.describe('Scenario 4: Hallucination resilience', () => {
   test('hallucination triggers issues and trace entries', async ({ page }) => {
-    await page.locator(`${component('name')} input`).fill('Test');
+    await page.locator(`${component('first_name')} input`).fill('Test');
 
     await page.locator(btn.hallucinate).click();
 
@@ -103,37 +101,70 @@ test.describe('Scenario 4: Hallucination resilience', () => {
   });
 });
 
-test.describe('Scenario 5: History panel accuracy', () => {
-  test('history records correct number of entries after navigation', async ({
-    page,
-  }) => {
-    await page.locator(`${component('name')} input`).fill('Test');
+test.describe('Scenario 5: Refresh persistence', () => {
+  test('state survives page refresh via localStorage', async ({ page }) => {
+    await page.locator(`${component('first_name')} input`).fill('Bryton');
+    await page.locator(`${component('last_name')} input`).fill('Cooper');
+    await page.locator(`${component('email')} input`).fill('bryton@test.com');
+    await page.locator(`${component('agree_terms')} input[type="checkbox"]`).check();
 
-    await page.locator(btn.next).click();
-    await page.locator(btn.next).click();
+    await page.reload();
 
-    const historyPanel = page.locator(panel.history);
-    const historyText = await historyPanel.innerText();
-
-    expect(historyText).toContain('init');
-    expect(historyText).toContain('step 1->2');
-    expect(historyText).toContain('step 2->3');
-    expect(historyText).toContain('interaction');
+    await expect(page.locator(panel.refreshBanner)).toBeVisible();
+    await expect(
+      page.locator(`${component('first_name')} input`)
+    ).toHaveValue('Bryton');
+    await expect(
+      page.locator(`${component('last_name')} input`)
+    ).toHaveValue('Cooper');
+    await expect(
+      page.locator(`${component('email')} input`)
+    ).toHaveValue('bryton@test.com');
+    await expect(
+      page.locator(`${component('agree_terms')} input[type="checkbox"]`)
+    ).toBeChecked();
   });
 
-  test('copy history button produces valid JSON', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  test('navigated state persists across refresh', async ({ page }) => {
+    await page.locator(`${component('first_name')} input`).fill('Bryton');
+    await page.locator(btn.next).click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
+
+    await page.reload();
+
+    await expect(page.locator(panel.refreshBanner)).toBeVisible();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
+    await expect(
+      page.locator(`${component('given_name')} input`)
+    ).toHaveValue('Bryton');
+  });
+});
+
+test.describe('Scenario 6: Rewind timeline', () => {
+  test('rewind buttons appear after navigating steps', async ({ page }) => {
+    await expect(page.locator(panel.rewindTimeline)).toBeVisible();
 
     await page.locator(btn.next).click();
+    await page.locator(btn.next).click();
 
-    await page.locator(btn.copyHistory).click();
+    const buttons = page.locator(`${panel.rewindTimeline} button`);
+    await expect(buttons).toHaveCount(3);
+  });
 
-    const clipboardText = await page.evaluate(() =>
-      navigator.clipboard.readText()
-    );
-    const parsed = JSON.parse(clipboardText);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBeGreaterThanOrEqual(2);
-    expect(parsed[0].action).toBe('init');
+  test('clicking rewind restores prior schema version', async ({ page }) => {
+    await page.locator(`${component('first_name')} input`).fill('Bryton');
+    await page.locator(btn.next).click();
+    await page.locator(btn.next).click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 3');
+
+    await page.locator('[data-testid="rewind-0"]').click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 1');
+  });
+});
+
+test.describe('Scenario 7: Split-panel layout', () => {
+  test('page has generated UI and dev tools panels', async ({ page }) => {
+    await expect(page.locator(panel.generatedUi)).toBeVisible();
+    await expect(page.locator(panel.devtools)).toBeVisible();
   });
 });
