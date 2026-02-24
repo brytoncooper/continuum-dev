@@ -1,0 +1,69 @@
+import { describe, it, expect } from 'vitest';
+import { createInitialState } from './session-state.js';
+import { serializeSession, deserializeToState } from './serializer.js';
+
+describe('serializeSession', () => {
+  it('returns a JSON-serializable object with formatVersion', () => {
+    const internal = createInitialState('my-session', () => 1000);
+    internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
+    internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 'my-session' } };
+
+    const serialized = serializeSession(internal) as Record<string, unknown>;
+
+    expect(() => JSON.stringify(serialized)).not.toThrow();
+    expect(serialized.formatVersion).toBe(1);
+    expect(serialized.sessionId).toBe('my-session');
+  });
+
+  it('includes all session data', () => {
+    const internal = createInitialState('s', () => 1000);
+    internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
+    internal.eventLog = [{ id: 'i1', sessionId: 's', componentId: 'a', type: 'x', payload: {}, timestamp: 1, schemaVersion: '1.0' }];
+
+    const serialized = serializeSession(internal) as Record<string, unknown>;
+
+    expect((serialized.eventLog as unknown[]).length).toBe(1);
+  });
+});
+
+describe('deserializeToState', () => {
+  it('reconstructs SessionState from serialized data', () => {
+    const internal = createInitialState('s', () => 1000);
+    internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
+    internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 's' } };
+    const serialized = serializeSession(internal);
+
+    const restored = deserializeToState(serialized, () => 2000);
+
+    expect(restored.sessionId).toBe('s');
+    expect(restored.currentState!.values['a']).toEqual({ value: 'hello' });
+    expect(restored.clock()).toBe(2000);
+    expect(restored.snapshotListeners.size).toBe(0);
+    expect(restored.destroyed).toBe(false);
+  });
+
+  it('throws when format version is too high', () => {
+    const data = { formatVersion: 999, sessionId: 's', currentSchema: null, currentState: null, priorSchema: null, eventLog: [], pendingActions: [], checkpoints: [], issues: [], diffs: [], trace: [] };
+
+    expect(() => deserializeToState(data, () => 0)).toThrow('Unsupported format version');
+  });
+
+  it('accepts data without formatVersion (legacy)', () => {
+    const data = { sessionId: 's', currentSchema: null, currentState: null, priorSchema: null, eventLog: [], pendingActions: [], checkpoints: [], issues: [], diffs: [], trace: [] };
+
+    const restored = deserializeToState(data, () => 0);
+
+    expect(restored.sessionId).toBe('s');
+  });
+
+  it('defaults missing arrays to empty', () => {
+    const data = { sessionId: 's', currentSchema: null, currentState: null, priorSchema: null };
+
+    const restored = deserializeToState(data, () => 0);
+
+    expect(restored.eventLog).toEqual([]);
+    expect(restored.pendingActions).toEqual([]);
+    expect(restored.checkpoints).toEqual([]);
+    expect(restored.issues).toEqual([]);
+  });
+});
