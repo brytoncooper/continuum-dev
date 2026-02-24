@@ -1,7 +1,7 @@
 import type { ReconciliationIssue } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
-export function destroySession(internal: SessionState): { issues: ReconciliationIssue[] } {
+export function teardownSessionAndClearState(internal: SessionState): { issues: ReconciliationIssue[] } {
   internal.destroyed = true;
   internal.currentSchema = null;
   internal.currentState = null;

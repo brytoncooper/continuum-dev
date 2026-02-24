@@ -1,19 +1,19 @@
 import { INTERACTION_TYPES } from '@continuum/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
-import { createInitialState, generateId } from './session/session-state.js';
+import { createEmptySessionState, generateId } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
-import { getSnapshotFromState, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
+import { buildSnapshotFromCurrentState, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
 import { createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
 import { submitAction, validateAction, cancelAction } from './session/action-manager.js';
 import { recordIntent } from './session/event-log.js';
 import { pushSchema } from './session/schema-pusher.js';
 import { serializeSession, deserializeToState } from './session/serializer.js';
-import { destroySession } from './session/destroyer.js';
+import { teardownSessionAndClearState } from './session/destroyer.js';
 
-function buildSession(internal: SessionState): Session {
+function assembleSessionFromInternalState(internal: SessionState): Session {
   const session: Session = {
     get sessionId() { return internal.sessionId; },
-    getSnapshot() { return getSnapshotFromState(internal); },
+    getSnapshot() { return buildSnapshotFromCurrentState(internal); },
     getIssues() { return [...internal.issues]; },
     getDiffs() { return [...internal.diffs]; },
     getTrace() { return [...internal.trace]; },
@@ -39,7 +39,7 @@ function buildSession(internal: SessionState): Session {
     onIssues(listener) { return subscribeIssues(internal, listener); },
 
     serialize() { return serializeSession(internal); },
-    destroy() { return destroySession(internal); },
+    destroy() { return teardownSessionAndClearState(internal); },
   };
 
   return session;
@@ -47,11 +47,15 @@ function buildSession(internal: SessionState): Session {
 
 export function createSession(options?: SessionOptions): Session {
   const clock = options?.clock ?? Date.now;
-  return buildSession(createInitialState(generateId('session', clock), clock));
+  return assembleSessionFromInternalState(
+    createEmptySessionState(generateId('session', clock), clock)
+  );
 }
 
 export function deserialize(data: unknown, options?: SessionOptions): Session {
-  return buildSession(deserializeToState(data, options?.clock ?? Date.now));
+  return assembleSessionFromInternalState(
+    deserializeToState(data, options?.clock ?? Date.now)
+  );
 }
 
 export const sessionFactory: SessionFactory = { createSession, deserialize };
