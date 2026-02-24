@@ -7,6 +7,7 @@ import { usePersistence } from './persistence.js';
 export interface ContinuumContextValue {
   session: Session;
   componentMap: ContinuumComponentMap;
+  wasHydrated: boolean;
 }
 
 export const ContinuumContext = createContext<ContinuumContextValue | null>(null);
@@ -22,18 +23,21 @@ function resolveStorage(
   return null;
 }
 
-function hydrateOrCreate(storage: Storage | null, key: string): Session {
+function hydrateOrCreate(
+  storage: Storage | null,
+  key: string
+): { session: Session; wasHydrated: boolean } {
   if (storage) {
     const raw = storage.getItem(key);
     if (raw) {
       try {
-        return deserialize(JSON.parse(raw));
+        return { session: deserialize(JSON.parse(raw)), wasHydrated: true };
       } catch {
         storage.removeItem(key);
       }
     }
   }
-  return createSession();
+  return { session: createSession(), wasHydrated: false };
 }
 
 export function ContinuumProvider({
@@ -43,19 +47,19 @@ export function ContinuumProvider({
   children,
 }: ContinuumProviderProps) {
   const storage = resolveStorage(persist);
-  const sessionRef = useRef<Session | null>(null);
+  const sessionRef = useRef<{ session: Session; wasHydrated: boolean } | null>(null);
 
   if (!sessionRef.current) {
     sessionRef.current = hydrateOrCreate(storage, storageKey);
   }
 
-  const session = sessionRef.current;
+  const { session, wasHydrated } = sessionRef.current;
 
   usePersistence(session, storage, storageKey);
 
   const value = useMemo<ContinuumContextValue>(
-    () => ({ session, componentMap: components }),
-    [session, components]
+    () => ({ session, componentMap: components, wasHydrated }),
+    [session, components, wasHydrated]
   );
 
   return (
