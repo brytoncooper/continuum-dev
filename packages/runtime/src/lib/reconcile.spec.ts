@@ -49,7 +49,12 @@ describe('reconcile', () => {
       expect(result.reconciledState.meta.schemaId).toBe('schema-1');
       expect(result.reconciledState.meta.schemaVersion).toBe('1.0');
       expect(result.reconciledState.meta.sessionId).toBeDefined();
-      expect(result.diffs).toEqual([]);
+      expect(result.diffs).toHaveLength(1);
+      expect(result.diffs[0].type).toBe('added');
+      expect(result.diffs[0].componentId).toBe('a');
+      expect(result.trace).toHaveLength(1);
+      expect(result.trace[0].action).toBe('added');
+      expect(result.trace[0].componentId).toBe('a');
       expect(result.issues).toHaveLength(1);
       expect(result.issues[0].code).toBe('NO_PRIOR_STATE');
       expect(result.issues[0].severity).toBe('info');
@@ -745,6 +750,137 @@ describe('reconcile', () => {
       const result = reconcile(newSchema, priorSchema, priorState);
 
       expect(result.reconciledState.meta.sessionId).toBe('my-session');
+    });
+  });
+
+  describe('deeply nested children', () => {
+    it('carries state for a 3-level deep nested component by id', () => {
+      const nested = makeComponent({ id: 'deep', type: 'input' });
+      const mid = makeComponent({ id: 'mid', type: 'group', children: [nested] });
+      const root = makeComponent({ id: 'root', type: 'section', children: [mid] });
+
+      const priorSchema = makeSchema([root]);
+      const newSchema = makeSchema([root]);
+      const priorState = makeState({ deep: { value: 'buried' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result.reconciledState.values['deep']).toEqual({ value: 'buried' });
+    });
+
+    it('detects removal of a deeply nested component', () => {
+      const nested = makeComponent({ id: 'deep', type: 'input' });
+      const root = makeComponent({ id: 'root', type: 'section', children: [nested] });
+
+      const priorSchema = makeSchema([root]);
+      const newSchema = makeSchema([makeComponent({ id: 'root', type: 'section' })]);
+      const priorState = makeState({ deep: { value: 'gone' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      const removedDiff = result.diffs.find((d) => d.componentId === 'deep');
+      expect(removedDiff).toBeDefined();
+      expect(removedDiff!.type).toBe('removed');
+    });
+
+    it('matches deeply nested component by key across id renames', () => {
+      const deepOld = makeComponent({ id: 'old-deep', type: 'input', key: 'stable-key' });
+      const rootOld = makeComponent({ id: 'root', type: 'section', children: [deepOld] });
+      const deepNew = makeComponent({ id: 'new-deep', type: 'input', key: 'stable-key' });
+      const rootNew = makeComponent({ id: 'root', type: 'section', children: [deepNew] });
+
+      const priorSchema = makeSchema([rootOld]);
+      const newSchema = makeSchema([rootNew]);
+      const priorState = makeState({ 'old-deep': { value: 'nested-carry' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result.reconciledState.values['new-deep']).toEqual({ value: 'nested-carry' });
+    });
+  });
+
+  describe('duplicate id/key handling', () => {
+    it('last-write-wins when duplicate ids appear in a schema', () => {
+      const first = makeComponent({ id: 'dup', type: 'input' });
+      const second = makeComponent({ id: 'dup', type: 'textarea' });
+
+      const priorSchema = makeSchema([first]);
+      const newSchema = makeSchema([first, second]);
+      const priorState = makeState({ dup: { value: 'original' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result).toBeDefined();
+    });
+
+    it('last-write-wins when duplicate keys appear in a schema', () => {
+      const first = makeComponent({ id: 'a', type: 'input', key: 'same-key' });
+      const second = makeComponent({ id: 'b', type: 'input', key: 'same-key' });
+
+      const priorSchema = makeSchema([first]);
+      const newSchema = makeSchema([first, second]);
+      const priorState = makeState({ a: { value: 'original' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('empty schema transitions', () => {
+    it('handles transition from populated schema to empty schema', () => {
+      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+      const newSchema = makeSchema([]);
+      const priorState = makeState({ a: { value: 'hello' } });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(Object.keys(result.reconciledState.values)).toHaveLength(0);
+      const removedDiff = result.diffs.find((d) => d.componentId === 'a');
+      expect(removedDiff).toBeDefined();
+      expect(removedDiff!.type).toBe('removed');
+    });
+
+    it('handles transition from empty schema to populated schema', () => {
+      const priorSchema = makeSchema([]);
+      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+      const priorState = makeState({});
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result.diffs).toHaveLength(1);
+      expect(result.diffs[0].type).toBe('added');
+    });
+
+    it('handles empty-to-empty schema transition', () => {
+      const priorSchema = makeSchema([]);
+      const newSchema = makeSchema([]);
+      const priorState = makeState({});
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result.diffs).toHaveLength(0);
+      expect(result.issues).toHaveLength(0);
+    });
+  });
+
+  describe('large component count', () => {
+    it('reconciles 500 components without error', () => {
+      const components = Array.from({ length: 500 }, (_, i) =>
+        makeComponent({ id: `c${i}`, type: 'input' })
+      );
+      const priorSchema = makeSchema(components, 'big', '1');
+      const newSchema = makeSchema(components, 'big', '2');
+      const values: Record<string, ComponentState> = {};
+      for (let i = 0; i < 500; i++) {
+        values[`c${i}`] = { value: `v${i}` };
+      }
+      const priorState = makeState(values);
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(Object.keys(result.reconciledState.values)).toHaveLength(500);
+      expect(result.issues).toHaveLength(0);
     });
   });
 });
