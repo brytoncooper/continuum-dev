@@ -1,6 +1,6 @@
 # Current Limitations
 
-**Last audited:** 2026-02-22
+**Last audited:** 2026-02-24
 
 This document catalogs what Continuum can and can't do today. It is a living document -- gaps are marked `OPEN`, `IN PROGRESS`, or `CLOSED` as work progresses.
 
@@ -52,9 +52,9 @@ The reconciler supports configuration like custom migration strategies, a strate
 
 ---
 
-**No input validation on deserialize** `OPEN`
+**No input validation on deserialize** `CLOSED`
 
-When a session is restored from localStorage, the deserialized data is trusted without any validation. Corrupt data, a different app's data in the same storage key, or manually tampered data can produce a broken session that will throw errors later with no clear cause.
+Deserialization now validates payload shape before reconstructing `SessionState` (object payload, string `sessionId`, numeric `formatVersion` when present, object-or-null schema/state fields, and array-typed collection fields). Invalid blobs fail fast with explicit errors.
 
 *When this matters:* Any production deployment where localStorage is shared or users have dev tools access.
 
@@ -96,9 +96,9 @@ The `type` field on recorded interactions (the event log) is a plain string with
 
 ---
 
-**'modified' diff type is never emitted** `OPEN`
+**'modified' diff type is never emitted** `CLOSED`
 
-The constant `DIFF_TYPES.MODIFIED` exists and is exported, but the reconciler never produces it. Diffs are either `added`, `removed`, `migrated`, or `type-changed`. There is no diff for "this component existed before and its value was carried." A developer building UI around diffs would never see `modified`, even though the constant implies it's possible.
+`DIFF_TYPES.MODIFIED` was removed from the contract to match actual runtime behavior. Diff types now only include values emitted by the reconciler.
 
 ---
 
@@ -220,9 +220,9 @@ After calling `session.destroy()`, methods like `getSnapshot()` return `null` an
 
 ---
 
-**Snapshot hook has stale-frame issue** `OPEN`
+**Snapshot hook has stale-frame issue** `CLOSED`
 
-`useContinuumSnapshot` and `useContinuumDiagnostics` use `useState` + `useEffect` rather than `useSyncExternalStore`. There is a single render frame after a session change where the hook returns stale data before the effect syncs.
+`useContinuumSnapshot` and `useContinuumDiagnostics` now use `useSyncExternalStore`, matching `useContinuumState` and removing the stale-frame window.
 
 ---
 
@@ -232,15 +232,15 @@ The `ViewportState` type (scroll position, zoom, offset) is defined in the contr
 
 ---
 
-**pathPrefix parameter unused** `OPEN`
+**pathPrefix parameter unused** `CLOSED`
 
-The `indexComponents` function in the reconciler accepts a `pathPrefix` parameter but never uses it or threads it through recursion. The parameter exists in the signature but has no effect.
+The unused `pathPrefix` parameter was removed from the component indexing function.
 
 ---
 
-**strictMode option accepted but ignored** `OPEN`
+**strictMode option accepted but ignored** `CLOSED`
 
-The reconciler accepts a `strictMode` option in `ReconciliationOptions` but never checks it. The option has zero effect on behavior.
+The unused `strictMode` option was removed from `ReconciliationOptions` to eliminate dead API surface.
 
 ---
 
