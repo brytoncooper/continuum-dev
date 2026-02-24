@@ -26,7 +26,7 @@ export function buildFreshSessionResult(
   const diffs: StateDiff[] = [];
   const trace: ReconciliationTrace[] = [];
 
-  collectInitialComponents(newSchema.components, diffs, trace);
+  collectComponentsAsFreshlyAdded(newSchema.components, diffs, trace);
 
   return {
     reconciledState: {
@@ -50,7 +50,7 @@ export function buildFreshSessionResult(
   };
 }
 
-function collectInitialComponents(
+function collectComponentsAsFreshlyAdded(
   components: ComponentDefinition[],
   diffs: StateDiff[],
   trace: ReconciliationTrace[]
@@ -58,8 +58,24 @@ function collectInitialComponents(
   for (const comp of components) {
     diffs.push(addedDiff(comp.id));
     trace.push(addedTrace(comp.id, comp.type));
-    if (comp.children) collectInitialComponents(comp.children, diffs, trace);
+    if (comp.children) collectComponentsAsFreshlyAdded(comp.children, diffs, trace);
   }
+}
+
+function collectComponentIds(components: ComponentDefinition[]): Set<string> {
+  const ids = new Set<string>();
+
+  function walk(nodes: ComponentDefinition[]): void {
+    for (const node of nodes) {
+      ids.add(node.id);
+      if (node.children) {
+        walk(node.children);
+      }
+    }
+  }
+
+  walk(components);
+  return ids;
 }
 
 export function buildBlindCarryResult(
@@ -77,7 +93,7 @@ export function buildBlindCarryResult(
   ];
 
   if (options.allowBlindCarry) {
-    const newIds = new Set(newSchema.components.map((c) => c.id));
+    const newIds = collectComponentIds(newSchema.components);
     const carriedValues: Record<string, ComponentState> = {};
     for (const [id, value] of Object.entries(priorState.values)) {
       if (newIds.has(id)) {
