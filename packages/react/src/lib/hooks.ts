@@ -1,7 +1,21 @@
-import { useContext, useCallback, useState, useEffect, useSyncExternalStore } from 'react';
+import { useContext, useCallback, useRef, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
 import type { ContinuitySnapshot, ComponentState } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
+
+function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export function useContinuumSession(): Session {
   const ctx = useContext(ContinuumContext);
@@ -42,45 +56,97 @@ export function useContinuumState(
 
 export function useContinuumSnapshot(): ContinuitySnapshot | null {
   const session = useContinuumSession();
-  const [snapshot, setSnapshot] = useState<ContinuitySnapshot | null>(
-    () => session.getSnapshot()
+  const snapshotCacheRef = useRef<{
+    schema: ContinuitySnapshot['schema'] | null;
+    state: ContinuitySnapshot['state'] | null;
+    snapshot: ContinuitySnapshot | null;
+  }>({
+    schema: null,
+    state: null,
+    snapshot: null,
+  });
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => session.onSnapshot(() => onStoreChange()),
+    [session]
   );
 
-  useEffect(() => {
-    setSnapshot(session.getSnapshot());
-    return session.onSnapshot(setSnapshot);
+  const getSnapshot = useCallback(() => {
+    const nextSnapshot = session.getSnapshot();
+    const cache = snapshotCacheRef.current;
+
+    if (!nextSnapshot) {
+      cache.schema = null;
+      cache.state = null;
+      cache.snapshot = null;
+      return null;
+    }
+
+    if (
+      cache.snapshot &&
+      cache.schema === nextSnapshot.schema &&
+      cache.state === nextSnapshot.state
+    ) {
+      return cache.snapshot;
+    }
+
+    cache.schema = nextSnapshot.schema;
+    cache.state = nextSnapshot.state;
+    cache.snapshot = nextSnapshot;
+    return nextSnapshot;
   }, [session]);
 
-  return snapshot;
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function useContinuumDiagnostics() {
   const session = useContinuumSession();
+  const diagnosticsCacheRef = useRef<{
+    issues: ReturnType<Session['getIssues']>;
+    diffs: ReturnType<Session['getDiffs']>;
+    trace: ReturnType<Session['getTrace']>;
+    checkpoints: ReturnType<Session['getCheckpoints']>;
+  } | null>(null);
 
-  const read = useCallback(
-    () => ({
-      issues: session.getIssues(),
-      diffs: session.getDiffs(),
-      trace: session.getTrace(),
-      checkpoints: session.getCheckpoints(),
-    }),
+  const getSnapshot = useCallback(
+    () => {
+      const nextDiagnostics = {
+        issues: session.getIssues(),
+        diffs: session.getDiffs(),
+        trace: session.getTrace(),
+        checkpoints: session.getCheckpoints(),
+      };
+      const cachedDiagnostics = diagnosticsCacheRef.current;
+
+      if (
+        cachedDiagnostics &&
+        shallowArrayEqual(cachedDiagnostics.issues, nextDiagnostics.issues) &&
+        shallowArrayEqual(cachedDiagnostics.diffs, nextDiagnostics.diffs) &&
+        shallowArrayEqual(cachedDiagnostics.trace, nextDiagnostics.trace) &&
+        shallowArrayEqual(cachedDiagnostics.checkpoints, nextDiagnostics.checkpoints)
+      ) {
+        return cachedDiagnostics;
+      }
+
+      diagnosticsCacheRef.current = nextDiagnostics;
+      return nextDiagnostics;
+    },
     [session]
   );
 
-  const [state, setState] = useState(read);
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const unsub1 = session.onSnapshot(() => onStoreChange());
+      const unsub2 = session.onIssues(() => onStoreChange());
+      return () => {
+        unsub1();
+        unsub2();
+      };
+    },
+    [session]
+  );
 
-  useEffect(() => {
-    setState(read());
-    const refresh = () => setState(read());
-    const unsub1 = session.onSnapshot(refresh);
-    const unsub2 = session.onIssues(refresh);
-    return () => {
-      unsub1();
-      unsub2();
-    };
-  }, [session, read]);
-
-  return state;
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function useContinuumHydrated(): boolean {
