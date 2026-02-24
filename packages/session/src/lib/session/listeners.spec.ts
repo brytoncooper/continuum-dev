@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState } from './session-state.js';
+import { createEmptySessionState } from './session-state.js';
 import {
-  getSnapshotFromState,
+  buildSnapshotFromCurrentState,
   notifySnapshotListeners,
   notifyIssueListeners,
-  notifyAllListeners,
+  notifySnapshotAndIssueListeners,
 } from './listeners.js';
 import type { SchemaSnapshot, StateSnapshot } from '@continuum/contract';
 
@@ -16,23 +16,23 @@ function makeState(): StateSnapshot {
   return { values: {}, meta: { timestamp: 1000, sessionId: 'test' } };
 }
 
-describe('getSnapshotFromState', () => {
+describe('buildSnapshotFromCurrentState', () => {
   it('returns null when no schema is set', () => {
-    const internal = createInitialState('s', () => 0);
-    expect(getSnapshotFromState(internal)).toBeNull();
+    const internal = createEmptySessionState('s', () => 0);
+    expect(buildSnapshotFromCurrentState(internal)).toBeNull();
   });
 
   it('returns null when no state is set', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     internal.currentSchema = makeSchema();
-    expect(getSnapshotFromState(internal)).toBeNull();
+    expect(buildSnapshotFromCurrentState(internal)).toBeNull();
   });
 
   it('returns snapshot when both schema and state are set', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     internal.currentSchema = makeSchema();
     internal.currentState = makeState();
-    const snapshot = getSnapshotFromState(internal);
+    const snapshot = buildSnapshotFromCurrentState(internal);
     expect(snapshot).not.toBeNull();
     expect(snapshot!.schema).toBe(internal.currentSchema);
     expect(snapshot!.state).toBe(internal.currentState);
@@ -41,7 +41,7 @@ describe('getSnapshotFromState', () => {
 
 describe('notifySnapshotListeners', () => {
   it('calls all registered snapshot listeners', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     internal.currentSchema = makeSchema();
     internal.currentState = makeState();
     const listener1 = vi.fn();
@@ -56,7 +56,7 @@ describe('notifySnapshotListeners', () => {
   });
 
   it('does not call listeners when snapshot is null', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     const listener = vi.fn();
     internal.snapshotListeners.add(listener);
 
@@ -68,7 +68,7 @@ describe('notifySnapshotListeners', () => {
 
 describe('notifyIssueListeners', () => {
   it('calls all registered issue listeners with a copy of issues', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     internal.issues = [{ severity: 'info', message: 'test', code: 'TEST' }];
     const listener = vi.fn();
     internal.issueListeners.add(listener);
@@ -81,9 +81,9 @@ describe('notifyIssueListeners', () => {
   });
 });
 
-describe('notifyAllListeners', () => {
+describe('notifySnapshotAndIssueListeners', () => {
   it('calls both snapshot and issue listeners', () => {
-    const internal = createInitialState('s', () => 0);
+    const internal = createEmptySessionState('s', () => 0);
     internal.currentSchema = makeSchema();
     internal.currentState = makeState();
     const snapshotListener = vi.fn();
@@ -91,7 +91,7 @@ describe('notifyAllListeners', () => {
     internal.snapshotListeners.add(snapshotListener);
     internal.issueListeners.add(issueListener);
 
-    notifyAllListeners(internal);
+    notifySnapshotAndIssueListeners(internal);
 
     expect(snapshotListener).toHaveBeenCalledOnce();
     expect(issueListener).toHaveBeenCalledOnce();
