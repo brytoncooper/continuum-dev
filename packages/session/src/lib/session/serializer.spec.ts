@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './session-state.js';
+import { createEmptySessionState } from './session-state.js';
 import { serializeSession, deserializeToState } from './serializer.js';
 
 describe('serializeSession', () => {
   it('returns a JSON-serializable object with formatVersion', () => {
-    const internal = createInitialState('my-session', () => 1000);
+    const internal = createEmptySessionState('my-session', () => 1000);
     internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
     internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 'my-session' } };
 
@@ -16,7 +16,7 @@ describe('serializeSession', () => {
   });
 
   it('includes all session data', () => {
-    const internal = createInitialState('s', () => 1000);
+    const internal = createEmptySessionState('s', () => 1000);
     internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
     internal.eventLog = [{ id: 'i1', sessionId: 's', componentId: 'a', type: 'x', payload: {}, timestamp: 1, schemaVersion: '1.0' }];
 
@@ -28,7 +28,7 @@ describe('serializeSession', () => {
 
 describe('deserializeToState', () => {
   it('reconstructs SessionState from serialized data', () => {
-    const internal = createInitialState('s', () => 1000);
+    const internal = createEmptySessionState('s', () => 1000);
     internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
     internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 's' } };
     const serialized = serializeSession(internal);
@@ -65,5 +65,26 @@ describe('deserializeToState', () => {
     expect(restored.pendingActions).toEqual([]);
     expect(restored.checkpoints).toEqual([]);
     expect(restored.issues).toEqual([]);
+  });
+
+  it('throws when payload is not an object', () => {
+    expect(() => deserializeToState('bad', () => 0)).toThrow('Invalid serialized session');
+  });
+
+  it('throws when sessionId is missing or not a string', () => {
+    expect(() => deserializeToState({}, () => 0)).toThrow('sessionId');
+    expect(() => deserializeToState({ sessionId: 1 }, () => 0)).toThrow('sessionId');
+  });
+
+  it('throws when collection fields are not arrays', () => {
+    const bad = {
+      sessionId: 's',
+      currentSchema: null,
+      currentState: null,
+      priorSchema: null,
+      eventLog: {},
+    };
+
+    expect(() => deserializeToState(bad, () => 0)).toThrow('eventLog');
   });
 });
