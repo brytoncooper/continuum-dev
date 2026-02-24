@@ -4,7 +4,9 @@
     "jsx": "react-jsx",
     "rootDir": "src",
     "outDir": "../../dist/packages/react",
-    "types": ["node"]
+    "tsBuildInfoFile": "../../dist/packages/react/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "lib": ["es2022", "dom"]
   },
   "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
   "include": ["src/**/*.ts", "src/**/*.tsx"],
