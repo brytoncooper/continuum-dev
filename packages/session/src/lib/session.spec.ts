@@ -662,5 +662,259 @@ describe('Session Ledger', () => {
 
       expect(restored.getSnapshot()).toEqual(session.getSnapshot());
     });
+
+    it('serialize output includes formatVersion', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      const serialized = session.serialize() as Record<string, unknown>;
+      expect(serialized.formatVersion).toBe(1);
+    });
+
+    it('deserialize rejects unknown formatVersion', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      const blob = { ...(session.serialize() as Record<string, unknown>), formatVersion: 999 };
+      expect(() => deserialize(blob)).toThrow();
+    });
+
+    it('deserialize accepts formatVersion 1', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.updateState('a', { value: 'hello' });
+      const restored = deserialize(session.serialize());
+      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'hello' });
+    });
+
+    it('deserialize handles legacy blobs without formatVersion', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.updateState('a', { value: 'legacy' });
+      const blob = session.serialize() as Record<string, unknown>;
+      delete blob.formatVersion;
+      const restored = deserialize(blob);
+      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'legacy' });
+    });
+  });
+
+  describe('checkpoint stack and rewind', () => {
+    it('getCheckpoints returns empty array before any schema push', () => {
+      const session = createSession();
+      expect(session.getCheckpoints()).toEqual([]);
+    });
+
+    it('pushSchema auto-creates a checkpoint', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      expect(session.getCheckpoints()).toHaveLength(1);
+    });
+
+    it('each pushSchema adds a new checkpoint', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      expect(session.getCheckpoints()).toHaveLength(2);
+    });
+
+    it('checkpoint contains the schema and state at the time it was created', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'hello' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+
+      const checkpoints = session.getCheckpoints();
+      expect(checkpoints[0].snapshot.schema.schemaId).toBe('s1');
+      expect(checkpoints[1].snapshot.schema.schemaId).toBe('s2');
+      expect(checkpoints[1].snapshot.state.values['a']).toEqual({ value: 'hello' });
+    });
+
+    it('rewind restores session to a prior checkpoint', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'hello' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.updateState('b', { value: 'world' });
+
+      const checkpoints = session.getCheckpoints();
+      session.rewind(checkpoints[1].id);
+
+      expect(session.getSnapshot()!.schema.schemaId).toBe('s2');
+      expect(session.getSnapshot()!.state.values['a']).toEqual({ value: 'hello' });
+
+      session.rewind(session.getCheckpoints()[0].id);
+      expect(session.getSnapshot()!.schema.schemaId).toBe('s1');
+    });
+
+    it('rewind trims the checkpoint stack to the rewound point', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's3', '3'));
+
+      expect(session.getCheckpoints()).toHaveLength(3);
+
+      const checkpoints = session.getCheckpoints();
+      session.rewind(checkpoints[0].id);
+
+      expect(session.getCheckpoints()).toHaveLength(1);
+    });
+
+    it('rewind throws if checkpoint id is unknown', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      expect(() => session.rewind('nonexistent')).toThrow();
+    });
+
+    it('rewind notifies snapshot listeners', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+
+      const snapshots: unknown[] = [];
+      session.onSnapshot((s) => snapshots.push(s));
+
+      session.rewind(session.getCheckpoints()[0].id);
+      expect(snapshots).toHaveLength(1);
+      expect((snapshots[0] as { schema: { schemaId: string } }).schema.schemaId).toBe('s1');
+    });
+
+    it('checkpoints survive serialize/deserialize round-trip', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'persisted' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+
+      const restored = deserialize(session.serialize());
+      expect(restored.getCheckpoints()).toHaveLength(2);
+      expect(restored.getCheckpoints()[0].snapshot.schema.schemaId).toBe('s1');
+    });
+
+    it('rewind works after deserialize', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'before' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.updateState('b', { value: 'after' });
+
+      const restored = deserialize(session.serialize());
+      const checkpoints = restored.getCheckpoints();
+      restored.rewind(checkpoints[1].id);
+
+      expect(restored.getSnapshot()!.schema.schemaId).toBe('s2');
+      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'before' });
+      expect(restored.getSnapshot()!.state.values['b']).toBeUndefined();
+    });
+
+    it('auto-checkpoint captures state updates made before next pushSchema', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'typed' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+
+      const checkpoints = session.getCheckpoints();
+      expect(checkpoints[1].snapshot.state.values['a']).toEqual({ value: 'typed' });
+    });
+  });
+
+  describe('edge cases', () => {
+    it('listener can remove itself during notification without breaking iteration', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+
+      let selfRemoveCalled = false;
+      let secondCalled = false;
+
+      const unsub = session.onSnapshot(() => {
+        selfRemoveCalled = true;
+        unsub();
+      });
+
+      session.onSnapshot(() => {
+        secondCalled = true;
+      });
+
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+
+      expect(selfRemoveCalled).toBe(true);
+      expect(secondCalled).toBe(true);
+    });
+
+    it('listener added during notification is called in the same cycle due to Set iteration', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+
+      let lateCalled = false;
+
+      session.onSnapshot(() => {
+        session.onSnapshot(() => {
+          lateCalled = true;
+        });
+      });
+
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+
+      expect(lateCalled).toBe(true);
+    });
+
+    it('handles transition from populated schema to empty schema', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.updateState('a', { value: 'hello' });
+
+      session.pushSchema(makeSchema([], 's2', '2'));
+
+      const snapshot = session.getSnapshot();
+      expect(Object.keys(snapshot!.state.values)).toHaveLength(0);
+    });
+
+    it('handles empty schema as the very first push', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([]));
+
+      const snapshot = session.getSnapshot();
+      expect(snapshot).not.toBeNull();
+      expect(Object.keys(snapshot!.state.values)).toHaveLength(0);
+    });
+
+    it('handles rapid successive schema pushes', () => {
+      const session = createSession();
+      for (let i = 0; i < 50; i++) {
+        session.pushSchema(
+          makeSchema(
+            [makeComponent({ id: 'a', type: 'input' })],
+            `s${i}`,
+            `${i}`
+          )
+        );
+      }
+
+      const snapshot = session.getSnapshot();
+      expect(snapshot!.schema.version).toBe('49');
+      expect(session.getCheckpoints()).toHaveLength(50);
+    });
+
+    it('handles deeply nested children state carry across pushes', () => {
+      const deep = makeComponent({ id: 'deep', type: 'input' });
+      const mid = makeComponent({ id: 'mid', type: 'group', children: [deep] });
+      const root = makeComponent({ id: 'root', type: 'section', children: [mid] });
+
+      const session = createSession();
+      session.pushSchema(makeSchema([root], 's1', '1'));
+      session.updateState('deep', { value: 'nested' });
+
+      session.pushSchema(makeSchema([root], 's2', '2'));
+
+      expect(session.getSnapshot()!.state.values['deep']).toEqual({ value: 'nested' });
+    });
+
+    it('updateState and recordIntent ignore calls after destroy', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.destroy();
+
+      session.updateState('a', { value: 'nope' });
+      session.recordIntent({ componentId: 'a', type: 'value-change', payload: { value: 'nope' } });
+
+      expect(session.getEventLog()).toHaveLength(0);
+    });
   });
 });
