@@ -1,205 +1,116 @@
-# Nx TypeScript Repository
+# Continuum
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+**Protocol-agnostic state continuity for schema-driven UIs.**
 
-✨ A repository showcasing key [Nx](https://nx.dev) features for TypeScript monorepos ✨
-## Finish your Nx platform setup
+Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a schema update reorganizes your form, or a user refreshes the page -- their data stays intact.
 
-🚀 [Finish setting up your workspace](https://cloud.nx.app/connect/qnzJSqTUl2) to get faster builds with remote caching, distributed task execution, and self-healing CI. [Learn more about Nx Cloud](https://nx.dev/ci/intro/why-nx-cloud).
-## 📦 Project Overview
+## Why Continuum
 
-This repository demonstrates a production-ready TypeScript monorepo with:
+Schema-driven UIs are fragile. An AI generates a form, the user fills it out, the AI regenerates -- and everything the user typed is gone. Continuum solves this with deterministic reconciliation: match components across schema versions, carry state forward, migrate when shapes change, and log what happened.
 
-- **3 Publishable Packages** - Ready for NPM publishing
+**For AI developers:** Your agent generates UI schemas. Continuum handles the state lifecycle -- persistence, reconciliation, rewind, and audit trail -- so your agent can focus on generating, not bookkeeping.
 
-  - `@continuum/strings` - String manipulation utilities
-  - `@continuum/async` - Async utility functions with retry logic
-  - `@continuum/colors` - Color conversion and manipulation utilities
+**For app developers:** Drop-in persistent, rewindable state for any React app. When you add AI later, your app is already wired for it.
 
-- **1 Internal Library**
-  - `@continuum/utils` - Shared utilities (private, not published)
+## Packages
 
-## 🚀 Quick Start
+| Package | Description |
+|---|---|
+| `@continuum/contract` | Core types and constants -- SchemaSnapshot, StateSnapshot, Checkpoint |
+| `@continuum/runtime` | Reconciliation engine -- diffs schemas, carries state, logs traces |
+| `@continuum/session` | Session manager -- orchestrates pushSchema, updateState, checkpoint, rewind, serialize |
+| `@continuum/react` | React bindings -- Provider, Renderer, hooks |
+| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into SchemaSnapshot |
 
-```bash
-# Clone the repository
-git clone <your-fork-url>
-cd typescript-template
-
-# Install dependencies
-npm install
-
-# Build all packages
-npx nx run-many -t build
-
-# Run tests
-npx nx run-many -t test
-
-# Lint all projects
-npx nx run-many -t lint
-
-# Run everything in parallel
-npx nx run-many -t lint test build --parallel=3
-
-# Visualize the project graph
-npx nx graph
-```
-
-## ⭐ Featured Nx Capabilities
-
-This repository showcases several powerful Nx features:
-
-### 1. 🔒 Module Boundaries
-
-Enforces architectural constraints using tags. Each package has specific dependencies it can use:
-
-- `scope:shared` (utils) - Can be used by all packages
-- `scope:strings` - Can only depend on shared utilities
-- `scope:async` - Can only depend on shared utilities
-- `scope:colors` - Can only depend on shared utilities
-
-**Try it out:**
+## Quick Start
 
 ```bash
-# See the current project graph and boundaries
-npx nx graph
-
-# View a specific project's details
-npx nx show project strings --web
+npm install @continuum/react @continuum/contract
 ```
 
-[Learn more about module boundaries →](https://nx.dev/features/enforce-module-boundaries)
+```tsx
+import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/react';
+import type { SchemaSnapshot } from '@continuum/contract';
 
-### 2. 🛠️ Custom Run Commands
+const componentMap = {
+  input: MyInputComponent,
+  toggle: MyToggleComponent,
+  select: MySelectComponent,
+};
 
-Packages can define custom commands beyond standard build/test/lint:
+function App() {
+  return (
+    <ContinuumProvider components={componentMap} persist="localStorage">
+      <YourApp />
+    </ContinuumProvider>
+  );
+}
+
+function YourApp() {
+  const session = useContinuumSession();
+
+  function handleSchemaFromAgent(schema: SchemaSnapshot) {
+    session.pushSchema(schema);
+  }
+
+  const snapshot = session.getSnapshot();
+
+  return snapshot ? (
+    <ContinuumRenderer schema={snapshot.schema} />
+  ) : null;
+}
+```
+
+State is automatically reconciled on each `pushSchema`. User input is preserved across schema changes when components match by key or ID. Sessions persist to localStorage and survive refresh.
+
+## Key Features
+
+**Reconciliation** -- Deterministic algorithm that matches components across schema versions by ID, key, and type. Carries forward state for matches, drops for type mismatches, and supports custom migration strategies.
+
+**Auto-Checkpoint & Rewind** -- Every `pushSchema` creates a checkpoint. Call `session.getCheckpoints()` to see the timeline and `session.rewind(id)` to restore any prior version instantly.
+
+**Serialization** -- `session.serialize()` produces a versioned JSON blob containing the full session state, schema, event log, and checkpoints. `deserialize()` reconstructs a working session. Format-versioned for forward compatibility.
+
+**Persistence** -- The React provider handles localStorage/sessionStorage persistence automatically. Sessions rehydrate on page load with full state intact.
+
+**Audit Trail** -- Every schema push generates a reconciliation trace (what was carried, migrated, dropped, added) and diffs. Every user interaction is logged with timestamps.
+
+## Development
 
 ```bash
-# Run the custom build-base command for strings package
-npx nx run strings:build-base
-
-# See all available targets for a project
-npx nx show project strings
+npx nx run-many -t test        # Run all tests
+npx nx run-many -t build       # Build all packages
+npx nx run playground:dev      # Run the playground demo
+npx nx run playground:e2e      # Run e2e tests
 ```
 
-[Learn more about custom run commands →](https://nx.dev/concepts/executors-and-configurations)
-
-### 3. 🔧 Self-Healing CI
-
-The CI pipeline includes `nx fix-ci` which automatically identifies and suggests fixes for common issues. To test it, you can make a change to `async-retry.spec.ts` so that it fails, and create a PR.
-
-```bash
-# Run tests and see the failure
-npx nx test async
-
-# In CI, this command provides automated fixes
-npx nx fix-ci
-```
-
-[Learn more about self-healing CI →](https://nx.dev/ci/features/self-healing-ci)
-
-### 4. 📦 Package Publishing
-
-Manage releases and publishing with Nx Release:
-
-```bash
-# Dry run to see what would be published
-npx nx release --dry-run
-
-# Version and release packages
-npx nx release
-
-# Publish only specific packages
-npx nx release publish --projects=strings,colors
-```
-
-[Learn more about Nx Release →](https://nx.dev/features/manage-releases)
-
-## 📁 Project Structure
+## Architecture
 
 ```
-├── packages/
-│   ├── strings/     [scope:strings] - String utilities (publishable)
-│   ├── async/       [scope:async]   - Async utilities (publishable)
-│   ├── colors/      [scope:colors]  - Color utilities (publishable)
-│   └── utils/       [scope:shared]  - Shared utilities (private)
-├── nx.json          - Nx configuration
-├── tsconfig.json    - TypeScript configuration
-└── eslint.config.mjs - ESLint with module boundary rules
+@continuum/contract    (types, constants)
+       ↓
+@continuum/runtime     (reconciliation engine)
+       ↓
+@continuum/session     (session lifecycle)
+       ↓
+@continuum/react       (React bindings)
+       ↓
+apps/playground        (demo application)
+
+@continuum/adapters    (protocol adapters, depends on contract)
 ```
 
-## 🏷️ Understanding Tags
+## Documentation
 
-This repository uses tags to enforce module boundaries:
+| Guide | Description |
+|---|---|
+| [Quick Start](docs/QUICK_START.md) | 5-minute integration guide with copy-paste code |
+| [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent schemas, custom migrations, protocol adapters, persistence, lifecycle |
+| [Schema Contract](docs/SCHEMA_CONTRACT.md) | Definitive reference for SchemaSnapshot format and reconciliation rules |
+| [AI Integration](docs/AI_INTEGRATION.md) | Connecting an AI agent to Continuum with prompt templates and examples |
 
-| Package        | Tag             | Can Import From        |
-| -------------- | --------------- | ---------------------- |
-| `@continuum/utils`   | `scope:shared`  | Nothing (base library) |
-| `@continuum/strings` | `scope:strings` | `scope:shared`         |
-| `@continuum/async`   | `scope:async`   | `scope:shared`         |
-| `@continuum/colors`  | `scope:colors`  | `scope:shared`         |
+See [docs/](docs/README.md) for the full documentation index -- product vision, architecture, current gaps, and the phase roadmap.
 
-The ESLint configuration enforces these boundaries, preventing circular dependencies and maintaining clean architecture.
+## License
 
-## 🧪 Testing Module Boundaries
-
-To see module boundary enforcement in action:
-
-1. Try importing `@continuum/colors` into `@continuum/strings`
-2. Run `npx nx lint strings`
-3. You'll see an error about violating module boundaries
-
-## 📚 Useful Commands
-
-```bash
-# Project exploration
-npx nx graph                                    # Interactive dependency graph
-npx nx list                                     # List installed plugins
-npx nx show project strings --web              # View project details
-
-# Development
-npx nx build strings                           # Build a specific package
-npx nx test async                              # Test a specific package
-npx nx lint colors                             # Lint a specific package
-
-# Running multiple tasks
-npx nx run-many -t build                       # Build all projects
-npx nx run-many -t test --parallel=3          # Test in parallel
-npx nx run-many -t lint test build            # Run multiple targets
-
-# Affected commands (great for CI)
-npx nx affected -t build                       # Build only affected projects
-npx nx affected -t test                        # Test only affected projects
-
-# Release management
-npx nx release --dry-run                       # Preview release changes
-npx nx release                                 # Create a new release
-```
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## 🔗 Learn More
-
-- [Nx Documentation](https://nx.dev)
-- [Module Boundaries](https://nx.dev/features/enforce-module-boundaries)
-- [Custom Commands](https://nx.dev/concepts/executors-and-configurations)
-- [Self-Healing CI](https://nx.dev/ci/features/self-healing-ci)
-- [Releasing Packages](https://nx.dev/features/manage-releases)
-- [Nx Cloud](https://nx.dev/ci/intro/why-nx-cloud)
-
-## 💬 Community
-
-Join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [X (Twitter)](https://twitter.com/nxdevtools)
-- [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [YouTube](https://www.youtube.com/@nxdevtools)
-- [Blog](https://nx.dev/blog)
+MIT
