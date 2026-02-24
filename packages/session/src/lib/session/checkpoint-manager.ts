@@ -1,10 +1,13 @@
 import type { Checkpoint } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
-import { getSnapshotFromState, notifyAllListeners } from './listeners.js';
+import {
+  buildSnapshotFromCurrentState,
+  notifySnapshotAndIssueListeners,
+} from './listeners.js';
 
 export function autoCheckpoint(internal: SessionState): void {
-  const snapshot = getSnapshotFromState(internal);
+  const snapshot = buildSnapshotFromCurrentState(internal);
   if (!snapshot) return;
 
   internal.checkpoints.push({
@@ -17,7 +20,7 @@ export function autoCheckpoint(internal: SessionState): void {
 }
 
 export function createManualCheckpoint(internal: SessionState): Checkpoint {
-  const snapshot = getSnapshotFromState(internal)!;
+  const snapshot = buildSnapshotFromCurrentState(internal)!;
   return {
     id: generateId('cp', internal.clock),
     sessionId: internal.sessionId,
@@ -30,8 +33,8 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
 export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): void {
   if (internal.destroyed) return;
 
-  internal.currentSchema = cp.snapshot.schema;
-  internal.currentState = cp.snapshot.state;
+  internal.currentSchema = JSON.parse(JSON.stringify(cp.snapshot.schema));
+  internal.currentState = JSON.parse(JSON.stringify(cp.snapshot.state));
   internal.priorSchema = null;
   internal.eventLog = internal.eventLog.slice(0, cp.eventIndex);
   internal.issues = [];
@@ -39,7 +42,7 @@ export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): v
   internal.trace = [];
   internal.pendingActions = [];
 
-  notifyAllListeners(internal);
+  notifySnapshotAndIssueListeners(internal);
 }
 
 export function rewind(internal: SessionState, checkpointId: string): void {
@@ -58,5 +61,5 @@ export function rewind(internal: SessionState, checkpointId: string): void {
   internal.trace = [];
   internal.pendingActions = [];
 
-  notifyAllListeners(internal);
+  notifySnapshotAndIssueListeners(internal);
 }
