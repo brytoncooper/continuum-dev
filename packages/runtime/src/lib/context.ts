@@ -1,4 +1,4 @@
-import type { ComponentDefinition, SchemaSnapshot } from '@continuum/contract';
+import type { ComponentDefinition, SchemaSnapshot, StateSnapshot } from '@continuum/contract';
 
 export interface ReconciliationContext {
   newSchema: SchemaSnapshot;
@@ -63,4 +63,29 @@ export function findPriorComponent(
   }
 
   return null;
+}
+
+export function buildPriorValueMap(
+  priorState: StateSnapshot,
+  ctx: ReconciliationContext
+): Map<string, unknown> {
+  const map = new Map<string, unknown>();
+  for (const [priorId, priorValue] of Object.entries(priorState.values)) {
+    map.set(priorId, priorValue);
+    const priorComp = ctx.priorById.get(priorId);
+    if (priorComp?.key) {
+      const newComp = ctx.newByKey.get(priorComp.key);
+      if (newComp) map.set(newComp.id, priorValue);
+    }
+  }
+  return map;
+}
+
+export function determineMatchType(
+  ctx: ReconciliationContext,
+  newComponent: ComponentDefinition,
+  priorComponent: ComponentDefinition | null
+): 'id' | 'key' | null {
+  if (!priorComponent) return null;
+  return ctx.priorById.has(newComponent.id) ? 'id' : 'key';
 }
