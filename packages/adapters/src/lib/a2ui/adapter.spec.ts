@@ -1,10 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { a2uiAdapter, resetCounter } from './adapter.js';
+import { describe, it, expect } from 'vitest';
+import { a2uiAdapter } from './adapter.js';
 import type { A2UIForm } from './types.js';
-
-beforeEach(() => {
-  resetCounter();
-});
 
 describe('a2uiAdapter', () => {
   describe('toSchema', () => {
@@ -185,6 +181,22 @@ describe('a2uiAdapter', () => {
 
       expect(schema.components[0].id).toBe('textinput_1');
       expect(schema.components[1].id).toBe('textinput_2');
+    });
+
+    it('generates the same IDs across repeated toSchema calls', () => {
+      const form: A2UIForm = {
+        fields: [
+          { type: 'TextInput' },
+          { type: 'TextInput' },
+        ],
+      };
+
+      const first = a2uiAdapter.toSchema(form);
+      const second = a2uiAdapter.toSchema(form);
+
+      expect(first.components.map((component) => component.id)).toEqual(
+        second.components.map((component) => component.id)
+      );
     });
 
     it('uses form id and version when provided', () => {
