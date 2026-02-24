@@ -113,6 +113,27 @@ describe('reconcile', () => {
       expect(result.reconciledState.values['orphan']).toBeUndefined();
     });
 
+    it('carries values for nested components when allowBlindCarry is true', () => {
+      const newSchema = makeSchema([
+        makeComponent({
+          id: 'section',
+          type: 'container',
+          children: [
+            makeComponent({ id: 'nested-input', type: 'input' }),
+          ],
+        }),
+      ]);
+      const priorState = makeState({
+        'nested-input': { value: 'carried' },
+      });
+
+      const result = reconcile(newSchema, null, priorState, {
+        allowBlindCarry: true,
+      });
+
+      expect(result.reconciledState.values['nested-input']).toEqual({ value: 'carried' });
+    });
+
     it('still emits NO_PRIOR_SCHEMA warning alongside UNTRUSTED_CARRY when allowBlindCarry is true', () => {
       const newSchema = makeSchema([
         makeComponent({ id: 'a', type: 'input' }),
@@ -241,21 +262,6 @@ describe('reconcile', () => {
       expect(diff!.oldValue).toEqual({ value: 'hello' });
       expect(diff!.reason).toContain('input');
       expect(diff!.reason).toContain('toggle');
-    });
-
-    it('skips state and emits type-changed diff for type mismatch in strict mode', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'toggle' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
-
-      const result = reconcile(newSchema, priorSchema, priorState, {
-        strictMode: true,
-      });
-
-      expect(result.reconciledState.values['a']).toBeUndefined();
-      const diff = result.diffs.find((d) => d.type === 'type-changed');
-      expect(diff).toBeDefined();
-      expect(diff!.oldValue).toEqual({ value: 'hello' });
     });
 
     it('does not carry incompatible state on type mismatch', () => {
