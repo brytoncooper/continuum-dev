@@ -40,11 +40,63 @@ interface SerializedSessionData {
   trace: ReconciliationTrace[];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function assertArrayField(
+  data: Record<string, unknown>,
+  field: keyof SerializedSessionData
+): void {
+  const value = data[field as string];
+  if (value !== undefined && !Array.isArray(value)) {
+    throw new Error(`Invalid serialized session: "${String(field)}" must be an array`);
+  }
+}
+
+function assertObjectOrNullField(
+  data: Record<string, unknown>,
+  field: 'currentSchema' | 'currentState' | 'priorSchema'
+): void {
+  const value = data[field];
+  if (value !== undefined && value !== null && !isRecord(value)) {
+    throw new Error(`Invalid serialized session: "${field}" must be an object or null`);
+  }
+}
+
+function validateSerializedSessionData(data: unknown): asserts data is SerializedSessionData {
+  if (!isRecord(data)) {
+    throw new Error('Invalid serialized session: expected an object');
+  }
+
+  if (typeof data.sessionId !== 'string') {
+    throw new Error('Invalid serialized session: "sessionId" must be a string');
+  }
+
+  if (
+    data.formatVersion !== undefined &&
+    typeof data.formatVersion !== 'number'
+  ) {
+    throw new Error('Invalid serialized session: "formatVersion" must be a number');
+  }
+
+  assertObjectOrNullField(data, 'currentSchema');
+  assertObjectOrNullField(data, 'currentState');
+  assertObjectOrNullField(data, 'priorSchema');
+  assertArrayField(data, 'eventLog');
+  assertArrayField(data, 'pendingActions');
+  assertArrayField(data, 'checkpoints');
+  assertArrayField(data, 'issues');
+  assertArrayField(data, 'diffs');
+  assertArrayField(data, 'trace');
+}
+
 export function deserializeToState(
   data: unknown,
   clock: () => number
 ): SessionState {
-  const raw = data as SerializedSessionData;
+  validateSerializedSessionData(data);
+  const raw = data;
 
   if (raw.formatVersion !== undefined && raw.formatVersion > CURRENT_FORMAT_VERSION) {
     throw new Error(
@@ -55,9 +107,9 @@ export function deserializeToState(
   return {
     sessionId: raw.sessionId,
     clock,
-    currentSchema: raw.currentSchema,
-    currentState: raw.currentState,
-    priorSchema: raw.priorSchema,
+    currentSchema: raw.currentSchema ?? null,
+    currentState: raw.currentState ?? null,
+    priorSchema: raw.priorSchema ?? null,
     issues: raw.issues ?? [],
     diffs: raw.diffs ?? [],
     trace: raw.trace ?? [],
