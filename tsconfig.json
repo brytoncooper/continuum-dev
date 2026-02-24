@@ -16,7 +16,7 @@
       "path": "./packages/react"
     },
     {
-      "path": "./apps/playground"
+      "path": "./packages/adapters"
     }
   ]
 }
