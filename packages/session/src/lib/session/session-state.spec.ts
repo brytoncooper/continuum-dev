@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialState, generateId } from './session-state.js';
+import { createEmptySessionState, generateId } from './session-state.js';
 
-describe('createInitialState', () => {
+describe('createEmptySessionState', () => {
   it('returns state with the given session id and clock', () => {
     const clock = () => 5000;
-    const state = createInitialState('my-session', clock);
+    const state = createEmptySessionState('my-session', clock);
 
     expect(state.sessionId).toBe('my-session');
     expect(state.clock).toBe(clock);
   });
 
   it('initializes all collections as empty', () => {
-    const state = createInitialState('s', () => 0);
+    const state = createEmptySessionState('s', () => 0);
 
     expect(state.currentSchema).toBeNull();
     expect(state.currentState).toBeNull();

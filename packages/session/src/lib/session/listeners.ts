@@ -2,13 +2,13 @@ import type { ContinuitySnapshot } from '@continuum/contract';
 import type { ReconciliationIssue } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
-export function getSnapshotFromState(internal: SessionState): ContinuitySnapshot | null {
+export function buildSnapshotFromCurrentState(internal: SessionState): ContinuitySnapshot | null {
   if (!internal.currentSchema || !internal.currentState) return null;
   return { schema: internal.currentSchema, state: internal.currentState };
 }
 
 export function notifySnapshotListeners(internal: SessionState): void {
-  const snapshot = getSnapshotFromState(internal);
+  const snapshot = buildSnapshotFromCurrentState(internal);
   if (!snapshot) return;
   for (const listener of internal.snapshotListeners) {
     listener(snapshot);
@@ -21,7 +21,7 @@ export function notifyIssueListeners(internal: SessionState): void {
   }
 }
 
-export function notifyAllListeners(internal: SessionState): void {
+export function notifySnapshotAndIssueListeners(internal: SessionState): void {
   notifySnapshotListeners(internal);
   notifyIssueListeners(internal);
 }
