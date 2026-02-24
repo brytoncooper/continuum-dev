@@ -20,20 +20,11 @@ const TYPE_MAP: Record<string, string> = {
 
 const CONTAINER_TYPES = new Set(['Section', 'Card']);
 
-let counter = 0;
-
-function generateId(field: A2UIField): string {
-  if (field.name) return field.name;
-  counter++;
-  return `${field.type.toLowerCase()}_${counter}`;
-}
-
-function resetCounter(): void {
-  counter = 0;
-}
-
-function fieldToComponent(field: A2UIField): ComponentDefinition {
-  const id = generateId(field);
+function convertA2UIFieldToComponentDefinition(
+  field: A2UIField,
+  nextGeneratedId: () => number
+): ComponentDefinition {
+  const id = field.name ?? `${field.type.toLowerCase()}_${nextGeneratedId()}`;
   const type = TYPE_MAP[field.type] ?? 'default';
 
   const def: ComponentDefinition = { id, type, key: id };
@@ -47,13 +38,15 @@ function fieldToComponent(field: A2UIField): ComponentDefinition {
   }
 
   if (CONTAINER_TYPES.has(field.type) && field.fields) {
-    def.children = field.fields.map(fieldToComponent);
+    def.children = field.fields.map((child) =>
+      convertA2UIFieldToComponentDefinition(child, nextGeneratedId)
+    );
   }
 
   return def;
 }
 
-function componentToField(def: ComponentDefinition): A2UIField {
+function convertComponentDefinitionToA2UIField(def: ComponentDefinition): A2UIField {
   const reverseMap: Record<string, string> = {
     input: 'TextInput',
     textarea: 'TextArea',
@@ -75,13 +68,13 @@ function componentToField(def: ComponentDefinition): A2UIField {
   }
 
   if (def.children && def.children.length > 0) {
-    field.fields = def.children.map(componentToField);
+    field.fields = def.children.map(convertComponentDefinitionToA2UIField);
   }
 
   return field;
 }
 
-function stateForType(type: string): ComponentState {
+function createDefaultStateForComponentType(type: string): ComponentState {
   switch (type) {
     case 'toggle':
       return { checked: false };
@@ -96,11 +89,18 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
   name: 'a2ui',
 
   toSchema(form: A2UIForm): SchemaSnapshot {
-    resetCounter();
+    let generatedId = 0;
+    const nextGeneratedId = () => {
+      generatedId += 1;
+      return generatedId;
+    };
+
     return {
       schemaId: form.id ?? 'a2ui-form',
       version: form.version ?? '1.0',
-      components: form.fields.map(fieldToComponent),
+      components: form.fields.map((field) =>
+        convertA2UIFieldToComponentDefinition(field, nextGeneratedId)
+      ),
     };
   },
 
@@ -108,7 +108,7 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
     return {
       id: snapshot.schemaId,
       version: snapshot.version,
-      fields: snapshot.components.map(componentToField),
+      fields: snapshot.components.map(convertComponentDefinitionToA2UIField),
     };
   },
 
@@ -144,4 +144,7 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
   },
 };
 
-export { stateForType, resetCounter };
+export {
+  createDefaultStateForComponentType,
+  createDefaultStateForComponentType as stateForType,
+};
