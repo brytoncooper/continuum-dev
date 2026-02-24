@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "../../dist/packages/runtime",
+    "tsBuildInfoFile": "../../dist/packages/runtime/tsconfig.lib.tsbuildinfo",
     "types": ["node"]
   },
   "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
