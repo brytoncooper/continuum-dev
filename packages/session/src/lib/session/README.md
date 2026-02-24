@@ -6,16 +6,16 @@ These modules are internal to `@continuum/session`. They are imported only by th
 
 ```
 session.ts (orchestrator)
-  createSession  -->  session-state.createInitialState + buildSession
-  deserialize    -->  serializer.deserializeToState + buildSession
+  createSession  -->  session-state.createEmptySessionState + assembleSessionFromInternalState
+  deserialize    -->  serializer.deserializeToState + assembleSessionFromInternalState
 
-  buildSession wires the Session interface:
+  assembleSessionFromInternalState wires the Session interface:
     pushSchema:
       schema-pusher.pushSchema
         reconcile(...)                      @continuum/runtime
-        action-manager.stalePendingActions  mark stale on version change
+        action-manager.markAllPendingActionsAsStale  mark stale on version change
         checkpoint-manager.autoCheckpoint   snapshot after each push
-        listeners.notifyAllListeners        broadcast to subscribers
+        listeners.notifySnapshotAndIssueListeners        broadcast to subscribers
     recordIntent / updateState:
       event-log.recordIntent              update state + event log
       listeners.notifySnapshotListeners   broadcast state change
@@ -23,24 +23,24 @@ session.ts (orchestrator)
       action-manager.*
     checkpoint / rewind / restoreFromCheckpoint:
       checkpoint-manager.*
-      listeners.notifyAllListeners
+      listeners.notifySnapshotAndIssueListeners
     onSnapshot / onIssues:
       listeners.subscribeSnapshot / subscribeIssues
     serialize:
       serializer.serializeSession
     destroy:
-      destroyer.destroySession
+      destroyer.teardownSessionAndClearState
 ```
 
 ## Modules
 
 | File | Responsibility |
 |---|---|
-| `session-state.ts` | `SessionState` interface, `createInitialState` factory, `generateId` utility. |
-| `listeners.ts` | Snapshot and issue listener notification, subscription helpers. `getSnapshotFromState` builds the current `ContinuitySnapshot`. |
+| `session-state.ts` | `SessionState` interface, `createEmptySessionState` factory, `generateId` utility. |
+| `listeners.ts` | Snapshot and issue listener notification, subscription helpers. `buildSnapshotFromCurrentState` builds the current `ContinuitySnapshot`. |
 | `schema-pusher.ts` | `pushSchema` -- runs reconciliation, stales actions, auto-checkpoints, and notifies listeners. |
 | `checkpoint-manager.ts` | Auto-checkpoint on schema push, manual checkpoint, restore, and rewind with stack trimming. |
 | `action-manager.ts` | Pending action lifecycle: submit, validate, cancel, and stale-on-version-change. |
 | `event-log.ts` | `recordIntent` -- logs interactions and updates component state + valuesMeta. |
 | `serializer.ts` | `serializeSession` and `deserializeToState` with format version validation. |
-| `destroyer.ts` | `destroySession` -- tears down internal state and clears listeners. |
+| `destroyer.ts` | `teardownSessionAndClearState` -- tears down internal state and clears listeners. |

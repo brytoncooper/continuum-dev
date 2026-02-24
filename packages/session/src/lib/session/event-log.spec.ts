@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState } from './session-state.js';
+import { createEmptySessionState } from './session-state.js';
 import { recordIntent } from './event-log.js';
 
-function setupWithSchema(internal: ReturnType<typeof createInitialState>) {
+function setupWithSchema(internal: ReturnType<typeof createEmptySessionState>) {
   internal.currentSchema = { schemaId: 's1', version: '1.0', components: [{ id: 'a', type: 'input' }] };
   internal.currentState = { values: {}, meta: { timestamp: 1000, sessionId: 's' } };
 }
 
 describe('recordIntent', () => {
   it('adds an interaction to the event log', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSchema(internal);
 
     recordIntent(internal, { componentId: 'a', type: 'value-change', payload: { value: 'hello' } });
@@ -20,7 +20,7 @@ describe('recordIntent', () => {
   });
 
   it('updates component state from payload', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSchema(internal);
 
     recordIntent(internal, { componentId: 'a', type: 'value-change', payload: { value: 'updated' } });
@@ -29,7 +29,7 @@ describe('recordIntent', () => {
   });
 
   it('updates valuesMeta with lastUpdated and lastInteractionId', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSchema(internal);
 
     recordIntent(internal, { componentId: 'a', type: 'value-change', payload: { value: 'hello' } });
@@ -40,7 +40,7 @@ describe('recordIntent', () => {
   });
 
   it('notifies snapshot listeners', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSchema(internal);
     const listener = vi.fn();
     internal.snapshotListeners.add(listener);
@@ -51,7 +51,7 @@ describe('recordIntent', () => {
   });
 
   it('does nothing when destroyed', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
     setupWithSchema(internal);
     internal.destroyed = true;
 
@@ -61,7 +61,7 @@ describe('recordIntent', () => {
   });
 
   it('does nothing when no state exists', () => {
-    const internal = createInitialState('s', () => 5000);
+    const internal = createEmptySessionState('s', () => 5000);
 
     recordIntent(internal, { componentId: 'a', type: 'value-change', payload: { value: 'hello' } });
 
