@@ -18,11 +18,10 @@ export function buildReconciliationContext(
   const priorById = new Map<string, ComponentDefinition>();
   const priorByKey = new Map<string, ComponentDefinition>();
 
-  function indexComponents(
+  function indexComponentsByIdAndKey(
     comps: ComponentDefinition[],
     byId: Map<string, ComponentDefinition>,
-    byKey: Map<string, ComponentDefinition>,
-    pathPrefix = ''
+    byKey: Map<string, ComponentDefinition>
   ) {
     for (const comp of comps) {
       byId.set(comp.id, comp);
@@ -30,14 +29,14 @@ export function buildReconciliationContext(
         byKey.set(comp.key, comp);
       }
       if (comp.children) {
-        indexComponents(comp.children, byId, byKey, pathPrefix);
+        indexComponentsByIdAndKey(comp.children, byId, byKey);
       }
     }
   }
 
-  indexComponents(newSchema.components, newById, newByKey);
+  indexComponentsByIdAndKey(newSchema.components, newById, newByKey);
   if (priorSchema) {
-    indexComponents(priorSchema.components, priorById, priorByKey);
+    indexComponentsByIdAndKey(priorSchema.components, priorById, priorByKey);
   }
 
   return {
@@ -65,7 +64,7 @@ export function findPriorComponent(
   return null;
 }
 
-export function buildPriorValueMap(
+export function buildPriorValueLookupByIdAndKey(
   priorState: StateSnapshot,
   ctx: ReconciliationContext
 ): Map<string, unknown> {
@@ -81,7 +80,7 @@ export function buildPriorValueMap(
   return map;
 }
 
-export function determineMatchType(
+export function determineComponentMatchStrategy(
   ctx: ReconciliationContext,
   newComponent: ComponentDefinition,
   priorComponent: ComponentDefinition | null

@@ -1,6 +1,6 @@
 import type { SchemaSnapshot, StateSnapshot } from '@continuum/contract';
 import type { ReconciliationOptions, ReconciliationResult } from './types.js';
-import { buildReconciliationContext, buildPriorValueMap } from './context.js';
+import { buildReconciliationContext, buildPriorValueLookupByIdAndKey } from './context.js';
 import { buildFreshSessionResult, buildBlindCarryResult, assembleReconciliationResult } from './reconciliation/state-builder.js';
 import { resolveAllComponents, detectRemovedComponents } from './reconciliation/component-resolver.js';
 
@@ -31,7 +31,7 @@ function reconcileSchemaTransition(
   options: ReconciliationOptions
 ): ReconciliationResult {
   const ctx = buildReconciliationContext(newSchema, priorSchema);
-  const priorValues = buildPriorValueMap(priorState, ctx);
+  const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
   const resolved = resolveAllComponents(ctx, priorValues, priorState, now, options);
   const removals = detectRemovedComponents(ctx, priorState, options);
   return assembleReconciliationResult(resolved, removals, priorState, newSchema, now);
