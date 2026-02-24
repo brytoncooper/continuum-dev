@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ComponentDefinition, SchemaSnapshot, StateSnapshot, ComponentState } from '@continuum/contract';
-import { buildReconciliationContext, buildPriorValueMap } from '../context.js';
+import { buildReconciliationContext, buildPriorValueLookupByIdAndKey } from '../context.js';
 import { resolveAllComponents, detectRemovedComponents } from './component-resolver.js';
 
 function makeSchema(
@@ -36,7 +36,7 @@ describe('resolveAllComponents', () => {
     ]);
     const priorState = makeState({ a: { value: 'hello' } });
     const ctx = buildReconciliationContext(newSchema, priorSchema);
-    const priorValues = buildPriorValueMap(priorState, ctx);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
 
     const result = resolveAllComponents(ctx, priorValues, priorState, 5000, {});
 
@@ -49,7 +49,7 @@ describe('resolveAllComponents', () => {
     const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
     const priorState = makeState({ a: { value: 'hello' } });
     const ctx = buildReconciliationContext(schema, schema);
-    const priorValues = buildPriorValueMap(priorState, ctx);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
 
     const result = resolveAllComponents(ctx, priorValues, priorState, 5000, {});
 
@@ -63,7 +63,7 @@ describe('resolveAllComponents', () => {
     const newSchema = makeSchema([makeComponent({ id: 'new', type: 'input', key: 'email' })]);
     const priorState = makeState({ old: { value: 'test@example.com' } });
     const ctx = buildReconciliationContext(newSchema, priorSchema);
-    const priorValues = buildPriorValueMap(priorState, ctx);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
 
     const result = resolveAllComponents(ctx, priorValues, priorState, 5000, {});
 
@@ -76,7 +76,7 @@ describe('resolveAllComponents', () => {
     const newSchema = makeSchema([makeComponent({ id: 'a', type: 'toggle' })]);
     const priorState = makeState({ a: { value: 'hello' } });
     const ctx = buildReconciliationContext(newSchema, priorSchema);
-    const priorValues = buildPriorValueMap(priorState, ctx);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
 
     const result = resolveAllComponents(ctx, priorValues, priorState, 5000, {});
 
@@ -90,7 +90,7 @@ describe('resolveAllComponents', () => {
     const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input', hash: 'v2' })]);
     const priorState = makeState({ a: { value: 'hello' } });
     const ctx = buildReconciliationContext(newSchema, priorSchema);
-    const priorValues = buildPriorValueMap(priorState, ctx);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
 
     const result = resolveAllComponents(ctx, priorValues, priorState, 5000, {});
 

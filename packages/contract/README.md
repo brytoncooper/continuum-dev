@@ -230,7 +230,6 @@ Derived type: `TraceAction`
 ```typescript
 DIFF_TYPES.ADDED        // 'added'
 DIFF_TYPES.REMOVED      // 'removed'
-DIFF_TYPES.MODIFIED     // 'modified'
 DIFF_TYPES.MIGRATED     // 'migrated'
 DIFF_TYPES.TYPE_CHANGED // 'type-changed'
 ```

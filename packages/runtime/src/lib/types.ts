@@ -9,7 +9,7 @@ export interface ReconciliationResult {
 
 export interface StateDiff {
   componentId: string;
-  type: 'added' | 'removed' | 'modified' | 'migrated' | 'type-changed';
+  type: 'added' | 'removed' | 'migrated' | 'type-changed';
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
@@ -34,7 +34,6 @@ export interface ReconciliationIssue {
 }
 
 export interface ReconciliationOptions {
-  strictMode?: boolean;
   allowPartialRestore?: boolean;
   allowBlindCarry?: boolean;
   migrationStrategies?: Record<string, MigrationStrategy>;
