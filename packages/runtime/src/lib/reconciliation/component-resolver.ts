@@ -7,7 +7,10 @@ import type {
   StateDiff,
 } from '../types.js';
 import type { ReconciliationContext } from '../context.js';
-import { findPriorComponent, determineMatchType } from '../context.js';
+import {
+  findPriorComponent,
+  determineComponentMatchStrategy,
+} from '../context.js';
 import {
   addedDiff,
   addedTrace,
@@ -40,23 +43,23 @@ export function resolveAllComponents(
     const priorComponent = findPriorComponent(ctx, newComponent);
     const priorValue =
       priorValues.get(newId) ?? (priorComponent ? priorState.values[priorComponent.id] : undefined);
-    const matchedBy = determineMatchType(ctx, newComponent, priorComponent);
+    const matchedBy = determineComponentMatchStrategy(ctx, newComponent, priorComponent);
 
     if (!priorComponent) {
-      recordAddedComponent(acc, newId, newComponent.type);
+      resolveNewComponent(acc, newId, newComponent.type);
     } else if (priorComponent.type !== newComponent.type) {
-      recordTypeChanged(acc, newId, priorComponent, newComponent, matchedBy, priorValue);
-    } else if (hasSchemaHashChange(priorComponent, newComponent)) {
-      recordMigratedOrCarried(acc, newId, priorComponent, newComponent, matchedBy, priorValue, priorState, now, options);
+      resolveTypeMismatchedComponent(acc, newId, priorComponent, newComponent, matchedBy, priorValue);
+    } else if (hasComponentHashChanged(priorComponent, newComponent)) {
+      resolveHashChangedComponent(acc, newId, priorComponent, newComponent, matchedBy, priorValue, priorState, now, options);
     } else {
-      recordCarriedComponent(acc, newId, priorComponent, matchedBy as 'id' | 'key', priorValue, priorState, now);
+      resolveUnchangedComponent(acc, newId, priorComponent, matchedBy as 'id' | 'key', priorValue, priorState, now);
     }
   }
 
   return acc;
 }
 
-function recordAddedComponent(
+function resolveNewComponent(
   acc: ComponentResolutionAccumulator,
   newId: string,
   newType: string
@@ -65,7 +68,7 @@ function recordAddedComponent(
   acc.trace.push(addedTrace(newId, newType));
 }
 
-function recordTypeChanged(
+function resolveTypeMismatchedComponent(
   acc: ComponentResolutionAccumulator,
   newId: string,
   priorComponent: ComponentDefinition,
@@ -83,14 +86,14 @@ function recordTypeChanged(
   acc.trace.push(droppedTrace(newId, priorComponent.id, matchedBy, priorComponent.type, newComponent.type, priorValue));
 }
 
-function hasSchemaHashChange(
+function hasComponentHashChanged(
   priorComponent: ComponentDefinition,
   newComponent: ComponentDefinition
 ): boolean {
   return !!(priorComponent.hash && newComponent.hash && priorComponent.hash !== newComponent.hash);
 }
 
-function recordMigratedOrCarried(
+function resolveHashChangedComponent(
   acc: ComponentResolutionAccumulator,
   newId: string,
   priorComponent: ComponentDefinition,
@@ -118,10 +121,10 @@ function recordMigratedOrCarried(
     code: ISSUE_CODES.MIGRATION_FAILED,
   });
 
-  recordCarriedComponent(acc, newId, priorComponent, matchedBy as 'id' | 'key', priorValue, priorState, now);
+  resolveUnchangedComponent(acc, newId, priorComponent, matchedBy as 'id' | 'key', priorValue, priorState, now);
 }
 
-function recordCarriedComponent(
+function resolveUnchangedComponent(
   acc: ComponentResolutionAccumulator,
   newId: string,
   priorComponent: ComponentDefinition,

@@ -10,7 +10,7 @@ reconcile.ts (orchestrator)
   ├─ state-builder.buildBlindCarryResult       when no prior schema
   └─ full reconciliation path:
        context.buildReconciliationContext  →  index components by id and key
-       context.buildPriorValueMap          →  map prior values to new IDs via key matching
+       context.buildPriorValueLookupByIdAndKey  →  map prior values to new IDs via key matching
        component-resolver.resolveAllComponents  →  per-component decisions
          ├─ differ.*  →  create diff and trace entries
          └─ migrator.attemptMigration  →  resolve migration strategies
