@@ -81,6 +81,36 @@ describe('Session Ledger', () => {
       const result = session.destroy();
       expect(result.issues).toEqual(issuesBefore);
     });
+
+    it('reset clears session data and allows continued usage', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.updateState('a', { value: 'typed' });
+      session.submitAction({
+        componentId: 'a',
+        actionType: 'submit-form',
+        payload: { value: 'typed' },
+      });
+
+      expect(session.getSnapshot()).not.toBeNull();
+      expect(session.getEventLog()).toHaveLength(1);
+      expect(session.getPendingActions()).toHaveLength(1);
+      expect(session.getCheckpoints()).toHaveLength(1);
+
+      session.reset();
+
+      expect(session.getSnapshot()).toBeNull();
+      expect(session.getEventLog()).toHaveLength(0);
+      expect(session.getPendingActions()).toHaveLength(0);
+      expect(session.getCheckpoints()).toHaveLength(0);
+      expect(session.getIssues()).toEqual([]);
+      expect(session.getDiffs()).toEqual([]);
+      expect(session.getTrace()).toEqual([]);
+
+      session.pushSchema(makeSchema([makeComponent({ id: 'b', type: 'input' })], 's2', '1'));
+      expect(session.getSnapshot()!.schema.schemaId).toBe('s2');
+      expect(session.getCheckpoints()).toHaveLength(1);
+    });
   });
 
   describe('schema management', () => {
@@ -708,6 +738,17 @@ describe('Session Ledger', () => {
       expect(session.getCheckpoints()).toHaveLength(1);
     });
 
+    it('latest checkpoint snapshot updates when state changes', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+
+      session.updateState('a', { value: 'typed' });
+
+      const checkpoints = session.getCheckpoints();
+      expect(checkpoints).toHaveLength(1);
+      expect(checkpoints[0].snapshot.state.values['a']).toEqual({ value: 'typed' });
+    });
+
     it('each pushSchema adds a new checkpoint', () => {
       const session = createSession();
       session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
@@ -742,6 +783,21 @@ describe('Session Ledger', () => {
 
       session.rewind(session.getCheckpoints()[0].id);
       expect(session.getSnapshot()!.schema.schemaId).toBe('s1');
+    });
+
+    it('rewind restores typed values from checkpoint even if a later type change dropped them', () => {
+      const session = createSession();
+      session.pushSchema(makeSchema([makeComponent({ id: 'loan_type', type: 'Dropdown' })], 's1', '1'));
+      session.updateState('loan_type', { value: 'mortgage' });
+      session.pushSchema(makeSchema([makeComponent({ id: 'loan_type', type: 'SelectionInput' })], 's2', '2'));
+
+      expect(session.getSnapshot()!.state.values['loan_type']).toBeUndefined();
+
+      const checkpoints = session.getCheckpoints();
+      session.rewind(checkpoints[0].id);
+
+      expect(session.getSnapshot()!.schema.schemaId).toBe('s1');
+      expect(session.getSnapshot()!.state.values['loan_type']).toEqual({ value: 'mortgage' });
     });
 
     it('rewind trims the checkpoint stack to the rewound point', () => {
@@ -801,7 +857,7 @@ describe('Session Ledger', () => {
 
       expect(restored.getSnapshot()!.schema.schemaId).toBe('s2');
       expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'before' });
-      expect(restored.getSnapshot()!.state.values['b']).toBeUndefined();
+      expect(restored.getSnapshot()!.state.values['b']).toEqual({ value: 'after' });
     });
 
     it('auto-checkpoint captures state updates made before next pushSchema', () => {
