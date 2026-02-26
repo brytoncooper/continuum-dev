@@ -9,6 +9,8 @@ import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@conti
 
 export interface SessionOptions {
   clock?: () => number;
+  maxEventLogSize?: number;
+  maxPendingActions?: number;
 }
 
 export interface Session {
@@ -23,12 +25,13 @@ export interface Session {
   getEventLog(): Interaction[];
   submitAction(action: Omit<PendingAction, 'id' | 'createdAt' | 'status' | 'schemaVersion'>): void;
   getPendingActions(): PendingAction[];
-  validateAction(actionId: string): void;
-  cancelAction(actionId: string): void;
+  validateAction(actionId: string): boolean;
+  cancelAction(actionId: string): boolean;
   checkpoint(): Checkpoint;
   restoreFromCheckpoint(checkpoint: Checkpoint): void;
   getCheckpoints(): Checkpoint[];
   rewind(checkpointId: string): void;
+  reset(): void;
   onSnapshot(listener: (snapshot: ContinuitySnapshot) => void): () => void;
   onIssues(listener: (issues: ReconciliationIssue[]) => void): () => void;
   serialize(): unknown;

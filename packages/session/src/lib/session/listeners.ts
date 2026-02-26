@@ -11,13 +11,21 @@ export function notifySnapshotListeners(internal: SessionState): void {
   const snapshot = buildSnapshotFromCurrentState(internal);
   if (!snapshot) return;
   for (const listener of internal.snapshotListeners) {
-    listener(snapshot);
+    try {
+      listener(snapshot);
+    } catch {
+      continue;
+    }
   }
 }
 
 export function notifyIssueListeners(internal: SessionState): void {
   for (const listener of internal.issueListeners) {
-    listener([...internal.issues]);
+    try {
+      listener([...internal.issues]);
+    } catch {
+      continue;
+    }
   }
 }
 
