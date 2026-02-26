@@ -1,43 +1,48 @@
+import type { CSSProperties } from 'react';
 import type { ComponentState } from '@continuum/contract';
 import type { ContinuumComponentMap, ContinuumComponentProps } from '@continuum/react';
+import { color, radius, shadow, space, typeScale } from './ui/tokens';
 
-const FIELD_STYLE: React.CSSProperties = {
+type Option = { id: string; label: string };
+type FieldShape = { placeholder?: string };
+
+const FIELD_STYLE: CSSProperties = {
   display: 'grid',
-  gap: 6,
+  gap: space.xs,
 };
 
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#8b949e',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+const LABEL_STYLE: CSSProperties = {
+  ...typeScale.caption,
+  color: color.textSecondary,
 };
 
-const INPUT_STYLE: React.CSSProperties = {
-  padding: '8px 12px',
-  borderRadius: 6,
-  border: '1px solid #30363d',
-  background: '#0d1117',
-  color: '#e6edf3',
-  fontSize: 14,
-  outline: 'none',
+const BASE_INPUT_STYLE: CSSProperties = {
   width: '100%',
+  height: 40,
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.sm,
+  border: `1px solid ${color.border}`,
+  background: color.bg,
+  color: color.text,
+  outline: 'none',
   boxSizing: 'border-box',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+  ...typeScale.body,
 };
 
 function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
   const raw = value as Record<string, unknown> | undefined;
   const textValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
+  const shape = (definition.stateShape ?? {}) as FieldShape;
 
   return (
     <label style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>{definition.key ?? definition.id}</div>
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
       <input
-        style={INPUT_STYLE}
-        value={textValue as string}
-        placeholder={`Enter ${definition.key ?? definition.id}...`}
-        onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
+        style={BASE_INPUT_STYLE}
+        value={textValue}
+        placeholder={shape.placeholder ?? `Enter ${displayLabel(definition.path, definition.key, definition.id)}`}
+        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
       />
     </label>
   );
@@ -46,23 +51,36 @@ function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
 function Select({ value, onChange, definition }: ContinuumComponentProps) {
   const raw = value as Record<string, unknown> | undefined;
   const selected = (raw?.['selectedIds'] as string[]) ?? [];
+  const options = readOptions(definition.stateShape);
 
   return (
     <label style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>{definition.key ?? definition.id}</div>
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
       <select
-        style={{ ...INPUT_STYLE, cursor: 'pointer' }}
+        style={{
+          ...BASE_INPUT_STYLE,
+          cursor: 'pointer',
+          appearance: 'none',
+          backgroundImage:
+            'linear-gradient(45deg, transparent 50%, #8b97a8 50%), linear-gradient(135deg, #8b97a8 50%, transparent 50%)',
+          backgroundPosition: 'calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px)',
+          backgroundSize: '6px 6px, 6px 6px',
+          backgroundRepeat: 'no-repeat',
+          paddingRight: 32,
+        }}
         value={selected[0] ?? ''}
-        onChange={(e) =>
+        onChange={(event) =>
           onChange({
-            selectedIds: e.target.value ? [e.target.value] : [],
+            selectedIds: event.target.value ? [event.target.value] : [],
           } as ComponentState)
         }
       >
-        <option value="">-- select --</option>
-        <option value="opt-a">Option A</option>
-        <option value="opt-b">Option B</option>
-        <option value="opt-c">Option C</option>
+        <option value="">Select one</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -76,43 +94,49 @@ function Toggle({ value, onChange, definition }: ContinuumComponentProps) {
     <label
       style={{
         display: 'flex',
-        gap: 10,
         alignItems: 'center',
+        gap: space.sm,
         cursor: 'pointer',
-        padding: '4px 0',
       }}
     >
-      <div
+      <span
         style={{
-          width: 36,
-          height: 20,
-          borderRadius: 10,
-          background: checked ? '#3fb950' : '#30363d',
+          width: 44,
+          height: 24,
+          borderRadius: radius.pill,
+          background: checked ? color.success : color.border,
           position: 'relative',
-          transition: 'background 0.15s',
+          transition: 'background 0.2s',
           flexShrink: 0,
         }}
       >
-        <div
+        <span
           style={{
-            width: 16,
-            height: 16,
-            borderRadius: '50%',
-            background: '#e6edf3',
             position: 'absolute',
             top: 2,
-            left: checked ? 18 : 2,
-            transition: 'left 0.15s',
+            left: checked ? 22 : 2,
+            width: 20,
+            height: 20,
+            borderRadius: radius.pill,
+            background: color.white,
+            transition: 'left 0.2s',
           }}
         />
         <input
           type="checkbox"
           checked={checked}
-          onChange={(e) => onChange({ checked: e.target.checked } as ComponentState)}
-          style={{ opacity: 0, position: 'absolute', width: '100%', height: '100%', cursor: 'pointer' }}
+          onChange={(event) => onChange({ checked: event.target.checked } as ComponentState)}
+          style={{
+            opacity: 0,
+            position: 'absolute',
+            inset: 0,
+            cursor: 'pointer',
+          }}
         />
-      </div>
-      <span style={{ fontSize: 13, color: '#e6edf3' }}>{definition.key ?? definition.id}</span>
+      </span>
+      <span style={{ ...typeScale.body, color: color.text }}>
+        {displayLabel(definition.path, definition.key, definition.id)}
+      </span>
     </label>
   );
 }
@@ -123,12 +147,12 @@ function DateInput({ value, onChange, definition }: ContinuumComponentProps) {
 
   return (
     <label style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>{definition.key ?? definition.id}</div>
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
       <input
         type="date"
-        style={{ ...INPUT_STYLE, cursor: 'pointer', colorScheme: 'dark' }}
+        style={{ ...BASE_INPUT_STYLE, cursor: 'pointer', colorScheme: 'dark' }}
         value={dateValue}
-        onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
+        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
       />
     </label>
   );
@@ -137,15 +161,22 @@ function DateInput({ value, onChange, definition }: ContinuumComponentProps) {
 function TextArea({ value, onChange, definition }: ContinuumComponentProps) {
   const raw = value as Record<string, unknown> | undefined;
   const textValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
+  const shape = (definition.stateShape ?? {}) as FieldShape;
 
   return (
     <label style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>{definition.key ?? definition.id}</div>
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
       <textarea
-        style={{ ...INPUT_STYLE, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
+        style={{
+          ...BASE_INPUT_STYLE,
+          minHeight: 92,
+          height: 'auto',
+          resize: 'vertical',
+          fontFamily: 'inherit',
+        }}
         value={textValue}
-        placeholder={`Enter ${definition.key ?? definition.id}...`}
-        onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
+        placeholder={shape.placeholder ?? `Enter ${displayLabel(definition.path, definition.key, definition.id)}`}
+        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
       />
     </label>
   );
@@ -154,40 +185,32 @@ function TextArea({ value, onChange, definition }: ContinuumComponentProps) {
 function RadioGroup({ value, onChange, definition }: ContinuumComponentProps) {
   const raw = value as Record<string, unknown> | undefined;
   const selected = (raw?.['selectedIds'] as string[]) ?? [];
-  const options = Array.isArray(definition.stateShape)
-    ? (definition.stateShape as { id: string; label: string }[])
-    : [
-        { id: 'opt-a', label: 'Option A' },
-        { id: 'opt-b', label: 'Option B' },
-        { id: 'opt-c', label: 'Option C' },
-      ];
+  const options = readOptions(definition.stateShape);
 
   return (
     <div style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>{definition.key ?? definition.id}</div>
-      <div style={{ display: 'grid', gap: 6 }}>
-        {options.map((opt) => (
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
+      <div style={{ display: 'grid', gap: space.sm }}>
+        {options.map((option) => (
           <label
-            key={opt.id}
+            key={option.id}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: space.sm,
               cursor: 'pointer',
-              fontSize: 13,
-              color: '#e6edf3',
+              ...typeScale.body,
+              color: color.text,
             }}
           >
             <input
               type="radio"
               name={definition.id}
-              checked={selected[0] === opt.id}
-              onChange={() =>
-                onChange({ selectedIds: [opt.id] } as ComponentState)
-              }
-              style={{ accentColor: '#58a6ff', cursor: 'pointer' }}
+              checked={selected[0] === option.id}
+              onChange={() => onChange({ selectedIds: [option.id] } as ComponentState)}
+              style={{ accentColor: color.accent, width: 16, height: 16, cursor: 'pointer' }}
             />
-            {opt.label}
+            {option.label}
           </label>
         ))}
       </div>
@@ -197,25 +220,25 @@ function RadioGroup({ value, onChange, definition }: ContinuumComponentProps) {
 
 function Slider({ value, onChange, definition }: ContinuumComponentProps) {
   const raw = value as Record<string, unknown> | undefined;
-  const numValue = typeof raw?.['value'] === 'number' ? raw['value'] : 50;
+  const numericValue = typeof raw?.['value'] === 'number' ? raw['value'] : 50;
 
   return (
     <label style={FIELD_STYLE}>
       <div style={{ ...LABEL_STYLE, display: 'flex', justifyContent: 'space-between' }}>
-        <span>{definition.key ?? definition.id}</span>
-        <span style={{ color: '#e6edf3', fontWeight: 400 }}>{numValue}</span>
+        <span>{displayLabel(definition.path, definition.key, definition.id)}</span>
+        <span style={{ color: color.text }}>{numericValue}</span>
       </div>
       <input
         type="range"
         min={0}
         max={100}
-        value={numValue}
-        onChange={(e) => onChange({ value: Number(e.target.value) } as ComponentState)}
+        value={numericValue}
+        onChange={(event) => onChange({ value: Number(event.target.value) } as ComponentState)}
         style={{
           width: '100%',
-          accentColor: '#58a6ff',
+          accentColor: color.accent,
           cursor: 'pointer',
-          height: 6,
+          height: 4,
         }}
       />
     </label>
@@ -226,26 +249,25 @@ function Section({ definition, children }: ContinuumComponentProps) {
   return (
     <div
       style={{
-        padding: '12px 16px',
-        borderRadius: 8,
-        background: '#161b22',
-        border: '1px solid #30363d',
+        padding: space.xl,
+        borderRadius: radius.lg,
+        background: color.surface,
+        border: `1px solid ${color.border}`,
+        boxShadow: shadow.card,
       }}
     >
       <div
         style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: '#e6edf3',
-          paddingBottom: 8,
-          marginBottom: 10,
-          borderBottom: '1px solid #30363d',
-          letterSpacing: '-0.01em',
+          ...typeScale.h3,
+          color: color.text,
+          paddingBottom: space.md,
+          marginBottom: space.lg,
+          borderBottom: `1px solid ${color.border}`,
         }}
       >
-        {definition.path ?? definition.key ?? definition.id}
+        {displayLabel(definition.path, definition.key, definition.id)}
       </div>
-      <div style={{ display: 'grid', gap: 12 }}>{children}</div>
+      <div style={{ display: 'grid', gap: space.lg }}>{children}</div>
     </div>
   );
 }
@@ -254,18 +276,29 @@ function Container({ definition, children }: ContinuumComponentProps) {
   return (
     <div
       style={{
-        padding: 12,
-        border: '1px solid #30363d',
-        borderRadius: 8,
-        background: '#161b22',
+        padding: space.lg,
+        border: `1px solid ${color.border}`,
+        borderRadius: radius.lg,
+        background: color.surfaceAlt,
+        display: 'grid',
+        gap: space.md,
       }}
     >
-      <div style={{ ...LABEL_STYLE, marginBottom: 8 }}>
-        {definition.key ?? definition.id}
-      </div>
-      {children}
+      <div style={LABEL_STYLE}>{displayLabel(definition.path, definition.key, definition.id)}</div>
+      <div style={{ display: 'grid', gap: space.md }}>{children}</div>
     </div>
   );
+}
+
+function displayLabel(path?: string, key?: string, id?: string): string {
+  return path ?? key ?? id ?? 'Field';
+}
+
+function readOptions(shape: unknown): Option[] {
+  if (Array.isArray(shape)) {
+    return shape as Option[];
+  }
+  return [];
 }
 
 export const componentMap: ContinuumComponentMap = {
