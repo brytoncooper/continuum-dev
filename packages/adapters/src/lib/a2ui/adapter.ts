@@ -24,8 +24,9 @@ function convertA2UIFieldToComponentDefinition(
   field: A2UIField,
   nextGeneratedId: () => number
 ): ComponentDefinition {
-  const id = field.name ?? `${field.type.toLowerCase()}_${nextGeneratedId()}`;
-  const type = TYPE_MAP[field.type] ?? 'default';
+  const rawType = typeof field.type === 'string' ? field.type : 'default';
+  const id = field.name ?? `${rawType.toLowerCase()}_${nextGeneratedId()}`;
+  const type = TYPE_MAP[rawType] ?? 'default';
 
   const def: ComponentDefinition = { id, type, key: id };
 
@@ -37,7 +38,7 @@ function convertA2UIFieldToComponentDefinition(
     def.stateShape = field.options;
   }
 
-  if (CONTAINER_TYPES.has(field.type) && field.fields) {
+  if (CONTAINER_TYPES.has(rawType) && Array.isArray(field.fields)) {
     def.children = field.fields.map((child) =>
       convertA2UIFieldToComponentDefinition(child, nextGeneratedId)
     );
@@ -80,6 +81,8 @@ function createDefaultStateForComponentType(type: string): ComponentState {
       return { checked: false };
     case 'select':
       return { selectedIds: [] as string[] };
+    case 'container':
+      return {};
     default:
       return { value: '' };
   }
@@ -95,10 +98,12 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
       return generatedId;
     };
 
+    const fields = Array.isArray(form.fields) ? form.fields : [];
+
     return {
       schemaId: form.id ?? 'a2ui-form',
       version: form.version ?? '1.0',
-      components: form.fields.map((field) =>
+      components: fields.map((field) =>
         convertA2UIFieldToComponentDefinition(field, nextGeneratedId)
       ),
     };
@@ -118,7 +123,7 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
       if (typeof val === 'boolean') {
         result[key] = { checked: val };
       } else if (Array.isArray(val)) {
-        result[key] = { selectedIds: val as string[] };
+        result[key] = { selectedIds: val.map((item) => String(item)) };
       } else {
         result[key] = { value: String(val ?? '') };
       }
@@ -129,6 +134,10 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
   fromState(state: Record<string, ComponentState>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(state)) {
+      if (val == null) {
+        result[key] = val;
+        continue;
+      }
       const raw = val as Record<string, unknown>;
       if ('checked' in raw) {
         result[key] = raw['checked'];
