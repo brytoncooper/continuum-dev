@@ -1,6 +1,6 @@
 import { INTERACTION_TYPES } from '@continuum/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
-import { createEmptySessionState, generateId } from './session/session-state.js';
+import { createEmptySessionState, generateId, resetSessionState } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
 import { buildSnapshotFromCurrentState, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
 import { createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
@@ -13,27 +13,31 @@ import { teardownSessionAndClearState } from './session/destroyer.js';
 function assembleSessionFromInternalState(internal: SessionState): Session {
   const session: Session = {
     get sessionId() { return internal.sessionId; },
-    getSnapshot() { return buildSnapshotFromCurrentState(internal); },
-    getIssues() { return [...internal.issues]; },
-    getDiffs() { return [...internal.diffs]; },
-    getTrace() { return [...internal.trace]; },
-    getEventLog() { return [...internal.eventLog]; },
-    getPendingActions() { return [...internal.pendingActions]; },
-    getCheckpoints() { return [...internal.checkpoints]; },
+    getSnapshot() { return internal.destroyed ? null : buildSnapshotFromCurrentState(internal); },
+    getIssues() { return internal.destroyed ? [] : [...internal.issues]; },
+    getDiffs() { return internal.destroyed ? [] : [...internal.diffs]; },
+    getTrace() { return internal.destroyed ? [] : [...internal.trace]; },
+    getEventLog() { return internal.destroyed ? [] : [...internal.eventLog]; },
+    getPendingActions() { return internal.destroyed ? [] : [...internal.pendingActions]; },
+    getCheckpoints() { return internal.destroyed ? [] : [...internal.checkpoints]; },
 
     pushSchema(schema) { pushSchema(internal, schema); },
     recordIntent(partial) { recordIntent(internal, partial); },
     updateState(componentId, payload) {
-      session.recordIntent({ componentId, type: INTERACTION_TYPES.STATE_UPDATE, payload });
+      recordIntent(internal, { componentId, type: INTERACTION_TYPES.STATE_UPDATE, payload });
     },
 
     submitAction(partial) { submitAction(internal, partial); },
-    validateAction(actionId) { validateAction(internal, actionId); },
-    cancelAction(actionId) { cancelAction(internal, actionId); },
+    validateAction(actionId) { return validateAction(internal, actionId); },
+    cancelAction(actionId) { return cancelAction(internal, actionId); },
 
     checkpoint() { return createManualCheckpoint(internal); },
     restoreFromCheckpoint(cp) { restoreFromCheckpoint(internal, cp); },
     rewind(checkpointId) { rewind(internal, checkpointId); },
+    reset() {
+      if (internal.destroyed) return;
+      resetSessionState(internal);
+    },
 
     onSnapshot(listener) { return subscribeSnapshot(internal, listener); },
     onIssues(listener) { return subscribeIssues(internal, listener); },
@@ -47,14 +51,24 @@ function assembleSessionFromInternalState(internal: SessionState): Session {
 
 export function createSession(options?: SessionOptions): Session {
   const clock = options?.clock ?? Date.now;
+  const internal = createEmptySessionState(generateId('session', clock), clock);
+  internal.maxEventLogSize = options?.maxEventLogSize ?? internal.maxEventLogSize;
+  internal.maxPendingActions = options?.maxPendingActions ?? internal.maxPendingActions;
   return assembleSessionFromInternalState(
-    createEmptySessionState(generateId('session', clock), clock)
+    internal
   );
 }
 
 export function deserialize(data: unknown, options?: SessionOptions): Session {
   return assembleSessionFromInternalState(
-    deserializeToState(data, options?.clock ?? Date.now)
+    deserializeToState(
+      data,
+      options?.clock ?? Date.now,
+      {
+        maxEventLogSize: options?.maxEventLogSize,
+        maxPendingActions: options?.maxPendingActions,
+      }
+    )
   );
 }
 

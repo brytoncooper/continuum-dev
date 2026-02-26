@@ -10,8 +10,12 @@ import type { SessionState } from './session-state.js';
 
 const CURRENT_FORMAT_VERSION = 1;
 
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export function serializeSession(internal: SessionState): unknown {
-  return {
+  return deepClone({
     formatVersion: CURRENT_FORMAT_VERSION,
     sessionId: internal.sessionId,
     currentSchema: internal.currentSchema,
@@ -23,7 +27,7 @@ export function serializeSession(internal: SessionState): unknown {
     issues: internal.issues,
     diffs: internal.diffs,
     trace: internal.trace,
-  };
+  });
 }
 
 interface SerializedSessionData {
@@ -93,7 +97,8 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
 
 export function deserializeToState(
   data: unknown,
-  clock: () => number
+  clock: () => number,
+  limits?: { maxEventLogSize?: number; maxPendingActions?: number }
 ): SessionState {
   validateSerializedSessionData(data);
   const raw = data;
@@ -107,6 +112,8 @@ export function deserializeToState(
   return {
     sessionId: raw.sessionId,
     clock,
+    maxEventLogSize: limits?.maxEventLogSize ?? 1000,
+    maxPendingActions: limits?.maxPendingActions ?? 500,
     currentSchema: raw.currentSchema ?? null,
     currentState: raw.currentState ?? null,
     priorSchema: raw.priorSchema ?? null,
@@ -116,6 +123,7 @@ export function deserializeToState(
     eventLog: raw.eventLog ?? [],
     pendingActions: raw.pendingActions ?? [],
     checkpoints: raw.checkpoints ?? [],
+    autoCheckpointIds: new Set((raw.checkpoints ?? []).map((checkpoint) => checkpoint.id)),
     snapshotListeners: new Set(),
     issueListeners: new Set(),
     destroyed: false,
