@@ -193,7 +193,7 @@ export function computeSchemaHash(schema: SchemaSnapshot): string | undefined {
   }
   collect(schema.components);
   if (hashes.length === 0) return undefined;
-  return hashes.sort().join(':');
+  return JSON.stringify(hashes.sort());
 }
 
 export function generateSessionId(now: number): string {
