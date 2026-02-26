@@ -10,7 +10,7 @@ Provides a context provider, a schema-driven renderer, and hooks for accessing s
 npm install @continuum/react @continuum/contract
 ```
 
-Peer dependency: `react` >= 19.
+Peer dependency: `react` >= 18.
 
 ## Quick Start
 
@@ -142,7 +142,7 @@ Every component in the map receives `ContinuumComponentProps`:
 
 ```typescript
 interface ContinuumComponentProps<T = ComponentState> {
-  value: T;                         // current state for this component
+  value: T | undefined;             // current state for this component
   onChange: (value: T) => void;     // update state
   definition: ComponentDefinition;  // schema definition
   children?: React.ReactNode;       // rendered children (for containers)
