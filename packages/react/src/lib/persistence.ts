@@ -8,15 +8,21 @@ export function usePersistence(
 ): void {
   useEffect(() => {
     if (!storage) return;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     const unsubscribe = session.onSnapshot(() => {
-      try {
-        storage.setItem(key, JSON.stringify(session.serialize()));
-      } catch {
-        // storage full or unavailable -- silently skip
-      }
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        try {
+          storage.setItem(key, JSON.stringify(session.serialize()));
+        } catch {
+        }
+      }, 200);
     });
 
-    return unsubscribe;
+    return () => {
+      if (timeout) clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [session, storage, key]);
 }
