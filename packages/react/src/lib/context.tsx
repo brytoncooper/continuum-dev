@@ -1,4 +1,4 @@
-import { createContext, useRef, useMemo } from 'react';
+import { createContext, useRef, useMemo, useEffect } from 'react';
 import { createSession, deserialize } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import type { ContinuumComponentMap, ContinuumProviderProps } from './types.js';
@@ -48,6 +48,7 @@ export function ContinuumProvider({
 }: ContinuumProviderProps) {
   const storage = resolveStorage(persist);
   const sessionRef = useRef<{ session: Session; wasHydrated: boolean } | null>(null);
+  const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!sessionRef.current) {
     sessionRef.current = hydrateOrCreate(storage, storageKey);
@@ -56,6 +57,18 @@ export function ContinuumProvider({
   const { session, wasHydrated } = sessionRef.current;
 
   usePersistence(session, storage, storageKey);
+  useEffect(() => {
+    if (destroyTimerRef.current) {
+      clearTimeout(destroyTimerRef.current);
+      destroyTimerRef.current = null;
+    }
+    return () => {
+      destroyTimerRef.current = setTimeout(() => {
+        session.destroy();
+        destroyTimerRef.current = null;
+      }, 0);
+    };
+  }, [session]);
 
   const value = useMemo<ContinuumContextValue>(
     () => ({ session, componentMap: components, wasHydrated }),
