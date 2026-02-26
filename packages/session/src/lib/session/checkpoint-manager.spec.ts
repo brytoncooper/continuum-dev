@@ -30,7 +30,7 @@ describe('autoCheckpoint', () => {
 });
 
 describe('createManualCheckpoint', () => {
-  it('returns a checkpoint without modifying the stack', () => {
+  it('returns a checkpoint and appends it to the stack', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
 
@@ -38,7 +38,8 @@ describe('createManualCheckpoint', () => {
 
     expect(cp.sessionId).toBe('s');
     expect(cp.snapshot.state.values['a']).toEqual({ value: 'hello' });
-    expect(internal.checkpoints).toHaveLength(0);
+    expect(internal.checkpoints).toHaveLength(1);
+    expect(internal.checkpoints[0].id).toBe(cp.id);
   });
 });
 

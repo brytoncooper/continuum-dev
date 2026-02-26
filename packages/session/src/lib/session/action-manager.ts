@@ -20,16 +20,23 @@ export function submitAction(
   };
 
   internal.pendingActions.push(action);
+  if (internal.pendingActions.length > internal.maxPendingActions) {
+    internal.pendingActions.splice(0, internal.pendingActions.length - internal.maxPendingActions);
+  }
 }
 
-export function validateAction(internal: SessionState, actionId: string): void {
+export function validateAction(internal: SessionState, actionId: string): boolean {
   const action = internal.pendingActions.find((a) => a.id === actionId);
-  if (action) action.status = ACTION_STATUS.VALIDATED;
+  if (!action) return false;
+  action.status = ACTION_STATUS.VALIDATED;
+  return true;
 }
 
-export function cancelAction(internal: SessionState, actionId: string): void {
+export function cancelAction(internal: SessionState, actionId: string): boolean {
   const action = internal.pendingActions.find((a) => a.id === actionId);
-  if (action) action.status = ACTION_STATUS.CANCELLED;
+  if (!action) return false;
+  action.status = ACTION_STATUS.CANCELLED;
+  return true;
 }
 
 export function markAllPendingActionsAsStale(internal: SessionState): void {
