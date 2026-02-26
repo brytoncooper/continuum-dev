@@ -2,7 +2,7 @@ import type { ComponentDefinition, ComponentState } from '@continuum/contract';
 import type { ComponentType } from 'react';
 
 export interface ContinuumComponentProps<T = ComponentState> {
-  value: T;
+  value: T | undefined;
   onChange: (value: T) => void;
   definition: ComponentDefinition;
   children?: React.ReactNode;

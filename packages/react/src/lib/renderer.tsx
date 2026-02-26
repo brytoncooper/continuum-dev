@@ -40,7 +40,7 @@ function ComponentNode({ definition }: { definition: ComponentDefinition }) {
 export function ContinuumRenderer({ schema }: { schema: SchemaSnapshot }) {
   return (
     <div data-continuum-schema={schema.schemaId}>
-      {schema.components.map((comp) => (
+      {(schema.components ?? []).map((comp) => (
         <ComponentNode key={comp.id} definition={comp} />
       ))}
     </div>
