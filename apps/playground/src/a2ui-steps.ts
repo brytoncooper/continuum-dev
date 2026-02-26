@@ -1,4 +1,16 @@
-import type { A2UIForm } from '@continuum/adapters';
+type A2UIField = {
+  name: string;
+  type: string;
+  label?: string;
+  options?: { id: string; label: string }[];
+  fields?: A2UIField[];
+};
+
+type A2UIForm = {
+  id: string;
+  version: string;
+  fields: A2UIField[];
+};
 
 export type A2UIStep = {
   label: string;
