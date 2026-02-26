@@ -1,4 +1,5 @@
 import type { ContinuitySnapshot } from './snapshot.js';
+import type { ActionStatus } from './constants.js';
 
 export interface Interaction {
   id: string;
@@ -17,7 +18,7 @@ export interface PendingAction {
   payload: unknown;
   createdAt: number;
   schemaVersion: string;
-  status: 'pending' | 'validated' | 'stale' | 'cancelled';
+  status: ActionStatus;
 }
 
 export interface Checkpoint {

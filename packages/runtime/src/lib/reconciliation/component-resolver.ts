@@ -104,20 +104,34 @@ function resolveHashChangedComponent(
   now: number,
   options: ReconciliationOptions
 ): void {
-  const migratedValue = attemptMigration(newId, priorComponent, newComponent, priorValue, options);
+  const migrationResult = attemptMigration(newId, priorComponent, newComponent, priorValue, options);
 
-  if (migratedValue !== null) {
-    acc.values[newId] = migratedValue as ComponentState;
+  if (migrationResult.kind === 'migrated') {
+    acc.values[newId] = migrationResult.value as ComponentState;
     carryValuesMeta(acc.valuesMeta, newId, priorComponent.id, priorState, now, true);
-    acc.diffs.push(migratedDiff(newId, priorValue, migratedValue));
-    acc.trace.push(migratedTrace(newId, priorComponent.id, matchedBy, priorComponent.type, newComponent.type, priorValue, migratedValue));
+    acc.diffs.push(migratedDiff(newId, priorValue, migrationResult.value));
+    acc.trace.push(
+      migratedTrace(
+        newId,
+        priorComponent.id,
+        matchedBy,
+        priorComponent.type,
+        newComponent.type,
+        priorValue,
+        migrationResult.value
+      )
+    );
     return;
   }
+
+  const message = migrationResult.kind === 'error'
+    ? `Component ${newId} migration failed: ${String(migrationResult.error)}`
+    : `Component ${newId} schema changed but no migration strategy available`;
 
   acc.issues.push({
     severity: ISSUE_SEVERITY.WARNING,
     componentId: newId,
-    message: `Component ${newId} schema changed but no migration strategy available`,
+    message,
     code: ISSUE_CODES.MIGRATION_FAILED,
   });
 
