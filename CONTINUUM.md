@@ -262,7 +262,7 @@ DIFF_TYPES.ADDED              // 'added'
 ```
 packages/contract/   - Types, interfaces, constants
 packages/runtime/    - Reconciliation engine (reconcile function)
-packages/session/    - Session lifecycle (createSession, deserialize, buildSession)
+packages/session/    - Session lifecycle (createSession, deserialize)
 packages/react/      - React bindings (Provider, Renderer, hooks)
 packages/adapters/   - Protocol adapters (ProtocolAdapter interface, A2UI adapter)
 apps/playground/     - Demo application (protocol toggle, hallucination animations)
