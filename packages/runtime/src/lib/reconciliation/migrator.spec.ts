@@ -24,7 +24,7 @@ describe('attemptMigration', () => {
     );
 
     expect(strategy).toHaveBeenCalledOnce();
-    expect(result).toEqual({ value: 'HELLO' });
+    expect(result).toEqual({ kind: 'migrated', value: { value: 'HELLO' } });
   });
 
   it('uses schema-declared migration rule with strategyRegistry', () => {
@@ -44,7 +44,7 @@ describe('attemptMigration', () => {
     );
 
     expect(registry).toHaveBeenCalledOnce();
-    expect(result).toEqual({ value: 'migrated' });
+    expect(result).toEqual({ kind: 'migrated', value: { value: 'migrated' } });
   });
 
   it('falls back to passthrough when types match and no strategy exists', () => {
@@ -56,10 +56,10 @@ describe('attemptMigration', () => {
       {}
     );
 
-    expect(result).toEqual({ value: 'hello' });
+    expect(result).toEqual({ kind: 'migrated', value: { value: 'hello' } });
   });
 
-  it('returns null when types differ and no strategy exists', () => {
+  it('returns no migration when types differ and no strategy exists', () => {
     const result = attemptMigration(
       'comp-1',
       makeComponent({ id: 'comp-1', type: 'input', hash: 'v1' }),
@@ -68,6 +68,6 @@ describe('attemptMigration', () => {
       {}
     );
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ kind: 'none' });
   });
 });

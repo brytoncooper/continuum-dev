@@ -1,4 +1,13 @@
-import type { ComponentDefinition, ComponentState, StateSnapshot, ValueMeta } from '@continuum/contract';
+import type {
+  ComponentDefinition,
+  ComponentState,
+  DiffType,
+  IssueCode,
+  IssueSeverity,
+  StateSnapshot,
+  TraceAction,
+  ValueMeta,
+} from '@continuum/contract';
 
 export interface ReconciliationResult {
   reconciledState: StateSnapshot;
@@ -9,7 +18,7 @@ export interface ReconciliationResult {
 
 export interface StateDiff {
   componentId: string;
-  type: 'added' | 'removed' | 'migrated' | 'type-changed';
+  type: DiffType;
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
@@ -21,16 +30,16 @@ export interface ReconciliationTrace {
   matchedBy: 'id' | 'key' | null;
   priorType: string | null;
   newType: string;
-  action: 'carried' | 'migrated' | 'dropped' | 'added';
+  action: TraceAction;
   priorValue: unknown;
   reconciledValue: unknown;
 }
 
 export interface ReconciliationIssue {
-  severity: 'error' | 'warning' | 'info';
+  severity: IssueSeverity;
   componentId?: string;
   message: string;
-  code: string;
+  code: IssueCode;
 }
 
 export interface ReconciliationOptions {
@@ -46,7 +55,7 @@ export type MigrationStrategy = (
   oldSchema: ComponentDefinition,
   newSchema: ComponentDefinition,
   oldState: unknown
-) => unknown | null;
+) => unknown;
 
 export interface ComponentResolutionAccumulator {
   values: Record<string, ComponentState>;
