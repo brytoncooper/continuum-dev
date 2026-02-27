@@ -1,5 +1,6 @@
 import type { ReconciliationIssue } from '@continuum/runtime';
-import { color, radius, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 interface IssuesListProps {
   issues: ReconciliationIssue[];
@@ -7,7 +8,7 @@ interface IssuesListProps {
 
 export function IssuesList({ issues }: IssuesListProps) {
   if (issues.length === 0) {
-    return <div style={{ ...typeScale.caption, color: color.panelTextMuted }}>Clean</div>;
+    return <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>Clean</div>;
   }
 
   return (
@@ -28,7 +29,7 @@ export function IssuesList({ issues }: IssuesListProps) {
             {issue.code}
             {issue.componentId ? ` · ${issue.componentId}` : ''}
           </div>
-          <div style={{ ...typeScale.caption, color: color.panelTextSecondary }}>{issue.message}</div>
+          <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>{issue.message}</div>
         </div>
       ))}
     </div>
@@ -36,14 +37,14 @@ export function IssuesList({ issues }: IssuesListProps) {
 }
 
 function tone(severity: string): string {
-  if (severity === 'error') return color.danger;
-  if (severity === 'warning') return color.warning;
-  return color.accent;
+  if (severity === 'error') return playgroundTheme.color.danger;
+  if (severity === 'warning') return playgroundTheme.color.warning;
+  return playgroundTheme.color.accent;
 }
 
 function background(severity: string): string {
-  if (severity === 'error') return color.dangerBg;
-  if (severity === 'warning') return color.warningBg;
-  return color.infoBg;
+  if (severity === 'error') return playgroundTheme.color.dangerBg;
+  if (severity === 'warning') return playgroundTheme.color.warningBg;
+  return playgroundTheme.color.infoBg;
 }
 

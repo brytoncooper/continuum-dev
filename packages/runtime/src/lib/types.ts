@@ -7,6 +7,7 @@ import type {
   StateSnapshot,
   TraceAction,
   ValueMeta,
+  OrphanedValue,
 } from '@continuum/contract';
 
 export interface ReconciliationResult {
@@ -60,6 +61,8 @@ export type MigrationStrategy = (
 export interface ComponentResolutionAccumulator {
   values: Record<string, ComponentState>;
   valuesMeta: Record<string, ValueMeta>;
+  orphanedValues: Record<string, OrphanedValue>;
+  restoredOrphanKeys: Set<string>;
   diffs: StateDiff[];
   trace: ReconciliationTrace[];
   issues: ReconciliationIssue[];

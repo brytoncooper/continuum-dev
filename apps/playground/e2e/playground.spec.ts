@@ -7,13 +7,13 @@ const btn = {
   prev: '[data-testid="btn-prev"]',
   next: '[data-testid="btn-next"]',
   hallucinate: '[data-testid="btn-hallucinate"]',
-  devtoolsToggle: '[data-testid="devtools-toggle"]',
 };
 
 const panel = {
   diffs: '[data-testid="panel-diffs"]',
   issues: '[data-testid="panel-issues"]',
   trace: '[data-testid="panel-trace"]',
+  orphans: '[data-testid="panel-orphans"]',
   snapshot: '[data-testid="panel-snapshot"]',
   stepLabel: '[data-testid="step-label"]',
   rewindTimeline: '[data-testid="rewind-timeline"]',
@@ -27,16 +27,19 @@ function component(id: string) {
   return `[data-continuum-id="${id}"]`;
 }
 
-async function openDevtools(page: Page) {
-  if ((await page.locator(panel.devtools).count()) === 0) {
-    await page.locator(btn.devtoolsToggle).click();
-  }
+async function openTab(page: Page, tabId: string) {
+  await page.locator(`[data-testid="tab-${tabId}"]`).click();
 }
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => ((globalThis as unknown) as { localStorage: { clear: () => void } }).localStorage.clear());
   await page.reload();
+  const landingEnter = page.getByTestId('hero-enter-playground');
+  if (await landingEnter.isVisible()) {
+    await landingEnter.click();
+    await page.waitForSelector('h1:has-text("Continuum Playground")', { timeout: 5000 });
+  }
   await expect(page.locator('h1')).toContainText('Continuum Playground');
 });
 
@@ -49,7 +52,7 @@ test.describe('Scenario 1: Forward navigation preserves state', () => {
     await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
 
     await expect(page.locator(`${component('primary_destination')} input`)).toHaveValue('Lisbon, Portugal');
-    await expect(page.locator(panel.valueCallout)).toContainText('carried over');
+    await expect(page.getByTestId('value-callout').first()).toContainText('carried over');
   });
 });
 
@@ -57,7 +60,6 @@ test.describe('Scenario 2: Type mismatch drops state', () => {
   test('select->slider type change drops state and shows type-changed diff', async ({
     page,
   }) => {
-    await openDevtools(page);
     await page.locator(btn.next).click();
     await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
     await page.locator(`${component('budget')} select`).selectOption('mid');
@@ -67,9 +69,11 @@ test.describe('Scenario 2: Type mismatch drops state', () => {
 
     await expect(page.locator(`${component('budget')} input[type="range"]`)).toBeVisible();
 
+    await openTab(page, 'state-diffs');
     const diffsText = await page.locator(panel.diffs).innerText();
     expect(diffsText).toContain('type-changed');
 
+    await openTab(page, 'validation');
     const issuesText = await page.locator(panel.issues).innerText();
     expect(issuesText).toContain('TYPE_MISMATCH');
   });
@@ -90,7 +94,6 @@ test.describe('Scenario 3: Component removal', () => {
 
 test.describe('Scenario 4: Hallucination resilience', () => {
   test('hallucination triggers issues and trace entries', async ({ page }) => {
-    await openDevtools(page);
     await page.locator(`${component('destination')} input`).fill('Test');
 
     await page.locator(btn.hallucinate).click();
@@ -98,10 +101,11 @@ test.describe('Scenario 4: Hallucination resilience', () => {
     const traceText = await page.locator(panel.trace).innerText();
     expect(traceText.length).toBeGreaterThan(0);
 
-    const issuesOrDiffs =
-      (await page.locator(panel.issues).innerText()) +
-      (await page.locator(panel.diffs).innerText());
-    expect(issuesOrDiffs.length).toBeGreaterThan(5);
+    await openTab(page, 'validation');
+    const issuesText = await page.locator(panel.issues).innerText();
+    await openTab(page, 'state-diffs');
+    const diffsText = await page.locator(panel.diffs).innerText();
+    expect((issuesText + diffsText).length).toBeGreaterThan(5);
   });
 });
 
@@ -111,6 +115,10 @@ test.describe('Scenario 5: Refresh persistence', () => {
     await page.locator(`${component('trip_notes')} textarea`).fill('Quiet neighborhood and local food');
 
     await page.reload();
+    const landingEnter = page.getByTestId('hero-enter-playground');
+    if (await landingEnter.isVisible()) {
+      await landingEnter.click();
+    }
     await expect(page.locator(`${component('destination')} input`)).not.toHaveValue('');
   });
 
@@ -120,6 +128,10 @@ test.describe('Scenario 5: Refresh persistence', () => {
     await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
 
     await page.reload();
+    const landingEnter = page.getByTestId('hero-enter-playground');
+    if (await landingEnter.isVisible()) {
+      await landingEnter.click();
+    }
     await expect(page.locator(panel.stepLabel)).toContainText('Step 1');
     await expect(page.locator(`${component('destination')} input`)).not.toHaveValue('');
   });
@@ -127,7 +139,6 @@ test.describe('Scenario 5: Refresh persistence', () => {
 
 test.describe('Scenario 6: Rewind timeline', () => {
   test('rewind buttons appear after navigating steps', async ({ page }) => {
-    await openDevtools(page);
     await expect(page.locator(panel.rewindTimeline)).toBeVisible();
 
     await page.locator(btn.next).click();
@@ -139,7 +150,6 @@ test.describe('Scenario 6: Rewind timeline', () => {
   });
 
   test('clicking rewind restores prior schema version', async ({ page }) => {
-    await openDevtools(page);
     await page.locator(`${component('destination')} input`).fill('Seoul');
     await page.locator(btn.next).click();
     await page.locator(btn.next).click();
@@ -150,11 +160,34 @@ test.describe('Scenario 6: Rewind timeline', () => {
   });
 });
 
-test.describe('Scenario 7: Split-panel layout', () => {
-  test('page has generated UI and dev tools panels', async ({ page }) => {
+test.describe('Scenario 7: Layout', () => {
+  test('page has generated UI and devtools', async ({ page }) => {
     await expect(page.locator(panel.generatedUi)).toBeVisible();
-    await expect(page.locator(panel.devtools)).toHaveCount(0);
-    await page.locator(btn.devtoolsToggle).click();
     await expect(page.locator(panel.devtools)).toBeVisible();
+  });
+});
+
+test.describe('Scenario 8: Orphan retention', () => {
+  test('removed fields move to orphan panel and restore later', async ({ page }) => {
+    await page.locator('[data-testid="scenario-orphan-retention"]').click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 1');
+
+    await page.locator(btn.next).click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
+    await openTab(page, 'saved-values');
+    await expect(page.locator(panel.orphans)).toContainText('loyalty_number');
+    await expect(page.locator(panel.orphans)).toContainText('special_requests');
+
+    await page.locator(btn.next).click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 3');
+    await expect(page.locator(`${component('loyalty_number_v2')} input`)).toHaveValue('LTY-2201');
+
+    await page.locator(btn.next).click();
+    await expect(page.locator(panel.stepLabel)).toContainText('Step 4');
+    await expect(page.locator(`${component('special_requests_v3')} textarea`)).toHaveValue(
+      'Late check-in near elevator'
+    );
+    await openTab(page, 'saved-values');
+    await expect(page.locator(panel.orphans)).toContainText('No saved values');
   });
 });

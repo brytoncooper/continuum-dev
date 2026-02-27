@@ -19,6 +19,10 @@ function assembleSessionFromInternalState(internal: SessionState): Session {
     getTrace() { return internal.destroyed ? [] : [...internal.trace]; },
     getEventLog() { return internal.destroyed ? [] : [...internal.eventLog]; },
     getPendingActions() { return internal.destroyed ? [] : [...internal.pendingActions]; },
+    getOrphanedValues() {
+      if (internal.destroyed) return {};
+      return { ...(internal.currentState?.orphanedValues ?? {}) };
+    },
     getCheckpoints() { return internal.destroyed ? [] : [...internal.checkpoints]; },
 
     pushSchema(schema) { pushSchema(internal, schema); },
@@ -54,22 +58,31 @@ export function createSession(options?: SessionOptions): Session {
   const internal = createEmptySessionState(generateId('session', clock), clock);
   internal.maxEventLogSize = options?.maxEventLogSize ?? internal.maxEventLogSize;
   internal.maxPendingActions = options?.maxPendingActions ?? internal.maxPendingActions;
+  internal.maxCheckpoints = options?.maxCheckpoints ?? internal.maxCheckpoints;
+  internal.reconciliationOptions = options?.reconciliation;
+  internal.validateOnUpdate = options?.validateOnUpdate ?? internal.validateOnUpdate;
   return assembleSessionFromInternalState(
     internal
   );
 }
 
 export function deserialize(data: unknown, options?: SessionOptions): Session {
-  return assembleSessionFromInternalState(
-    deserializeToState(
-      data,
-      options?.clock ?? Date.now,
-      {
-        maxEventLogSize: options?.maxEventLogSize,
-        maxPendingActions: options?.maxPendingActions,
-      }
-    )
+  const internal = deserializeToState(
+    data,
+    options?.clock ?? Date.now,
+    {
+      maxEventLogSize: options?.maxEventLogSize,
+      maxPendingActions: options?.maxPendingActions,
+      maxCheckpoints: options?.maxCheckpoints,
+    }
   );
+  if (options?.reconciliation) {
+    internal.reconciliationOptions = options.reconciliation;
+  }
+  if (options?.validateOnUpdate !== undefined) {
+    internal.validateOnUpdate = options.validateOnUpdate;
+  }
+  return assembleSessionFromInternalState(internal);
 }
 
 export const sessionFactory: SessionFactory = { createSession, deserialize };

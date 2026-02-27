@@ -2,6 +2,7 @@ export interface StateSnapshot {
   values: Record<string, ComponentState>;
   meta: StateMeta;
   valuesMeta?: Record<string, ValueMeta>;
+  orphanedValues?: Record<string, OrphanedValue>;
 }
 
 export type ComponentState =
@@ -42,4 +43,13 @@ export interface StateMeta {
 export interface ValueMeta {
   lastUpdated?: number;
   lastInteractionId?: string;
+}
+
+export interface OrphanedValue {
+  value: ComponentState;
+  componentType: string;
+  key?: string;
+  orphanedAt: number;
+  schemaVersion: string;
+  reason: 'removed' | 'type-mismatch' | 'migration-failed';
 }

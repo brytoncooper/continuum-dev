@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { color, radius, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 interface RefreshBannerProps {
   wasRehydrated: boolean;
@@ -27,9 +28,11 @@ export function RefreshBanner({ wasRehydrated }: RefreshBannerProps) {
       style={{
         padding: `${space.md}px ${space.lg}px`,
         borderRadius: radius.lg,
-        border: `1px solid ${color.borderFocus}`,
-        background: color.infoBg,
-        color: color.accent,
+        border: `1px solid ${playgroundTheme.color.accent}`,
+        background: playgroundTheme.color.infoBg,
+        color: playgroundTheme.color.accent,
+        fontWeight: 600,
+        boxShadow: 'none',
         display: 'flex',
         alignItems: 'center',
         gap: space.sm,
@@ -41,9 +44,11 @@ export function RefreshBanner({ wasRehydrated }: RefreshBannerProps) {
         style={{
           border: 'none',
           background: 'transparent',
-          color: color.accent,
+          color: playgroundTheme.color.accent,
           cursor: 'pointer',
           marginLeft: 'auto',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
           ...typeScale.caption,
         }}
       >

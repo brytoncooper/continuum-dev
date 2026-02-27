@@ -8,31 +8,30 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum/react';
+import type { SessionOptions } from '@continuum/session';
 import { hallucinate } from './chaos';
 import { componentMap } from './component-map';
 import { scenarios } from './scenarios/registry';
 import type { ScenarioStep } from './scenarios/types';
+import { LandingPage } from './ui/landing/LandingPage';
+import { ScenarioContextCard } from './ui/controls/ScenarioContextCard';
 import { StoryHeader } from './ui/controls/StoryHeader';
-import { RewindTimeline } from './ui/controls/RewindTimeline';
-import { StepControls } from './ui/controls/StepControls';
-import { CollapsiblePanel } from './ui/devtools/CollapsiblePanel';
-import { DiffList } from './ui/devtools/DiffList';
-import { IssuesList } from './ui/devtools/IssuesList';
-import { IssuesSummary } from './ui/devtools/IssuesSummary';
-import { SnapshotViewer } from './ui/devtools/SnapshotViewer';
-import { TraceList } from './ui/devtools/TraceList';
+import { DevtoolsTabs } from './ui/devtools/DevtoolsTabs';
 import { globalStyles } from './ui/global-styles';
 import { ReconciliationToast } from './ui/feedback/ReconciliationToast';
 import { RefreshBanner } from './ui/feedback/RefreshBanner';
 import { TraceAnimations } from './ui/feedback/TraceAnimations';
 import { ValueCallout } from './ui/feedback/ValueCallout';
 import { AppShell } from './ui/layout/AppShell';
-import { DevtoolsDock } from './ui/layout/DevtoolsDock';
 import { MainStage } from './ui/layout/MainStage';
 
 type ProtocolMode = 'native' | 'a2ui';
 
-function PlaygroundContent() {
+interface PlaygroundContentProps {
+  onBackToIntro: () => void;
+}
+
+function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
   const { issues, diffs, trace, checkpoints } = useContinuumDiagnostics();
@@ -40,7 +39,6 @@ function PlaygroundContent() {
 
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? '');
   const [stepIndex, setStepIndex] = useState(-1);
-  const [devtoolsOpen, setDevtoolsOpen] = useState(false);
   const [protocolMode, setProtocolMode] = useState<ProtocolMode>('native');
   const initializedRef = useRef(false);
   const scenarioEffectReadyRef = useRef(false);
@@ -141,6 +139,7 @@ function PlaygroundContent() {
   }, [session]);
 
   const currentStep = activeSteps[Math.max(0, stepIndex)] ?? null;
+  const orphanedValues = snapshot?.state.orphanedValues ?? {};
   if (!selectedScenario) {
     return null;
   }
@@ -150,14 +149,12 @@ function PlaygroundContent() {
 
   return (
     <>
-      <style>{globalStyles}</style>
       <TraceAnimations trace={trace} />
       <ReconciliationToast trace={trace} />
       <AppShell
-        devtoolsOpen={devtoolsOpen}
-        onToggleDevtools={() => setDevtoolsOpen((open) => !open)}
         header={
           <StoryHeader
+            onBackToIntro={onBackToIntro}
             scenarios={scenarios}
             activeScenarioId={selectedScenario.id}
             activeScenarioTitle={
@@ -174,20 +171,29 @@ function PlaygroundContent() {
         main={
           <MainStage
             banner={<RefreshBanner wasRehydrated={wasHydrated} />}
+            devtools={
+              <DevtoolsTabs
+                trace={trace}
+                diffs={diffs}
+                orphanedValues={orphanedValues}
+                issues={issues}
+                snapshot={snapshot}
+              />
+            }
             controls={
-              <StepControls
+              <ScenarioContextCard
                 stepIndex={Math.max(stepIndex, 0)}
                 totalSteps={activeSteps.length}
                 activeStepLabel={currentStep?.label ?? 'Step 1'}
-                stepProgress={`${Math.max(stepIndex + 1, 1)} of ${activeSteps.length}`}
                 description={currentStep?.description ?? ''}
                 narrativePrompt={currentStep?.narrativePrompt ?? ''}
+                checkpoints={checkpoints}
                 onPrev={() => pushStep(stepIndex - 1)}
                 onNext={() => pushStep(stepIndex + 1)}
+                onRewind={handleRewind}
                 onHallucinate={handleHallucinate}
               />
             }
-            rewind={<RewindTimeline checkpoints={checkpoints} onRewind={handleRewind} />}
             valueCallout={
               <ValueCallout hint={currentStep?.outcomeHint} trace={trace} diffs={diffs} />
             }
@@ -200,55 +206,62 @@ function PlaygroundContent() {
             }
           />
         }
-        devtools={
-          <DevtoolsDock
-            summary={<IssuesSummary issues={issues} />}
-            tracePanel={
-              <CollapsiblePanel
-                title="Reconciliation Trace"
-                count={trace.length}
-                testId="panel-trace"
-                defaultOpen={trace.some((entry) => entry.action === 'dropped' || entry.action === 'migrated')}
-              >
-                <TraceList trace={trace} />
-              </CollapsiblePanel>
-            }
-            diffPanel={
-              <CollapsiblePanel
-                title="Diffs"
-                count={diffs.length}
-                testId="panel-diffs"
-                defaultOpen={diffs.length > 0}
-              >
-                <DiffList diffs={diffs} />
-              </CollapsiblePanel>
-            }
-            issuesPanel={
-              <CollapsiblePanel
-                title="Issues"
-                count={issues.length}
-                testId="panel-issues"
-                defaultOpen={issues.some((issue) => issue.severity === 'error' || issue.severity === 'warning')}
-              >
-                <IssuesList issues={issues} />
-              </CollapsiblePanel>
-            }
-            snapshotPanel={
-              <CollapsiblePanel title="Snapshot" testId="panel-snapshot">
-                <SnapshotViewer snapshot={snapshot} />
-              </CollapsiblePanel>
-            }
-          />
-        }
       />
     </>
   );
 }
 
 export default function App() {
+  const [showPlayground, setShowPlayground] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
+  const handleEnterPlayground = useCallback(() => {
+    setExiting(true);
+    setTimeout(() => {
+      setShowPlayground(true);
+      setExiting(false);
+    }, 600);
+  }, []);
+
+  const sessionOptions: SessionOptions = {
+    reconciliation: {
+      strategyRegistry: {
+        'email-v1-to-v2': (_componentId, _oldSchema, _newSchema, oldState) => oldState,
+        'date-v1-to-v2': (_componentId, _oldSchema, _newSchema, oldState) => oldState,
+      },
+    },
+    validateOnUpdate: true,
+  };
+
+  if (!showPlayground) {
+    return (
+      <>
+        <style>{globalStyles}</style>
+        <div
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+          opacity: exiting ? 0 : 1,
+          transform: exiting ? 'translateY(-40px)' : 'translateY(0)',
+        }}
+      >
+        <LandingPage onEnter={handleEnterPlayground} />
+      </div>
+      </>
+    );
+  }
+
   return (
-    <ContinuumProvider components={componentMap} persist="localStorage">
-      <PlaygroundContent />
+    <>
+      <style>{globalStyles}</style>
+      <ContinuumProvider
+      components={componentMap}
+      persist="localStorage"
+      sessionOptions={sessionOptions}
+    >
+      <PlaygroundContent onBackToIntro={() => setShowPlayground(false)} />
     </ContinuumProvider>
+    </>
   );
 }

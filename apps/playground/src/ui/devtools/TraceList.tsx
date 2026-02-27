@@ -1,5 +1,6 @@
 import type { ReconciliationTrace } from '@continuum/runtime';
-import { color, radius, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 interface TraceListProps {
   trace: ReconciliationTrace[];
@@ -7,7 +8,7 @@ interface TraceListProps {
 
 export function TraceList({ trace }: TraceListProps) {
   if (trace.length === 0) {
-    return <div style={{ ...typeScale.caption, color: color.panelTextMuted }}>No trace available</div>;
+    return <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>No trace available</div>;
   }
 
   return (
@@ -16,20 +17,29 @@ export function TraceList({ trace }: TraceListProps) {
         <div
           key={`${entry.componentId}-${entry.action}-${index}`}
           style={{
-            border: `1px solid ${color.panelBorder}`,
+            border: `1px solid ${playgroundTheme.color.border}`,
             borderRadius: radius.md,
-            background: color.panelSurfaceAlt,
+            background: playgroundTheme.color.surfaceMuted,
             padding: `${space.sm}px ${space.md}px`,
             display: 'grid',
             gap: space.xs,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.sm }}>
-            <span style={{ ...typeScale.caption, color: color.panelText }}>{entry.componentId}</span>
-            <span style={{ ...typeScale.caption, color: tone(entry.action) }}>{entry.action}</span>
+            <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>{entry.componentId}</span>
+            <span
+              style={{
+                ...typeScale.caption,
+                color: tone(entry.action),
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {entry.action}
+            </span>
           </div>
           {entry.matchedBy ? (
-            <div style={{ ...typeScale.caption, color: color.panelTextMuted }}>matched by {entry.matchedBy}</div>
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>matched by {entry.matchedBy}</div>
           ) : null}
         </div>
       ))}
@@ -38,9 +48,9 @@ export function TraceList({ trace }: TraceListProps) {
 }
 
 function tone(action: string): string {
-  if (action === 'dropped') return color.danger;
-  if (action === 'migrated') return color.warning;
-  if (action === 'added') return color.success;
-  return color.panelTextSecondary;
+  if (action === 'dropped') return playgroundTheme.color.danger;
+  if (action === 'migrated') return playgroundTheme.color.warning;
+  if (action === 'added') return playgroundTheme.color.success;
+  return playgroundTheme.color.muted;
 }
 

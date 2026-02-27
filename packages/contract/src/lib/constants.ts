@@ -5,6 +5,8 @@ export const ISSUE_CODES = {
   COMPONENT_REMOVED: 'COMPONENT_REMOVED',
   MIGRATION_FAILED: 'MIGRATION_FAILED',
   UNTRUSTED_CARRY: 'UNTRUSTED_CARRY',
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  UNKNOWN_COMPONENT: 'UNKNOWN_COMPONENT',
 } as const;
 
 export type IssueCode = (typeof ISSUE_CODES)[keyof typeof ISSUE_CODES];
@@ -14,6 +16,7 @@ export const TRACE_ACTIONS = {
   MIGRATED: 'migrated',
   DROPPED: 'dropped',
   ADDED: 'added',
+  RESTORED: 'restored',
 } as const;
 
 export type TraceAction = (typeof TRACE_ACTIONS)[keyof typeof TRACE_ACTIONS];
@@ -23,6 +26,7 @@ export const DIFF_TYPES = {
   REMOVED: 'removed',
   MIGRATED: 'migrated',
   TYPE_CHANGED: 'type-changed',
+  RESTORED: 'restored',
 } as const;
 
 export type DiffType = (typeof DIFF_TYPES)[keyof typeof DIFF_TYPES];

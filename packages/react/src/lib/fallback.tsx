@@ -12,6 +12,9 @@ export function FallbackComponent({
       ? String(raw['value'])
       : '';
 
+  const displayName = definition.label ?? definition.id;
+  const placeholder = definition.placeholder ?? `Enter value for "${displayName}"`;
+
   return (
     <div
       style={{
@@ -22,12 +25,12 @@ export function FallbackComponent({
       }}
     >
       <div style={{ fontSize: 11, color: '#d1242f', fontWeight: 600 }}>
-        Unknown type: {definition.type}
+        Unknown type: {definition.type} ({displayName})
       </div>
       <input
         value={textValue}
         onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
-        placeholder={`Enter value for "${definition.id}"`}
+        placeholder={placeholder}
         style={{
           display: 'block',
           width: '100%',
