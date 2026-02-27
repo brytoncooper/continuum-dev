@@ -1,5 +1,6 @@
 import type { StateDiff } from '@continuum/runtime';
-import { color, radius, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 interface DiffListProps {
   diffs: StateDiff[];
@@ -7,7 +8,7 @@ interface DiffListProps {
 
 export function DiffList({ diffs }: DiffListProps) {
   if (diffs.length === 0) {
-    return <div style={{ ...typeScale.caption, color: color.panelTextMuted }}>No diffs</div>;
+    return <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>No diffs</div>;
   }
 
   return (
@@ -16,20 +17,29 @@ export function DiffList({ diffs }: DiffListProps) {
         <div
           key={`${diff.componentId}-${diff.type}-${index}`}
           style={{
-            border: `1px solid ${color.panelBorder}`,
+            border: `1px solid ${playgroundTheme.color.border}`,
             borderRadius: radius.md,
-            background: color.panelSurfaceAlt,
+            background: playgroundTheme.color.surfaceMuted,
             padding: `${space.sm}px ${space.md}px`,
             display: 'grid',
             gap: space.xs,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.sm }}>
-            <span style={{ ...typeScale.caption, color: color.panelText }}>{diff.componentId}</span>
-            <span style={{ ...typeScale.caption, color: tone(diff.type) }}>{diff.type}</span>
+            <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>{diff.componentId}</span>
+            <span
+              style={{
+                ...typeScale.caption,
+                color: tone(diff.type),
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {diff.type}
+            </span>
           </div>
           {diff.reason ? (
-            <div style={{ ...typeScale.caption, color: color.panelTextMuted }}>{diff.reason}</div>
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>{diff.reason}</div>
           ) : null}
         </div>
       ))}
@@ -38,9 +48,9 @@ export function DiffList({ diffs }: DiffListProps) {
 }
 
 function tone(type: string): string {
-  if (type === 'removed' || type === 'type-changed') return color.danger;
-  if (type === 'migrated') return color.warning;
-  if (type === 'added') return color.success;
-  return color.panelTextSecondary;
+  if (type === 'removed' || type === 'type-changed') return playgroundTheme.color.danger;
+  if (type === 'migrated') return playgroundTheme.color.warning;
+  if (type === 'added') return playgroundTheme.color.success;
+  return playgroundTheme.color.muted;
 }
 

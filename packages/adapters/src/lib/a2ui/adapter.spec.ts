@@ -18,7 +18,7 @@ describe('a2uiAdapter', () => {
         id: 'username',
         type: 'input',
         key: 'username',
-        path: 'Username',
+        label: 'Username',
       });
     });
 
@@ -56,10 +56,12 @@ describe('a2uiAdapter', () => {
       expect(schema.components[0]).toMatchObject({
         id: 'country',
         type: 'select',
-        stateShape: [
-          { id: 'us', label: 'United States' },
-          { id: 'uk', label: 'United Kingdom' },
-        ],
+        props: {
+          options: [
+            { id: 'us', label: 'United States' },
+            { id: 'uk', label: 'United Kingdom' },
+          ],
+        },
       });
     });
 
@@ -108,7 +110,7 @@ describe('a2uiAdapter', () => {
       expect(schema.components[0]).toMatchObject({
         id: 'birthday',
         type: 'date',
-        path: 'Date of Birth',
+        label: 'Date of Birth',
       });
     });
 
@@ -310,6 +312,31 @@ describe('a2uiAdapter', () => {
       expect(result.fields[0].type).toBe('Section');
       expect(result.fields[0].fields).toHaveLength(1);
       expect(result.fields[0].fields![0].name).toBe('field1');
+    });
+
+    it('maps schema props.options to A2UI options', () => {
+      const result = a2uiAdapter.fromSchema({
+        schemaId: 's',
+        version: '1',
+        components: [
+          {
+            id: 'country',
+            type: 'select',
+            label: 'Country',
+            props: {
+              options: [
+                { id: 'us', label: 'United States' },
+                { id: 'ca', label: 'Canada' },
+              ],
+            },
+          },
+        ],
+      });
+
+      expect(result.fields[0].options).toEqual([
+        { id: 'us', label: 'United States' },
+        { id: 'ca', label: 'Canada' },
+      ]);
     });
   });
 

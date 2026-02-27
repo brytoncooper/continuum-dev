@@ -6,13 +6,21 @@ import type {
   SchemaSnapshot,
   StateSnapshot,
 } from '@continuum/contract';
-import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@continuum/runtime';
+import type {
+  ReconciliationIssue,
+  ReconciliationOptions,
+  ReconciliationTrace,
+  StateDiff,
+} from '@continuum/runtime';
 
 export interface SessionState {
   sessionId: string;
   clock: () => number;
   maxEventLogSize: number;
   maxPendingActions: number;
+  maxCheckpoints: number;
+  reconciliationOptions?: Omit<ReconciliationOptions, 'clock'>;
+  validateOnUpdate: boolean;
   currentSchema: SchemaSnapshot | null;
   currentState: StateSnapshot | null;
   priorSchema: SchemaSnapshot | null;
@@ -22,7 +30,6 @@ export interface SessionState {
   eventLog: Interaction[];
   pendingActions: PendingAction[];
   checkpoints: Checkpoint[];
-  autoCheckpointIds: Set<string>;
   snapshotListeners: Set<(snapshot: ContinuitySnapshot) => void>;
   issueListeners: Set<(issues: ReconciliationIssue[]) => void>;
   destroyed: boolean;
@@ -34,6 +41,9 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
     clock,
     maxEventLogSize: 1000,
     maxPendingActions: 500,
+    maxCheckpoints: 50,
+    reconciliationOptions: undefined,
+    validateOnUpdate: false,
     currentSchema: null,
     currentState: null,
     priorSchema: null,
@@ -43,7 +53,6 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
     eventLog: [],
     pendingActions: [],
     checkpoints: [],
-    autoCheckpointIds: new Set(),
     snapshotListeners: new Set(),
     issueListeners: new Set(),
     destroyed: false,
@@ -60,7 +69,6 @@ export function resetSessionState(internal: SessionState): void {
   internal.eventLog = [];
   internal.pendingActions = [];
   internal.checkpoints = [];
-  internal.autoCheckpointIds.clear();
 }
 
 export function generateId(prefix: string, clock: () => number): string {

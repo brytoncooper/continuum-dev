@@ -1,16 +1,25 @@
 import type {
   ContinuitySnapshot,
   Interaction,
+  OrphanedValue,
   PendingAction,
   Checkpoint,
   SchemaSnapshot,
 } from '@continuum/contract';
-import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@continuum/runtime';
+import type {
+  ReconciliationIssue,
+  ReconciliationOptions,
+  ReconciliationTrace,
+  StateDiff,
+} from '@continuum/runtime';
 
 export interface SessionOptions {
   clock?: () => number;
   maxEventLogSize?: number;
   maxPendingActions?: number;
+  maxCheckpoints?: number;
+  reconciliation?: Omit<ReconciliationOptions, 'clock'>;
+  validateOnUpdate?: boolean;
 }
 
 export interface Session {
@@ -25,6 +34,7 @@ export interface Session {
   getEventLog(): Interaction[];
   submitAction(action: Omit<PendingAction, 'id' | 'createdAt' | 'status' | 'schemaVersion'>): void;
   getPendingActions(): PendingAction[];
+  getOrphanedValues(): Record<string, OrphanedValue>;
   validateAction(actionId: string): boolean;
   cancelAction(actionId: string): boolean;
   checkpoint(): Checkpoint;

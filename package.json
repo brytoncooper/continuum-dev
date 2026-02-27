@@ -2,7 +2,9 @@
   "name": "@continuum/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "demo": "nx run playground:serve"
+  },
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",

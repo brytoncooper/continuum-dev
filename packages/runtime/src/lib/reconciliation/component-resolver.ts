@@ -1,4 +1,4 @@
-import type { ComponentDefinition, ComponentState, StateSnapshot } from '@continuum/contract';
+import type { ComponentDefinition, ComponentState, OrphanedValue, StateSnapshot } from '@continuum/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
 import type {
   ComponentResolutionAccumulator,
@@ -20,9 +20,12 @@ import {
   migratedTrace,
   carriedTrace,
   removedDiff,
+  restoredDiff,
+  restoredTrace,
 } from './differ.js';
 import { attemptMigration } from './migrator.js';
 import { carryValuesMeta } from './state-builder.js';
+import { validateComponentState } from './validator.js';
 
 export function resolveAllComponents(
   ctx: ReconciliationContext,
@@ -34,6 +37,8 @@ export function resolveAllComponents(
   const acc: ComponentResolutionAccumulator = {
     values: {},
     valuesMeta: {},
+    orphanedValues: {},
+    restoredOrphanKeys: new Set<string>(),
     diffs: [],
     trace: [],
     issues: [],
@@ -46,14 +51,21 @@ export function resolveAllComponents(
     const matchedBy = determineComponentMatchStrategy(ctx, newComponent, priorComponent);
 
     if (!priorComponent) {
-      resolveNewComponent(acc, newId, newComponent.type);
+      resolveNewComponent(acc, newId, newComponent, priorState, now);
     } else if (priorComponent.type !== newComponent.type) {
-      resolveTypeMismatchedComponent(acc, newId, priorComponent, newComponent, matchedBy, priorValue);
+      resolveTypeMismatchedComponent(acc, newId, priorComponent, newComponent, matchedBy, priorValue, ctx, now);
     } else if (hasComponentHashChanged(priorComponent, newComponent)) {
       resolveHashChangedComponent(acc, newId, priorComponent, newComponent, matchedBy, priorValue, priorState, now, options);
     } else {
       resolveUnchangedComponent(acc, newId, priorComponent, matchedBy as 'id' | 'key', priorValue, priorState, now);
     }
+
+    acc.issues.push(
+      ...validateComponentState(
+        newComponent,
+        acc.values[newId] as ComponentState | undefined
+      )
+    );
   }
 
   return acc;
@@ -62,10 +74,24 @@ export function resolveAllComponents(
 function resolveNewComponent(
   acc: ComponentResolutionAccumulator,
   newId: string,
-  newType: string
+  newComponent: ComponentDefinition,
+  priorState: StateSnapshot,
+  now: number
 ): void {
+  const orphanKey = newComponent.key ?? newId;
+  const orphan = priorState.orphanedValues?.[orphanKey];
+  if (orphan && orphan.componentType === newComponent.type) {
+    acc.values[newId] = orphan.value as ComponentState;
+    acc.restoredOrphanKeys.add(orphanKey);
+    acc.diffs.push(restoredDiff(newId, orphan.value));
+    acc.trace.push(restoredTrace(newId, newComponent.type, orphan.value));
+    return;
+  }
+  if (newComponent.defaultValue !== undefined) {
+    acc.values[newId] = newComponent.defaultValue as ComponentState;
+  }
   acc.diffs.push(addedDiff(newId));
-  acc.trace.push(addedTrace(newId, newType));
+  acc.trace.push(addedTrace(newId, newComponent.type));
 }
 
 function resolveTypeMismatchedComponent(
@@ -74,7 +100,9 @@ function resolveTypeMismatchedComponent(
   priorComponent: ComponentDefinition,
   newComponent: ComponentDefinition,
   matchedBy: 'id' | 'key' | null,
-  priorValue: unknown
+  priorValue: unknown,
+  ctx: ReconciliationContext,
+  now: number
 ): void {
   acc.issues.push({
     severity: ISSUE_SEVERITY.ERROR,
@@ -84,6 +112,17 @@ function resolveTypeMismatchedComponent(
   });
   acc.diffs.push(typeChangedDiff(newId, priorValue, priorComponent.type, newComponent.type));
   acc.trace.push(droppedTrace(newId, priorComponent.id, matchedBy, priorComponent.type, newComponent.type, priorValue));
+  if (priorValue !== undefined) {
+    const orphanKey = priorComponent.key ?? priorComponent.id;
+    acc.orphanedValues[orphanKey] = {
+      value: priorValue as ComponentState,
+      componentType: priorComponent.type,
+      key: priorComponent.key,
+      orphanedAt: now,
+      schemaVersion: ctx.priorSchema?.version ?? 'unknown',
+      reason: 'type-mismatch',
+    };
+  }
 }
 
 function hasComponentHashChanged(
@@ -165,10 +204,12 @@ function resolveUnchangedComponent(
 export function detectRemovedComponents(
   ctx: ReconciliationContext,
   priorState: StateSnapshot,
-  options: ReconciliationOptions
-): { diffs: StateDiff[]; issues: ReconciliationIssue[] } {
+  options: ReconciliationOptions,
+  now: number
+): { diffs: StateDiff[]; issues: ReconciliationIssue[]; orphanedValues: Record<string, OrphanedValue> } {
   const diffs: StateDiff[] = [];
   const issues: ReconciliationIssue[] = [];
+  const orphanedValues: Record<string, OrphanedValue> = {};
 
   for (const [priorId, priorValue] of Object.entries(priorState.values)) {
     const priorComp = ctx.priorById.get(priorId);
@@ -178,6 +219,17 @@ export function detectRemovedComponents(
 
     if (!stillExists) {
       diffs.push(removedDiff(priorId, priorValue));
+      if (priorValue !== undefined) {
+        const orphanKey = priorComp?.key ?? priorId;
+        orphanedValues[orphanKey] = {
+          value: priorValue as ComponentState,
+          componentType: priorComp?.type ?? 'unknown',
+          key: priorComp?.key,
+          orphanedAt: now,
+          schemaVersion: ctx.priorSchema?.version ?? 'unknown',
+          reason: 'removed',
+        };
+      }
       if (!options.allowPartialRestore) {
         issues.push({
           severity: ISSUE_SEVERITY.WARNING,
@@ -189,5 +241,5 @@ export function detectRemovedComponents(
     }
   }
 
-  return { diffs, issues };
+  return { diffs, issues, orphanedValues };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReconciliationTrace } from '@continuum/runtime';
-import { color, radius, shadow, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 interface ReconciliationToastProps {
   trace: ReconciliationTrace[];
@@ -32,7 +33,7 @@ export function ReconciliationToast({ trace }: ReconciliationToastProps) {
     }
 
     const parts: string[] = [];
-    if (counts['carried']) parts.push(`${counts['carried']} carried`);
+    if (counts['carried']) parts.push(`${counts['carried']} field${counts['carried'] > 1 ? 's' : ''} carried over`);
     if (counts['added']) parts.push(`${counts['added']} added`);
     if (counts['migrated']) parts.push(`${counts['migrated']} migrated`);
     if (counts['dropped']) parts.push(`${counts['dropped']} dropped`);
@@ -54,28 +55,31 @@ export function ReconciliationToast({ trace }: ReconciliationToastProps) {
         position: 'fixed',
         left: '50%',
         bottom: 20,
-        transform: 'translateX(-50%)',
+        transform: 'translateX(-50%) translateY(0)',
         zIndex: 20,
         borderRadius: radius.lg,
-        border: `1px solid ${color.border}`,
-        background: color.surfaceAlt,
+        border: `1px solid ${playgroundTheme.color.border}`,
+        background: playgroundTheme.color.surface,
         padding: `${space.sm}px ${space.xl}px`,
-        color: color.text,
+        color: playgroundTheme.color.text,
+        boxShadow: playgroundTheme.shadow.panel,
         display: 'flex',
         gap: space.sm,
         alignItems: 'center',
-        boxShadow: shadow.elevated,
+        animation: 'reconciliation-toast-enter 0.3s ease-out',
       }}
     >
-      <span style={{ ...typeScale.label, color: color.textMuted }}>Reconciled</span>
+      <span style={{ ...typeScale.label, color: playgroundTheme.color.soft }}>Reconciled</span>
       <span style={typeScale.caption}>{summary}</span>
       <button
         onClick={() => setVisible(false)}
         style={{
           border: 'none',
           background: 'transparent',
-          color: color.textMuted,
+          color: playgroundTheme.color.muted,
           cursor: 'pointer',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
           ...typeScale.caption,
         }}
       >

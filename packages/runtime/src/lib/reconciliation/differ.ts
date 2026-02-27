@@ -47,6 +47,18 @@ export function migratedDiff(
   };
 }
 
+export function restoredDiff(
+  componentId: string,
+  newValue: unknown
+): StateDiff {
+  return {
+    componentId,
+    type: DIFF_TYPES.RESTORED,
+    newValue,
+    reason: 'Component restored from orphaned values',
+  };
+}
+
 export function addedTrace(componentId: string, newType: string): ReconciliationTrace {
   return {
     componentId,
@@ -117,6 +129,23 @@ export function migratedTrace(
     newType,
     action: TRACE_ACTIONS.MIGRATED,
     priorValue,
+    reconciledValue,
+  };
+}
+
+export function restoredTrace(
+  componentId: string,
+  priorType: string,
+  reconciledValue: unknown
+): ReconciliationTrace {
+  return {
+    componentId,
+    priorId: null,
+    matchedBy: null,
+    priorType,
+    newType: priorType,
+    action: TRACE_ACTIONS.RESTORED,
+    priorValue: undefined,
     reconciledValue,
   };
 }

@@ -1,9 +1,11 @@
 import type { Scenario } from '../../scenarios/types';
-import { color, radius, space, typeScale } from '../tokens';
+import { radius, space, typeScale } from '../tokens';
+import { playgroundTheme } from '../playground-theme';
 
 type ProtocolMode = 'native' | 'a2ui';
 
 interface StoryHeaderProps {
+  onBackToIntro: () => void;
   scenarios: Scenario[];
   activeScenarioId: string;
   activeScenarioTitle: string;
@@ -14,6 +16,7 @@ interface StoryHeaderProps {
 }
 
 export function StoryHeader({
+  onBackToIntro,
   scenarios,
   activeScenarioId,
   activeScenarioTitle,
@@ -26,16 +29,53 @@ export function StoryHeader({
     <div style={{ display: 'grid', gap: space.md }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.lg, alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: space.xs }}>
-          <h1 style={{ ...typeScale.h1, margin: 0 }}>Continuum Playground</h1>
-          <div style={{ ...typeScale.caption, color: color.textSecondary }}>{activeScenarioTitle}</div>
-          <div style={{ ...typeScale.caption, color: color.textMuted }}>{activeScenarioSubtitle}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: space.md }}>
+            <h1
+              style={{
+                ...typeScale.h1,
+                margin: 0,
+                fontFamily: playgroundTheme.type.display,
+                letterSpacing: '-0.02em',
+                color: playgroundTheme.color.text,
+              }}
+            >
+              Continuum Playground
+            </h1>
+            <button
+              data-testid="back-to-intro"
+              onClick={onBackToIntro}
+              style={{
+                border: 'none',
+                background: 'none',
+                color: playgroundTheme.color.soft,
+                cursor: 'pointer',
+                ...typeScale.caption,
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+                padding: 0,
+              }}
+            >
+              Back to intro
+            </button>
+          </div>
+          <div
+            style={{
+              ...typeScale.caption,
+              color: playgroundTheme.color.muted,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+            }}
+          >
+            {activeScenarioTitle}
+          </div>
+          <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>{activeScenarioSubtitle}</div>
         </div>
         <div style={{ display: 'grid', gap: space.xs, justifyItems: 'end' }}>
           <div
             style={{
               display: 'flex',
               borderRadius: radius.sm,
-              border: `1px solid ${color.border}`,
+              border: `1px solid ${playgroundTheme.color.border}`,
               overflow: 'hidden',
             }}
           >
@@ -65,12 +105,15 @@ export function StoryHeader({
               data-testid={`scenario-${scenario.id}`}
               onClick={() => onScenarioSelect(scenario.id)}
               style={{
-                border: `1px solid ${isActive ? color.borderFocus : color.border}`,
-                background: isActive ? color.surfaceHover : color.surface,
-                color: isActive ? color.text : color.textSecondary,
+                border: `1px solid ${isActive ? playgroundTheme.color.accent : playgroundTheme.color.border}`,
+                background: isActive ? playgroundTheme.gradient.accent : playgroundTheme.color.surface,
+                color: isActive ? playgroundTheme.color.white : playgroundTheme.color.text,
+                fontWeight: 600,
                 borderRadius: radius.pill,
                 padding: `${space.sm}px ${space.md}px`,
                 cursor: 'pointer',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
                 ...typeScale.caption,
               }}
             >
@@ -86,10 +129,12 @@ export function StoryHeader({
 function toggleStyle(active: boolean) {
   return {
     border: 'none',
-    background: active ? color.accent : color.surface,
-    color: active ? color.white : color.textSecondary,
+    background: active ? playgroundTheme.gradient.accent : playgroundTheme.color.surface,
+    color: active ? playgroundTheme.color.white : playgroundTheme.color.text,
     padding: `${space.xs}px ${space.md}px`,
     cursor: 'pointer',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
     ...typeScale.caption,
   };
 }

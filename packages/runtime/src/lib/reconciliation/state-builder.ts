@@ -1,6 +1,7 @@
 import type {
   ComponentDefinition,
   ComponentState,
+  OrphanedValue,
   SchemaSnapshot,
   StateSnapshot,
   ValueMeta,
@@ -23,14 +24,15 @@ export function buildFreshSessionResult(
   newSchema: SchemaSnapshot,
   now: number
 ): ReconciliationResult {
+  const values: Record<string, ComponentState> = {};
   const diffs: StateDiff[] = [];
   const trace: ReconciliationTrace[] = [];
 
-  collectComponentsAsFreshlyAdded(newSchema.components, diffs, trace);
+  collectComponentsAsFreshlyAdded(newSchema.components, values, diffs, trace);
 
   return {
     reconciledState: {
-      values: {},
+      values,
       meta: {
         timestamp: now,
         sessionId: generateSessionId(now),
@@ -52,13 +54,17 @@ export function buildFreshSessionResult(
 
 function collectComponentsAsFreshlyAdded(
   components: ComponentDefinition[],
+  values: Record<string, ComponentState>,
   diffs: StateDiff[],
   trace: ReconciliationTrace[]
 ): void {
   for (const comp of components) {
+    if (comp.defaultValue !== undefined) {
+      values[comp.id] = comp.defaultValue as ComponentState;
+    }
     diffs.push(addedDiff(comp.id));
     trace.push(addedTrace(comp.id, comp.type));
-    if (comp.children) collectComponentsAsFreshlyAdded(comp.children, diffs, trace);
+    if (comp.children) collectComponentsAsFreshlyAdded(comp.children, values, diffs, trace);
   }
 }
 
@@ -141,13 +147,22 @@ export function buildBlindCarryResult(
 
 export function assembleReconciliationResult(
   resolved: ComponentResolutionAccumulator,
-  removals: { diffs: StateDiff[]; issues: ReconciliationIssue[] },
+  removals: { diffs: StateDiff[]; issues: ReconciliationIssue[]; orphanedValues?: Record<string, OrphanedValue> },
   priorState: StateSnapshot,
   newSchema: SchemaSnapshot,
   now: number
 ): ReconciliationResult {
   const schemaHash = computeSchemaHash(newSchema);
   const hasValuesMeta = Object.keys(resolved.valuesMeta).length > 0;
+  const orphanedValues = {
+    ...(priorState.orphanedValues ?? {}),
+    ...(resolved.orphanedValues ?? {}),
+    ...(removals.orphanedValues ?? {}),
+  };
+  for (const restoredKey of resolved.restoredOrphanKeys ?? []) {
+    delete orphanedValues[restoredKey];
+  }
+  const hasOrphanedValues = Object.keys(orphanedValues).length > 0;
 
   return {
     reconciledState: {
@@ -160,6 +175,7 @@ export function assembleReconciliationResult(
         ...(schemaHash !== undefined ? { schemaHash } : {}),
       },
       ...(hasValuesMeta ? { valuesMeta: resolved.valuesMeta } : {}),
+      ...(hasOrphanedValues ? { orphanedValues } : {}),
     },
     diffs: [...resolved.diffs, ...removals.diffs],
     issues: [...resolved.issues, ...removals.issues],

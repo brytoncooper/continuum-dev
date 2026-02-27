@@ -29,7 +29,7 @@ export function pushSchema(internal: SessionState, schema: SchemaSnapshot): void
     schema,
     internal.priorSchema,
     internal.currentState,
-    { clock: internal.clock }
+    { clock: internal.clock, ...(internal.reconciliationOptions ?? {}) }
   );
 
   internal.currentState = {

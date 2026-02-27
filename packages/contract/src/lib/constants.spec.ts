@@ -11,9 +11,11 @@ describe('contract constants', () => {
       'COMPONENT_REMOVED',
       'MIGRATION_FAILED',
       'UNTRUSTED_CARRY',
+      'VALIDATION_FAILED',
+      'UNKNOWN_COMPONENT',
     ]);
-    expect(Object.values(TRACE_ACTIONS)).toEqual(['carried', 'migrated', 'dropped', 'added']);
-    expect(Object.values(DIFF_TYPES)).toEqual(['added', 'removed', 'migrated', 'type-changed']);
+    expect(Object.values(TRACE_ACTIONS)).toEqual(['carried', 'migrated', 'dropped', 'added', 'restored']);
+    expect(Object.values(DIFF_TYPES)).toEqual(['added', 'removed', 'migrated', 'type-changed', 'restored']);
     expect(Object.values(ISSUE_SEVERITY)).toEqual(['error', 'warning', 'info']);
     expect(Object.values(INTERACTION_TYPES)).toEqual(['state-update', 'value-change']);
   });
