@@ -21,8 +21,16 @@ export function autoCheckpoint(internal: SessionState): void {
     snapshot: cloneCheckpointSnapshot(snapshot),
     eventIndex: internal.eventLog.length,
     timestamp: internal.clock(),
+    kind: 'auto',
   });
-  internal.autoCheckpointIds.add(id);
+  if (internal.checkpoints.length > internal.maxCheckpoints) {
+    const overflow = internal.checkpoints.length - internal.maxCheckpoints;
+    for (let index = 0; index < overflow; index += 1) {
+      const removableIndex = internal.checkpoints.findIndex((checkpoint) => checkpoint.kind === 'auto');
+      if (removableIndex === -1) break;
+      internal.checkpoints.splice(removableIndex, 1);
+    }
+  }
 }
 
 export function createManualCheckpoint(internal: SessionState): Checkpoint {
@@ -36,6 +44,7 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
     snapshot: cloneCheckpointSnapshot(snapshot),
     eventIndex: internal.eventLog.length,
     timestamp: internal.clock(),
+    kind: 'manual' as const,
   };
   internal.checkpoints.push(checkpoint);
   return checkpoint;
@@ -63,11 +72,6 @@ export function rewind(internal: SessionState, checkpointId: string): void {
 
   const cp = internal.checkpoints[idx];
   internal.checkpoints = internal.checkpoints.slice(0, idx + 1);
-  internal.autoCheckpointIds = new Set(
-    internal.checkpoints
-      .map((checkpoint) => checkpoint.id)
-      .filter((id) => internal.autoCheckpointIds.has(id))
-  );
 
   internal.currentSchema = cloneCheckpointSnapshot(cp.snapshot.schema);
   internal.currentState = cloneCheckpointSnapshot(cp.snapshot.state);

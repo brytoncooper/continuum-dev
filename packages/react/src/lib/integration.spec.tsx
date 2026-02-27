@@ -1,7 +1,8 @@
-import { act, StrictMode } from 'react';
+import { act, StrictMode, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ContinuitySnapshot, SchemaSnapshot } from '@continuum/contract';
 import { createSession } from '@continuum/session';
+import type { Session } from '@continuum/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumProvider } from './context.js';
 import { useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState } from './hooks.js';
@@ -24,9 +25,9 @@ const componentMap = {
   default: ({ definition }: { definition: { type: string } }) => <div data-testid="default">{definition.type}</div>,
 };
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-function renderIntoDom(element: JSX.Element) {
+function renderIntoDom(element: ReactElement) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -74,7 +75,8 @@ describe('react integration', () => {
     );
 
     expect(hydrated).toBe(true);
-    expect(snapshot?.state.values.field).toEqual({ value: 'from-storage' });
+    const hydratedSnapshot = snapshot as ContinuitySnapshot | null;
+    expect(hydratedSnapshot?.state.values['field']).toEqual({ value: 'from-storage' });
     view.unmount();
   });
 
@@ -90,7 +92,7 @@ describe('react integration', () => {
           data-testid="button"
           onClick={() => setValue({ value: 'next' })}
         >
-          {typeof value?.value === 'string' ? value.value : ''}
+          {typeof (value as any)?.value === 'string' ? (value as any).value : ''}
         </button>
       );
     }
@@ -120,11 +122,81 @@ describe('react integration', () => {
     view.unmount();
   });
 
+  it('does not render components marked hidden', () => {
+    const hiddenSchema: SchemaSnapshot = {
+      schemaId: 'hidden-schema',
+      version: '1',
+      components: [{ id: 'hidden-field', type: 'input', hidden: true }],
+    };
+    const view = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <ContinuumRenderer schema={hiddenSchema} />
+      </ContinuumProvider>
+    );
+    expect(view.container.querySelector('[data-continuum-id="hidden-field"]')).toBeNull();
+    view.unmount();
+  });
+
+  it('forwards definition.props to rendered component', () => {
+    let receivedPlaceholder = '';
+    const propsMap = {
+      input: ({ definition, placeholder }: any) => {
+        receivedPlaceholder = placeholder ?? '';
+        return <div data-testid={`field-${definition.id}`} />;
+      },
+    };
+    const propsSchema: SchemaSnapshot = {
+      schemaId: 'props-schema',
+      version: '1',
+      components: [
+        {
+          id: 'field',
+          type: 'input',
+          props: { placeholder: 'From props' },
+        },
+      ],
+    };
+    const view = renderIntoDom(
+      <ContinuumProvider components={propsMap}>
+        <ContinuumRenderer schema={propsSchema} />
+      </ContinuumProvider>
+    );
+    expect(receivedPlaceholder).toBe('From props');
+    view.unmount();
+  });
+
+  it('isolates component render errors with per-component boundary', () => {
+    const errorMap = {
+      input: ({ definition }: any) => {
+        if (definition.id === 'boom') {
+          throw new Error('boom');
+        }
+        return <div data-testid={`ok-${definition.id}`}>ok</div>;
+      },
+    };
+    const errorSchema: SchemaSnapshot = {
+      schemaId: 'error-schema',
+      version: '1',
+      components: [
+        { id: 'boom', type: 'input' },
+        { id: 'safe', type: 'input' },
+      ],
+    };
+    const view = renderIntoDom(
+      <ContinuumProvider components={errorMap}>
+        <ContinuumRenderer schema={errorSchema} />
+      </ContinuumProvider>
+    );
+    expect(view.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
+    expect(view.container.querySelector('[data-testid="ok-safe"]')).toBeTruthy();
+    view.unmount();
+  });
+
   it('exposes diagnostics and destroys session on unmount', () => {
     vi.useFakeTimers();
     let issuesLength = -1;
     let checkpointsLength = -1;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+    let capturedSession: Session | null = null;
 
     function App() {
       const session = useContinuumSession();
@@ -148,7 +220,8 @@ describe('react integration', () => {
     expect(checkpointsLength).toBeGreaterThanOrEqual(1);
     view.unmount();
     vi.runAllTimers();
-    expect(capturedSession?.getSnapshot()).toBeNull();
+    const finalizedSession = capturedSession as Session | null;
+    expect(finalizedSession?.getSnapshot()).toBeNull();
     vi.useRealTimers();
   });
 
@@ -164,7 +237,7 @@ describe('react integration', () => {
           data-testid="strict-button"
           onClick={() => setValue({ value: 'strict-next' })}
         >
-          {typeof value?.value === 'string' ? value.value : ''}
+          {typeof (value as any)?.value === 'string' ? (value as any).value : ''}
         </button>
       );
     }

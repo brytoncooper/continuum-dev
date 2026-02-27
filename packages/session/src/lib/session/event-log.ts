@@ -1,12 +1,29 @@
 import type {
+  ComponentDefinition,
   Interaction,
   ComponentState,
   ValueMeta,
 } from '@continuum/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
-import { buildSnapshotFromCurrentState, notifySnapshotListeners } from './listeners.js';
+import { buildSnapshotFromCurrentState, notifySnapshotAndIssueListeners } from './listeners.js';
 import { cloneCheckpointSnapshot } from './checkpoint-manager.js';
+import { validateComponentState } from '@continuum/runtime';
+
+function collectComponentsById(components: ComponentDefinition[]): Map<string, ComponentDefinition> {
+  const byId = new Map<string, ComponentDefinition>();
+  const walk = (nodes: ComponentDefinition[]) => {
+    for (const node of nodes) {
+      byId.set(node.id, node);
+      if (node.children) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(components);
+  return byId;
+}
 
 export function recordIntent(
   internal: SessionState,
@@ -32,6 +49,22 @@ export function recordIntent(
     internal.eventLog.splice(0, internal.eventLog.length - internal.maxEventLogSize);
   }
 
+  const componentMap = collectComponentsById(internal.currentSchema.components);
+  const componentDefinition = componentMap.get(partial.componentId);
+  if (!componentDefinition) {
+    internal.issues = [
+      ...internal.issues,
+      {
+        severity: ISSUE_SEVERITY.WARNING,
+        componentId: partial.componentId,
+        message: `Component ${partial.componentId} not found in current schema`,
+        code: ISSUE_CODES.UNKNOWN_COMPONENT,
+      },
+    ];
+    notifySnapshotAndIssueListeners(internal);
+    return;
+  }
+
   internal.currentState = {
     ...internal.currentState,
     values: {
@@ -52,9 +85,19 @@ export function recordIntent(
     },
   };
 
+  if (internal.validateOnUpdate) {
+    const validationIssues = validateComponentState(
+      componentDefinition,
+      partial.payload as ComponentState
+    );
+    if (validationIssues.length > 0) {
+      internal.issues = [...internal.issues, ...validationIssues];
+    }
+  }
+
   const lastAutoCheckpoint = [...internal.checkpoints]
     .reverse()
-    .find((checkpoint) => internal.autoCheckpointIds.has(checkpoint.id));
+    .find((checkpoint) => checkpoint.kind === 'auto');
   if (lastAutoCheckpoint) {
     const snapshot = buildSnapshotFromCurrentState(internal);
     if (snapshot) {
@@ -62,5 +105,5 @@ export function recordIntent(
     }
   }
 
-  notifySnapshotListeners(internal);
+  notifySnapshotAndIssueListeners(internal);
 }

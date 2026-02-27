@@ -183,6 +183,30 @@ describe('Session Ledger', () => {
       const snapshot = session.getSnapshot();
       expect(snapshot!.state.meta.schemaVersion).toBe('3.0');
     });
+
+    it('exposes orphaned values after component removal', () => {
+      const session = createSession();
+      const schemaV1 = makeSchema(
+        [
+          makeComponent({ id: 'a', type: 'input', key: 'a' }),
+          makeComponent({ id: 'b', type: 'input', key: 'b' }),
+        ],
+        'schema-1',
+        '1.0'
+      );
+      const schemaV2 = makeSchema(
+        [makeComponent({ id: 'a', type: 'input', key: 'a' })],
+        'schema-1',
+        '2.0'
+      );
+      session.pushSchema(schemaV1);
+      session.updateState('b', { value: 'keep me' });
+
+      session.pushSchema(schemaV2);
+
+      expect(session.getOrphanedValues()['b']).toBeDefined();
+      expect(session.getOrphanedValues()['b'].reason).toBe('removed');
+    });
   });
 
   describe('intent capture', () => {
@@ -697,7 +721,7 @@ describe('Session Ledger', () => {
       const session = createSession();
       session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
       const serialized = session.serialize() as Record<string, unknown>;
-      expect(serialized.formatVersion).toBe(1);
+      expect(serialized.formatVersion).toBe(2);
     });
 
     it('deserialize rejects unknown formatVersion', () => {

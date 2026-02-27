@@ -3,6 +3,7 @@ import type { SchemaSnapshot, ComponentDefinition } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 import { useContinuumState } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
+import { ComponentErrorBoundary } from './error-boundary.js';
 
 function ComponentNode({ definition }: { definition: ComponentDefinition }) {
   const ctx = useContext(ContinuumContext);
@@ -20,19 +21,26 @@ function ComponentNode({ definition }: { definition: ComponentDefinition }) {
 
   const [value, setValue] = useContinuumState(definition.id);
 
+  if (definition.hidden) {
+    return null;
+  }
+
   const childNodes = definition.children?.map((child) => (
     <ComponentNode key={child.id} definition={child} />
   ));
 
   return (
     <div data-continuum-id={definition.id}>
-      <Component
-        value={value}
-        onChange={setValue}
-        definition={definition}
-      >
-        {childNodes}
-      </Component>
+      <ComponentErrorBoundary componentId={definition.id}>
+        <Component
+          value={value}
+          onChange={setValue}
+          definition={definition}
+          {...(definition.props ?? {})}
+        >
+          {childNodes}
+        </Component>
+      </ComponentErrorBoundary>
     </div>
   );
 }

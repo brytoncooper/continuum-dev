@@ -11,7 +11,7 @@ describe('serializeSession', () => {
     const serialized = serializeSession(internal) as Record<string, unknown>;
 
     expect(() => JSON.stringify(serialized)).not.toThrow();
-    expect(serialized.formatVersion).toBe(1);
+    expect(serialized.formatVersion).toBe(2);
     expect(serialized.sessionId).toBe('my-session');
   });
 

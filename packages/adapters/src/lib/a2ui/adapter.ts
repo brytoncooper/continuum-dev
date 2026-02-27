@@ -31,11 +31,11 @@ function convertA2UIFieldToComponentDefinition(
   const def: ComponentDefinition = { id, type, key: id };
 
   if (field.label) {
-    def.path = field.label;
+    def.label = field.label;
   }
 
   if (field.options) {
-    def.stateShape = field.options;
+    def.props = { options: field.options };
   }
 
   if (CONTAINER_TYPES.has(rawType) && Array.isArray(field.fields)) {
@@ -61,10 +61,13 @@ function convertComponentDefinitionToA2UIField(def: ComponentDefinition): A2UIFi
   const field: A2UIField = {
     name: def.id,
     type: reverseMap[def.type] ?? 'TextInput',
-    label: def.path ?? def.key ?? def.id,
+    label: def.label ?? def.path ?? def.key ?? def.id,
   };
 
-  if (def.stateShape && Array.isArray(def.stateShape)) {
+  const rawOptions = (def.props as Record<string, unknown> | undefined)?.options;
+  if (Array.isArray(rawOptions)) {
+    field.options = rawOptions as { id: string; label: string }[];
+  } else if (def.stateShape && Array.isArray(def.stateShape)) {
     field.options = def.stateShape as { id: string; label: string }[];
   }
 

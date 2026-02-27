@@ -25,25 +25,30 @@ function resolveStorage(
 
 function hydrateOrCreate(
   storage: Storage | null,
-  key: string
+  key: string,
+  sessionOptions: ContinuumProviderProps['sessionOptions']
 ): { session: Session; wasHydrated: boolean } {
   if (storage) {
     const raw = storage.getItem(key);
     if (raw) {
       try {
-        return { session: deserialize(JSON.parse(raw)), wasHydrated: true };
+        return {
+          session: deserialize(JSON.parse(raw), sessionOptions),
+          wasHydrated: true,
+        };
       } catch {
         storage.removeItem(key);
       }
     }
   }
-  return { session: createSession(), wasHydrated: false };
+  return { session: createSession(sessionOptions), wasHydrated: false };
 }
 
 export function ContinuumProvider({
   components,
   persist = false,
   storageKey = DEFAULT_STORAGE_KEY,
+  sessionOptions,
   children,
 }: ContinuumProviderProps) {
   const storage = resolveStorage(persist);
@@ -51,7 +56,7 @@ export function ContinuumProvider({
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!sessionRef.current) {
-    sessionRef.current = hydrateOrCreate(storage, storageKey);
+    sessionRef.current = hydrateOrCreate(storage, storageKey, sessionOptions);
   }
 
   const { session, wasHydrated } = sessionRef.current;

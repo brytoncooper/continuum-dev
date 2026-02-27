@@ -47,9 +47,15 @@ export const radius = {
 } as const;
 
 export const shadow = {
-  card: '0 1px 3px rgba(2, 6, 23, 0.24), 0 1px 2px rgba(2, 6, 23, 0.18)',
-  elevated: '0 8px 24px rgba(2, 6, 23, 0.32), 0 4px 10px rgba(2, 6, 23, 0.2)',
+  card: '0 1px 3px rgba(2, 6, 23, 0.12), 0 1px 2px rgba(2, 6, 23, 0.08)',
+  elevated: '0 6px 20px rgba(2, 6, 23, 0.18), 0 2px 8px rgba(2, 6, 23, 0.1)',
   focus: '0 0 0 2px rgba(96, 165, 250, 0.45)',
+} as const;
+
+export const transition = {
+  fast: '0.15s ease',
+  normal: '0.2s ease',
+  slow: '0.3s ease',
 } as const;
 
 export const typeScale = {
@@ -57,9 +63,9 @@ export const typeScale = {
   h2: { fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' },
   h3: { fontSize: 14, fontWeight: 600 },
   body: { fontSize: 14, fontWeight: 400 },
-  caption: { fontSize: 12, fontWeight: 500 },
+  caption: { fontSize: 13, fontWeight: 500 },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',

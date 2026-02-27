@@ -1,5 +1,6 @@
 import type {
   Interaction,
+  Checkpoint as ContractCheckpoint,
   PendingAction,
   Checkpoint,
   SchemaSnapshot,
@@ -8,7 +9,7 @@ import type {
 import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
-const CURRENT_FORMAT_VERSION = 1;
+const CURRENT_FORMAT_VERSION = 2;
 
 function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -27,6 +28,11 @@ export function serializeSession(internal: SessionState): unknown {
     issues: internal.issues,
     diffs: internal.diffs,
     trace: internal.trace,
+    settings: {
+      allowBlindCarry: internal.reconciliationOptions?.allowBlindCarry,
+      allowPartialRestore: internal.reconciliationOptions?.allowPartialRestore,
+      validateOnUpdate: internal.validateOnUpdate,
+    },
   });
 }
 
@@ -42,6 +48,11 @@ interface SerializedSessionData {
   issues: ReconciliationIssue[];
   diffs: StateDiff[];
   trace: ReconciliationTrace[];
+  settings?: {
+    allowBlindCarry?: boolean;
+    allowPartialRestore?: boolean;
+    validateOnUpdate?: boolean;
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,10 +106,26 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
   assertArrayField(data, 'trace');
 }
 
+function normalizeCheckpoints(
+  checkpoints: Checkpoint[] | undefined,
+  formatVersion?: number
+): ContractCheckpoint[] {
+  const rawCheckpoints = checkpoints ?? [];
+  return rawCheckpoints.map((checkpoint) => {
+    if (checkpoint.kind) {
+      return checkpoint;
+    }
+    if (formatVersion === undefined || formatVersion <= 1) {
+      return { ...checkpoint, kind: 'auto' as const };
+    }
+    return { ...checkpoint, kind: 'auto' as const };
+  });
+}
+
 export function deserializeToState(
   data: unknown,
   clock: () => number,
-  limits?: { maxEventLogSize?: number; maxPendingActions?: number }
+  limits?: { maxEventLogSize?: number; maxPendingActions?: number; maxCheckpoints?: number }
 ): SessionState {
   validateSerializedSessionData(data);
   const raw = data;
@@ -109,11 +136,19 @@ export function deserializeToState(
     );
   }
 
+  const checkpoints = normalizeCheckpoints(raw.checkpoints, raw.formatVersion);
+
   return {
     sessionId: raw.sessionId,
     clock,
     maxEventLogSize: limits?.maxEventLogSize ?? 1000,
     maxPendingActions: limits?.maxPendingActions ?? 500,
+    maxCheckpoints: limits?.maxCheckpoints ?? 50,
+    reconciliationOptions: {
+      allowBlindCarry: raw.settings?.allowBlindCarry,
+      allowPartialRestore: raw.settings?.allowPartialRestore,
+    },
+    validateOnUpdate: raw.settings?.validateOnUpdate ?? false,
     currentSchema: raw.currentSchema ?? null,
     currentState: raw.currentState ?? null,
     priorSchema: raw.priorSchema ?? null,
@@ -122,8 +157,7 @@ export function deserializeToState(
     trace: raw.trace ?? [],
     eventLog: raw.eventLog ?? [],
     pendingActions: raw.pendingActions ?? [],
-    checkpoints: raw.checkpoints ?? [],
-    autoCheckpointIds: new Set((raw.checkpoints ?? []).map((checkpoint) => checkpoint.id)),
+    checkpoints,
     snapshotListeners: new Set(),
     issueListeners: new Set(),
     destroyed: false,

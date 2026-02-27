@@ -33,6 +33,6 @@ function reconcileSchemaTransition(
   const ctx = buildReconciliationContext(newSchema, priorSchema);
   const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
   const resolved = resolveAllComponents(ctx, priorValues, priorState, now, options);
-  const removals = detectRemovedComponents(ctx, priorState, options);
+  const removals = detectRemovedComponents(ctx, priorState, options, now);
   return assembleReconciliationResult(resolved, removals, priorState, newSchema, now);
 }

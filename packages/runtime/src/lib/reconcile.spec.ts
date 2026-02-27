@@ -889,4 +889,50 @@ describe('reconcile', () => {
       expect(result.issues).toHaveLength(0);
     });
   });
+
+  describe('orphaned values', () => {
+    it('stores removed component values in orphanedValues', () => {
+      const priorSchema = makeSchema([
+        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
+        makeComponent({ id: 'b', type: 'input', key: 'b-key' }),
+      ]);
+      const newSchema = makeSchema([
+        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
+      ]);
+      const priorState = makeState({
+        a: { value: 'keep' },
+        b: { value: 'orphan me' },
+      });
+
+      const result = reconcile(newSchema, priorSchema, priorState);
+
+      expect(result.reconciledState.orphanedValues?.['b-key']).toBeDefined();
+      expect(result.reconciledState.orphanedValues?.['b-key'].reason).toBe('removed');
+    });
+
+    it('restores orphaned value when matching key and type return', () => {
+      const priorSchema = makeSchema([
+        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
+      ]);
+      const removedSchema = makeSchema([]);
+      const restoreSchema = makeSchema([
+        makeComponent({ id: 'a2', type: 'input', key: 'a-key' }),
+      ]);
+      const priorState = makeState({
+        a: { value: 'hello' },
+      });
+
+      const removedResult = reconcile(removedSchema, priorSchema, priorState);
+      const restoredResult = reconcile(
+        restoreSchema,
+        removedSchema,
+        removedResult.reconciledState
+      );
+
+      expect(restoredResult.reconciledState.values['a2']).toEqual({ value: 'hello' });
+      expect(restoredResult.reconciledState.orphanedValues?.['a-key']).toBeUndefined();
+      expect(restoredResult.trace.some((entry) => entry.action === 'restored')).toBe(true);
+      expect(restoredResult.diffs.some((diff) => diff.type === 'restored')).toBe(true);
+    });
+  });
 });

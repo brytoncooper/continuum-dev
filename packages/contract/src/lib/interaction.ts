@@ -27,4 +27,5 @@ export interface Checkpoint {
   snapshot: ContinuitySnapshot;
   eventIndex: number;
   timestamp: number;
+  kind: 'auto' | 'manual';
 }

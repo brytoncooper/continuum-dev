@@ -11,11 +11,14 @@ describe('FallbackComponent', () => {
       definition: {
         id: 'field-1',
         type: 'unknown-type',
+        label: 'Field One',
+        placeholder: 'Type here',
       },
     });
 
     expect(element).toBeDefined();
     expect(element.type).toBe('div');
     expect(element.props.children).toBeDefined();
+    expect(element.props.children[1].props.placeholder).toBe('Type here');
   });
 });
