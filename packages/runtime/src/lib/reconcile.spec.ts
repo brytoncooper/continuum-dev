@@ -1,111 +1,127 @@
 import { describe, it, expect, vi } from 'vitest';
 import type {
-  SchemaSnapshot,
-  ComponentDefinition,
-  StateSnapshot,
-  ComponentState,
+  ViewDefinition,
+  ViewNode,
+  DataSnapshot,
+  NodeValue,
 } from '@continuum/contract';
 import { reconcile } from './reconcile.js';
 import type { MigrationStrategy } from './types.js';
 
-function makeSchema(
-  components: ComponentDefinition[],
-  id = 'schema-1',
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
   version = '1.0'
-): SchemaSnapshot {
-  return { schemaId: id, version, components };
+): ViewDefinition {
+  return { viewId, version, nodes };
 }
 
-function makeComponent(
-  overrides: Partial<ComponentDefinition> & { id: string; type: string }
-): ComponentDefinition {
-  return { ...overrides };
+function makeNode(
+  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
+): ViewNode {
+  const type = overrides.type ?? 'field';
+  return {
+    id: overrides.id,
+    key: overrides.key,
+    hash: overrides.hash,
+    hidden: overrides.hidden,
+    migrations: overrides.migrations,
+    type,
+    ...(type === 'field' ? { dataType: 'string' } : {}),
+    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
+    ...(type === 'collection'
+      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      : {}),
+    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
+    ...overrides,
+  } as ViewNode;
 }
 
-function makeState(
-  values: Record<string, ComponentState>,
-  meta?: Partial<StateSnapshot['meta']>,
-  valuesMeta?: StateSnapshot['valuesMeta']
-): StateSnapshot {
+function makeData(
+  values: Record<string, NodeValue>,
+  lineage?: Partial<DataSnapshot['lineage']>,
+  valueLineage?: DataSnapshot['valueLineage']
+): DataSnapshot {
   return {
     values,
-    meta: {
+    lineage: {
       timestamp: 1000,
       sessionId: 'test-session',
-      ...meta,
+      ...lineage,
     },
-    valuesMeta,
+    valueLineage,
   };
 }
 
 describe('reconcile', () => {
   describe('edge cases', () => {
-    it('returns fresh state with NO_PRIOR_STATE info when no prior state exists', () => {
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+    it('returns fresh state with NO_PRIOR_DATA info when no prior data exists', () => {
+      const view = makeView([makeNode({ id: 'a' })]);
 
-      const result = reconcile(schema, null, null);
+      const result = reconcile(view, null, null);
 
       expect(result.reconciledState.values).toEqual({});
-      expect(result.reconciledState.meta.schemaId).toBe('schema-1');
-      expect(result.reconciledState.meta.schemaVersion).toBe('1.0');
-      expect(result.reconciledState.meta.sessionId).toBeDefined();
+      expect(result.reconciledState.lineage.viewId).toBe('view-1');
+      expect(result.reconciledState.lineage.viewVersion).toBe('1.0');
+      expect(result.reconciledState.lineage.sessionId).toBeDefined();
       expect(result.diffs).toHaveLength(1);
       expect(result.diffs[0].type).toBe('added');
-      expect(result.diffs[0].componentId).toBe('a');
-      expect(result.trace).toHaveLength(1);
-      expect(result.trace[0].action).toBe('added');
-      expect(result.trace[0].componentId).toBe('a');
+      expect(result.diffs[0].nodeId).toBe('a');
+      expect(result.resolutions).toHaveLength(1);
+      expect(result.resolutions[0].resolution).toBe('added');
+      expect(result.resolutions[0].nodeId).toBe('a');
       expect(result.issues).toHaveLength(1);
-      expect(result.issues[0].code).toBe('NO_PRIOR_STATE');
+      expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
       expect(result.issues[0].severity).toBe('info');
     });
 
-    it('returns warning when prior state exists but no prior schema provided', () => {
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('returns warning when prior data exists but no prior view provided', () => {
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, null, priorState);
+      const result = reconcile(newView, null, priorData);
 
       expect(result.reconciledState.values).toEqual({});
       expect(result.issues).toHaveLength(1);
-      expect(result.issues[0].code).toBe('NO_PRIOR_SCHEMA');
+      expect(result.issues[0].code).toBe('NO_PRIOR_VIEW');
       expect(result.issues[0].severity).toBe('warning');
     });
 
-    it('carries values by id with UNTRUSTED_CARRY issues when allowBlindCarry is true and no prior schema', () => {
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('carries values by id with UNVALIDATED_CARRY issues when allowBlindCarry is true and no prior view', () => {
+      const newView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const priorState = makeState({
+      const priorData = makeData({
         a: { value: 'hello' },
-        b: { checked: true },
+        b: { value: true },
       });
 
-      const result = reconcile(newSchema, null, priorState, {
+      const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
-      expect(result.reconciledState.values['b']).toEqual({ checked: true });
+      expect(result.reconciledState.values['b']).toEqual({ value: true });
 
-      const untrustedIssues = result.issues.filter(
-        (i) => i.code === 'UNTRUSTED_CARRY'
+      const unvalidatedIssues = result.issues.filter(
+        (i) => i.code === 'UNVALIDATED_CARRY'
       );
-      expect(untrustedIssues).toHaveLength(2);
-      expect(untrustedIssues.every((i) => i.severity === 'info')).toBe(true);
+      expect(unvalidatedIssues).toHaveLength(2);
+      expect(unvalidatedIssues.every((i) => i.severity === 'info')).toBe(true);
     });
 
-    it('only carries values for components present in new schema when allowBlindCarry is true', () => {
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
+    it('only carries values for nodes present in new view when allowBlindCarry is true', () => {
+      const newView = makeView([
+        makeNode({ id: 'a' }),
       ]);
-      const priorState = makeState({
+      const priorData = makeData({
         a: { value: 'hello' },
         orphan: { value: 'gone' },
       });
 
-      const result = reconcile(newSchema, null, priorState, {
+      const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
@@ -113,63 +129,63 @@ describe('reconcile', () => {
       expect(result.reconciledState.values['orphan']).toBeUndefined();
     });
 
-    it('carries values for nested components when allowBlindCarry is true', () => {
-      const newSchema = makeSchema([
-        makeComponent({
+    it('carries values for nested nodes when allowBlindCarry is true', () => {
+      const newView = makeView([
+        makeNode({
           id: 'section',
-          type: 'container',
+          type: 'group',
           children: [
-            makeComponent({ id: 'nested-input', type: 'input' }),
+            makeNode({ id: 'nested-input' }),
           ],
         }),
       ]);
-      const priorState = makeState({
+      const priorData = makeData({
         'nested-input': { value: 'carried' },
       });
 
-      const result = reconcile(newSchema, null, priorState, {
+      const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
       expect(result.reconciledState.values['nested-input']).toEqual({ value: 'carried' });
     });
 
-    it('still emits NO_PRIOR_SCHEMA warning alongside UNTRUSTED_CARRY when allowBlindCarry is true', () => {
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
+    it('still emits NO_PRIOR_VIEW warning alongside UNVALIDATED_CARRY when allowBlindCarry is true', () => {
+      const newView = makeView([
+        makeNode({ id: 'a' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, null, priorState, {
+      const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
-      expect(result.issues.find((i) => i.code === 'NO_PRIOR_SCHEMA')).toBeDefined();
-      expect(result.issues.find((i) => i.code === 'UNTRUSTED_CARRY')).toBeDefined();
+      expect(result.issues.find((i) => i.code === 'NO_PRIOR_VIEW')).toBeDefined();
+      expect(result.issues.find((i) => i.code === 'UNVALIDATED_CARRY')).toBeDefined();
     });
   });
 
-  describe('component matching', () => {
-    it('carries state over when component matched by id', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+  describe('node matching', () => {
+    it('carries state over when node matched by id', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
     });
 
-    it('carries state over when component matched by key (id changed)', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'old-id', type: 'input', key: 'email' }),
+    it('carries state over when node matched by key (id changed)', () => {
+      const priorView = makeView([
+        makeNode({ id: 'old-id', key: 'email' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'new-id', type: 'input', key: 'email' }),
+      const newView = makeView([
+        makeNode({ id: 'new-id', key: 'email' }),
       ]);
-      const priorState = makeState({ 'old-id': { value: 'test@example.com' } });
+      const priorData = makeData({ 'old-id': { value: 'test@example.com' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['new-id']).toEqual({
         value: 'test@example.com',
@@ -178,79 +194,79 @@ describe('reconcile', () => {
   });
 
   describe('diff generation', () => {
-    it('produces added diff for new components', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('produces added diff for new nodes', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const addedDiff = result.diffs.find((d) => d.componentId === 'b');
+      const addedDiff = result.diffs.find((d) => d.nodeId === 'b');
       expect(addedDiff).toBeDefined();
       expect(addedDiff!.type).toBe('added');
     });
 
-    it('produces removed diff and warning for removed components', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('produces removed diff and warning for removed nodes', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({
         a: { value: 'hello' },
-        b: { checked: true },
+        b: { value: true },
       });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const removedDiff = result.diffs.find((d) => d.componentId === 'b');
+      const removedDiff = result.diffs.find((d) => d.nodeId === 'b');
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
-      expect(removedDiff!.oldValue).toEqual({ checked: true });
+      expect(removedDiff!.oldValue).toEqual({ value: true });
 
       const removedIssue = result.issues.find(
-        (i) => i.code === 'COMPONENT_REMOVED'
+        (i) => i.code === 'NODE_REMOVED'
       );
       expect(removedIssue).toBeDefined();
       expect(removedIssue!.severity).toBe('warning');
     });
 
-    it('suppresses COMPONENT_REMOVED warning when allowPartialRestore is true', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('suppresses NODE_REMOVED warning when allowPartialRestore is true', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({
         a: { value: 'hello' },
-        b: { checked: true },
+        b: { value: true },
       });
 
-      const result = reconcile(newSchema, priorSchema, priorState, {
+      const result = reconcile(newView, priorView, priorData, {
         allowPartialRestore: true,
       });
 
-      const removedDiff = result.diffs.find((d) => d.componentId === 'b');
+      const removedDiff = result.diffs.find((d) => d.nodeId === 'b');
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
 
       const removedIssue = result.issues.find(
-        (i) => i.code === 'COMPONENT_REMOVED'
+        (i) => i.code === 'NODE_REMOVED'
       );
       expect(removedIssue).toBeUndefined();
     });
   });
 
   describe('type validation', () => {
-    it('reports TYPE_MISMATCH error and type-changed diff when component type changes', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'toggle' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('reports TYPE_MISMATCH error and type-changed diff when node type changes', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a', type: 'action' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       const issue = result.issues.find((i) => i.code === 'TYPE_MISMATCH');
       expect(issue).toBeDefined();
@@ -258,18 +274,18 @@ describe('reconcile', () => {
 
       const diff = result.diffs.find((d) => d.type === 'type-changed');
       expect(diff).toBeDefined();
-      expect(diff!.componentId).toBe('a');
+      expect(diff!.nodeId).toBe('a');
       expect(diff!.oldValue).toEqual({ value: 'hello' });
-      expect(diff!.reason).toContain('input');
-      expect(diff!.reason).toContain('toggle');
+      expect(diff!.reason).toContain('field');
+      expect(diff!.reason).toContain('action');
     });
 
     it('does not carry incompatible state on type mismatch', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'toggle' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a', type: 'action' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['a']).toBeUndefined();
       const diff = result.diffs.find((d) => d.type === 'type-changed');
@@ -278,22 +294,22 @@ describe('reconcile', () => {
     });
   });
 
-  describe('schema migration', () => {
+  describe('view migration', () => {
     it('passes state through when hash changes but type matches (no explicit strategy)', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v2' }),
+      const newView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v2' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
       const migratedDiff = result.diffs.find((d) => d.type === 'migrated');
       expect(migratedDiff).toBeDefined();
-      expect(migratedDiff!.componentId).toBe('a');
+      expect(migratedDiff!.nodeId).toBe('a');
     });
 
     it('calls explicit migration strategy when provided via options', () => {
@@ -301,15 +317,15 @@ describe('reconcile', () => {
         return { value: (oldState as { value: string }).value.toUpperCase() };
       });
 
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v2' }),
+      const newView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v2' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState, {
+      const result = reconcile(newView, priorView, priorData, {
         migrationStrategies: { a: strategy },
       });
 
@@ -318,7 +334,7 @@ describe('reconcile', () => {
       expect(result.diffs.find((d) => d.type === 'migrated')).toBeDefined();
     });
 
-    it('uses schema-declared migration rule with strategyRegistry', () => {
+    it('uses view-declared migration rule with strategyRegistry', () => {
       const registryStrategy: MigrationStrategy = vi.fn(
         (_id, _old, _new, oldState) => {
           return {
@@ -327,13 +343,12 @@ describe('reconcile', () => {
         }
       );
 
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({
+      const newView = makeView([
+        makeNode({
           id: 'a',
-          type: 'input',
           hash: 'hash-v2',
           migrations: [
             {
@@ -344,9 +359,9 @@ describe('reconcile', () => {
           ],
         }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState, {
+      const result = reconcile(newView, priorView, priorData, {
         strategyRegistry: {
           'input-v1-to-v2': registryStrategy,
         },
@@ -359,7 +374,7 @@ describe('reconcile', () => {
       expect(result.diffs.find((d) => d.type === 'migrated')).toBeDefined();
     });
 
-    it('prefers explicit migrationStrategies over schema-declared migrations', () => {
+    it('prefers explicit migrationStrategies over view-declared migrations', () => {
       const explicitStrategy: MigrationStrategy = vi.fn(() => ({
         value: 'explicit',
       }));
@@ -367,13 +382,12 @@ describe('reconcile', () => {
         value: 'registry',
       }));
 
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({
+      const newView = makeView([
+        makeNode({
           id: 'a',
-          type: 'input',
           hash: 'hash-v2',
           migrations: [
             {
@@ -384,9 +398,9 @@ describe('reconcile', () => {
           ],
         }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState, {
+      const result = reconcile(newView, priorView, priorData, {
         migrationStrategies: { a: explicitStrategy },
         strategyRegistry: { 'some-id': registryStrategy },
       });
@@ -397,15 +411,15 @@ describe('reconcile', () => {
     });
 
     it('skips migration logic entirely on type mismatch (no MIGRATION_FAILED)', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'toggle', hash: 'hash-v2' }),
+      const newView = makeView([
+        makeNode({ id: 'a', type: 'action', hash: 'hash-v2' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       const typeMismatch = result.issues.find((i) => i.code === 'TYPE_MISMATCH');
       expect(typeMismatch).toBeDefined();
@@ -420,18 +434,18 @@ describe('reconcile', () => {
     });
   });
 
-  describe('valuesMeta reconciliation (TDD)', () => {
-    it('carries forward valuesMeta for surviving components', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+  describe('valueLineage reconciliation (TDD)', () => {
+    it('carries forward valueLineage for surviving nodes', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+      const newView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const priorState = makeState(
-        { a: { value: 'hello' }, b: { checked: true } },
+      const priorData = makeData(
+        { a: { value: 'hello' }, b: { value: true } },
         {},
         {
           a: { lastUpdated: 500, lastInteractionId: 'int-1' },
@@ -439,27 +453,27 @@ describe('reconcile', () => {
         }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.valuesMeta).toBeDefined();
-      expect(result.reconciledState.valuesMeta!['a']).toEqual({
+      expect(result.reconciledState.valueLineage).toBeDefined();
+      expect(result.reconciledState.valueLineage!['a']).toEqual({
         lastUpdated: 500,
         lastInteractionId: 'int-1',
       });
-      expect(result.reconciledState.valuesMeta!['b']).toEqual({
+      expect(result.reconciledState.valueLineage!['b']).toEqual({
         lastUpdated: 600,
         lastInteractionId: 'int-2',
       });
     });
 
-    it('drops valuesMeta for removed components', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('drops valueLineage for removed nodes', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState(
-        { a: { value: 'hello' }, b: { checked: true } },
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData(
+        { a: { value: 'hello' }, b: { value: true } },
         {},
         {
           a: { lastUpdated: 500 },
@@ -467,471 +481,449 @@ describe('reconcile', () => {
         }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.valuesMeta?.['a']).toBeDefined();
-      expect(result.reconciledState.valuesMeta?.['b']).toBeUndefined();
+      expect(result.reconciledState.valueLineage?.['a']).toBeDefined();
+      expect(result.reconciledState.valueLineage?.['b']).toBeUndefined();
     });
 
     it('updates lastUpdated timestamp for migrated values', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v2' }),
+      const newView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v2' }),
       ]);
-      const priorState = makeState(
+      const priorData = makeData(
         { a: { value: 'hello' } },
         {},
         { a: { lastUpdated: 500, lastInteractionId: 'int-1' } }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.valuesMeta?.['a']).toBeDefined();
+      expect(result.reconciledState.valueLineage?.['a']).toBeDefined();
       expect(
-        result.reconciledState.valuesMeta!['a'].lastUpdated
+        result.reconciledState.valueLineage!['a'].lastUpdated
       ).toBeGreaterThan(500);
     });
 
-    it('remaps valuesMeta to new id when component matched by key', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'old-id', type: 'input', key: 'email' }),
+    it('remaps valueLineage to new id when node matched by key', () => {
+      const priorView = makeView([
+        makeNode({ id: 'old-id', key: 'email' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'new-id', type: 'input', key: 'email' }),
+      const newView = makeView([
+        makeNode({ id: 'new-id', key: 'email' }),
       ]);
-      const priorState = makeState(
+      const priorData = makeData(
         { 'old-id': { value: 'test@example.com' } },
         {},
         { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.valuesMeta?.['new-id']).toBeDefined();
-      expect(result.reconciledState.valuesMeta?.['old-id']).toBeUndefined();
+      expect(result.reconciledState.valueLineage?.['new-id']).toBeDefined();
+      expect(result.reconciledState.valueLineage?.['old-id']).toBeUndefined();
     });
   });
 
-  describe('schemaHash population (TDD)', () => {
-    it('sets schemaHash on reconciled state meta when components have hashes', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const newSchema: SchemaSnapshot = {
-        schemaId: 'schema-1',
+  describe('viewHash population (TDD)', () => {
+    it('sets viewHash on reconciled state lineage when nodes have hashes', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView: ViewDefinition = {
+        viewId: 'view-1',
         version: '1.0',
-        components: [
-          makeComponent({ id: 'a', type: 'input', hash: 'comp-hash-1' }),
-        ],
+        nodes: [makeNode({ id: 'a', hash: 'node-hash-1' })],
       };
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.meta.schemaHash).toBeDefined();
-      expect(typeof result.reconciledState.meta.schemaHash).toBe('string');
-      expect(result.reconciledState.meta.schemaHash!.length).toBeGreaterThan(0);
+      expect(result.reconciledState.lineage.viewHash).toBeDefined();
+      expect(typeof result.reconciledState.lineage.viewHash).toBe('string');
+      expect(result.reconciledState.lineage.viewHash!.length).toBeGreaterThan(0);
     });
 
-    it('does not set schemaHash when no components have hashes', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('does not set viewHash when no nodes have hashes', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.meta.schemaHash).toBeUndefined();
+      expect(result.reconciledState.lineage.viewHash).toBeUndefined();
     });
 
-    it('produces the same schemaHash regardless of component order', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('produces the same viewHash regardless of node order', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const schemaOrderA = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-alpha' }),
-        makeComponent({ id: 'b', type: 'toggle', hash: 'hash-beta' }),
+      const viewOrderA = makeView([
+        makeNode({ id: 'a', hash: 'hash-alpha' }),
+        makeNode({ id: 'b', type: 'action', hash: 'hash-beta' }),
       ]);
-      const schemaOrderB = makeSchema([
-        makeComponent({ id: 'b', type: 'toggle', hash: 'hash-beta' }),
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-alpha' }),
+      const viewOrderB = makeView([
+        makeNode({ id: 'b', type: 'action', hash: 'hash-beta' }),
+        makeNode({ id: 'a', hash: 'hash-alpha' }),
       ]);
 
-      const resultA = reconcile(schemaOrderA, priorSchema, priorState);
-      const resultB = reconcile(schemaOrderB, priorSchema, priorState);
+      const resultA = reconcile(viewOrderA, priorView, priorData);
+      const resultB = reconcile(viewOrderB, priorView, priorData);
 
-      expect(resultA.reconciledState.meta.schemaHash).toBeDefined();
-      expect(resultA.reconciledState.meta.schemaHash).toBe(
-        resultB.reconciledState.meta.schemaHash
+      expect(resultA.reconciledState.lineage.viewHash).toBeDefined();
+      expect(resultA.reconciledState.lineage.viewHash).toBe(
+        resultB.reconciledState.lineage.viewHash
       );
     });
   });
 
   describe('determinism invariant (TDD)', () => {
     it('uses injected clock for deterministic timestamps', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
       const fixedTime = 9999;
       const clock = () => fixedTime;
 
-      const result = reconcile(newSchema, priorSchema, priorState, {
+      const result = reconcile(newView, priorView, priorData, {
         clock,
       });
 
-      expect(result.reconciledState.meta.timestamp).toBe(fixedTime);
+      expect(result.reconciledState.lineage.timestamp).toBe(fixedTime);
     });
   });
 
-  describe('reconciliation trace', () => {
-    it('includes a trace entry for each component in the new schema', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+  describe('reconciliation resolutions', () => {
+    it('includes a resolution entry for each node in the new view', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.trace).toBeDefined();
-      expect(result.trace).toHaveLength(2);
+      expect(result.resolutions).toBeDefined();
+      expect(result.resolutions).toHaveLength(2);
     });
 
-    it('traces carried component with matchedBy id', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('resolution for carried node with matchedBy id', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const entry = result.trace!.find((t) => t.componentId === 'a');
+      const entry = result.resolutions.find((t) => t.nodeId === 'a');
       expect(entry).toBeDefined();
       expect(entry!.priorId).toBe('a');
       expect(entry!.matchedBy).toBe('id');
-      expect(entry!.priorType).toBe('input');
-      expect(entry!.newType).toBe('input');
-      expect(entry!.action).toBe('carried');
+      expect(entry!.priorType).toBe('field');
+      expect(entry!.newType).toBe('field');
+      expect(entry!.resolution).toBe('carried');
       expect(entry!.priorValue).toEqual({ value: 'hello' });
       expect(entry!.reconciledValue).toEqual({ value: 'hello' });
     });
 
-    it('traces added component with null prior info', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-        makeComponent({ id: 'b', type: 'toggle' }),
+    it('resolution for added node with null prior info', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([
+        makeNode({ id: 'a' }),
+        makeNode({ id: 'b', type: 'action' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const entry = result.trace!.find((t) => t.componentId === 'b');
+      const entry = result.resolutions.find((t) => t.nodeId === 'b');
       expect(entry).toBeDefined();
       expect(entry!.priorId).toBeNull();
       expect(entry!.matchedBy).toBeNull();
       expect(entry!.priorType).toBeNull();
-      expect(entry!.newType).toBe('toggle');
-      expect(entry!.action).toBe('added');
+      expect(entry!.newType).toBe('action');
+      expect(entry!.resolution).toBe('added');
       expect(entry!.priorValue).toBeUndefined();
       expect(entry!.reconciledValue).toBeUndefined();
     });
 
-    it('traces dropped component on type mismatch', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'toggle' })]);
-      const priorState = makeState({ a: { value: 'hello' } });
+    it('resolution for detached node on type mismatch', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a', type: 'action' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const entry = result.trace!.find((t) => t.componentId === 'a');
+      const entry = result.resolutions.find((t) => t.nodeId === 'a');
       expect(entry).toBeDefined();
-      expect(entry!.action).toBe('dropped');
-      expect(entry!.priorType).toBe('input');
-      expect(entry!.newType).toBe('toggle');
+      expect(entry!.resolution).toBe('detached');
+      expect(entry!.priorType).toBe('field');
+      expect(entry!.newType).toBe('action');
       expect(entry!.priorValue).toEqual({ value: 'hello' });
       expect(entry!.reconciledValue).toBeUndefined();
     });
 
-    it('traces migrated component', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v1' }),
+    it('resolution for migrated node', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v1' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', hash: 'hash-v2' }),
+      const newView = makeView([
+        makeNode({ id: 'a', hash: 'hash-v2' }),
       ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const entry = result.trace!.find((t) => t.componentId === 'a');
+      const entry = result.resolutions.find((t) => t.nodeId === 'a');
       expect(entry).toBeDefined();
-      expect(entry!.action).toBe('migrated');
+      expect(entry!.resolution).toBe('migrated');
       expect(entry!.priorValue).toEqual({ value: 'hello' });
       expect(entry!.reconciledValue).toEqual({ value: 'hello' });
     });
 
-    it('traces key-matched component with matchedBy key', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'old-id', type: 'input', key: 'email' }),
+    it('resolution for key-matched node with matchedBy key', () => {
+      const priorView = makeView([
+        makeNode({ id: 'old-id', key: 'email' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'new-id', type: 'input', key: 'email' }),
+      const newView = makeView([
+        makeNode({ id: 'new-id', key: 'email' }),
       ]);
-      const priorState = makeState({ 'old-id': { value: 'test@example.com' } });
+      const priorData = makeData({ 'old-id': { value: 'test@example.com' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const entry = result.trace!.find((t) => t.componentId === 'new-id');
+      const entry = result.resolutions.find((t) => t.nodeId === 'new-id');
       expect(entry).toBeDefined();
       expect(entry!.priorId).toBe('old-id');
       expect(entry!.matchedBy).toBe('key');
-      expect(entry!.action).toBe('carried');
+      expect(entry!.resolution).toBe('carried');
     });
   });
 
   describe('output metadata', () => {
-    it('updates schemaId and schemaVersion from new schema', () => {
-      const priorSchema = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'old-schema',
+    it('updates viewId and viewVersion from new view', () => {
+      const priorView = makeView(
+        [makeNode({ id: 'a' })],
+        'old-view',
         '0.9'
       );
-      const newSchema = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'new-schema',
+      const newView = makeView(
+        [makeNode({ id: 'a' })],
+        'new-view',
         '2.0'
       );
-      const priorState = makeState(
+      const priorData = makeData(
         { a: { value: 'hello' } },
-        { schemaId: 'old-schema', schemaVersion: '0.9' }
+        { viewId: 'old-view', viewVersion: '0.9' }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.meta.schemaId).toBe('new-schema');
-      expect(result.reconciledState.meta.schemaVersion).toBe('2.0');
+      expect(result.reconciledState.lineage.viewId).toBe('new-view');
+      expect(result.reconciledState.lineage.viewVersion).toBe('2.0');
     });
 
     it('updates timestamp on reconciled state', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const priorState = makeState({ a: { value: 'hello' } });
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.meta.timestamp).toBeGreaterThan(
-        priorState.meta.timestamp
+      expect(result.reconciledState.lineage.timestamp).toBeGreaterThan(
+        priorData.lineage.timestamp
       );
     });
 
-    it('preserves sessionId from prior state', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input' }),
-      ]);
-      const priorState = makeState(
+    it('preserves sessionId from prior data', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData(
         { a: { value: 'hello' } },
         { sessionId: 'my-session' }
       );
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.meta.sessionId).toBe('my-session');
+      expect(result.reconciledState.lineage.sessionId).toBe('my-session');
     });
   });
 
   describe('deeply nested children', () => {
-    it('carries state for a 3-level deep nested component by id', () => {
-      const nested = makeComponent({ id: 'deep', type: 'input' });
-      const mid = makeComponent({ id: 'mid', type: 'group', children: [nested] });
-      const root = makeComponent({ id: 'root', type: 'section', children: [mid] });
+    it('carries state for a 3-level deep nested node by id', () => {
+      const nested = makeNode({ id: 'deep' });
+      const mid = makeNode({ id: 'mid', type: 'group', children: [nested] });
+      const root = makeNode({ id: 'root', type: 'group', children: [mid] });
 
-      const priorSchema = makeSchema([root]);
-      const newSchema = makeSchema([root]);
-      const priorState = makeState({ deep: { value: 'buried' } });
+      const priorView = makeView([root]);
+      const newView = makeView([root]);
+      const priorData = makeData({ deep: { value: 'buried' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['deep']).toEqual({ value: 'buried' });
     });
 
-    it('detects removal of a deeply nested component', () => {
-      const nested = makeComponent({ id: 'deep', type: 'input' });
-      const root = makeComponent({ id: 'root', type: 'section', children: [nested] });
+    it('detects removal of a deeply nested node', () => {
+      const nested = makeNode({ id: 'deep' });
+      const root = makeNode({ id: 'root', type: 'group', children: [nested] });
 
-      const priorSchema = makeSchema([root]);
-      const newSchema = makeSchema([makeComponent({ id: 'root', type: 'section' })]);
-      const priorState = makeState({ deep: { value: 'gone' } });
+      const priorView = makeView([root]);
+      const newView = makeView([makeNode({ id: 'root', type: 'group', children: [] })]);
+      const priorData = makeData({ deep: { value: 'gone' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      const removedDiff = result.diffs.find((d) => d.componentId === 'deep');
+      const removedDiff = result.diffs.find((d) => d.nodeId === 'deep');
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
     });
 
-    it('matches deeply nested component by key across id renames', () => {
-      const deepOld = makeComponent({ id: 'old-deep', type: 'input', key: 'stable-key' });
-      const rootOld = makeComponent({ id: 'root', type: 'section', children: [deepOld] });
-      const deepNew = makeComponent({ id: 'new-deep', type: 'input', key: 'stable-key' });
-      const rootNew = makeComponent({ id: 'root', type: 'section', children: [deepNew] });
+    it('matches deeply nested node by key across id renames', () => {
+      const deepOld = makeNode({ id: 'old-deep', key: 'stable-key' });
+      const rootOld = makeNode({ id: 'root', type: 'group', children: [deepOld] });
+      const deepNew = makeNode({ id: 'new-deep', key: 'stable-key' });
+      const rootNew = makeNode({ id: 'root', type: 'group', children: [deepNew] });
 
-      const priorSchema = makeSchema([rootOld]);
-      const newSchema = makeSchema([rootNew]);
-      const priorState = makeState({ 'old-deep': { value: 'nested-carry' } });
+      const priorView = makeView([rootOld]);
+      const newView = makeView([rootNew]);
+      const priorData = makeData({ 'old-deep': { value: 'nested-carry' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['new-deep']).toEqual({ value: 'nested-carry' });
     });
   });
 
   describe('duplicate id/key handling', () => {
-    it('last-write-wins when duplicate ids appear in a schema', () => {
-      const first = makeComponent({ id: 'dup', type: 'input' });
-      const second = makeComponent({ id: 'dup', type: 'textarea' });
+    it('last-write-wins when duplicate ids appear in a view', () => {
+      const first = makeNode({ id: 'dup' });
+      const second = makeNode({ id: 'dup', type: 'action' });
 
-      const priorSchema = makeSchema([first]);
-      const newSchema = makeSchema([first, second]);
-      const priorState = makeState({ dup: { value: 'original' } });
+      const priorView = makeView([first]);
+      const newView = makeView([first, second]);
+      const priorData = makeData({ dup: { value: 'original' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result).toBeDefined();
     });
 
-    it('last-write-wins when duplicate keys appear in a schema', () => {
-      const first = makeComponent({ id: 'a', type: 'input', key: 'same-key' });
-      const second = makeComponent({ id: 'b', type: 'input', key: 'same-key' });
+    it('last-write-wins when duplicate keys appear in a view', () => {
+      const first = makeNode({ id: 'a', key: 'same-key' });
+      const second = makeNode({ id: 'b', key: 'same-key' });
 
-      const priorSchema = makeSchema([first]);
-      const newSchema = makeSchema([first, second]);
-      const priorState = makeState({ a: { value: 'original' } });
+      const priorView = makeView([first]);
+      const newView = makeView([first, second]);
+      const priorData = makeData({ a: { value: 'original' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result).toBeDefined();
     });
   });
 
-  describe('empty schema transitions', () => {
-    it('handles transition from populated schema to empty schema', () => {
-      const priorSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const newSchema = makeSchema([]);
-      const priorState = makeState({ a: { value: 'hello' } });
+  describe('empty view transitions', () => {
+    it('handles transition from populated view to empty view', () => {
+      const priorView = makeView([makeNode({ id: 'a' })]);
+      const newView = makeView([]);
+      const priorData = makeData({ a: { value: 'hello' } });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(Object.keys(result.reconciledState.values)).toHaveLength(0);
-      const removedDiff = result.diffs.find((d) => d.componentId === 'a');
+      const removedDiff = result.diffs.find((d) => d.nodeId === 'a');
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
     });
 
-    it('handles transition from empty schema to populated schema', () => {
-      const priorSchema = makeSchema([]);
-      const newSchema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      const priorState = makeState({});
+    it('handles transition from empty view to populated view', () => {
+      const priorView = makeView([]);
+      const newView = makeView([makeNode({ id: 'a' })]);
+      const priorData = makeData({});
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.diffs).toHaveLength(1);
       expect(result.diffs[0].type).toBe('added');
     });
 
-    it('handles empty-to-empty schema transition', () => {
-      const priorSchema = makeSchema([]);
-      const newSchema = makeSchema([]);
-      const priorState = makeState({});
+    it('handles empty-to-empty view transition', () => {
+      const priorView = makeView([]);
+      const newView = makeView([]);
+      const priorData = makeData({});
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(result.diffs).toHaveLength(0);
       expect(result.issues).toHaveLength(0);
     });
   });
 
-  describe('large component count', () => {
-    it('reconciles 500 components without error', () => {
-      const components = Array.from({ length: 500 }, (_, i) =>
-        makeComponent({ id: `c${i}`, type: 'input' })
+  describe('large node count', () => {
+    it('reconciles 500 nodes without error', () => {
+      const nodes = Array.from({ length: 500 }, (_, i) =>
+        makeNode({ id: `c${i}` })
       );
-      const priorSchema = makeSchema(components, 'big', '1');
-      const newSchema = makeSchema(components, 'big', '2');
-      const values: Record<string, ComponentState> = {};
+      const priorView = makeView(nodes, 'big', '1');
+      const newView = makeView(nodes, 'big', '2');
+      const values: Record<string, NodeValue> = {};
       for (let i = 0; i < 500; i++) {
         values[`c${i}`] = { value: `v${i}` };
       }
-      const priorState = makeState(values);
+      const priorData = makeData(values);
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
       expect(Object.keys(result.reconciledState.values)).toHaveLength(500);
       expect(result.issues).toHaveLength(0);
     });
   });
 
-  describe('orphaned values', () => {
-    it('stores removed component values in orphanedValues', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
-        makeComponent({ id: 'b', type: 'input', key: 'b-key' }),
+  describe('detached values', () => {
+    it('stores removed node values in detachedValues', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a', key: 'a-key' }),
+        makeNode({ id: 'b', key: 'b-key' }),
       ]);
-      const newSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
+      const newView = makeView([
+        makeNode({ id: 'a', key: 'a-key' }),
       ]);
-      const priorState = makeState({
+      const priorData = makeData({
         a: { value: 'keep' },
         b: { value: 'orphan me' },
       });
 
-      const result = reconcile(newSchema, priorSchema, priorState);
+      const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.orphanedValues?.['b-key']).toBeDefined();
-      expect(result.reconciledState.orphanedValues?.['b-key'].reason).toBe('removed');
+      expect(result.reconciledState.detachedValues?.['b-key']).toBeDefined();
+      expect(result.reconciledState.detachedValues?.['b-key'].reason).toBe('node-removed');
     });
 
-    it('restores orphaned value when matching key and type return', () => {
-      const priorSchema = makeSchema([
-        makeComponent({ id: 'a', type: 'input', key: 'a-key' }),
+    it('restores detached value when matching key and type return', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a', key: 'a-key' }),
       ]);
-      const removedSchema = makeSchema([]);
-      const restoreSchema = makeSchema([
-        makeComponent({ id: 'a2', type: 'input', key: 'a-key' }),
+      const removedView = makeView([]);
+      const restoreView = makeView([
+        makeNode({ id: 'a2', key: 'a-key' }),
       ]);
-      const priorState = makeState({
+      const priorData = makeData({
         a: { value: 'hello' },
       });
 
-      const removedResult = reconcile(removedSchema, priorSchema, priorState);
+      const removedResult = reconcile(removedView, priorView, priorData);
       const restoredResult = reconcile(
-        restoreSchema,
-        removedSchema,
+        restoreView,
+        removedView,
         removedResult.reconciledState
       );
 
       expect(restoredResult.reconciledState.values['a2']).toEqual({ value: 'hello' });
-      expect(restoredResult.reconciledState.orphanedValues?.['a-key']).toBeUndefined();
-      expect(restoredResult.trace.some((entry) => entry.action === 'restored')).toBe(true);
+      expect(restoredResult.reconciledState.detachedValues?.['a-key']).toBeUndefined();
+      expect(restoredResult.resolutions.some((entry) => entry.resolution === 'restored')).toBe(true);
       expect(restoredResult.diffs.some((diff) => diff.type === 'restored')).toBe(true);
     });
   });

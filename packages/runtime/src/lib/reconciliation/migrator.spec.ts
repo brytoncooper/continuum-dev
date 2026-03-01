@@ -1,12 +1,25 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { ComponentDefinition } from '@continuum/contract';
+import type { ViewNode } from '@continuum/contract';
 import type { MigrationStrategy } from '../types.js';
 import { attemptMigration } from './migrator.js';
 
-function makeComponent(
-  overrides: Partial<ComponentDefinition> & { id: string; type: string }
-): ComponentDefinition {
-  return { ...overrides };
+function makeNode(
+  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
+): ViewNode {
+  const type = overrides.type ?? 'field';
+  return {
+    id: overrides.id,
+    key: overrides.key,
+    hash: overrides.hash,
+    hidden: overrides.hidden,
+    migrations: overrides.migrations,
+    type,
+    ...(type === 'field' ? { dataType: 'string' } : {}),
+    ...(type === 'group' ? { children: [] } : {}),
+    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
+    ...overrides,
+  } as ViewNode;
 }
 
 describe('attemptMigration', () => {
@@ -16,26 +29,26 @@ describe('attemptMigration', () => {
     });
 
     const result = attemptMigration(
-      'comp-1',
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v1' }),
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v2' }),
+      'node-1',
+      makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      makeNode({ id: 'node-1', type: 'field', hash: 'v2' }),
       { value: 'hello' },
-      { migrationStrategies: { 'comp-1': strategy } }
+      { migrationStrategies: { 'node-1': strategy } }
     );
 
     expect(strategy).toHaveBeenCalledOnce();
     expect(result).toEqual({ kind: 'migrated', value: { value: 'HELLO' } });
   });
 
-  it('uses schema-declared migration rule with strategyRegistry', () => {
+  it('uses view-declared migration rule with strategyRegistry', () => {
     const registry: MigrationStrategy = vi.fn(() => ({ value: 'migrated' }));
 
     const result = attemptMigration(
-      'comp-1',
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v1' }),
-      makeComponent({
-        id: 'comp-1',
-        type: 'input',
+      'node-1',
+      makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      makeNode({
+        id: 'node-1',
+        type: 'field',
         hash: 'v2',
         migrations: [{ fromHash: 'v1', toHash: 'v2', strategyId: 'my-strategy' }],
       }),
@@ -49,9 +62,9 @@ describe('attemptMigration', () => {
 
   it('falls back to passthrough when types match and no strategy exists', () => {
     const result = attemptMigration(
-      'comp-1',
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v1' }),
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v2' }),
+      'node-1',
+      makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      makeNode({ id: 'node-1', type: 'field', hash: 'v2' }),
       { value: 'hello' },
       {}
     );
@@ -61,9 +74,9 @@ describe('attemptMigration', () => {
 
   it('returns no migration when types differ and no strategy exists', () => {
     const result = attemptMigration(
-      'comp-1',
-      makeComponent({ id: 'comp-1', type: 'input', hash: 'v1' }),
-      makeComponent({ id: 'comp-1', type: 'toggle', hash: 'v2' }),
+      'node-1',
+      makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      makeNode({ id: 'node-1', type: 'action', hash: 'v2' }),
       { value: 'hello' },
       {}
     );

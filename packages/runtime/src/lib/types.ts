@@ -1,44 +1,44 @@
 import type {
-  ComponentDefinition,
-  ComponentState,
-  DiffType,
+  ViewNode,
+  NodeValue,
+  ViewDiff,
   IssueCode,
   IssueSeverity,
-  StateSnapshot,
-  TraceAction,
-  ValueMeta,
-  OrphanedValue,
+  DataSnapshot,
+  DataResolution,
+  ValueLineage,
+  DetachedValue,
 } from '@continuum/contract';
 
 export interface ReconciliationResult {
-  reconciledState: StateSnapshot;
+  reconciledState: DataSnapshot;
   diffs: StateDiff[];
   issues: ReconciliationIssue[];
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
 }
 
 export interface StateDiff {
-  componentId: string;
-  type: DiffType;
+  nodeId: string;
+  type: ViewDiff;
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
 }
 
-export interface ReconciliationTrace {
-  componentId: string;
+export interface ReconciliationResolution {
+  nodeId: string;
   priorId: string | null;
   matchedBy: 'id' | 'key' | null;
   priorType: string | null;
   newType: string;
-  action: TraceAction;
+  resolution: DataResolution;
   priorValue: unknown;
   reconciledValue: unknown;
 }
 
 export interface ReconciliationIssue {
   severity: IssueSeverity;
-  componentId?: string;
+  nodeId?: string;
   message: string;
   code: IssueCode;
 }
@@ -52,18 +52,18 @@ export interface ReconciliationOptions {
 }
 
 export type MigrationStrategy = (
-  componentId: string,
-  oldSchema: ComponentDefinition,
-  newSchema: ComponentDefinition,
-  oldState: unknown
+  nodeId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
+  priorValue: unknown
 ) => unknown;
 
-export interface ComponentResolutionAccumulator {
-  values: Record<string, ComponentState>;
-  valuesMeta: Record<string, ValueMeta>;
-  orphanedValues: Record<string, OrphanedValue>;
-  restoredOrphanKeys: Set<string>;
+export interface NodeResolutionAccumulator {
+  values: Record<string, NodeValue>;
+  valueLineage: Record<string, ValueLineage>;
+  detachedValues: Record<string, DetachedValue>;
+  restoredDetachedKeys: Set<string>;
   diffs: StateDiff[];
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   issues: ReconciliationIssue[];
 }

@@ -1,38 +1,38 @@
-import type { SchemaSnapshot, StateSnapshot } from '@continuum/contract';
+import type { DataSnapshot, ViewDefinition } from '@continuum/contract';
 import type { ReconciliationOptions, ReconciliationResult } from './types.js';
 import { buildReconciliationContext, buildPriorValueLookupByIdAndKey } from './context.js';
 import { buildFreshSessionResult, buildBlindCarryResult, assembleReconciliationResult } from './reconciliation/state-builder.js';
-import { resolveAllComponents, detectRemovedComponents } from './reconciliation/component-resolver.js';
+import { resolveAllNodes, detectRemovedNodes } from './reconciliation/node-resolver.js';
 
 export function reconcile(
-  newSchema: SchemaSnapshot,
-  priorSchema: SchemaSnapshot | null,
-  priorState: StateSnapshot | null,
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
   options: ReconciliationOptions = {}
 ): ReconciliationResult {
   const now = (options.clock ?? Date.now)();
 
-  if (!priorState) {
-    return buildFreshSessionResult(newSchema, now);
+  if (!priorData) {
+    return buildFreshSessionResult(newView, now);
   }
 
-  if (!priorSchema) {
-    return buildBlindCarryResult(newSchema, priorState, now, options);
+  if (!priorView) {
+    return buildBlindCarryResult(newView, priorData, now, options);
   }
 
-  return reconcileSchemaTransition(newSchema, priorSchema, priorState, now, options);
+  return reconcileViewTransition(newView, priorView, priorData, now, options);
 }
 
-function reconcileSchemaTransition(
-  newSchema: SchemaSnapshot,
-  priorSchema: SchemaSnapshot,
-  priorState: StateSnapshot,
+function reconcileViewTransition(
+  newView: ViewDefinition,
+  priorView: ViewDefinition,
+  priorData: DataSnapshot,
   now: number,
   options: ReconciliationOptions
 ): ReconciliationResult {
-  const ctx = buildReconciliationContext(newSchema, priorSchema);
-  const priorValues = buildPriorValueLookupByIdAndKey(priorState, ctx);
-  const resolved = resolveAllComponents(ctx, priorValues, priorState, now, options);
-  const removals = detectRemovedComponents(ctx, priorState, options, now);
-  return assembleReconciliationResult(resolved, removals, priorState, newSchema, now);
+  const ctx = buildReconciliationContext(newView, priorView);
+  const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+  const resolved = resolveAllNodes(ctx, priorValues, priorData, now, options);
+  const removals = detectRemovedNodes(ctx, priorData, options, now);
+  return assembleReconciliationResult(resolved, removals, priorData, newView, now);
 }
