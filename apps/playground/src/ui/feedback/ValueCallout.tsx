@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReconciliationTrace, StateDiff } from '@continuum/runtime';
+import type { ReconciliationResolution, StateDiff } from '@continuum/runtime';
 import type { OutcomeHint, OutcomeSeverity } from '../../scenarios/types';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
 
 interface ValueCalloutProps {
   hint?: OutcomeHint;
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   diffs: StateDiff[];
 }
 
-export function ValueCallout({ hint, trace, diffs }: ValueCalloutProps) {
+export function ValueCallout({ hint, resolutions, diffs }: ValueCalloutProps) {
   const [visible, setVisible] = useState(Boolean(hint));
 
   useEffect(() => {
@@ -26,17 +26,17 @@ export function ValueCallout({ hint, trace, diffs }: ValueCalloutProps) {
     if (hint) {
       return hint.severity;
     }
-    if (trace.some((entry) => entry.action === 'dropped')) {
+    if (resolutions.some((entry) => entry.resolution === 'dropped')) {
       return 'danger';
     }
     if (diffs.some((diff) => diff.type === 'migrated' || diff.type === 'type-changed')) {
       return 'warning';
     }
-    if (trace.length > 0) {
+    if (resolutions.length > 0) {
       return 'success';
     }
     return 'info';
-  }, [hint, trace, diffs]);
+  }, [hint, resolutions, diffs]);
 
   if (!visible || !hint) {
     return null;
@@ -89,4 +89,3 @@ const toneMap = {
     text: playgroundTheme.color.accent,
   },
 } as const;
-

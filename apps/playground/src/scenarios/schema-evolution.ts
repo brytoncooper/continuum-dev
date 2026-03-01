@@ -16,22 +16,22 @@ const styleOptions = [
 export const schemaEvolutionScenario: Scenario = {
   id: 'schema-evolution',
   title: 'AI Refines Your Trip',
-  subtitle: 'Watch your travel preferences survive schema evolution',
-  capabilityTag: 'Schema Evolution',
+  subtitle: 'Watch your travel preferences survive view evolution',
+  capabilityTag: 'View Evolution',
   steps: [
     {
       id: 'trip-step-1',
       label: 'Step 1',
       description: 'Tell the AI where you want to go',
       narrativePrompt: 'Start with your core trip details.',
-      schema: {
-        schemaId: 'trip-planner',
+      view: {
+        viewId: 'trip-planner',
         version: '1.0',
-        components: [
+        nodes: [
           {
             id: 'destination',
             key: 'destination',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Destination',
             placeholder: 'e.g. Tokyo, Japan',
@@ -76,14 +76,14 @@ export const schemaEvolutionScenario: Scenario = {
       label: 'Step 2',
       description: 'AI personalizes your itinerary fields',
       narrativePrompt: 'The AI renames and expands fields while preserving values by key.',
-      schema: {
-        schemaId: 'trip-planner',
+      view: {
+        viewId: 'trip-planner',
         version: '2.0',
-        components: [
+        nodes: [
           {
             id: 'primary_destination',
             key: 'destination',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Primary Destination',
             placeholder: 'e.g. Tokyo, Japan',
@@ -109,7 +109,7 @@ export const schemaEvolutionScenario: Scenario = {
             type: 'select',
             hash: 'select:v1',
             label: 'Budget Range',
-            defaultValue: { selectedIds: ['mid'] },
+            defaultValue: { value: 'mid' },
             props: { options: budgetOptions },
           },
           {
@@ -132,7 +132,7 @@ export const schemaEvolutionScenario: Scenario = {
       },
       outcomeHint: {
         severity: 'success',
-        summary: 'Your destination carried over even after the AI renamed the component id.',
+        summary: 'Your destination carried over even after the AI renamed the node id.',
       },
     },
     {
@@ -140,20 +140,20 @@ export const schemaEvolutionScenario: Scenario = {
       label: 'Step 3',
       description: 'AI restructures the trip form into sections',
       narrativePrompt: 'The layout changes heavily and budget changes type.',
-      schema: {
-        schemaId: 'trip-planner',
+      view: {
+        viewId: 'trip-planner',
         version: '3.0',
-        components: [
+        nodes: [
           {
             id: 'trip_details_section',
             key: 'trip_details_section',
-            type: 'section',
+            type: 'group',
             label: 'Trip Details',
             children: [
               {
                 id: 'destination_input',
                 key: 'destination',
-                type: 'input',
+                type: 'field',
                 hash: 'input:v1',
                 label: 'Destination',
                 placeholder: 'e.g. Tokyo, Japan',
@@ -178,7 +178,7 @@ export const schemaEvolutionScenario: Scenario = {
           {
             id: 'preferences_section',
             key: 'preferences_section',
-            type: 'section',
+            type: 'group',
             label: 'Preferences',
             children: [
               {
@@ -219,20 +219,20 @@ export const schemaEvolutionScenario: Scenario = {
       label: 'Step 4',
       description: 'AI simplifies the form for final booking',
       narrativePrompt: 'Non-essential fields are removed while core details remain.',
-      schema: {
-        schemaId: 'trip-planner',
+      view: {
+        viewId: 'trip-planner',
         version: '4.0',
-        components: [
+        nodes: [
           {
             id: 'final_trip_section',
             key: 'final_trip_section',
-            type: 'section',
+            type: 'group',
             label: 'Final Booking Details',
             children: [
               {
                 id: 'destination_final',
                 key: 'destination',
-                type: 'input',
+                type: 'field',
                 hash: 'input:v1',
                 label: 'Destination',
                 placeholder: 'e.g. Tokyo, Japan',
@@ -271,4 +271,3 @@ export const schemaEvolutionScenario: Scenario = {
     },
   ],
 };
-

@@ -1,9 +1,9 @@
-import type { OrphanedValue } from '@continuum/contract';
+import type { DetachedValue } from '@continuum/contract';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
 
-interface OrphanListProps {
-  orphanedValues: Record<string, OrphanedValue>;
+interface DetachedListProps {
+  detachedValues: Record<string, DetachedValue>;
 }
 
 function previewValue(value: unknown): string {
@@ -16,15 +16,15 @@ function previewValue(value: unknown): string {
   }
 }
 
-export function OrphanList({ orphanedValues }: OrphanListProps) {
-  const entries = Object.entries(orphanedValues);
+export function DetachedList({ detachedValues }: DetachedListProps) {
+  const entries = Object.entries(detachedValues);
   if (entries.length === 0) {
     return <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>No saved values</div>;
   }
 
   return (
     <div style={{ display: 'grid', gap: space.xs }}>
-      {entries.map(([key, orphan]) => (
+      {entries.map(([key, detached]) => (
         <div
           key={key}
           style={{
@@ -38,13 +38,13 @@ export function OrphanList({ orphanedValues }: OrphanListProps) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.sm }}>
             <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>{key}</span>
-            <span style={{ ...typeScale.caption, color: playgroundTheme.color.warning }}>{orphan.reason}</span>
+            <span style={{ ...typeScale.caption, color: playgroundTheme.color.warning }}>{detached.reason}</span>
           </div>
           <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>
-            type: {orphan.componentType} · schema: {orphan.schemaVersion}
+            type: {detached.previousNodeType} · view: {detached.viewVersion}
           </div>
           <div style={{ ...typeScale.caption, color: playgroundTheme.color.muted }}>
-            {previewValue(orphan.value)}
+            {previewValue(detached.value)}
           </div>
         </div>
       ))}

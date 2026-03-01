@@ -17,10 +17,10 @@ export const keyMatchingScenario: Scenario = {
       label: 'Step 1',
       description: 'Capture baseline flight preferences',
       narrativePrompt: 'Fill preferences that should survive structural changes.',
-      schema: {
-        schemaId: 'flight-preferences',
+      view: {
+        viewId: 'flight-preferences',
         version: '1.0',
-        components: [
+        nodes: [
           {
             id: 'seat_pref',
             key: 'seat_pref',
@@ -32,7 +32,7 @@ export const keyMatchingScenario: Scenario = {
           {
             id: 'meal_pref',
             key: 'meal_pref',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Meal Preference',
             placeholder: 'e.g. Vegetarian',
@@ -47,7 +47,7 @@ export const keyMatchingScenario: Scenario = {
         ],
       },
       initialState: {
-        seat_pref: { selectedIds: ['window'] },
+        seat_pref: { value: 'window' },
         meal_pref: { value: 'Vegetarian' },
       },
       outcomeHint: {
@@ -59,13 +59,13 @@ export const keyMatchingScenario: Scenario = {
       id: 'matching-step-2',
       label: 'Step 2',
       description: 'AI renames ids but preserves semantic keys',
-      narrativePrompt: 'The schema changes ids but keeps key continuity.',
-      schema: {
-        schemaId: 'flight-preferences',
+      narrativePrompt: 'The view changes ids but keeps key continuity.',
+      view: {
+        viewId: 'flight-preferences',
         version: '2.0',
-        components: [
+        nodes: [
           {
-            id: 'seat_choice_component',
+            id: 'seat_choice_node',
             key: 'seat_pref',
             type: 'select',
             hash: 'select:v1',
@@ -73,15 +73,15 @@ export const keyMatchingScenario: Scenario = {
             props: { options: seatOptions },
           },
           {
-            id: 'meal_notes_component',
+            id: 'meal_notes_node',
             key: 'meal_pref',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Meal Preference',
             placeholder: 'e.g. Vegetarian',
           },
           {
-            id: 'airport_lounge_toggle',
+            id: 'airport_lounge_action',
             key: 'lounge_access',
             type: 'toggle',
             hash: 'toggle:v1',
@@ -97,22 +97,22 @@ export const keyMatchingScenario: Scenario = {
     {
       id: 'matching-step-3',
       label: 'Step 3',
-      description: 'AI nests fields into sections and reorders layout',
+      description: 'AI nests fields into groups and reorders layout',
       narrativePrompt: 'Structure changes heavily while keys remain stable.',
-      schema: {
-        schemaId: 'flight-preferences',
+      view: {
+        viewId: 'flight-preferences',
         version: '3.0',
-        components: [
+        nodes: [
           {
             id: 'flight_pref_section',
             key: 'flight_pref_section',
-            type: 'section',
+            type: 'group',
             label: 'In-Flight Preferences',
             children: [
               {
                 id: 'meal_notes_relocated',
                 key: 'meal_pref',
-                type: 'input',
+                type: 'field',
                 hash: 'input:v1',
                 label: 'Meal Preference',
                 placeholder: 'e.g. Vegetarian',
@@ -130,7 +130,7 @@ export const keyMatchingScenario: Scenario = {
           {
             id: 'airport_pref_section',
             key: 'airport_pref_section',
-            type: 'section',
+            type: 'group',
             label: 'Airport Preferences',
             children: [
               {
@@ -151,4 +151,3 @@ export const keyMatchingScenario: Scenario = {
     },
   ],
 };
-
