@@ -1,6 +1,6 @@
 import { useContext, useCallback, useRef, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, ComponentState } from '@continuum/contract';
+import type { ContinuitySnapshot, NodeValue } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
@@ -28,8 +28,8 @@ export function useContinuumSession(): Session {
 }
 
 export function useContinuumState(
-  componentId: string
-): [ComponentState | undefined, (value: ComponentState) => void] {
+  nodeId: string
+): [NodeValue | undefined, (value: NodeValue) => void] {
   const session = useContinuumSession();
 
   const subscribe = useCallback(
@@ -39,16 +39,16 @@ export function useContinuumState(
 
   const getSnapshot = useCallback(() => {
     const snap = session.getSnapshot();
-    return snap?.state.values?.[componentId] as ComponentState | undefined;
-  }, [session, componentId]);
+    return snap?.data.values?.[nodeId] as NodeValue | undefined;
+  }, [session, nodeId]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const setValue = useCallback(
-    (next: ComponentState) => {
-      session.updateState(componentId, next);
+    (next: NodeValue) => {
+      session.updateState(nodeId, next);
     },
-    [session, componentId]
+    [session, nodeId]
   );
 
   return [value, setValue];
@@ -57,12 +57,12 @@ export function useContinuumState(
 export function useContinuumSnapshot(): ContinuitySnapshot | null {
   const session = useContinuumSession();
   const snapshotCacheRef = useRef<{
-    schema: ContinuitySnapshot['schema'] | null;
-    state: ContinuitySnapshot['state'] | null;
+    view: ContinuitySnapshot['view'] | null;
+    data: ContinuitySnapshot['data'] | null;
     snapshot: ContinuitySnapshot | null;
   }>({
-    schema: null,
-    state: null,
+    view: null,
+    data: null,
     snapshot: null,
   });
 
@@ -76,22 +76,22 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
     const cache = snapshotCacheRef.current;
 
     if (!nextSnapshot) {
-      cache.schema = null;
-      cache.state = null;
+      cache.view = null;
+      cache.data = null;
       cache.snapshot = null;
       return null;
     }
 
     if (
       cache.snapshot &&
-      cache.schema === nextSnapshot.schema &&
-      cache.state === nextSnapshot.state
+      cache.view === nextSnapshot.view &&
+      cache.data === nextSnapshot.data
     ) {
       return cache.snapshot;
     }
 
-    cache.schema = nextSnapshot.schema;
-    cache.state = nextSnapshot.state;
+    cache.view = nextSnapshot.view;
+    cache.data = nextSnapshot.data;
     cache.snapshot = nextSnapshot;
     return nextSnapshot;
   }, [session]);
@@ -104,7 +104,7 @@ export function useContinuumDiagnostics() {
   const diagnosticsCacheRef = useRef<{
     issues: ReturnType<Session['getIssues']>;
     diffs: ReturnType<Session['getDiffs']>;
-    trace: ReturnType<Session['getTrace']>;
+    resolutions: ReturnType<Session['getResolutions']>;
     checkpoints: ReturnType<Session['getCheckpoints']>;
   } | null>(null);
 
@@ -113,7 +113,7 @@ export function useContinuumDiagnostics() {
       const nextDiagnostics = {
         issues: session.getIssues(),
         diffs: session.getDiffs(),
-        trace: session.getTrace(),
+        resolutions: session.getResolutions(),
         checkpoints: session.getCheckpoints(),
       };
       const cachedDiagnostics = diagnosticsCacheRef.current;
@@ -122,7 +122,7 @@ export function useContinuumDiagnostics() {
         cachedDiagnostics &&
         shallowArrayEqual(cachedDiagnostics.issues, nextDiagnostics.issues) &&
         shallowArrayEqual(cachedDiagnostics.diffs, nextDiagnostics.diffs) &&
-        shallowArrayEqual(cachedDiagnostics.trace, nextDiagnostics.trace) &&
+        shallowArrayEqual(cachedDiagnostics.resolutions, nextDiagnostics.resolutions) &&
         shallowArrayEqual(cachedDiagnostics.checkpoints, nextDiagnostics.checkpoints)
       ) {
         return cachedDiagnostics;
