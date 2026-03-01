@@ -1,52 +1,71 @@
-import type { SchemaSnapshot, StateSnapshot } from '@continuum/contract';
+import type { ViewDefinition, ViewNode, DataSnapshot } from '@continuum/contract';
 import { ISSUE_CODES } from '@continuum/contract';
 import { describe, expect, it } from 'vitest';
 import { buildPriorValueLookupByIdAndKey, buildReconciliationContext } from './context.js';
 import { reconcile } from './reconcile.js';
-import { computeSchemaHash } from './reconciliation/state-builder.js';
+import { computeViewHash } from './reconciliation/state-builder.js';
 
-const priorSchema: SchemaSnapshot = {
-  schemaId: 'schema',
+function makeNode(
+  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
+): ViewNode {
+  const type = overrides.type ?? 'field';
+  return {
+    id: overrides.id,
+    key: overrides.key,
+    hash: overrides.hash,
+    hidden: overrides.hidden,
+    migrations: overrides.migrations,
+    type,
+    ...(type === 'field' ? { dataType: 'string' } : {}),
+    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
+    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
+    ...overrides,
+  } as ViewNode;
+}
+
+const priorView: ViewDefinition = {
+  viewId: 'view-1',
   version: '1',
-  components: [{ id: 'a', key: 'k', type: 'input', hash: 'h1' }],
+  nodes: [makeNode({ id: 'a', key: 'k', hash: 'h1' })],
 };
 
-const priorState: StateSnapshot = {
+const priorData: DataSnapshot = {
   values: { a: { value: 'old' } },
-  meta: { timestamp: 1, sessionId: 's' },
+  lineage: { timestamp: 1, sessionId: 's' },
 };
 
 describe('runtime hardening', () => {
   it('treats null as a valid migrated value', () => {
-    const nextSchema: SchemaSnapshot = {
-      schemaId: 'schema',
+    const nextView: ViewDefinition = {
+      viewId: 'view-1',
       version: '2',
-      components: [{ id: 'a', key: 'k', type: 'input', hash: 'h2' }],
+      nodes: [makeNode({ id: 'a', key: 'k', hash: 'h2' })],
     };
 
-    const result = reconcile(nextSchema, priorSchema, priorState, {
+    const result = reconcile(nextView, priorView, priorData, {
       migrationStrategies: { a: () => null },
     });
 
     expect(result.reconciledState.values.a).toBeNull();
     expect(result.issues.some((issue) => issue.code === ISSUE_CODES.MIGRATION_FAILED)).toBe(false);
     expect(result.diffs[0]).toEqual({
-      componentId: 'a',
+      nodeId: 'a',
       type: 'migrated',
       oldValue: { value: 'old' },
       newValue: null,
-      reason: 'Component schema changed, migration applied',
+      reason: 'Node view changed, migration applied',
     });
   });
 
   it('captures migration strategy errors as MIGRATION_FAILED and carries prior value', () => {
-    const nextSchema: SchemaSnapshot = {
-      schemaId: 'schema',
+    const nextView: ViewDefinition = {
+      viewId: 'view-1',
       version: '2',
-      components: [{ id: 'a', key: 'k', type: 'input', hash: 'h2' }],
+      nodes: [makeNode({ id: 'a', key: 'k', hash: 'h2' })],
     };
 
-    const result = reconcile(nextSchema, priorSchema, priorState, {
+    const result = reconcile(nextView, priorView, priorData, {
       migrationStrategies: { a: () => { throw new Error('boom'); } },
     });
 
@@ -59,55 +78,55 @@ describe('runtime hardening', () => {
     );
   });
 
-  it('uses a schema hash format without separator collisions', () => {
-    const one: SchemaSnapshot = {
-      schemaId: 'schema',
+  it('uses a view hash format without separator collisions', () => {
+    const one: ViewDefinition = {
+      viewId: 'view-1',
       version: '1',
-      components: [{ id: 'a', type: 'input', hash: 'a:b' }],
+      nodes: [makeNode({ id: 'a', hash: 'a:b' })],
     };
-    const two: SchemaSnapshot = {
-      schemaId: 'schema',
+    const two: ViewDefinition = {
+      viewId: 'view-1',
       version: '1',
-      components: [
-        { id: 'a', type: 'input', hash: 'a' },
-        { id: 'b', type: 'input', hash: 'b' },
+      nodes: [
+        makeNode({ id: 'a', hash: 'a' }),
+        makeNode({ id: 'b', hash: 'b' }),
       ],
     };
 
-    expect(computeSchemaHash(one)).not.toBe(computeSchemaHash(two));
+    expect(computeViewHash(one)).not.toBe(computeViewHash(two));
   });
 
   it('buildPriorValueLookupByIdAndKey resolves nested key matches to new ids', () => {
-    const previous: SchemaSnapshot = {
-      schemaId: 'schema',
+    const previous: ViewDefinition = {
+      viewId: 'view-1',
       version: '1',
-      components: [
-        { id: 'root', type: 'container', children: [{ id: 'old-child', key: 'child-key', type: 'input' }] },
+      nodes: [
+        makeNode({ id: 'root', type: 'group', children: [makeNode({ id: 'old-child', key: 'child-key' })] }),
       ],
     };
-    const next: SchemaSnapshot = {
-      schemaId: 'schema',
+    const next: ViewDefinition = {
+      viewId: 'view-1',
       version: '2',
-      components: [
-        { id: 'root', type: 'container', children: [{ id: 'new-child', key: 'child-key', type: 'input' }] },
+      nodes: [
+        makeNode({ id: 'root', type: 'group', children: [makeNode({ id: 'new-child', key: 'child-key' })] }),
       ],
     };
     const context = buildReconciliationContext(next, previous);
-    const state: StateSnapshot = {
+    const data: DataSnapshot = {
       values: { 'old-child': { value: 'nested' } },
-      meta: { timestamp: 0, sessionId: 's' },
+      lineage: { timestamp: 0, sessionId: 's' },
     };
 
-    const lookup = buildPriorValueLookupByIdAndKey(state, context);
+    const lookup = buildPriorValueLookupByIdAndKey(data, context);
     expect(lookup.get('new-child')).toEqual({ value: 'nested' });
   });
 
-  it('handles empty schemas without producing invalid arrays', () => {
-    const next: SchemaSnapshot = { schemaId: 'schema', version: '2', components: [] };
-    const result = reconcile(next, priorSchema, priorState);
+  it('handles empty views without producing invalid arrays', () => {
+    const next: ViewDefinition = { viewId: 'view-1', version: '2', nodes: [] };
+    const result = reconcile(next, priorView, priorData);
     expect(result.reconciledState.values).toEqual({});
     expect(Array.isArray(result.diffs)).toBe(true);
-    expect(Array.isArray(result.trace)).toBe(true);
+    expect(Array.isArray(result.resolutions)).toBe(true);
     expect(Array.isArray(result.issues)).toBe(true);
   });
 });

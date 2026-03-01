@@ -1,88 +1,101 @@
 import { describe, it, expect } from 'vitest';
-import type { ComponentDefinition, SchemaSnapshot, StateSnapshot, ComponentState } from '@continuum/contract';
+import type { ViewNode, ViewDefinition, DataSnapshot, NodeValue } from '@continuum/contract';
 import {
   buildFreshSessionResult,
   buildBlindCarryResult,
   assembleReconciliationResult,
   carryValuesMeta,
-  computeSchemaHash,
+  computeViewHash,
   generateSessionId,
 } from './state-builder.js';
 
-function makeSchema(
-  components: ComponentDefinition[],
-  id = 'schema-1',
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
   version = '1.0'
-): SchemaSnapshot {
-  return { schemaId: id, version, components };
+): ViewDefinition {
+  return { viewId, version, nodes };
 }
 
-function makeComponent(
-  overrides: Partial<ComponentDefinition> & { id: string; type: string }
-): ComponentDefinition {
-  return { ...overrides };
+function makeNode(
+  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
+): ViewNode {
+  const type = overrides.type ?? 'field';
+  return {
+    id: overrides.id,
+    key: overrides.key,
+    hash: overrides.hash,
+    hidden: overrides.hidden,
+    migrations: overrides.migrations,
+    type,
+    ...(type === 'field' ? { dataType: 'string' } : {}),
+    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
+    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
+    ...overrides,
+  } as ViewNode;
 }
 
-function makeState(
-  values: Record<string, ComponentState>,
-  meta?: Partial<StateSnapshot['meta']>,
-  valuesMeta?: StateSnapshot['valuesMeta']
-): StateSnapshot {
+function makeData(
+  values: Record<string, NodeValue>,
+  lineage?: Partial<DataSnapshot['lineage']>,
+  valueLineage?: DataSnapshot['valueLineage']
+): DataSnapshot {
   return {
     values,
-    meta: { timestamp: 1000, sessionId: 'test-session', ...meta },
-    valuesMeta,
+    lineage: { timestamp: 1000, sessionId: 'test-session', ...lineage },
+    valueLineage,
   };
 }
 
 describe('buildFreshSessionResult', () => {
   it('returns empty values with a new session id', () => {
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-    const result = buildFreshSessionResult(schema, 5000);
+    const view = makeView([makeNode({ id: 'a' })]);
+    const result = buildFreshSessionResult(view, 5000);
 
     expect(result.reconciledState.values).toEqual({});
-    expect(result.reconciledState.meta.sessionId).toContain('session_');
-    expect(result.reconciledState.meta.timestamp).toBe(5000);
+    expect(result.reconciledState.lineage.sessionId).toContain('session_');
+    expect(result.reconciledState.lineage.timestamp).toBe(5000);
   });
 
-  it('generates added diffs for all components including children', () => {
-    const schema = makeSchema([
-      makeComponent({
+  it('generates added diffs for all nodes including children', () => {
+    const view = makeView([
+      makeNode({
         id: 'parent',
-        type: 'container',
-        children: [makeComponent({ id: 'child', type: 'input' })],
+        type: 'group',
+        children: [makeNode({ id: 'child' })],
       }),
     ]);
-    const result = buildFreshSessionResult(schema, 5000);
+    const result = buildFreshSessionResult(view, 5000);
 
     expect(result.diffs).toHaveLength(2);
-    expect(result.diffs[0].componentId).toBe('parent');
-    expect(result.diffs[1].componentId).toBe('child');
+    expect(result.diffs[0].nodeId).toBe('parent');
+    expect(result.diffs[1].nodeId).toBe('child');
   });
 
-  it('emits NO_PRIOR_STATE info issue', () => {
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-    const result = buildFreshSessionResult(schema, 5000);
+  it('emits NO_PRIOR_DATA info issue', () => {
+    const view = makeView([makeNode({ id: 'a' })]);
+    const result = buildFreshSessionResult(view, 5000);
 
     expect(result.issues).toHaveLength(1);
-    expect(result.issues[0].code).toBe('NO_PRIOR_STATE');
+    expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
   });
 });
 
 describe('buildBlindCarryResult', () => {
   it('drops all values when allowBlindCarry is false', () => {
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-    const state = makeState({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult(schema, state, 5000, {});
+    const view = makeView([makeNode({ id: 'a' })]);
+    const data = makeData({ a: { value: 'hello' } });
+    const result = buildBlindCarryResult(view, data, 5000, {});
 
     expect(result.reconciledState.values).toEqual({});
-    expect(result.issues[0].code).toBe('NO_PRIOR_SCHEMA');
+    expect(result.issues[0].code).toBe('NO_PRIOR_VIEW');
   });
 
   it('carries matching values when allowBlindCarry is true', () => {
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-    const state = makeState({ a: { value: 'hello' }, orphan: { value: 'gone' } });
-    const result = buildBlindCarryResult(schema, state, 5000, { allowBlindCarry: true });
+    const view = makeView([makeNode({ id: 'a' })]);
+    const data = makeData({ a: { value: 'hello' }, orphan: { value: 'gone' } });
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
 
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
     expect(result.reconciledState.values['orphan']).toBeUndefined();
@@ -92,20 +105,22 @@ describe('buildBlindCarryResult', () => {
 describe('assembleReconciliationResult', () => {
   it('merges resolved and removal outputs into a single result', () => {
     const resolved = {
-      values: { a: { value: 'hello' } as ComponentState },
-      valuesMeta: {},
-      diffs: [{ componentId: 'a', type: 'added' as const }],
-      trace: [],
+      values: { a: { value: 'hello' } as NodeValue },
+      valueLineage: {},
+      detachedValues: {},
+      restoredDetachedKeys: new Set<string>(),
+      diffs: [{ nodeId: 'a', type: 'added' as const }],
+      resolutions: [],
       issues: [],
     };
     const removals = {
-      diffs: [{ componentId: 'b', type: 'removed' as const, oldValue: { checked: true } }],
-      issues: [{ severity: 'warning' as const, componentId: 'b', message: 'removed', code: 'COMPONENT_REMOVED' }],
+      diffs: [{ nodeId: 'b', type: 'removed' as const, oldValue: { value: true } }],
+      issues: [{ severity: 'warning' as const, nodeId: 'b', message: 'removed', code: 'NODE_REMOVED' as const }],
     };
-    const priorState = makeState({ b: { checked: true } });
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+    const priorData = makeData({ b: { value: true } });
+    const view = makeView([makeNode({ id: 'a' })]);
 
-    const result = assembleReconciliationResult(resolved, removals, priorState, schema, 5000);
+    const result = assembleReconciliationResult(resolved, removals, priorData, view, 5000);
 
     expect(result.diffs).toHaveLength(2);
     expect(result.issues).toHaveLength(1);
@@ -114,42 +129,42 @@ describe('assembleReconciliationResult', () => {
 });
 
 describe('carryValuesMeta', () => {
-  it('copies prior meta to the new id', () => {
+  it('copies prior lineage to the new id', () => {
     const target: Record<string, { lastUpdated?: number; lastInteractionId?: string }> = {};
-    const state = makeState({}, {}, { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } });
+    const data = makeData({}, {}, { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } });
 
-    carryValuesMeta(target, 'new-id', 'old-id', state, 9000, false);
+    carryValuesMeta(target, 'new-id', 'old-id', data, 9000, false);
 
     expect(target['new-id']).toEqual({ lastUpdated: 500, lastInteractionId: 'int-1' });
   });
 
   it('updates lastUpdated when migrated', () => {
     const target: Record<string, { lastUpdated?: number; lastInteractionId?: string }> = {};
-    const state = makeState({}, {}, { 'a': { lastUpdated: 500 } });
+    const data = makeData({}, {}, { 'a': { lastUpdated: 500 } });
 
-    carryValuesMeta(target, 'a', 'a', state, 9000, true);
+    carryValuesMeta(target, 'a', 'a', data, 9000, true);
 
     expect(target['a'].lastUpdated).toBe(9000);
   });
 });
 
-describe('computeSchemaHash', () => {
-  it('returns undefined when no components have hashes', () => {
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-    expect(computeSchemaHash(schema)).toBeUndefined();
+describe('computeViewHash', () => {
+  it('returns undefined when no nodes have hashes', () => {
+    const view = makeView([makeNode({ id: 'a' })]);
+    expect(computeViewHash(view)).toBeUndefined();
   });
 
-  it('produces a deterministic hash from sorted component hashes', () => {
-    const schemaA = makeSchema([
-      makeComponent({ id: 'a', type: 'input', hash: 'alpha' }),
-      makeComponent({ id: 'b', type: 'toggle', hash: 'beta' }),
+  it('produces a deterministic hash from sorted node hashes', () => {
+    const viewA = makeView([
+      makeNode({ id: 'a', hash: 'alpha' }),
+      makeNode({ id: 'b', type: 'action', hash: 'beta' }),
     ]);
-    const schemaB = makeSchema([
-      makeComponent({ id: 'b', type: 'toggle', hash: 'beta' }),
-      makeComponent({ id: 'a', type: 'input', hash: 'alpha' }),
+    const viewB = makeView([
+      makeNode({ id: 'b', type: 'action', hash: 'beta' }),
+      makeNode({ id: 'a', hash: 'alpha' }),
     ]);
 
-    expect(computeSchemaHash(schemaA)).toBe(computeSchemaHash(schemaB));
+    expect(computeViewHash(viewA)).toBe(computeViewHash(viewB));
   });
 });
 
