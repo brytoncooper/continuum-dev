@@ -1,22 +1,25 @@
-import type { ComponentDefinition, ComponentState } from '@continuum/contract';
+import type { ViewNode, NodeValue } from '@continuum/contract';
 import type { SessionOptions } from '@continuum/session';
 import type { ComponentType } from 'react';
 
-export interface ContinuumComponentProps<T = ComponentState> {
+export interface ContinuumNodeProps<T = NodeValue> {
   value: T | undefined;
   onChange: (value: T) => void;
-  definition: ComponentDefinition;
+  definition: ViewNode;
   children?: React.ReactNode;
   [prop: string]: unknown;
 }
 
-export type ContinuumComponentMap = Record<
+export type ContinuumNodeMap = Record<
   string,
-  ComponentType<ContinuumComponentProps<any>>
+  ComponentType<ContinuumNodeProps<any>>
 >;
 
+export type ContinuumComponentProps<T = NodeValue> = ContinuumNodeProps<T>;
+export type ContinuumComponentMap = ContinuumNodeMap;
+
 export interface ContinuumProviderProps {
-  components: ContinuumComponentMap;
+  components: ContinuumNodeMap;
   persist?: 'sessionStorage' | 'localStorage' | false;
   storageKey?: string;
   sessionOptions?: SessionOptions;

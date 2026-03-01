@@ -1,6 +1,6 @@
 import { act, StrictMode, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ContinuitySnapshot, SchemaSnapshot } from '@continuum/contract';
+import type { ContinuitySnapshot, ViewDefinition } from '@continuum/contract';
 import { createSession } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,14 +8,14 @@ import { ContinuumProvider } from './context.js';
 import { useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState } from './hooks.js';
 import { ContinuumRenderer } from './renderer.js';
 
-const schema: SchemaSnapshot = {
-  schemaId: 'schema',
+const viewDef: ViewDefinition = {
+  viewId: 'view',
   version: '1',
-  components: [{ id: 'field', type: 'input' }],
+  nodes: [{ id: 'field', type: 'field', dataType: 'string' }],
 };
 
 const componentMap = {
-  input: ({ value, onChange }: { value: any; onChange: (next: any) => void }) => (
+  field: ({ value, onChange }: { value: any; onChange: (next: any) => void }) => (
     <input
       data-testid="input"
       value={typeof value?.value === 'string' ? value.value : ''}
@@ -56,7 +56,7 @@ describe('react integration', () => {
 
   it('hydrates from localStorage and reports hydrated=true', () => {
     const seed = createSession();
-    seed.pushSchema(schema);
+    seed.pushView(viewDef);
     seed.updateState('field', { value: 'from-storage' });
     localStorage.setItem('continuum_session', JSON.stringify(seed.serialize()));
 
@@ -76,7 +76,7 @@ describe('react integration', () => {
 
     expect(hydrated).toBe(true);
     const hydratedSnapshot = snapshot as ContinuitySnapshot | null;
-    expect(hydratedSnapshot?.state.values['field']).toEqual({ value: 'from-storage' });
+    expect(hydratedSnapshot?.data.values['field']).toEqual({ value: 'from-storage' });
     view.unmount();
   });
 
@@ -85,7 +85,7 @@ describe('react integration', () => {
       const session = useContinuumSession();
       const [value, setValue] = useContinuumState('field');
       if (!session.getSnapshot()) {
-        session.pushSchema(schema);
+        session.pushView(viewDef);
       }
       return (
         <button
@@ -111,85 +111,86 @@ describe('react integration', () => {
     view.unmount();
   });
 
-  it('renders schemas and tolerates null component arrays', () => {
-    const badSchema = { schemaId: 's', version: '1', components: null } as unknown as SchemaSnapshot;
-    const view = renderIntoDom(
+  it('renders views and tolerates null node arrays', () => {
+    const badView = { viewId: 's', version: '1', nodes: null } as unknown as ViewDefinition;
+    const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
-        <ContinuumRenderer schema={badSchema} />
+        <ContinuumRenderer view={badView} />
       </ContinuumProvider>
     );
-    expect(view.container.querySelector('[data-continuum-schema="s"]')).toBeTruthy();
-    view.unmount();
+    expect(rendered.container.querySelector('[data-continuum-view="s"]')).toBeTruthy();
+    rendered.unmount();
   });
 
-  it('does not render components marked hidden', () => {
-    const hiddenSchema: SchemaSnapshot = {
-      schemaId: 'hidden-schema',
+  it('does not render nodes marked hidden', () => {
+    const hiddenView: ViewDefinition = {
+      viewId: 'hidden-view',
       version: '1',
-      components: [{ id: 'hidden-field', type: 'input', hidden: true }],
+      nodes: [{ id: 'hidden-field', type: 'field', dataType: 'string', hidden: true }],
     };
-    const view = renderIntoDom(
+    const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
-        <ContinuumRenderer schema={hiddenSchema} />
+        <ContinuumRenderer view={hiddenView} />
       </ContinuumProvider>
     );
-    expect(view.container.querySelector('[data-continuum-id="hidden-field"]')).toBeNull();
-    view.unmount();
+    expect(rendered.container.querySelector('[data-continuum-id="hidden-field"]')).toBeNull();
+    rendered.unmount();
   });
 
-  it('forwards definition.props to rendered component', () => {
+  it('forwards definition properties to rendered component', () => {
     let receivedPlaceholder = '';
     const propsMap = {
-      input: ({ definition, placeholder }: any) => {
-        receivedPlaceholder = placeholder ?? '';
+      field: ({ definition }: any) => {
+        receivedPlaceholder = definition.placeholder ?? '';
         return <div data-testid={`field-${definition.id}`} />;
       },
     };
-    const propsSchema: SchemaSnapshot = {
-      schemaId: 'props-schema',
+    const propsView: ViewDefinition = {
+      viewId: 'props-view',
       version: '1',
-      components: [
+      nodes: [
         {
           id: 'field',
-          type: 'input',
-          props: { placeholder: 'From props' },
+          type: 'field',
+          dataType: 'string',
+          placeholder: 'From props',
         },
       ],
     };
-    const view = renderIntoDom(
+    const rendered = renderIntoDom(
       <ContinuumProvider components={propsMap}>
-        <ContinuumRenderer schema={propsSchema} />
+        <ContinuumRenderer view={propsView} />
       </ContinuumProvider>
     );
     expect(receivedPlaceholder).toBe('From props');
-    view.unmount();
+    rendered.unmount();
   });
 
-  it('isolates component render errors with per-component boundary', () => {
+  it('isolates node render errors with per-node boundary', () => {
     const errorMap = {
-      input: ({ definition }: any) => {
+      field: ({ definition }: any) => {
         if (definition.id === 'boom') {
           throw new Error('boom');
         }
         return <div data-testid={`ok-${definition.id}`}>ok</div>;
       },
     };
-    const errorSchema: SchemaSnapshot = {
-      schemaId: 'error-schema',
+    const errorView: ViewDefinition = {
+      viewId: 'error-view',
       version: '1',
-      components: [
-        { id: 'boom', type: 'input' },
-        { id: 'safe', type: 'input' },
+      nodes: [
+        { id: 'boom', type: 'field', dataType: 'string' },
+        { id: 'safe', type: 'field', dataType: 'string' },
       ],
     };
-    const view = renderIntoDom(
+    const rendered = renderIntoDom(
       <ContinuumProvider components={errorMap}>
-        <ContinuumRenderer schema={errorSchema} />
+        <ContinuumRenderer view={errorView} />
       </ContinuumProvider>
     );
-    expect(view.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
-    expect(view.container.querySelector('[data-testid="ok-safe"]')).toBeTruthy();
-    view.unmount();
+    expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
+    expect(rendered.container.querySelector('[data-testid="ok-safe"]')).toBeTruthy();
+    rendered.unmount();
   });
 
   it('exposes diagnostics and destroys session on unmount', () => {
@@ -203,14 +204,14 @@ describe('react integration', () => {
       capturedSession = session;
       const diagnostics = useContinuumDiagnostics();
       if (!session.getSnapshot()) {
-        session.pushSchema(schema);
+        session.pushView(viewDef);
       }
       issuesLength = diagnostics.issues.length;
       checkpointsLength = diagnostics.checkpoints.length;
       return null;
     }
 
-    const view = renderIntoDom(
+    const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
         <App />
       </ContinuumProvider>
@@ -218,7 +219,7 @@ describe('react integration', () => {
 
     expect(issuesLength).toBeGreaterThanOrEqual(0);
     expect(checkpointsLength).toBeGreaterThanOrEqual(1);
-    view.unmount();
+    rendered.unmount();
     vi.runAllTimers();
     const finalizedSession = capturedSession as Session | null;
     expect(finalizedSession?.getSnapshot()).toBeNull();
@@ -230,7 +231,7 @@ describe('react integration', () => {
       const session = useContinuumSession();
       const [value, setValue] = useContinuumState('field');
       if (!session.getSnapshot()) {
-        session.pushSchema(schema);
+        session.pushView(viewDef);
       }
       return (
         <button
@@ -242,18 +243,18 @@ describe('react integration', () => {
       );
     }
 
-    const view = renderIntoDom(
+    const rendered = renderIntoDom(
       <StrictMode>
         <ContinuumProvider components={componentMap}>
           <App />
         </ContinuumProvider>
       </StrictMode>
     );
-    const button = view.container.querySelector('[data-testid="strict-button"]') as HTMLButtonElement;
+    const button = rendered.container.querySelector('[data-testid="strict-button"]') as HTMLButtonElement;
     act(() => {
       button.click();
     });
     expect(button.textContent).toBe('strict-next');
-    view.unmount();
+    rendered.unmount();
   });
 });

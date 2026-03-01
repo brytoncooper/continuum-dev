@@ -1,11 +1,12 @@
 import { useContext } from 'react';
-import type { SchemaSnapshot, ComponentDefinition } from '@continuum/contract';
+import type { ViewDefinition, ViewNode } from '@continuum/contract';
+import { getChildNodes } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 import { useContinuumState } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
-import { ComponentErrorBoundary } from './error-boundary.js';
+import { NodeErrorBoundary } from './error-boundary.js';
 
-function ComponentNode({ definition }: { definition: ComponentDefinition }) {
+function NodeRenderer({ definition }: { definition: ViewNode }) {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
     throw new Error(
@@ -25,31 +26,30 @@ function ComponentNode({ definition }: { definition: ComponentDefinition }) {
     return null;
   }
 
-  const childNodes = definition.children?.map((child) => (
-    <ComponentNode key={child.id} definition={child} />
+  const childNodes = getChildNodes(definition).map((child) => (
+    <NodeRenderer key={child.id} definition={child} />
   ));
 
   return (
     <div data-continuum-id={definition.id}>
-      <ComponentErrorBoundary componentId={definition.id}>
+      <NodeErrorBoundary nodeId={definition.id}>
         <Component
           value={value}
           onChange={setValue}
           definition={definition}
-          {...(definition.props ?? {})}
         >
           {childNodes}
         </Component>
-      </ComponentErrorBoundary>
+      </NodeErrorBoundary>
     </div>
   );
 }
 
-export function ContinuumRenderer({ schema }: { schema: SchemaSnapshot }) {
+export function ContinuumRenderer({ view }: { view: ViewDefinition }) {
   return (
-    <div data-continuum-schema={schema.schemaId}>
-      {(schema.components ?? []).map((comp) => (
-        <ComponentNode key={comp.id} definition={comp} />
+    <div data-continuum-view={view.viewId}>
+      {(view.nodes ?? []).map((node) => (
+        <NodeRenderer key={node.id} definition={node} />
       ))}
     </div>
   );
