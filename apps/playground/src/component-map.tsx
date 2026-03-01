@@ -1,24 +1,46 @@
 import type { CSSProperties } from 'react';
-import type { ComponentDefinition, ComponentState } from '@continuum/contract';
-import type { ContinuumComponentMap, ContinuumComponentProps } from '@continuum/react';
+import type { ViewNode, NodeValue } from '@continuum/contract';
+import type { ContinuumNodeMap, ContinuumNodeProps } from '@continuum/react';
 import { color, radius, shadow, space, typeScale } from './ui/tokens';
 
 type Option = { id: string; label: string };
-type FieldShape = { placeholder?: string };
-type ComponentPropsConfig = { options?: Option[]; min?: number; max?: number; placeholder?: string };
 
-const FIELD_STYLE: CSSProperties = {
+function attr<T = unknown>(node: ViewNode, key: string): T | undefined {
+  return (node as unknown as Record<string, unknown>)[key] as T | undefined;
+}
+
+function nodeLabel(node: ViewNode): string {
+  return attr<string>(node, 'label') ?? node.key ?? node.id ?? 'Field';
+}
+
+function nodeOptions(node: ViewNode): Option[] {
+  const fromProps = attr<Record<string, unknown>>(node, 'props');
+  if (Array.isArray(fromProps?.options)) return fromProps.options as Option[];
+  const direct = attr<Option[]>(node, 'options');
+  if (Array.isArray(direct)) return direct;
+  return [];
+}
+
+function numProp(node: ViewNode, key: string, fallback: number): number {
+  const fromProps = attr<Record<string, unknown>>(node, 'props');
+  if (typeof fromProps?.[key] === 'number') return fromProps[key] as number;
+  const fromConstraints = attr<Record<string, unknown>>(node, 'constraints');
+  if (typeof fromConstraints?.[key] === 'number') return fromConstraints[key] as number;
+  return fallback;
+}
+
+const FIELD: CSSProperties = {
   display: 'grid',
   gap: space.xs,
 };
 
-const LABEL_STYLE: CSSProperties = {
+const LABEL: CSSProperties = {
   ...typeScale.caption,
   color: color.textSecondary,
   marginTop: 8,
 };
 
-const BASE_INPUT_STYLE: CSSProperties = {
+const INPUT: CSSProperties = {
   width: '100%',
   height: 40,
   padding: `${space.sm}px ${space.md}px`,
@@ -32,77 +54,62 @@ const BASE_INPUT_STYLE: CSSProperties = {
   ...typeScale.body,
 };
 
-function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const textValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
-  const shape = (definition.stateShape ?? {}) as FieldShape;
-  const config = readPropsConfig(definition);
-  const label = displayLabel(definition);
-  const placeholder =
-    definition.placeholder ??
-    config.placeholder ??
-    shape.placeholder ??
-    `Enter ${label}`;
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
+  const text = (value as NodeValue<string> | undefined)?.value ?? '';
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <label className="continuum-field" style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>
-        {label}
-        {definition.constraints?.required ? ' *' : ''}
+    <label className="continuum-field" style={FIELD}>
+      <div style={LABEL}>
+        {lbl}
+        {required ? ' *' : ''}
       </div>
       <input
-        style={BASE_INPUT_STYLE}
-        value={textValue}
-        placeholder={placeholder}
-        disabled={disabled}
-        readOnly={readOnly}
-        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
+        style={INPUT}
+        value={text}
+        placeholder={attr<string>(definition, 'placeholder') ?? `Enter ${lbl}`}
+        disabled={Boolean(attr(definition, 'disabled'))}
+        readOnly={Boolean(attr(definition, 'readOnly'))}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
       />
     </label>
   );
 }
 
-function Select({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const selected = (raw?.['selectedIds'] as string[]) ?? [];
-  const config = readPropsConfig(definition);
-  const options = readOptions(definition.stateShape, config.options);
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
-  const label = displayLabel(definition);
+function Select({ value, onChange, definition }: ContinuumNodeProps) {
+  const selected = (value as NodeValue<string> | undefined)?.value ?? '';
+  const options = nodeOptions(definition);
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <label className="continuum-field" style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>
-        {label}
-        {definition.constraints?.required ? ' *' : ''}
+    <label className="continuum-field" style={FIELD}>
+      <div style={LABEL}>
+        {lbl}
+        {required ? ' *' : ''}
       </div>
       <select
         style={{
-          ...BASE_INPUT_STYLE,
+          ...INPUT,
           cursor: 'pointer',
           appearance: 'none',
           backgroundImage:
             'linear-gradient(45deg, transparent 50%, #8b97a8 50%), linear-gradient(135deg, #8b97a8 50%, transparent 50%)',
-          backgroundPosition: 'calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px)',
+          backgroundPosition:
+            'calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px)',
           backgroundSize: '6px 6px, 6px 6px',
           backgroundRepeat: 'no-repeat',
           paddingRight: 32,
         }}
-        value={selected[0] ?? ''}
-        disabled={disabled || readOnly}
-        onChange={(event) =>
-          onChange({
-            selectedIds: event.target.value ? [event.target.value] : [],
-          } as ComponentState)
-        }
+        value={selected}
+        disabled={Boolean(attr(definition, 'disabled')) || Boolean(attr(definition, 'readOnly'))}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
       >
         <option value="">Select one</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label}
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.label}
           </option>
         ))}
       </select>
@@ -110,21 +117,15 @@ function Select({ value, onChange, definition }: ContinuumComponentProps) {
   );
 }
 
-function Toggle({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const checked = Boolean(raw?.['checked']);
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+function Toggle({ value, onChange, definition }: ContinuumNodeProps) {
+  const checked = Boolean((value as NodeValue<boolean> | undefined)?.value);
+  const disabled = Boolean(attr(definition, 'disabled'));
+  const readOnly = Boolean(attr(definition, 'readOnly'));
 
   return (
     <label
       className="continuum-field"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: space.sm,
-        cursor: 'pointer',
-      }}
+      style={{ display: 'flex', alignItems: 'center', gap: space.sm, cursor: 'pointer' }}
     >
       <span
         style={{
@@ -154,118 +155,86 @@ function Toggle({ value, onChange, definition }: ContinuumComponentProps) {
           type="checkbox"
           checked={checked}
           disabled={disabled}
-          onChange={(event) => {
+          onChange={(e) => {
             if (readOnly) return;
-            onChange({ checked: event.target.checked } as ComponentState);
+            onChange({ value: e.target.checked } as NodeValue);
           }}
-          style={{
-            opacity: 0,
-            position: 'absolute',
-            inset: 0,
-            cursor: 'pointer',
-          }}
+          style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
         />
       </span>
       <span style={{ ...typeScale.body, color: color.text }}>
-        {displayLabel(definition)}
+        {nodeLabel(definition)}
       </span>
     </label>
   );
 }
 
-function DateInput({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const dateValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
-  const label = displayLabel(definition);
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+function DateInput({ value, onChange, definition }: ContinuumNodeProps) {
+  const dateValue = (value as NodeValue<string> | undefined)?.value ?? '';
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <label style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>
-        {label}
-        {definition.constraints?.required ? ' *' : ''}
+    <label style={FIELD}>
+      <div style={LABEL}>
+        {lbl}
+        {required ? ' *' : ''}
       </div>
       <input
         type="date"
-        style={{
-          ...BASE_INPUT_STYLE,
-          cursor: 'pointer',
-          appearance: 'auto',
-          WebkitAppearance: 'auto',
-        }}
+        style={{ ...INPUT, cursor: 'pointer', appearance: 'auto', WebkitAppearance: 'auto' }}
         value={dateValue}
-        disabled={disabled}
-        readOnly={readOnly}
-        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
-        onClick={(event) => {
-          const input = event.currentTarget;
-          if (typeof input.showPicker === 'function') {
-            input.showPicker();
-          }
+        disabled={Boolean(attr(definition, 'disabled'))}
+        readOnly={Boolean(attr(definition, 'readOnly'))}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
+        onClick={(e) => {
+          const input = e.currentTarget;
+          if (typeof input.showPicker === 'function') input.showPicker();
         }}
       />
     </label>
   );
 }
 
-function TextArea({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const textValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
-  const shape = (definition.stateShape ?? {}) as FieldShape;
-  const config = readPropsConfig(definition);
-  const label = displayLabel(definition);
-  const placeholder =
-    definition.placeholder ??
-    config.placeholder ??
-    shape.placeholder ??
-    `Enter ${label}`;
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+function TextArea({ value, onChange, definition }: ContinuumNodeProps) {
+  const text = (value as NodeValue<string> | undefined)?.value ?? '';
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <label className="continuum-field" style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>
-        {label}
-        {definition.constraints?.required ? ' *' : ''}
+    <label className="continuum-field" style={FIELD}>
+      <div style={LABEL}>
+        {lbl}
+        {required ? ' *' : ''}
       </div>
       <textarea
-        style={{
-          ...BASE_INPUT_STYLE,
-          minHeight: 92,
-          height: 'auto',
-          resize: 'vertical',
-          fontFamily: 'inherit',
-        }}
-        value={textValue}
-        placeholder={placeholder}
-        disabled={disabled}
-        readOnly={readOnly}
-        onChange={(event) => onChange({ value: event.target.value } as ComponentState)}
+        style={{ ...INPUT, minHeight: 92, height: 'auto', resize: 'vertical', fontFamily: 'inherit' }}
+        value={text}
+        placeholder={attr<string>(definition, 'placeholder') ?? `Enter ${lbl}`}
+        disabled={Boolean(attr(definition, 'disabled'))}
+        readOnly={Boolean(attr(definition, 'readOnly'))}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
       />
     </label>
   );
 }
 
-function RadioGroup({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const selected = (raw?.['selectedIds'] as string[]) ?? [];
-  const config = readPropsConfig(definition);
-  const options = readOptions(definition.stateShape, config.options);
-  const label = displayLabel(definition);
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+function RadioGroup({ value, onChange, definition }: ContinuumNodeProps) {
+  const selected = (value as NodeValue<string> | undefined)?.value ?? '';
+  const options = nodeOptions(definition);
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <div style={FIELD_STYLE}>
-      <div style={LABEL_STYLE}>
-        {label}
-        {definition.constraints?.required ? ' *' : ''}
+    <div style={FIELD}>
+      <div style={LABEL}>
+        {lbl}
+        {required ? ' *' : ''}
       </div>
       <div style={{ display: 'grid', gap: space.sm }}>
-        {options.map((option) => (
+        {options.map((opt) => (
           <label
-            key={option.id}
+            key={opt.id}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -278,15 +247,15 @@ function RadioGroup({ value, onChange, definition }: ContinuumComponentProps) {
             <input
               type="radio"
               name={definition.id}
-              checked={selected[0] === option.id}
-              disabled={disabled}
+              checked={selected === opt.id}
+              disabled={Boolean(attr(definition, 'disabled'))}
               onChange={() => {
-                if (readOnly) return;
-                onChange({ selectedIds: [option.id] } as ComponentState);
+                if (attr(definition, 'readOnly')) return;
+                onChange({ value: opt.id } as NodeValue);
               }}
               style={{ accentColor: color.accent, width: 16, height: 16, cursor: 'pointer' }}
             />
-            {option.label}
+            {opt.label}
           </label>
         ))}
       </div>
@@ -294,22 +263,23 @@ function RadioGroup({ value, onChange, definition }: ContinuumComponentProps) {
   );
 }
 
-function Slider({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const config = readPropsConfig(definition);
-  const min = config.min ?? definition.constraints?.min ?? 0;
-  const max = config.max ?? definition.constraints?.max ?? 100;
+function Slider({ value, onChange, definition }: ContinuumNodeProps) {
+  const min = numProp(definition, 'min', 0);
+  const max = numProp(definition, 'max', 100);
   const midpoint = Math.round((min + max) / 2);
-  const numericValue = typeof raw?.['value'] === 'number' ? raw['value'] : midpoint;
-  const disabled = Boolean(definition.disabled);
-  const readOnly = Boolean(definition.readOnly);
+  const numericValue =
+    typeof (value as NodeValue<number> | undefined)?.value === 'number'
+      ? (value as NodeValue<number>).value
+      : midpoint;
+  const lbl = nodeLabel(definition);
+  const required = attr<Record<string, unknown>>(definition, 'constraints')?.required;
 
   return (
-    <label className="continuum-field" style={FIELD_STYLE}>
-      <div style={{ ...LABEL_STYLE, display: 'flex', justifyContent: 'space-between' }}>
+    <label className="continuum-field" style={FIELD}>
+      <div style={{ ...LABEL, display: 'flex', justifyContent: 'space-between' }}>
         <span>
-          {displayLabel(definition)}
-          {definition.constraints?.required ? ' *' : ''}
+          {lbl}
+          {required ? ' *' : ''}
         </span>
         <span style={{ color: color.text }}>{numericValue}</span>
       </div>
@@ -318,26 +288,53 @@ function Slider({ value, onChange, definition }: ContinuumComponentProps) {
         min={min}
         max={max}
         value={numericValue}
-        disabled={disabled}
-        onChange={(event) => {
-          if (readOnly) return;
-          onChange({ value: Number(event.target.value) } as ComponentState);
+        disabled={Boolean(attr(definition, 'disabled'))}
+        onChange={(e) => {
+          if (attr(definition, 'readOnly')) return;
+          onChange({ value: Number(e.target.value) } as NodeValue);
         }}
-        style={{
-          width: '100%',
-          accentColor: color.accent,
-          cursor: 'pointer',
-          height: 4,
-        }}
+        style={{ width: '100%', accentColor: color.accent, cursor: 'pointer', height: 4 }}
       />
       <div style={{ ...typeScale.caption, color: color.textMuted }}>
-        {min} - {max}
+        {min} &ndash; {max}
       </div>
     </label>
   );
 }
 
-function Section({ definition, children }: ContinuumComponentProps) {
+function ActionButton({ onChange, definition }: ContinuumNodeProps) {
+  const lbl = nodeLabel(definition);
+  const disabled = Boolean(attr(definition, 'disabled'));
+
+  return (
+    <button
+      className="continuum-field"
+      disabled={disabled}
+      onClick={() => onChange({ value: true } as NodeValue)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: space.sm,
+        height: 40,
+        padding: `${space.sm}px ${space.lg}px`,
+        borderRadius: radius.sm,
+        border: `1px solid ${color.accent}`,
+        background: color.accent,
+        color: color.white,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'background 0.2s ease, transform 0.1s ease',
+        ...typeScale.body,
+        fontWeight: 600,
+      }}
+    >
+      {lbl}
+    </button>
+  );
+}
+
+function Section({ definition, children }: ContinuumNodeProps) {
   return (
     <div
       style={{
@@ -357,14 +354,14 @@ function Section({ definition, children }: ContinuumComponentProps) {
           borderBottom: `1px solid ${color.border}`,
         }}
       >
-        {displayLabel(definition)}
+        {nodeLabel(definition)}
       </div>
       <div style={{ display: 'grid', gap: space.lg }}>{children}</div>
     </div>
   );
 }
 
-function Container({ definition, children }: ContinuumComponentProps) {
+function GroupFallback({ definition, children }: ContinuumNodeProps) {
   return (
     <div
       style={{
@@ -376,39 +373,21 @@ function Container({ definition, children }: ContinuumComponentProps) {
         gap: space.md,
       }}
     >
-      <div style={LABEL_STYLE}>{displayLabel(definition)}</div>
+      <div style={LABEL}>{nodeLabel(definition)}</div>
       <div style={{ display: 'grid', gap: space.md }}>{children}</div>
     </div>
   );
 }
 
-function displayLabel(definition: ComponentDefinition): string {
-  return definition.label ?? definition.path ?? definition.key ?? definition.id ?? 'Field';
-}
-
-function readOptions(shape: unknown, fromProps?: Option[]): Option[] {
-  if (Array.isArray(fromProps)) {
-    return fromProps;
-  }
-  if (Array.isArray(shape)) {
-    return shape as Option[];
-  }
-  return [];
-}
-
-function readPropsConfig(definition: ComponentDefinition): ComponentPropsConfig {
-  return (definition.props ?? {}) as ComponentPropsConfig;
-}
-
-export const componentMap: ContinuumComponentMap = {
-  input: TextInput,
+export const componentMap: ContinuumNodeMap = {
+  field: TextInput,
   select: Select,
   toggle: Toggle,
+  action: ActionButton,
   date: DateInput,
   textarea: TextArea,
   'radio-group': RadioGroup,
   slider: Slider,
-  section: Section,
-  container: Container,
-  default: Container,
+  group: Section,
+  default: GroupFallback,
 };

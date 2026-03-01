@@ -35,7 +35,6 @@ export function MainStage({
       >
         {banner}
         {controls}
-        {valueCallout}
         <div
           data-testid="generated-ui"
           style={{

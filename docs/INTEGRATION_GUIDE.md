@@ -4,15 +4,15 @@ Advanced patterns for integrating Continuum into production applications.
 
 ---
 
-## 1. Server-Sent Schemas
+## 1. Server-Sent Views
 
-When schemas arrive from a backend via WebSocket, SSE, or polling, push them into the session on receipt.
+When view definitions arrive from a backend via WebSocket, SSE, or polling, push them into the session on receipt.
 
 ### WebSocket Example
 
 ```typescript
 import { createSession } from '@continuum/session';
-import type { SchemaSnapshot } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum/contract';
 
 const session = createSession();
 
@@ -21,9 +21,9 @@ const ws = new WebSocket('wss://api.example.com/agent');
 ws.addEventListener('message', (event) => {
   const message = JSON.parse(event.data);
 
-  if (message.type === 'schema_update') {
-    const schema: SchemaSnapshot = message.payload;
-    session.pushSchema(schema);
+  if (message.type === 'view_update') {
+    const view: ViewDefinition = message.payload;
+    session.pushView(view);
   }
 });
 ```
@@ -33,9 +33,9 @@ ws.addEventListener('message', (event) => {
 ```typescript
 const source = new EventSource('/api/agent/stream');
 
-source.addEventListener('schema', (event) => {
-  const schema: SchemaSnapshot = JSON.parse(event.data);
-  session.pushSchema(schema);
+source.addEventListener('view', (event) => {
+  const view: ViewDefinition = JSON.parse(event.data);
+  session.pushView(view);
 });
 ```
 
@@ -50,8 +50,8 @@ function AgentListener({ agentUrl }: { agentUrl: string }) {
   useEffect(() => {
     const ws = new WebSocket(agentUrl);
     ws.addEventListener('message', (event) => {
-      const { schema } = JSON.parse(event.data);
-      if (schema) session.pushSchema(schema);
+      const { view } = JSON.parse(event.data);
+      if (view) session.pushView(view);
     });
     return () => ws.close();
   }, [session, agentUrl]);
@@ -60,22 +60,47 @@ function AgentListener({ agentUrl }: { agentUrl: string }) {
 }
 ```
 
+### With Angular
+
+Inside a component in an app configured with `provideContinuum()`:
+
+```typescript
+import { Component, OnInit, inject, input, DestroyRef } from '@angular/core';
+import { injectContinuumSession } from '@continuum/angular';
+
+@Component({ selector: 'app-agent-listener', standalone: true, template: '' })
+export class AgentListenerComponent implements OnInit {
+  agentUrl = input.required<string>();
+  private session = injectContinuumSession();
+  private destroyRef = inject(DestroyRef);
+
+  ngOnInit() {
+    const ws = new WebSocket(this.agentUrl());
+    ws.addEventListener('message', (event) => {
+      const { view } = JSON.parse(event.data);
+      if (view) this.session.pushView(view);
+    });
+    this.destroyRef.onDestroy(() => ws.close());
+  }
+}
+```
+
 ---
 
 ## 2. Custom Migration Strategies
 
-When a component's `hash` changes across schema versions, Continuum looks for a migration strategy to transform the old state into the new shape.
+When a node's `hash` changes across view versions, Continuum looks for a migration strategy to transform the old state into the new shape.
 
-### Per-Component Override
+### Per-Node Override
 
-Pass `migrationStrategies` keyed by component ID. These take priority over declarative rules.
+Pass `migrationStrategies` keyed by node ID. These take priority over declarative rules.
 
 ```typescript
 import { reconcile } from '@continuum/runtime';
 
-const result = reconcile(newSchema, priorSchema, priorState, {
+const result = reconcile(newView, priorView, priorData, {
   migrationStrategies: {
-    email: (componentId, oldDef, newDef, oldState) => {
+    email: (nodeId, oldDef, newDef, oldState) => {
       const old = oldState as { value: string };
       return { value: old.value.toLowerCase().trim() };
     },
@@ -85,28 +110,27 @@ const result = reconcile(newSchema, priorSchema, priorState, {
 
 ### Declarative Rules with Strategy Registry
 
-Define `MigrationRule` entries on the component definition and register named strategies:
+Define `MigrationRule` entries on the node definition and register named strategies:
 
 ```typescript
-// In your schema
-const schema: SchemaSnapshot = {
-  schemaId: 'form',
+const view: ViewDefinition = {
+  viewId: 'form',
   version: '2.0',
-  components: [
+  nodes: [
     {
       id: 'email',
-      type: 'input',
+      type: 'field',
+      dataType: 'string',
       key: 'email',
-      hash: 'input:v2',
+      hash: 'field:v2',
       migrations: [
-        { fromHash: 'input:v1', toHash: 'input:v2', strategyId: 'normalize-email' },
+        { fromHash: 'field:v1', toHash: 'field:v2', strategyId: 'normalize-email' },
       ],
     },
   ],
 };
 
-// When reconciling
-const result = reconcile(schema, priorSchema, priorState, {
+const result = reconcile(view, priorView, priorData, {
   strategyRegistry: {
     'normalize-email': (id, oldDef, newDef, oldState) => {
       const old = oldState as { value: string };
@@ -118,38 +142,38 @@ const result = reconcile(schema, priorSchema, priorState, {
 
 ### Resolution Order
 
-1. `migrationStrategies[componentId]` -- per-component override
+1. `migrationStrategies[nodeId]` -- per-node override
 2. `MigrationRule` on the definition + `strategyRegistry[rule.strategyId]`
 3. Fallback: carry prior state as-is if same type
-4. If all fail: state is dropped, `MIGRATION_FAILED` issue logged
+4. If all fail: state is detached, `MIGRATION_FAILED` issue logged
 
 ### Through the Session
 
-`createSession` currently passes `{ clock }` as options to `reconcile`. To use custom migration strategies through the session, call `reconcile` directly or extend the session options in your application layer:
+`createSession` supports reconciliation options directly via `SessionOptions.reconciliation`, so migration behavior can be configured while continuing to use `session.pushView`:
 
 ```typescript
-import { reconcile } from '@continuum/runtime';
 import { createSession } from '@continuum/session';
 
-const session = createSession();
+const session = createSession({
+  reconciliation: {
+    strategyRegistry: myStrategies,
+    migrationStrategies: {
+      email: (nodeId, oldDef, newDef, oldState) => {
+        const old = oldState as { value?: string };
+        return { value: (old.value ?? '').trim().toLowerCase() };
+      },
+    },
+  },
+});
 
-function pushSchemaWithMigrations(schema: SchemaSnapshot) {
-  const snapshot = session.getSnapshot();
-  if (snapshot) {
-    const result = reconcile(schema, snapshot.schema, snapshot.state, {
-      strategyRegistry: myStrategies,
-    });
-    // Use result for diagnostics, then push normally
-  }
-  session.pushSchema(schema);
-}
+session.pushView(viewFromAgent);
 ```
 
 ---
 
 ## 3. Building a Protocol Adapter
 
-Transform any external schema format into Continuum's `SchemaSnapshot`.
+Transform any external format into Continuum's `ViewDefinition`.
 
 ### Step 1: Define External Types
 
@@ -173,41 +197,45 @@ interface MyProtocolElement {
 
 ```typescript
 import type { ProtocolAdapter } from '@continuum/adapters';
-import type { SchemaSnapshot, ComponentDefinition } from '@continuum/contract';
+import type { ViewDefinition, ViewNode, FieldNode, GroupNode } from '@continuum/contract';
 
-const KIND_MAP: Record<string, string> = {
-  text: 'input',
-  checkbox: 'toggle',
-  picker: 'select',
+const DATA_TYPE_MAP: Record<string, 'string' | 'boolean'> = {
+  text: 'string',
+  checkbox: 'boolean',
+  picker: 'string',
 };
 
-function elementToComponent(el: MyProtocolElement): ComponentDefinition {
-  const def: ComponentDefinition = {
+function elementToNode(el: MyProtocolElement): ViewNode {
+  if (el.nested) {
+    const group: GroupNode = {
+      id: el.uid,
+      type: 'group',
+      key: el.uid,
+      label: el.title,
+      children: el.nested.map(elementToNode),
+    };
+    return group;
+  }
+
+  const node: FieldNode = {
     id: el.uid,
-    type: KIND_MAP[el.kind] ?? 'default',
+    type: 'field',
     key: el.uid,
-    path: el.title,
+    dataType: DATA_TYPE_MAP[el.kind] ?? 'string',
+    label: el.title,
   };
 
-  if (el.choices) {
-    def.stateShape = el.choices.map((c, i) => ({ id: String(i), label: c }));
-  }
-
-  if (el.nested) {
-    def.children = el.nested.map(elementToComponent);
-  }
-
-  return def;
+  return node;
 }
 
 export const myAdapter: ProtocolAdapter<MyProtocolForm> = {
   name: 'my-protocol',
 
-  toSchema(form: MyProtocolForm): SchemaSnapshot {
+  toView(form: MyProtocolForm): ViewDefinition {
     return {
-      schemaId: form.formId,
+      viewId: form.formId,
       version: String(form.rev),
-      components: form.elements.map(elementToComponent),
+      nodes: form.elements.map(elementToNode),
     };
   },
 };
@@ -218,9 +246,9 @@ export const myAdapter: ProtocolAdapter<MyProtocolForm> = {
 ```typescript
 import { myAdapter } from './my-adapter';
 
-function handleExternalSchema(externalForm: MyProtocolForm) {
-  const schema = myAdapter.toSchema(externalForm);
-  session.pushSchema(schema);
+function handleExternalView(externalForm: MyProtocolForm) {
+  const view = myAdapter.toView(externalForm);
+  session.pushView(view);
 }
 ```
 
@@ -231,7 +259,7 @@ function handleExternalSchema(externalForm: MyProtocolForm) {
 ### localStorage (Default)
 
 ```tsx
-<ContinuumProvider components={componentMap} persist="localStorage">
+<ContinuumProvider components={nodeMap} persist="localStorage">
 ```
 
 Session is serialized to `localStorage` on every snapshot change and rehydrated on mount.
@@ -239,7 +267,7 @@ Session is serialized to `localStorage` on every snapshot change and rehydrated 
 ### sessionStorage
 
 ```tsx
-<ContinuumProvider components={componentMap} persist="sessionStorage">
+<ContinuumProvider components={nodeMap} persist="sessionStorage">
 ```
 
 Same behavior but scoped to the browser tab. Data is lost when the tab closes.
@@ -248,7 +276,7 @@ Same behavior but scoped to the browser tab. Data is lost when the tab closes.
 
 ```tsx
 <ContinuumProvider
-  components={componentMap}
+  components={nodeMap}
   persist="localStorage"
   storageKey="my_app_session"
 >
@@ -257,7 +285,7 @@ Same behavior but scoped to the browser tab. Data is lost when the tab closes.
 ### No Persistence
 
 ```tsx
-<ContinuumProvider components={componentMap} persist={false}>
+<ContinuumProvider components={nodeMap} persist={false}>
 ```
 
 ### Custom Persistence (IndexedDB, Server, etc.)
@@ -286,7 +314,7 @@ Or wrap the provider with `persist={false}` and manage persistence yourself:
 ```tsx
 function App() {
   return (
-    <ContinuumProvider components={componentMap} persist={false}>
+    <ContinuumProvider components={nodeMap} persist={false}>
       <CustomPersistenceLayer />
       <MyPage />
     </ContinuumProvider>
@@ -315,7 +343,7 @@ function CustomPersistenceLayer() {
 Each tab creates its own session. If using `localStorage` persistence, the last tab to write wins. For multi-tab coordination:
 
 - Use `sessionStorage` instead (each tab gets its own session)
-- Use a `BroadcastChannel` to coordinate schema pushes across tabs
+- Use a `BroadcastChannel` to coordinate view pushes across tabs
 - Use a server-side session store with optimistic locking
 
 ### Cleanup
@@ -324,19 +352,16 @@ Call `destroy()` when the session is no longer needed:
 
 ```typescript
 const result = session.destroy();
-// result.issues contains any final reconciliation issues
 
-// After destroy, all methods are no-ops
-session.pushSchema(schema); // does nothing
+session.pushView(view); // does nothing after destroy
 ```
 
 ### Handling Stale Serialized Data
 
 `deserialize()` validates the `formatVersion` field:
 
-- Missing `formatVersion` -- accepted (legacy support)
-- `formatVersion <= 1` -- accepted
-- `formatVersion > 1` -- throws an error
+- Only `formatVersion: 1` is accepted
+- Missing `formatVersion` or any other value throws an error
 
 If the serialized data is corrupted or incompatible, `deserialize` will throw. The React provider handles this gracefully by falling back to a fresh session:
 

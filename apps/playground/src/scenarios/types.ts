@@ -1,4 +1,4 @@
-import type { ComponentState, SchemaSnapshot } from '@continuum/contract';
+import type { NodeValue, ViewDefinition } from '@continuum/contract';
 
 export type OutcomeSeverity = 'success' | 'warning' | 'danger' | 'info';
 
@@ -13,8 +13,8 @@ export interface ScenarioStep {
   label: string;
   description: string;
   narrativePrompt: string;
-  schema: SchemaSnapshot;
-  initialState?: Record<string, ComponentState>;
+  view: ViewDefinition;
+  initialState?: Record<string, NodeValue>;
   outcomeHint?: OutcomeHint;
 }
 
@@ -25,4 +25,3 @@ export interface Scenario {
   capabilityTag: string;
   steps: ScenarioStep[];
 }
-
