@@ -11,14 +11,14 @@ export const actionLifecycleScenario: Scenario = {
       label: 'Step 1',
       description: 'Start with a healthy booking confirmation form',
       narrativePrompt: 'Enter values and prepare for unstable AI updates.',
-      schema: {
-        schemaId: 'booking-confirmation',
+      view: {
+        viewId: 'booking-confirmation',
         version: '1.0',
-        components: [
+        nodes: [
           {
             id: 'booking_reference',
             key: 'booking_reference',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Booking Reference',
             placeholder: 'e.g. CNM-4821',
@@ -26,7 +26,7 @@ export const actionLifecycleScenario: Scenario = {
           {
             id: 'contact_phone',
             key: 'contact_phone',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Contact Phone',
             placeholder: '+1 (555) 123-4567',
@@ -42,11 +42,11 @@ export const actionLifecycleScenario: Scenario = {
       },
       initialState: {
         booking_reference: { value: 'CNM-4821' },
-        notify_updates: { checked: true },
+        notify_updates: { value: true },
       },
       outcomeHint: {
         severity: 'info',
-        summary: 'Baseline values are set before unstable schemas are introduced.',
+        summary: 'Baseline values are set before unstable views are introduced.',
       },
     },
     {
@@ -54,14 +54,14 @@ export const actionLifecycleScenario: Scenario = {
       label: 'Step 2',
       description: 'AI partially degrades output with unknown field type',
       narrativePrompt: 'One field becomes unrecognized while stable keys still carry.',
-      schema: {
-        schemaId: 'booking-confirmation',
+      view: {
+        viewId: 'booking-confirmation',
         version: '2.0',
-        components: [
+        nodes: [
           {
             id: 'booking_reference',
             key: 'booking_reference',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Booking Reference',
             placeholder: 'e.g. CNM-4821',
@@ -84,22 +84,22 @@ export const actionLifecycleScenario: Scenario = {
       },
       outcomeHint: {
         severity: 'warning',
-        summary: 'Unknown component types are isolated while valid fields keep working.',
+        summary: 'Unknown node types are isolated while valid fields keep working.',
       },
     },
     {
       id: 'chaos-step-3',
       label: 'Step 3',
       description: 'AI sends severe hallucination with id churn and removals',
-      narrativePrompt: 'Observe graceful fallback with issues and trace visibility.',
-      schema: {
-        schemaId: 'booking-confirmation',
+      narrativePrompt: 'Observe graceful fallback with issues and resolution visibility.',
+      view: {
+        viewId: 'booking-confirmation',
         version: '3.0',
-        components: [
+        nodes: [
           {
             id: 'hallucinated_booking_reference',
             key: 'booking_reference',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Booking Reference',
             placeholder: 'e.g. CNM-4821',
@@ -115,9 +115,8 @@ export const actionLifecycleScenario: Scenario = {
       },
       outcomeHint: {
         severity: 'danger',
-        summary: 'Continuum retains what can be matched, drops unsafe state, and surfaces diagnostic signals.',
+        summary: 'Continuum retains what can be matched, drops unsafe data, and surfaces diagnostic signals.',
       },
     },
   ],
 };
-
