@@ -3,8 +3,8 @@ import type { ReconciliationIssue } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
 export function buildSnapshotFromCurrentState(internal: SessionState): ContinuitySnapshot | null {
-  if (!internal.currentSchema || !internal.currentState) return null;
-  return { schema: internal.currentSchema, state: internal.currentState };
+  if (!internal.currentView || !internal.currentData) return null;
+  return { view: internal.currentView, data: internal.currentData };
 }
 
 export function notifySnapshotListeners(internal: SessionState): void {
