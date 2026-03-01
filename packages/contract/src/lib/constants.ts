@@ -1,27 +1,27 @@
 export const ISSUE_CODES = {
-  NO_PRIOR_STATE: 'NO_PRIOR_STATE',
-  NO_PRIOR_SCHEMA: 'NO_PRIOR_SCHEMA',
+  NO_PRIOR_DATA: 'NO_PRIOR_DATA',
+  NO_PRIOR_VIEW: 'NO_PRIOR_VIEW',
   TYPE_MISMATCH: 'TYPE_MISMATCH',
-  COMPONENT_REMOVED: 'COMPONENT_REMOVED',
+  NODE_REMOVED: 'NODE_REMOVED',
   MIGRATION_FAILED: 'MIGRATION_FAILED',
-  UNTRUSTED_CARRY: 'UNTRUSTED_CARRY',
+  UNVALIDATED_CARRY: 'UNVALIDATED_CARRY',
   VALIDATION_FAILED: 'VALIDATION_FAILED',
-  UNKNOWN_COMPONENT: 'UNKNOWN_COMPONENT',
+  UNKNOWN_NODE: 'UNKNOWN_NODE',
 } as const;
 
 export type IssueCode = (typeof ISSUE_CODES)[keyof typeof ISSUE_CODES];
 
-export const TRACE_ACTIONS = {
+export const DATA_RESOLUTIONS = {
   CARRIED: 'carried',
   MIGRATED: 'migrated',
-  DROPPED: 'dropped',
+  DETACHED: 'detached',
   ADDED: 'added',
   RESTORED: 'restored',
 } as const;
 
-export type TraceAction = (typeof TRACE_ACTIONS)[keyof typeof TRACE_ACTIONS];
+export type DataResolution = (typeof DATA_RESOLUTIONS)[keyof typeof DATA_RESOLUTIONS];
 
-export const DIFF_TYPES = {
+export const VIEW_DIFFS = {
   ADDED: 'added',
   REMOVED: 'removed',
   MIGRATED: 'migrated',
@@ -29,7 +29,7 @@ export const DIFF_TYPES = {
   RESTORED: 'restored',
 } as const;
 
-export type DiffType = (typeof DIFF_TYPES)[keyof typeof DIFF_TYPES];
+export type ViewDiff = (typeof VIEW_DIFFS)[keyof typeof VIEW_DIFFS];
 
 export const ISSUE_SEVERITY = {
   ERROR: 'error',
@@ -40,17 +40,18 @@ export const ISSUE_SEVERITY = {
 export type IssueSeverity = (typeof ISSUE_SEVERITY)[keyof typeof ISSUE_SEVERITY];
 
 export const INTERACTION_TYPES = {
-  STATE_UPDATE: 'state-update',
+  DATA_UPDATE: 'data-update',
   VALUE_CHANGE: 'value-change',
+  VIEW_CONTEXT_CHANGE: 'view-context-change',
 } as const;
 
 export type InteractionType = (typeof INTERACTION_TYPES)[keyof typeof INTERACTION_TYPES];
 
-export const ACTION_STATUS = {
+export const INTENT_STATUS = {
   PENDING: 'pending',
   VALIDATED: 'validated',
   STALE: 'stale',
   CANCELLED: 'cancelled',
 } as const;
 
-export type ActionStatus = (typeof ACTION_STATUS)[keyof typeof ACTION_STATUS];
+export type IntentStatus = (typeof INTENT_STATUS)[keyof typeof INTENT_STATUS];
