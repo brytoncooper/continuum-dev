@@ -1,47 +1,48 @@
-import type { ComponentDefinition, SchemaSnapshot, StateSnapshot } from '@continuum/contract';
+import { getChildNodes, type DataSnapshot, type ViewDefinition, type ViewNode } from '@continuum/contract';
 
 export interface ReconciliationContext {
-  newSchema: SchemaSnapshot;
-  priorSchema: SchemaSnapshot | null;
-  newById: Map<string, ComponentDefinition>;
-  newByKey: Map<string, ComponentDefinition>;
-  priorById: Map<string, ComponentDefinition>;
-  priorByKey: Map<string, ComponentDefinition>;
+  newView: ViewDefinition;
+  priorView: ViewDefinition | null;
+  newById: Map<string, ViewNode>;
+  newByKey: Map<string, ViewNode>;
+  priorById: Map<string, ViewNode>;
+  priorByKey: Map<string, ViewNode>;
 }
 
 export function buildReconciliationContext(
-  newSchema: SchemaSnapshot,
-  priorSchema: SchemaSnapshot | null
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null
 ): ReconciliationContext {
-  const newById = new Map<string, ComponentDefinition>();
-  const newByKey = new Map<string, ComponentDefinition>();
-  const priorById = new Map<string, ComponentDefinition>();
-  const priorByKey = new Map<string, ComponentDefinition>();
+  const newById = new Map<string, ViewNode>();
+  const newByKey = new Map<string, ViewNode>();
+  const priorById = new Map<string, ViewNode>();
+  const priorByKey = new Map<string, ViewNode>();
 
-  function indexComponentsByIdAndKey(
-    comps: ComponentDefinition[],
-    byId: Map<string, ComponentDefinition>,
-    byKey: Map<string, ComponentDefinition>
+  function indexNodesByIdAndKey(
+    nodes: ViewNode[],
+    byId: Map<string, ViewNode>,
+    byKey: Map<string, ViewNode>
   ) {
-    for (const comp of comps) {
-      byId.set(comp.id, comp);
-      if (comp.key) {
-        byKey.set(comp.key, comp);
+    for (const node of nodes) {
+      byId.set(node.id, node);
+      if (node.key) {
+        byKey.set(node.key, node);
       }
-      if (comp.children) {
-        indexComponentsByIdAndKey(comp.children, byId, byKey);
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        indexNodesByIdAndKey(children, byId, byKey);
       }
     }
   }
 
-  indexComponentsByIdAndKey(newSchema.components, newById, newByKey);
-  if (priorSchema) {
-    indexComponentsByIdAndKey(priorSchema.components, priorById, priorByKey);
+  indexNodesByIdAndKey(newView.nodes, newById, newByKey);
+  if (priorView) {
+    indexNodesByIdAndKey(priorView.nodes, priorById, priorByKey);
   }
 
   return {
-    newSchema,
-    priorSchema,
+    newView,
+    priorView,
     newById,
     newByKey,
     priorById,
@@ -49,15 +50,15 @@ export function buildReconciliationContext(
   };
 }
 
-export function findPriorComponent(
+export function findPriorNode(
   ctx: ReconciliationContext,
-  newComponent: ComponentDefinition
-): ComponentDefinition | null {
-  const byId = ctx.priorById.get(newComponent.id);
+  newNode: ViewNode
+): ViewNode | null {
+  const byId = ctx.priorById.get(newNode.id);
   if (byId) return byId;
 
-  if (newComponent.key) {
-    const byKey = ctx.priorByKey.get(newComponent.key);
+  if (newNode.key) {
+    const byKey = ctx.priorByKey.get(newNode.key);
     if (byKey) return byKey;
   }
 
@@ -65,26 +66,26 @@ export function findPriorComponent(
 }
 
 export function buildPriorValueLookupByIdAndKey(
-  priorState: StateSnapshot,
+  priorData: DataSnapshot,
   ctx: ReconciliationContext
 ): Map<string, unknown> {
   const map = new Map<string, unknown>();
-  for (const [priorId, priorValue] of Object.entries(priorState.values)) {
+  for (const [priorId, priorValue] of Object.entries(priorData.values)) {
     map.set(priorId, priorValue);
-    const priorComp = ctx.priorById.get(priorId);
-    if (priorComp?.key) {
-      const newComp = ctx.newByKey.get(priorComp.key);
-      if (newComp) map.set(newComp.id, priorValue);
+    const priorNode = ctx.priorById.get(priorId);
+    if (priorNode?.key) {
+      const newNode = ctx.newByKey.get(priorNode.key);
+      if (newNode) map.set(newNode.id, priorValue);
     }
   }
   return map;
 }
 
-export function determineComponentMatchStrategy(
+export function determineNodeMatchStrategy(
   ctx: ReconciliationContext,
-  newComponent: ComponentDefinition,
-  priorComponent: ComponentDefinition | null
+  newNode: ViewNode,
+  priorNode: ViewNode | null
 ): 'id' | 'key' | null {
-  if (!priorComponent) return null;
-  return ctx.priorById.has(newComponent.id) ? 'id' : 'key';
+  if (!priorNode) return null;
+  return ctx.priorById.has(newNode.id) ? 'id' : 'key';
 }

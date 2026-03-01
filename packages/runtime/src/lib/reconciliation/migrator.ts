@@ -1,4 +1,4 @@
-import type { ComponentDefinition } from '@continuum/contract';
+import type { ViewNode } from '@continuum/contract';
 import type { ReconciliationOptions } from '../types.js';
 
 export type MigrationAttemptResult =
@@ -7,20 +7,20 @@ export type MigrationAttemptResult =
   | { kind: 'error'; error: unknown };
 
 export function attemptMigration(
-  componentId: string,
-  priorDefinition: ComponentDefinition,
-  newDefinition: ComponentDefinition,
+  nodeId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
   priorValue: unknown,
   options: ReconciliationOptions
 ): MigrationAttemptResult {
-  if (options.migrationStrategies?.[componentId]) {
+  if (options.migrationStrategies?.[nodeId]) {
     try {
       return {
         kind: 'migrated',
-        value: options.migrationStrategies[componentId](
-          componentId,
-          priorDefinition,
-          newDefinition,
+        value: options.migrationStrategies[nodeId](
+          nodeId,
+          priorNode,
+          newNode,
           priorValue
         ),
       };
@@ -29,18 +29,18 @@ export function attemptMigration(
     }
   }
 
-  if (newDefinition.migrations && priorDefinition.hash && newDefinition.hash && options.strategyRegistry) {
-    const rule = newDefinition.migrations.find(
-      (m) => m.fromHash === priorDefinition.hash && m.toHash === newDefinition.hash
+  if (newNode.migrations && priorNode.hash && newNode.hash && options.strategyRegistry) {
+    const rule = newNode.migrations.find(
+      (m) => m.fromHash === priorNode.hash && m.toHash === newNode.hash
     );
     if (rule?.strategyId && options.strategyRegistry[rule.strategyId]) {
       try {
         return {
           kind: 'migrated',
           value: options.strategyRegistry[rule.strategyId](
-            componentId,
-            priorDefinition,
-            newDefinition,
+            nodeId,
+            priorNode,
+            newNode,
             priorValue
           ),
         };
@@ -50,7 +50,7 @@ export function attemptMigration(
     }
   }
 
-  if (priorDefinition.type === newDefinition.type) {
+  if (priorNode.type === newNode.type) {
     return { kind: 'migrated', value: priorValue };
   }
   return { kind: 'none' };
