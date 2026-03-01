@@ -1,15 +1,15 @@
 import type {
   ContinuitySnapshot,
   Interaction,
-  PendingAction,
+  PendingIntent,
   Checkpoint,
-  SchemaSnapshot,
-  StateSnapshot,
+  ViewDefinition,
+  DataSnapshot,
 } from '@continuum/contract';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
-  ReconciliationTrace,
+  ReconciliationResolution,
   StateDiff,
 } from '@continuum/runtime';
 
@@ -17,18 +17,18 @@ export interface SessionState {
   sessionId: string;
   clock: () => number;
   maxEventLogSize: number;
-  maxPendingActions: number;
+  maxPendingIntents: number;
   maxCheckpoints: number;
   reconciliationOptions?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate: boolean;
-  currentSchema: SchemaSnapshot | null;
-  currentState: StateSnapshot | null;
-  priorSchema: SchemaSnapshot | null;
+  currentView: ViewDefinition | null;
+  currentData: DataSnapshot | null;
+  priorView: ViewDefinition | null;
   issues: ReconciliationIssue[];
   diffs: StateDiff[];
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   eventLog: Interaction[];
-  pendingActions: PendingAction[];
+  pendingIntents: PendingIntent[];
   checkpoints: Checkpoint[];
   snapshotListeners: Set<(snapshot: ContinuitySnapshot) => void>;
   issueListeners: Set<(issues: ReconciliationIssue[]) => void>;
@@ -40,18 +40,18 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
     sessionId,
     clock,
     maxEventLogSize: 1000,
-    maxPendingActions: 500,
+    maxPendingIntents: 500,
     maxCheckpoints: 50,
     reconciliationOptions: undefined,
     validateOnUpdate: false,
-    currentSchema: null,
-    currentState: null,
-    priorSchema: null,
+    currentView: null,
+    currentData: null,
+    priorView: null,
     issues: [],
     diffs: [],
-    trace: [],
+    resolutions: [],
     eventLog: [],
-    pendingActions: [],
+    pendingIntents: [],
     checkpoints: [],
     snapshotListeners: new Set(),
     issueListeners: new Set(),
@@ -60,14 +60,14 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
 }
 
 export function resetSessionState(internal: SessionState): void {
-  internal.currentSchema = null;
-  internal.currentState = null;
-  internal.priorSchema = null;
+  internal.currentView = null;
+  internal.currentData = null;
+  internal.priorView = null;
   internal.issues = [];
   internal.diffs = [];
-  internal.trace = [];
+  internal.resolutions = [];
   internal.eventLog = [];
-  internal.pendingActions = [];
+  internal.pendingIntents = [];
   internal.checkpoints = [];
 }
 

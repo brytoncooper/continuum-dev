@@ -6,44 +6,44 @@ import {
   notifyIssueListeners,
   notifySnapshotAndIssueListeners,
 } from './listeners.js';
-import type { SchemaSnapshot, StateSnapshot } from '@continuum/contract';
+import type { ViewDefinition, DataSnapshot } from '@continuum/contract';
 
-function makeSchema(): SchemaSnapshot {
-  return { schemaId: 's1', version: '1.0', components: [] };
+function makeView(): ViewDefinition {
+  return { viewId: 's1', version: '1.0', nodes: [] };
 }
 
-function makeState(): StateSnapshot {
-  return { values: {}, meta: { timestamp: 1000, sessionId: 'test' } };
+function makeData(): DataSnapshot {
+  return { values: {}, lineage: { timestamp: 1000, sessionId: 'test' } };
 }
 
 describe('buildSnapshotFromCurrentState', () => {
-  it('returns null when no schema is set', () => {
+  it('returns null when no view is set', () => {
     const internal = createEmptySessionState('s', () => 0);
     expect(buildSnapshotFromCurrentState(internal)).toBeNull();
   });
 
-  it('returns null when no state is set', () => {
+  it('returns null when no data is set', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.currentSchema = makeSchema();
+    internal.currentView = makeView();
     expect(buildSnapshotFromCurrentState(internal)).toBeNull();
   });
 
-  it('returns snapshot when both schema and state are set', () => {
+  it('returns snapshot when both view and data are set', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.currentSchema = makeSchema();
-    internal.currentState = makeState();
+    internal.currentView = makeView();
+    internal.currentData = makeData();
     const snapshot = buildSnapshotFromCurrentState(internal);
     expect(snapshot).not.toBeNull();
-    expect(snapshot!.schema).toBe(internal.currentSchema);
-    expect(snapshot!.state).toBe(internal.currentState);
+    expect(snapshot!.view).toBe(internal.currentView);
+    expect(snapshot!.data).toBe(internal.currentData);
   });
 });
 
 describe('notifySnapshotListeners', () => {
   it('calls all registered snapshot listeners', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.currentSchema = makeSchema();
-    internal.currentState = makeState();
+    internal.currentView = makeView();
+    internal.currentData = makeData();
     const listener1 = vi.fn();
     const listener2 = vi.fn();
     internal.snapshotListeners.add(listener1);
@@ -84,8 +84,8 @@ describe('notifyIssueListeners', () => {
 describe('notifySnapshotAndIssueListeners', () => {
   it('calls both snapshot and issue listeners', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.currentSchema = makeSchema();
-    internal.currentState = makeState();
+    internal.currentView = makeView();
+    internal.currentData = makeData();
     const snapshotListener = vi.fn();
     const issueListener = vi.fn();
     internal.snapshotListeners.add(snapshotListener);

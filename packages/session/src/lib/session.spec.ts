@@ -1,20 +1,33 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { SchemaSnapshot, ComponentDefinition } from '@continuum/contract';
+import type { ViewDefinition, ViewNode } from '@continuum/contract';
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
 
-function makeSchema(
-  components: ComponentDefinition[],
-  id = 'schema-1',
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
   version = '1.0'
-): SchemaSnapshot {
-  return { schemaId: id, version, components };
+): ViewDefinition {
+  return { viewId, version, nodes };
 }
 
-function makeComponent(
-  overrides: Partial<ComponentDefinition> & { id: string; type: string }
-): ComponentDefinition {
-  return { ...overrides };
+function makeNode(
+  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
+): ViewNode {
+  const type = overrides.type ?? 'field';
+  return {
+    id: overrides.id,
+    key: overrides.key,
+    hash: overrides.hash,
+    hidden: overrides.hidden,
+    migrations: overrides.migrations,
+    type,
+    ...(type === 'field' ? { dataType: 'string' } : {}),
+    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
+    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
+    ...overrides,
+  } as ViewNode;
 }
 
 describe('Session Ledger', () => {
@@ -29,20 +42,20 @@ describe('Session Ledger', () => {
       expect(session2.sessionId).not.toBe(session.sessionId);
     });
 
-    it('returns null snapshot before first schema push', () => {
+    it('returns null snapshot before first view push', () => {
       const session = createSession();
       expect(session.getSnapshot()).toBeNull();
     });
 
-    it('returns empty issues before first schema push', () => {
+    it('returns empty issues before first view push', () => {
       const session = createSession();
       expect(session.getIssues()).toEqual([]);
     });
 
     it('destroy clears snapshot, stops listeners, and ignores further pushes', () => {
       const session = createSession();
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
 
       let snapshotCallCount = 0;
       session.onSnapshot(() => {
@@ -53,27 +66,27 @@ describe('Session Ledger', () => {
 
       expect(session.getSnapshot()).toBeNull();
 
-      session.pushSchema(schema);
+      session.pushView(view);
       expect(snapshotCallCount).toBe(0);
     });
 
     it('destroy returns accumulated issues from last reconciliation', () => {
       const session = createSession();
-      const schemaV1 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'toggle' })],
-        'schema-1',
+      const viewV1 = makeView(
+        [makeNode({ id: 'a' }), makeNode({ id: 'b', type: 'action' })],
+        'view-1',
         '1.0'
       );
-      session.pushSchema(schemaV1);
+      session.pushView(viewV1);
       session.updateState('a', { value: 'hello' });
       session.updateState('b', { checked: true });
 
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV2 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
       const issuesBefore = session.getIssues();
       expect(issuesBefore.length).toBeGreaterThan(0);
@@ -84,162 +97,162 @@ describe('Session Ledger', () => {
 
     it('reset clears session data and allows continued usage', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'typed' });
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'typed' },
       });
 
       expect(session.getSnapshot()).not.toBeNull();
       expect(session.getEventLog()).toHaveLength(1);
-      expect(session.getPendingActions()).toHaveLength(1);
+      expect(session.getPendingIntents()).toHaveLength(1);
       expect(session.getCheckpoints()).toHaveLength(1);
 
       session.reset();
 
       expect(session.getSnapshot()).toBeNull();
       expect(session.getEventLog()).toHaveLength(0);
-      expect(session.getPendingActions()).toHaveLength(0);
+      expect(session.getPendingIntents()).toHaveLength(0);
       expect(session.getCheckpoints()).toHaveLength(0);
       expect(session.getIssues()).toEqual([]);
       expect(session.getDiffs()).toEqual([]);
-      expect(session.getTrace()).toEqual([]);
+      expect(session.getResolutions()).toEqual([]);
 
-      session.pushSchema(makeSchema([makeComponent({ id: 'b', type: 'input' })], 's2', '1'));
-      expect(session.getSnapshot()!.schema.schemaId).toBe('s2');
+      session.pushView(makeView([makeNode({ id: 'b' })], 's2', '1'));
+      expect(session.getSnapshot()!.view.viewId).toBe('s2');
       expect(session.getCheckpoints()).toHaveLength(1);
     });
   });
 
-  describe('schema management', () => {
-    it('first pushSchema creates snapshot with empty state', () => {
+  describe('view management', () => {
+    it('first pushView creates snapshot with empty data', () => {
       const session = createSession();
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+      const view = makeView([makeNode({ id: 'a' })]);
 
-      session.pushSchema(schema);
+      session.pushView(view);
 
       const snapshot = session.getSnapshot();
       expect(snapshot).not.toBeNull();
-      expect(snapshot!.schema).toBe(schema);
-      expect(snapshot!.state.values).toEqual({});
+      expect(snapshot!.view).toBe(view);
+      expect(snapshot!.data.values).toEqual({});
     });
 
-    it('second pushSchema triggers reconciliation and preserves matching state', () => {
+    it('second pushView triggers reconciliation and preserves matching data', () => {
       const session = createSession();
-      const schemaV1 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV1 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '1.0'
       );
-      session.pushSchema(schemaV1);
+      session.pushView(viewV1);
       session.updateState('a', { value: 'hello' });
 
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV2 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.values['a']).toEqual({ value: 'hello' });
-      expect(snapshot!.state.meta.schemaVersion).toBe('2.0');
+      expect(snapshot!.data.values['a']).toEqual({ value: 'hello' });
+      expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
     });
 
-    it('schema push notifies snapshot listeners', () => {
+    it('view push notifies snapshot listeners', () => {
       const session = createSession();
       const snapshots: unknown[] = [];
       session.onSnapshot((s) => snapshots.push(s));
 
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
 
       expect(snapshots).toHaveLength(1);
     });
 
-    it('schema push notifies issue listeners', () => {
+    it('view push notifies issue listeners', () => {
       const session = createSession();
       const issueUpdates: unknown[] = [];
       session.onIssues((i) => issueUpdates.push(i));
 
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
 
       expect(issueUpdates).toHaveLength(1);
     });
 
-    it('schema version tracked in state meta', () => {
+    it('view version tracked in data lineage', () => {
       const session = createSession();
-      const schema = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const view = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '3.0'
       );
 
-      session.pushSchema(schema);
+      session.pushView(view);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.meta.schemaVersion).toBe('3.0');
+      expect(snapshot!.data.lineage.viewVersion).toBe('3.0');
     });
 
-    it('exposes orphaned values after component removal', () => {
+    it('exposes detached values after node removal', () => {
       const session = createSession();
-      const schemaV1 = makeSchema(
+      const viewV1 = makeView(
         [
-          makeComponent({ id: 'a', type: 'input', key: 'a' }),
-          makeComponent({ id: 'b', type: 'input', key: 'b' }),
+          makeNode({ id: 'a', key: 'a' }),
+          makeNode({ id: 'b', key: 'b' }),
         ],
-        'schema-1',
+        'view-1',
         '1.0'
       );
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input', key: 'a' })],
-        'schema-1',
+      const viewV2 = makeView(
+        [makeNode({ id: 'a', key: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV1);
+      session.pushView(viewV1);
       session.updateState('b', { value: 'keep me' });
 
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
-      expect(session.getOrphanedValues()['b']).toBeDefined();
-      expect(session.getOrphanedValues()['b'].reason).toBe('removed');
+      expect(session.getDetachedValues()['b']).toBeDefined();
+      expect(session.getDetachedValues()['b'].reason).toBe('node-removed');
     });
   });
 
   describe('intent capture', () => {
     let session: Session;
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+    const view = makeView([makeNode({ id: 'a' })]);
 
     beforeEach(() => {
       session = createSession();
-      session.pushSchema(schema);
+      session.pushView(view);
     });
 
     it('recordIntent adds interaction to the event log', () => {
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'hello' },
       });
 
       const log = session.getEventLog();
       expect(log).toHaveLength(1);
-      expect(log[0].componentId).toBe('a');
+      expect(log[0].nodeId).toBe('a');
       expect(log[0].type).toBe('value-change');
       expect(log[0].payload).toEqual({ value: 'hello' });
     });
 
     it('getEventLog returns all recorded interactions in order', () => {
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'first' },
       });
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'second' },
       });
@@ -250,155 +263,155 @@ describe('Session Ledger', () => {
       expect(log[1].payload).toEqual({ value: 'second' });
     });
 
-    it('recordIntent updates component state from payload', () => {
+    it('recordIntent updates node value from payload', () => {
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'updated' },
       });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.values['a']).toEqual({ value: 'updated' });
+      expect(snapshot!.data.values['a']).toEqual({ value: 'updated' });
     });
 
-    it('recordIntent sets lastInteractionId on state meta', () => {
+    it('recordIntent sets lastInteractionId on data lineage', () => {
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'hello' },
       });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.meta.lastInteractionId).toBeDefined();
+      expect(snapshot!.data.lineage.lastInteractionId).toBeDefined();
     });
 
-    it('recordIntent sets valuesMeta for the component', () => {
+    it('recordIntent sets valueLineage for the node', () => {
       session.recordIntent({
-        componentId: 'a',
+        nodeId: 'a',
         type: 'value-change',
         payload: { value: 'hello' },
       });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.valuesMeta).toBeDefined();
-      expect(snapshot!.state.valuesMeta!['a']).toBeDefined();
-      expect(snapshot!.state.valuesMeta!['a'].lastUpdated).toBeDefined();
-      expect(snapshot!.state.valuesMeta!['a'].lastInteractionId).toBeDefined();
+      expect(snapshot!.data.valueLineage).toBeDefined();
+      expect(snapshot!.data.valueLineage!['a']).toBeDefined();
+      expect(snapshot!.data.valueLineage!['a'].lastUpdated).toBeDefined();
+      expect(snapshot!.data.valueLineage!['a'].lastInteractionId).toBeDefined();
     });
 
     it('updateState is a convenience shorthand for recordIntent', () => {
       session.updateState('a', { value: 'shorthand' });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.values['a']).toEqual({ value: 'shorthand' });
+      expect(snapshot!.data.values['a']).toEqual({ value: 'shorthand' });
 
       const log = session.getEventLog();
       expect(log).toHaveLength(1);
     });
   });
 
-  describe('pending actions', () => {
+  describe('pending intents', () => {
     let session: Session;
-    const schema = makeSchema(
-      [makeComponent({ id: 'a', type: 'input' })],
-      'schema-1',
+    const view = makeView(
+      [makeNode({ id: 'a' })],
+      'view-1',
       '1.0'
     );
 
     beforeEach(() => {
       session = createSession();
-      session.pushSchema(schema);
+      session.pushView(view);
     });
 
-    it('submitAction adds a pending action with status pending', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('submitIntent adds a pending intent with status pending', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data' },
       });
 
-      const actions = session.getPendingActions();
-      expect(actions).toHaveLength(1);
-      expect(actions[0].status).toBe('pending');
-      expect(actions[0].componentId).toBe('a');
-      expect(actions[0].actionType).toBe('submit-form');
+      const intents = session.getPendingIntents();
+      expect(intents).toHaveLength(1);
+      expect(intents[0].status).toBe('pending');
+      expect(intents[0].nodeId).toBe('a');
+      expect(intents[0].intentName).toBe('submit-form');
     });
 
-    it('getPendingActions returns all pending actions', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('getPendingIntents returns all pending intents', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data1' },
       });
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data2' },
       });
 
-      const actions = session.getPendingActions();
-      expect(actions).toHaveLength(2);
+      const intents = session.getPendingIntents();
+      expect(intents).toHaveLength(2);
     });
 
-    it('schema push marks pending actions as stale when schema version changes', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('view push marks pending intents as stale when view version changes', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data' },
       });
 
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV2 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
-      const actions = session.getPendingActions();
-      expect(actions[0].status).toBe('stale');
+      const intents = session.getPendingIntents();
+      expect(intents[0].status).toBe('stale');
     });
 
-    it('validateAction transitions action from stale to validated', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('validateIntent transitions intent from stale to validated', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data' },
       });
 
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV2 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
-      const actionId = session.getPendingActions()[0].id;
-      session.validateAction(actionId);
+      const intentId = session.getPendingIntents()[0].intentId;
+      session.validateIntent(intentId);
 
-      expect(session.getPendingActions()[0].status).toBe('validated');
+      expect(session.getPendingIntents()[0].status).toBe('validated');
     });
 
-    it('cancelAction transitions action to cancelled', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('cancelIntent transitions intent to cancelled', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data' },
       });
 
-      const actionId = session.getPendingActions()[0].id;
-      session.cancelAction(actionId);
+      const intentId = session.getPendingIntents()[0].intentId;
+      session.cancelIntent(intentId);
 
-      expect(session.getPendingActions()[0].status).toBe('cancelled');
+      expect(session.getPendingIntents()[0].status).toBe('cancelled');
     });
   });
 
   describe('checkpointing', () => {
     let session: Session;
-    const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
+    const view = makeView([makeNode({ id: 'a' })]);
 
     beforeEach(() => {
       session = createSession();
-      session.pushSchema(schema);
+      session.pushView(view);
     });
 
     it('checkpoint returns a serializable checkpoint with snapshot and event index', () => {
@@ -407,10 +420,10 @@ describe('Session Ledger', () => {
 
       const cp = session.checkpoint();
 
-      expect(cp.id).toBeDefined();
+      expect(cp.checkpointId).toBeDefined();
       expect(cp.sessionId).toBe(session.sessionId);
       expect(cp.snapshot).toBeDefined();
-      expect(cp.snapshot.state.values['a']).toEqual({ value: 'world' });
+      expect(cp.snapshot.data.values['a']).toEqual({ value: 'world' });
       expect(cp.eventIndex).toBe(2);
       expect(cp.timestamp).toBeDefined();
     });
@@ -425,7 +438,7 @@ describe('Session Ledger', () => {
       session.restoreFromCheckpoint(cp);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.values['a']).toEqual({ value: 'world' });
+      expect(snapshot!.data.values['a']).toEqual({ value: 'world' });
     });
 
     it('restored session preserves event log up to checkpoint event index', () => {
@@ -448,7 +461,7 @@ describe('Session Ledger', () => {
       session.updateState('a', { value: 'after-restore' });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.values['a']).toEqual({ value: 'after-restore' });
+      expect(snapshot!.data.values['a']).toEqual({ value: 'after-restore' });
       expect(session.getEventLog()).toHaveLength(2);
     });
 
@@ -464,7 +477,7 @@ describe('Session Ledger', () => {
 
       expect(snapshots).toHaveLength(1);
       expect(
-        (snapshots[0] as { state: { values: Record<string, unknown> } }).state.values['a']
+        (snapshots[0] as { data: { values: Record<string, unknown> } }).data.values['a']
       ).toEqual({ value: 'hello' });
     });
 
@@ -480,84 +493,84 @@ describe('Session Ledger', () => {
       expect(issueUpdates).toHaveLength(1);
     });
 
-    it('restoreFromCheckpoint clears diffs, issues, and trace', () => {
-      const schemaV2 = makeSchema(
+    it('restoreFromCheckpoint clears diffs, issues, and resolutions', () => {
+      const viewV2 = makeView(
         [
-          makeComponent({ id: 'a', type: 'input' }),
-          makeComponent({ id: 'b', type: 'toggle' }),
+          makeNode({ id: 'a' }),
+          makeNode({ id: 'b', type: 'action' }),
         ],
-        'schema-1',
+        'view-1',
         '2.0'
       );
       session.updateState('a', { value: 'hello' });
       const cp = session.checkpoint();
 
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
       expect(session.getDiffs().length).toBeGreaterThan(0);
-      expect(session.getTrace().length).toBeGreaterThan(0);
+      expect(session.getResolutions().length).toBeGreaterThan(0);
 
       session.restoreFromCheckpoint(cp);
 
       expect(session.getDiffs()).toEqual([]);
       expect(session.getIssues()).toEqual([]);
-      expect(session.getTrace()).toEqual([]);
+      expect(session.getResolutions()).toEqual([]);
     });
 
-    it('restoreFromCheckpoint clears pending actions', () => {
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+    it('restoreFromCheckpoint clears pending intents', () => {
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'data' },
       });
-      expect(session.getPendingActions()).toHaveLength(1);
+      expect(session.getPendingIntents()).toHaveLength(1);
 
       const cp = session.checkpoint();
-      session.submitAction({
-        componentId: 'a',
-        actionType: 'submit-form',
+      session.submitIntent({
+        nodeId: 'a',
+        intentName: 'submit-form',
         payload: { value: 'more-data' },
       });
-      expect(session.getPendingActions()).toHaveLength(2);
+      expect(session.getPendingIntents()).toHaveLength(2);
 
       session.restoreFromCheckpoint(cp);
 
-      expect(session.getPendingActions()).toEqual([]);
+      expect(session.getPendingIntents()).toEqual([]);
     });
 
-    it('restoreFromCheckpoint sets priorSchema to null', () => {
-      const schemaV2 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+    it('restoreFromCheckpoint sets priorView to null', () => {
+      const viewV2 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
       const cp = session.checkpoint();
 
       session.restoreFromCheckpoint(cp);
 
-      session.pushSchema(
-        makeSchema(
-          [makeComponent({ id: 'a', type: 'input' })],
-          'schema-1',
+      session.pushView(
+        makeView(
+          [makeNode({ id: 'a' })],
+          'view-1',
           '3.0'
         )
       );
       const issues = session.getIssues();
-      const noPriorSchema = issues.find((i) => i.code === 'NO_PRIOR_SCHEMA');
-      expect(noPriorSchema).toBeUndefined();
+      const noPriorView = issues.find((i) => i.code === 'NO_PRIOR_VIEW');
+      expect(noPriorView).toBeUndefined();
     });
   });
 
   describe('subscriptions', () => {
     it('onSnapshot returns unsubscribe function', () => {
       const session = createSession();
-      const unsub = session.onSnapshot(() => {});
+      const unsub = session.onSnapshot(() => undefined);
       expect(typeof unsub).toBe('function');
     });
 
     it('onIssues returns unsubscribe function', () => {
       const session = createSession();
-      const unsub = session.onIssues(() => {});
+      const unsub = session.onIssues(() => undefined);
       expect(typeof unsub).toBe('function');
     });
 
@@ -569,8 +582,8 @@ describe('Session Ledger', () => {
       session.onSnapshot((s) => calls1.push(s));
       session.onSnapshot((s) => calls2.push(s));
 
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
 
       expect(calls1).toHaveLength(1);
       expect(calls2).toHaveLength(1);
@@ -581,13 +594,13 @@ describe('Session Ledger', () => {
       const calls: unknown[] = [];
 
       const unsub = session.onSnapshot((s) => calls.push(s));
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
       expect(calls).toHaveLength(1);
 
       unsub();
-      session.pushSchema(
-        makeSchema([makeComponent({ id: 'a', type: 'input' })], 'schema-1', '2.0')
+      session.pushView(
+        makeView([makeNode({ id: 'a' })], 'view-1', '2.0')
       );
       expect(calls).toHaveLength(1);
     });
@@ -605,21 +618,21 @@ describe('Session Ledger', () => {
       const clock = () => time++;
       const session = createSession({ clock });
 
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
       session.updateState('a', { value: 'hello' });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.state.meta.timestamp).toBeGreaterThanOrEqual(1000);
-      expect(snapshot!.state.meta.timestamp).toBeLessThan(2000);
+      expect(snapshot!.data.lineage.timestamp).toBeGreaterThanOrEqual(1000);
+      expect(snapshot!.data.lineage.timestamp).toBeLessThan(2000);
     });
 
     it('same event sequence + same clock = identical snapshot', () => {
       function buildSession() {
         let time = 1000;
         const s = createSession({ clock: () => time++ });
-        const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-        s.pushSchema(schema);
+        const view = makeView([makeNode({ id: 'a' })]);
+        s.pushView(view);
         s.updateState('a', { value: 'hello' });
         s.updateState('a', { value: 'world' });
         return s;
@@ -628,60 +641,60 @@ describe('Session Ledger', () => {
       const s1 = buildSession();
       const s2 = buildSession();
 
-      expect(s1.getSnapshot()!.state.values).toEqual(
-        s2.getSnapshot()!.state.values
+      expect(s1.getSnapshot()!.data.values).toEqual(
+        s2.getSnapshot()!.data.values
       );
-      expect(s1.getSnapshot()!.state.meta.timestamp).toBe(
-        s2.getSnapshot()!.state.meta.timestamp
+      expect(s1.getSnapshot()!.data.lineage.timestamp).toBe(
+        s2.getSnapshot()!.data.lineage.timestamp
       );
     });
   });
 
-  describe('reconciliation trace', () => {
-    it('getTrace returns trace from the last reconciliation', () => {
+  describe('reconciliation resolutions', () => {
+    it('getResolutions returns resolutions from the last reconciliation', () => {
       const session = createSession();
-      const schemaV1 = makeSchema(
-        [makeComponent({ id: 'a', type: 'input' })],
-        'schema-1',
+      const viewV1 = makeView(
+        [makeNode({ id: 'a' })],
+        'view-1',
         '1.0'
       );
-      session.pushSchema(schemaV1);
+      session.pushView(viewV1);
       session.updateState('a', { value: 'hello' });
 
-      const schemaV2 = makeSchema(
+      const viewV2 = makeView(
         [
-          makeComponent({ id: 'a', type: 'input' }),
-          makeComponent({ id: 'b', type: 'toggle' }),
+          makeNode({ id: 'a' }),
+          makeNode({ id: 'b', type: 'action' }),
         ],
-        'schema-1',
+        'view-1',
         '2.0'
       );
-      session.pushSchema(schemaV2);
+      session.pushView(viewV2);
 
-      const trace = session.getTrace();
-      expect(trace).toBeDefined();
-      expect(trace.length).toBeGreaterThanOrEqual(2);
+      const resolutions = session.getResolutions();
+      expect(resolutions).toBeDefined();
+      expect(resolutions.length).toBeGreaterThanOrEqual(2);
 
-      const entryA = trace.find((t) => t.componentId === 'a');
+      const entryA = resolutions.find((r) => r.nodeId === 'a');
       expect(entryA).toBeDefined();
-      expect(entryA!.action).toBe('carried');
+      expect(entryA!.resolution).toBe('carried');
 
-      const entryB = trace.find((t) => t.componentId === 'b');
+      const entryB = resolutions.find((r) => r.nodeId === 'b');
       expect(entryB).toBeDefined();
-      expect(entryB!.action).toBe('added');
+      expect(entryB!.resolution).toBe('added');
     });
 
-    it('getTrace returns empty array before first schema push', () => {
+    it('getResolutions returns empty array before first view push', () => {
       const session = createSession();
-      expect(session.getTrace()).toEqual([]);
+      expect(session.getResolutions()).toEqual([]);
     });
   });
 
   describe('serialization', () => {
     it('serialize returns a JSON-serializable representation of the full ledger', () => {
       const session = createSession();
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
       session.updateState('a', { value: 'hello' });
 
       const serialized = session.serialize();
@@ -692,23 +705,23 @@ describe('Session Ledger', () => {
 
     it('deserialize reconstructs a session from serialized data', () => {
       const session = createSession();
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
       session.updateState('a', { value: 'hello' });
 
       const serialized = session.serialize();
       const restored = deserialize(serialized);
 
       expect(restored.sessionId).toBe(session.sessionId);
-      expect(restored.getSnapshot()!.state.values['a']).toEqual({
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({
         value: 'hello',
       });
     });
 
     it('round-trip serialize/deserialize produces identical snapshot', () => {
       const session = createSession();
-      const schema = makeSchema([makeComponent({ id: 'a', type: 'input' })]);
-      session.pushSchema(schema);
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
       session.updateState('a', { value: 'hello' });
 
       const serialized = session.serialize();
@@ -719,186 +732,186 @@ describe('Session Ledger', () => {
 
     it('serialize output includes formatVersion', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       const serialized = session.serialize() as Record<string, unknown>;
-      expect(serialized.formatVersion).toBe(2);
+      expect(serialized.formatVersion).toBe(1);
     });
 
     it('deserialize rejects unknown formatVersion', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       const blob = { ...(session.serialize() as Record<string, unknown>), formatVersion: 999 };
       expect(() => deserialize(blob)).toThrow();
     });
 
     it('deserialize accepts formatVersion 1', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'hello' });
       const restored = deserialize(session.serialize());
-      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'hello' });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'hello' });
     });
 
     it('deserialize handles legacy blobs without formatVersion', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'legacy' });
       const blob = session.serialize() as Record<string, unknown>;
       delete blob.formatVersion;
       const restored = deserialize(blob);
-      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'legacy' });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'legacy' });
     });
   });
 
   describe('checkpoint stack and rewind', () => {
-    it('getCheckpoints returns empty array before any schema push', () => {
+    it('getCheckpoints returns empty array before any view push', () => {
       const session = createSession();
       expect(session.getCheckpoints()).toEqual([]);
     });
 
-    it('pushSchema auto-creates a checkpoint', () => {
+    it('pushView auto-creates a checkpoint', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       expect(session.getCheckpoints()).toHaveLength(1);
     });
 
-    it('latest checkpoint snapshot updates when state changes', () => {
+    it('latest checkpoint snapshot updates when data changes', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
 
       session.updateState('a', { value: 'typed' });
 
       const checkpoints = session.getCheckpoints();
       expect(checkpoints).toHaveLength(1);
-      expect(checkpoints[0].snapshot.state.values['a']).toEqual({ value: 'typed' });
+      expect(checkpoints[0].snapshot.data.values['a']).toEqual({ value: 'typed' });
     });
 
-    it('each pushSchema adds a new checkpoint', () => {
+    it('each pushView adds a new checkpoint', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
       expect(session.getCheckpoints()).toHaveLength(2);
     });
 
-    it('checkpoint contains the schema and state at the time it was created', () => {
+    it('checkpoint contains the view and data at the time it was created', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'hello' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
 
       const checkpoints = session.getCheckpoints();
-      expect(checkpoints[0].snapshot.schema.schemaId).toBe('s1');
-      expect(checkpoints[1].snapshot.schema.schemaId).toBe('s2');
-      expect(checkpoints[1].snapshot.state.values['a']).toEqual({ value: 'hello' });
+      expect(checkpoints[0].snapshot.view.viewId).toBe('s1');
+      expect(checkpoints[1].snapshot.view.viewId).toBe('s2');
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual({ value: 'hello' });
     });
 
     it('rewind restores session to a prior checkpoint', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'hello' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
       session.updateState('b', { value: 'world' });
 
       const checkpoints = session.getCheckpoints();
-      session.rewind(checkpoints[1].id);
+      session.rewind(checkpoints[1].checkpointId);
 
-      expect(session.getSnapshot()!.schema.schemaId).toBe('s2');
-      expect(session.getSnapshot()!.state.values['a']).toEqual({ value: 'hello' });
+      expect(session.getSnapshot()!.view.viewId).toBe('s2');
+      expect(session.getSnapshot()!.data.values['a']).toEqual({ value: 'hello' });
 
-      session.rewind(session.getCheckpoints()[0].id);
-      expect(session.getSnapshot()!.schema.schemaId).toBe('s1');
+      session.rewind(session.getCheckpoints()[0].checkpointId);
+      expect(session.getSnapshot()!.view.viewId).toBe('s1');
     });
 
     it('rewind restores typed values from checkpoint even if a later type change dropped them', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'loan_type', type: 'Dropdown' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'loan_type', type: 'field' })], 's1', '1'));
       session.updateState('loan_type', { value: 'mortgage' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'loan_type', type: 'SelectionInput' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'loan_type', type: 'action' })], 's2', '2'));
 
-      expect(session.getSnapshot()!.state.values['loan_type']).toBeUndefined();
+      expect(session.getSnapshot()!.data.values['loan_type']).toBeUndefined();
 
       const checkpoints = session.getCheckpoints();
-      session.rewind(checkpoints[0].id);
+      session.rewind(checkpoints[0].checkpointId);
 
-      expect(session.getSnapshot()!.schema.schemaId).toBe('s1');
-      expect(session.getSnapshot()!.state.values['loan_type']).toEqual({ value: 'mortgage' });
+      expect(session.getSnapshot()!.view.viewId).toBe('s1');
+      expect(session.getSnapshot()!.data.values['loan_type']).toEqual({ value: 'mortgage' });
     });
 
     it('rewind trims the checkpoint stack to the rewound point', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's3', '3'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's3', '3'));
 
       expect(session.getCheckpoints()).toHaveLength(3);
 
       const checkpoints = session.getCheckpoints();
-      session.rewind(checkpoints[0].id);
+      session.rewind(checkpoints[0].checkpointId);
 
       expect(session.getCheckpoints()).toHaveLength(1);
     });
 
     it('rewind throws if checkpoint id is unknown', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       expect(() => session.rewind('nonexistent')).toThrow();
     });
 
     it('rewind notifies snapshot listeners', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       const snapshots: unknown[] = [];
       session.onSnapshot((s) => snapshots.push(s));
 
-      session.rewind(session.getCheckpoints()[0].id);
+      session.rewind(session.getCheckpoints()[0].checkpointId);
       expect(snapshots).toHaveLength(1);
-      expect((snapshots[0] as { schema: { schemaId: string } }).schema.schemaId).toBe('s1');
+      expect((snapshots[0] as { view: { viewId: string } }).view.viewId).toBe('s1');
     });
 
     it('checkpoints survive serialize/deserialize round-trip', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'persisted' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
 
       const restored = deserialize(session.serialize());
       expect(restored.getCheckpoints()).toHaveLength(2);
-      expect(restored.getCheckpoints()[0].snapshot.schema.schemaId).toBe('s1');
+      expect(restored.getCheckpoints()[0].snapshot.view.viewId).toBe('s1');
     });
 
     it('rewind works after deserialize', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'before' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' }), makeComponent({ id: 'b', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
       session.updateState('b', { value: 'after' });
 
       const restored = deserialize(session.serialize());
       const checkpoints = restored.getCheckpoints();
-      restored.rewind(checkpoints[1].id);
+      restored.rewind(checkpoints[1].checkpointId);
 
-      expect(restored.getSnapshot()!.schema.schemaId).toBe('s2');
-      expect(restored.getSnapshot()!.state.values['a']).toEqual({ value: 'before' });
-      expect(restored.getSnapshot()!.state.values['b']).toEqual({ value: 'after' });
+      expect(restored.getSnapshot()!.view.viewId).toBe('s2');
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'before' });
+      expect(restored.getSnapshot()!.data.values['b']).toEqual({ value: 'after' });
     });
 
-    it('auto-checkpoint captures state updates made before next pushSchema', () => {
+    it('auto-checkpoint captures data updates made before next pushView', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's1', '1'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'typed' });
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       const checkpoints = session.getCheckpoints();
-      expect(checkpoints[1].snapshot.state.values['a']).toEqual({ value: 'typed' });
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual({ value: 'typed' });
     });
   });
 
   describe('edge cases', () => {
     it('listener can remove itself during notification without breaking iteration', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
 
       let selfRemoveCalled = false;
       let secondCalled = false;
@@ -912,7 +925,7 @@ describe('Session Ledger', () => {
         secondCalled = true;
       });
 
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       expect(selfRemoveCalled).toBe(true);
       expect(secondCalled).toBe(true);
@@ -920,7 +933,7 @@ describe('Session Ledger', () => {
 
     it('listener added during notification is called in the same cycle due to Set iteration', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
 
       let lateCalled = false;
 
@@ -930,37 +943,37 @@ describe('Session Ledger', () => {
         });
       });
 
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })], 's2', '2'));
+      session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       expect(lateCalled).toBe(true);
     });
 
-    it('handles transition from populated schema to empty schema', () => {
+    it('handles transition from populated view to empty view', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'hello' });
 
-      session.pushSchema(makeSchema([], 's2', '2'));
+      session.pushView(makeView([], 's2', '2'));
 
       const snapshot = session.getSnapshot();
-      expect(Object.keys(snapshot!.state.values)).toHaveLength(0);
+      expect(Object.keys(snapshot!.data.values)).toHaveLength(0);
     });
 
-    it('handles empty schema as the very first push', () => {
+    it('handles empty view as the very first push', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([]));
+      session.pushView(makeView([]));
 
       const snapshot = session.getSnapshot();
       expect(snapshot).not.toBeNull();
-      expect(Object.keys(snapshot!.state.values)).toHaveLength(0);
+      expect(Object.keys(snapshot!.data.values)).toHaveLength(0);
     });
 
-    it('handles rapid successive schema pushes', () => {
+    it('handles rapid successive view pushes', () => {
       const session = createSession();
       for (let i = 0; i < 50; i++) {
-        session.pushSchema(
-          makeSchema(
-            [makeComponent({ id: 'a', type: 'input' })],
+        session.pushView(
+          makeView(
+            [makeNode({ id: 'a' })],
             `s${i}`,
             `${i}`
           )
@@ -968,31 +981,31 @@ describe('Session Ledger', () => {
       }
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.schema.version).toBe('49');
+      expect(snapshot!.view.version).toBe('49');
       expect(session.getCheckpoints()).toHaveLength(50);
     });
 
-    it('handles deeply nested children state carry across pushes', () => {
-      const deep = makeComponent({ id: 'deep', type: 'input' });
-      const mid = makeComponent({ id: 'mid', type: 'group', children: [deep] });
-      const root = makeComponent({ id: 'root', type: 'section', children: [mid] });
+    it('handles deeply nested children data carry across pushes', () => {
+      const deep = makeNode({ id: 'deep' });
+      const mid = makeNode({ id: 'mid', type: 'group', children: [deep] });
+      const root = makeNode({ id: 'root', type: 'group', children: [mid] });
 
       const session = createSession();
-      session.pushSchema(makeSchema([root], 's1', '1'));
+      session.pushView(makeView([root], 's1', '1'));
       session.updateState('deep', { value: 'nested' });
 
-      session.pushSchema(makeSchema([root], 's2', '2'));
+      session.pushView(makeView([root], 's2', '2'));
 
-      expect(session.getSnapshot()!.state.values['deep']).toEqual({ value: 'nested' });
+      expect(session.getSnapshot()!.data.values['deep']).toEqual({ value: 'nested' });
     });
 
     it('updateState and recordIntent ignore calls after destroy', () => {
       const session = createSession();
-      session.pushSchema(makeSchema([makeComponent({ id: 'a', type: 'input' })]));
+      session.pushView(makeView([makeNode({ id: 'a' })]));
       session.destroy();
 
       session.updateState('a', { value: 'nope' });
-      session.recordIntent({ componentId: 'a', type: 'value-change', payload: { value: 'nope' } });
+      session.recordIntent({ nodeId: 'a', type: 'value-change', payload: { value: 'nope' } });
 
       expect(session.getEventLog()).toHaveLength(0);
     });

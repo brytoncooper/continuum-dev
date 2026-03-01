@@ -13,14 +13,14 @@ describe('createEmptySessionState', () => {
   it('initializes all collections as empty', () => {
     const state = createEmptySessionState('s', () => 0);
 
-    expect(state.currentSchema).toBeNull();
-    expect(state.currentState).toBeNull();
-    expect(state.priorSchema).toBeNull();
+    expect(state.currentView).toBeNull();
+    expect(state.currentData).toBeNull();
+    expect(state.priorView).toBeNull();
     expect(state.issues).toEqual([]);
     expect(state.diffs).toEqual([]);
-    expect(state.trace).toEqual([]);
+    expect(state.resolutions).toEqual([]);
     expect(state.eventLog).toEqual([]);
-    expect(state.pendingActions).toEqual([]);
+    expect(state.pendingIntents).toEqual([]);
     expect(state.checkpoints).toEqual([]);
     expect(state.snapshotListeners.size).toBe(0);
     expect(state.issueListeners.size).toBe(0);

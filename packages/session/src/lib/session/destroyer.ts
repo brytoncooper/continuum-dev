@@ -3,16 +3,16 @@ import type { SessionState } from './session-state.js';
 
 export function teardownSessionAndClearState(internal: SessionState): { issues: ReconciliationIssue[] } {
   internal.destroyed = true;
-  internal.currentSchema = null;
-  internal.currentState = null;
-  internal.priorSchema = null;
+  internal.currentView = null;
+  internal.currentData = null;
+  internal.priorView = null;
   internal.eventLog = [];
-  internal.pendingActions = [];
+  internal.pendingIntents = [];
   internal.checkpoints = [];
   const result = { issues: [...internal.issues] };
   internal.issues = [];
   internal.diffs = [];
-  internal.trace = [];
+  internal.resolutions = [];
   internal.snapshotListeners.clear();
   internal.issueListeners.clear();
   return result;
