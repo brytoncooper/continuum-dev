@@ -1,12 +1,96 @@
 import { useRef, useEffect, useState } from 'react';
-import { radius, shadow, space, typeScale } from '../tokens';
+import { space, typeScale } from '../tokens';
 import { landingTheme } from './landing-theme';
 
-const codeSnippet = `const componentMap = { input: TextInput, toggle: Toggle };
-<ContinuumProvider components={componentMap} persist="localStorage">
-  <YourApp />
-</ContinuumProvider>
-session.pushSchema(schemaFromAgent);`;
+const codeLines = [
+  { text: 'import', dim: true },
+  { text: " { ContinuumProvider, ContinuumRenderer } ", accent: true },
+  { text: "from '@continuum/react';\n\n", dim: true },
+  { text: 'const ', dim: true },
+  { text: 'nodeMap', accent: true },
+  { text: " = { field: TextInput, toggle: Switch, group: Section };\n\n", normal: true },
+  { text: '<', dim: true },
+  { text: 'ContinuumProvider', accent: true },
+  { text: ' components={nodeMap} persist="localStorage">\n', normal: true },
+  { text: '  <', dim: true },
+  { text: 'ContinuumRenderer', accent: true },
+  { text: ' view={currentView} />\n', normal: true },
+  { text: '</', dim: true },
+  { text: 'ContinuumProvider', accent: true },
+  { text: '>\n\n', dim: true },
+  { text: 'session.', normal: true },
+  { text: 'pushView', accent: true },
+  { text: '(viewFromAgent);', normal: true },
+];
+
+function CodeBlock() {
+  return (
+    <div
+      style={{
+        background: 'rgba(0, 0, 0, 0.5)',
+        borderRadius: 16,
+        border: `1px solid ${landingTheme.colors.border}`,
+        padding: '24px 28px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), rgba(34, 211, 238, 0.3), transparent)',
+        }}
+      />
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+      </div>
+      <pre
+        style={{
+          margin: 0,
+          fontFamily: landingTheme.fonts.mono,
+          fontSize: 13,
+          lineHeight: 1.8,
+          overflow: 'auto',
+          whiteSpace: 'pre',
+        }}
+      >
+        <code>
+          {codeLines.map((seg, i) => (
+            <span
+              key={i}
+              style={{
+                color: seg.accent
+                  ? '#c4b5fd'
+                  : seg.dim
+                    ? 'rgba(200, 200, 220, 0.35)'
+                    : 'rgba(224, 224, 240, 0.75)',
+              }}
+            >
+              {seg.text}
+            </span>
+          ))}
+        </code>
+      </pre>
+    </div>
+  );
+}
+
+const cards = [
+  {
+    title: 'AI-powered products',
+    body: 'Your agent generates view definitions. Continuum handles reconciliation, persistence, and rewind \u2014 your agent focuses on generating, not bookkeeping.',
+  },
+  {
+    title: 'Dynamic form platforms',
+    body: 'Drop-in persistent, rewindable state for React and Angular. When AI enters the picture later, your app is already wired for it.',
+  },
+];
 
 export function DeveloperSection() {
   const ref = useRef<HTMLElement>(null);
@@ -19,7 +103,7 @@ export function DeveloperSection() {
       ([entry]) => {
         if (entry.isIntersecting) setVisible(true);
       },
-      { threshold: 0.2, rootMargin: '0px 0px -80px 0px' }
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -30,120 +114,96 @@ export function DeveloperSection() {
       ref={ref}
       data-testid="landing-developers"
       style={{
-        padding: `${120}px ${space.xl}px`,
+        padding: `${140}px ${space.xl}px`,
         color: landingTheme.colors.text,
+        background: landingTheme.gradients.page,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transform: visible ? 'translateY(0)' : 'translateY(32px)',
+        transition: 'opacity 0.8s ease, transform 0.8s ease',
       }}
     >
-      <div style={{ maxWidth: 920, margin: '0 auto' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
         <div
           style={{
             ...typeScale.label,
-            color: landingTheme.colors.textMuted,
-            letterSpacing: '0.18em',
+            color: landingTheme.colors.textSoft,
+            letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: space.md,
+            textTransform: 'uppercase',
+            fontSize: 11,
           }}
         >
           Build with confidence
         </div>
         <h2
           style={{
-            ...typeScale.h1,
             fontFamily: landingTheme.fonts.display,
-            fontSize: 42,
+            fontSize: 44,
+            fontWeight: 800,
             color: landingTheme.colors.text,
             margin: 0,
-            marginBottom: space.xxl,
+            marginBottom: 48,
             textAlign: 'center',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
           }}
         >
-          For teams building adaptive interfaces
+          Designed for teams building
+          <br />
+          adaptive interfaces
         </h2>
+
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: space.xl,
-            marginBottom: space.xxl,
+            gap: 16,
+            marginBottom: 32,
           }}
         >
-          <div
-            style={{
-              padding: space.xl,
-              background: landingTheme.gradients.panel,
-              borderRadius: radius.lg,
-              border: `1px solid ${landingTheme.colors.border}`,
-              boxShadow: shadow.card,
-            }}
-          >
-            <h3
+          {cards.map((card, i) => (
+            <div
+              key={card.title}
               style={{
-                ...typeScale.h2,
-                fontFamily: landingTheme.fonts.display,
-                color: landingTheme.colors.accent,
-                margin: 0,
-                marginBottom: space.md,
+                padding: 28,
+                background: landingTheme.colors.panel,
+                borderRadius: 16,
+                border: `1px solid ${landingTheme.colors.border}`,
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                animation: visible
+                  ? `landing-card-appear 0.5s ease ${i * 0.12}s both`
+                  : 'none',
               }}
             >
-              For AI developers
-            </h3>
-            <p style={{ ...typeScale.body, color: landingTheme.colors.textMuted, margin: 0, lineHeight: 1.6 }}>
-              Your agent generates UI schemas. Continuum handles persistence, reconciliation, and
-              rewind so your agent focuses on generating, not bookkeeping.
-            </p>
-          </div>
-          <div
-            style={{
-              padding: space.xl,
-              background: landingTheme.gradients.panel,
-              borderRadius: radius.lg,
-              border: `1px solid ${landingTheme.colors.border}`,
-              boxShadow: shadow.card,
-            }}
-          >
-            <h3
-              style={{
-                ...typeScale.h2,
-                fontFamily: landingTheme.fonts.display,
-                color: landingTheme.colors.accent,
-                margin: 0,
-                marginBottom: space.md,
-              }}
-            >
-              For app developers
-            </h3>
-            <p style={{ ...typeScale.body, color: landingTheme.colors.textMuted, margin: 0, lineHeight: 1.6 }}>
-              Drop-in persistent, rewindable state for any React app. When you add AI later, your app
-              is already wired for it.
-            </p>
-          </div>
+              <h3
+                style={{
+                  fontFamily: landingTheme.fonts.display,
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: landingTheme.colors.accentBright,
+                  margin: 0,
+                  marginBottom: 12,
+                }}
+              >
+                {card.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: landingTheme.colors.textMuted,
+                  margin: 0,
+                  lineHeight: 1.7,
+                }}
+              >
+                {card.body}
+              </p>
+            </div>
+          ))}
         </div>
-        <div
-          style={{
-              background: landingTheme.colors.panel,
-              backgroundImage: landingTheme.colors.accentGlow,
-            borderRadius: radius.lg,
-            padding: space.lg,
-              border: `1px solid ${landingTheme.colors.panelBorder}`,
-              boxShadow: shadow.card,
-          }}
-        >
-          <pre
-            style={{
-              margin: 0,
-              color: landingTheme.colors.text,
-              fontFamily: landingTheme.fonts.mono,
-              ...typeScale.mono,
-              fontSize: 13,
-              overflow: 'auto',
-            }}
-          >
-            <code>{codeSnippet}</code>
-          </pre>
-        </div>
+
+        <CodeBlock />
       </div>
     </section>
   );

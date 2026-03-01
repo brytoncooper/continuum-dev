@@ -8,19 +8,19 @@ const roomOptions = [
 export const orphanRetentionScenario: Scenario = {
   id: 'orphan-retention',
   title: 'Never Lose User Input',
-  subtitle: 'Removed fields become restorable orphans',
-  capabilityTag: 'Orphan Retention',
+  subtitle: 'Removed fields become restorable detached values',
+  capabilityTag: 'Detached Retention',
   steps: [
     {
       id: 'orphan-step-1',
       label: 'Step 1',
       description: 'Fill booking details before AI edits the form',
       narrativePrompt: 'Enter values that should survive removals and re-additions.',
-      schema: {
-        schemaId: 'hotel-booking',
+      view: {
+        viewId: 'hotel-booking',
         version: '1.0',
-        components: [
-          { id: 'guest_name', key: 'guest_name', type: 'input', label: 'Guest Name' },
+        nodes: [
+          { id: 'guest_name', key: 'guest_name', type: 'field', label: 'Guest Name' },
           {
             id: 'room_type',
             key: 'room_type',
@@ -37,14 +37,14 @@ export const orphanRetentionScenario: Scenario = {
           {
             id: 'loyalty_number',
             key: 'loyalty_number',
-            type: 'input',
+            type: 'field',
             label: 'Loyalty Number',
           },
         ],
       },
       initialState: {
         guest_name: { value: 'Taylor Mason' },
-        room_type: { selectedIds: ['suite'] },
+        room_type: { value: 'suite' },
         special_requests: { value: 'Late check-in near elevator' },
         loyalty_number: { value: 'LTY-2201' },
       },
@@ -53,12 +53,12 @@ export const orphanRetentionScenario: Scenario = {
       id: 'orphan-step-2',
       label: 'Step 2',
       description: 'AI simplifies and removes two fields',
-      narrativePrompt: 'Removed values are moved into orphaned state instead of being lost.',
-      schema: {
-        schemaId: 'hotel-booking',
+      narrativePrompt: 'Removed values are moved into detached state instead of being lost.',
+      view: {
+        viewId: 'hotel-booking',
         version: '2.0',
-        components: [
-          { id: 'guest_name', key: 'guest_name', type: 'input', label: 'Guest Name' },
+        nodes: [
+          { id: 'guest_name', key: 'guest_name', type: 'field', label: 'Guest Name' },
           {
             id: 'room_type',
             key: 'room_type',
@@ -74,11 +74,11 @@ export const orphanRetentionScenario: Scenario = {
       label: 'Step 3',
       description: 'AI adds loyalty number back',
       narrativePrompt: 'Matching key/type restores the removed value automatically.',
-      schema: {
-        schemaId: 'hotel-booking',
+      view: {
+        viewId: 'hotel-booking',
         version: '3.0',
-        components: [
-          { id: 'guest_name_v2', key: 'guest_name', type: 'input', label: 'Guest Name' },
+        nodes: [
+          { id: 'guest_name_v2', key: 'guest_name', type: 'field', label: 'Guest Name' },
           {
             id: 'room_type',
             key: 'room_type',
@@ -89,7 +89,7 @@ export const orphanRetentionScenario: Scenario = {
           {
             id: 'loyalty_number_v2',
             key: 'loyalty_number',
-            type: 'input',
+            type: 'field',
             label: 'Loyalty Number',
           },
         ],
@@ -99,12 +99,12 @@ export const orphanRetentionScenario: Scenario = {
       id: 'orphan-step-4',
       label: 'Step 4',
       description: 'AI restores all previously removed fields',
-      narrativePrompt: 'Both orphaned values come back and orphan bucket is emptied.',
-      schema: {
-        schemaId: 'hotel-booking',
+      narrativePrompt: 'Both detached values come back and the detached bucket is emptied.',
+      view: {
+        viewId: 'hotel-booking',
         version: '4.0',
-        components: [
-          { id: 'guest_name_v3', key: 'guest_name', type: 'input', label: 'Guest Name' },
+        nodes: [
+          { id: 'guest_name_v3', key: 'guest_name', type: 'field', label: 'Guest Name' },
           {
             id: 'room_type',
             key: 'room_type',
@@ -115,7 +115,7 @@ export const orphanRetentionScenario: Scenario = {
           {
             id: 'loyalty_number_v3',
             key: 'loyalty_number',
-            type: 'input',
+            type: 'field',
             label: 'Loyalty Number',
           },
           {

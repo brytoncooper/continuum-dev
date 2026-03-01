@@ -1,31 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReconciliationTrace } from '@continuum/runtime';
+import type { ReconciliationResolution } from '@continuum/runtime';
 import { playgroundTheme } from '../playground-theme';
 
-interface TraceAnimationsProps {
-  trace: ReconciliationTrace[];
+interface ResolutionAnimationsProps {
+  resolutions: ReconciliationResolution[];
 }
 
-export function TraceAnimations({ trace }: TraceAnimationsProps) {
+export function TraceAnimations({ resolutions }: ResolutionAnimationsProps) {
   const [animationKey, setAnimationKey] = useState(0);
-  const previousTraceRef = useRef<ReconciliationTrace[]>([]);
+  const previousResolutionsRef = useRef<ReconciliationResolution[]>([]);
 
   useEffect(() => {
     const changed =
-      trace.length !== previousTraceRef.current.length ||
-      trace.some(
+      resolutions.length !== previousResolutionsRef.current.length ||
+      resolutions.some(
         (entry, index) =>
-          entry.componentId !== previousTraceRef.current[index]?.componentId ||
-          entry.action !== previousTraceRef.current[index]?.action
+          entry.nodeId !== previousResolutionsRef.current[index]?.nodeId ||
+          entry.resolution !== previousResolutionsRef.current[index]?.resolution
       );
 
     if (changed) {
-      previousTraceRef.current = trace;
+      previousResolutionsRef.current = resolutions;
       setAnimationKey((value) => value + 1);
     }
-  }, [trace]);
+  }, [resolutions]);
 
-  const css = useMemo(() => buildTraceStyles(trace), [trace]);
+  const css = useMemo(() => buildResolutionStyles(resolutions), [resolutions]);
   if (!css) {
     return null;
   }
@@ -33,7 +33,7 @@ export function TraceAnimations({ trace }: TraceAnimationsProps) {
   return <style key={animationKey} dangerouslySetInnerHTML={{ __html: css }} />;
 }
 
-function buildTraceStyles(trace: ReconciliationTrace[]): string {
+function buildResolutionStyles(resolutions: ReconciliationResolution[]): string {
   const keyframes = `
 @keyframes continuum-shake {
   0%, 100% { transform: translateX(0); }
@@ -63,18 +63,18 @@ function buildTraceStyles(trace: ReconciliationTrace[]): string {
   const warningBg = playgroundTheme.color.warningBg;
   const dangerBg = playgroundTheme.color.dangerBg;
 
-  const rules = trace
-    .filter((entry) => entry.action !== 'carried')
+  const rules = resolutions
+    .filter((entry) => entry.resolution !== 'carried')
     .map((entry) => {
-      const selector = `[data-continuum-id="${entry.componentId}"]`;
+      const selector = `[data-continuum-id="${entry.nodeId}"]`;
       const base = `padding: 8px; border-radius: 8px; margin: 4px 0;`;
-      if (entry.action === 'dropped') {
+      if (entry.resolution === 'dropped') {
         return `${selector} { ${base} --continuum-highlight-shadow: inset 3px 0 0 ${playgroundTheme.color.danger}; --continuum-highlight-bg: ${dangerBg}; box-shadow: inset 3px 0 0 ${playgroundTheme.color.danger}; background: ${dangerBg}; animation: continuum-shake 0.5s ease, continuum-clear-decoration 0.4s ease 2.6s forwards; }`;
       }
-      if (entry.action === 'migrated') {
+      if (entry.resolution === 'migrated') {
         return `${selector} { ${base} --continuum-highlight-shadow: inset 3px 0 0 ${playgroundTheme.color.warning}; --continuum-highlight-bg: ${warningBg}; box-shadow: inset 3px 0 0 ${playgroundTheme.color.warning}; background: ${warningBg}; animation: continuum-pulse 0.6s ease 2, continuum-clear-decoration 0.4s ease 2.6s forwards; }`;
       }
-      if (entry.action === 'added') {
+      if (entry.resolution === 'added') {
         return `${selector} { ${base} --continuum-highlight-shadow: inset 3px 0 0 ${playgroundTheme.color.success}; --continuum-highlight-bg: ${successBg}; box-shadow: inset 3px 0 0 ${playgroundTheme.color.success}; background: ${successBg}; animation: continuum-fadein 0.4s ease, continuum-clear-decoration 0.4s ease 2.6s forwards; }`;
       }
       return '';
@@ -86,4 +86,3 @@ function buildTraceStyles(trace: ReconciliationTrace[]): string {
   }
   return keyframes + rules.join('\n');
 }
-

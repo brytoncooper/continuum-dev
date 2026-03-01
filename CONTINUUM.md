@@ -4,71 +4,122 @@
 
 ## What Continuum Does
 
-Continuum is a state continuity layer for schema-driven UIs. Given a UI schema (JSON describing components), it:
+Continuum is a state continuity layer for view-driven UIs. Given a view definition (JSON describing nodes), it:
 
-1. Reconciles user state across schema versions (component renamed? state carries. type changed? state drops.)
+1. Reconciles user data across view versions (node renamed? state carries. type changed? state detaches.)
 2. Persists sessions to storage (survive refresh, survive tab close)
-3. Auto-checkpoints on every schema push (user can rewind to any prior version)
-4. Logs a full audit trail (diffs, traces, issues, interactions)
+3. Auto-checkpoints on every view push (user can rewind to any prior version)
+4. Logs a full audit trail (diffs, resolutions, issues, interactions)
 
 ## Core Data Types (`@continuum/contract`)
 
 ```typescript
-interface SchemaSnapshot {
-  schemaId: string;
+interface ViewDefinition {
+  viewId: string;
   version: string;
-  components: ComponentDefinition[];
+  nodes: ViewNode[];
 }
 
-interface ComponentDefinition {
+type ViewNode =
+  | FieldNode
+  | GroupNode
+  | CollectionNode
+  | ActionNode
+  | PresentationNode;
+
+interface BaseNode {
   id: string;
   type: string;
-  key?: string;        // stable identifier for matching across schema versions
-  path?: string;       // display label or hierarchical path
-  hash?: string;       // schema shape hash for migration detection
-  stateType?: string;  // hint about the expected state shape
-  stateShape?: unknown; // metadata (e.g. dropdown options as { id, label }[])
+  key?: string;
+  hidden?: boolean;
+  hash?: string;
   migrations?: MigrationRule[];
-  children?: ComponentDefinition[];
 }
 
-interface Interaction {
-  id: string;
-  sessionId: string;
-  componentId: string;
-  type: string;
-  payload: unknown;
-  timestamp: number;
-  schemaVersion: string;
+interface FieldNode extends BaseNode {
+  type: 'field';
+  dataType: 'string' | 'number' | 'boolean';
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  readOnly?: boolean;
+  defaultValue?: unknown;
+  constraints?: FieldConstraints;
 }
 
-interface PendingAction {
-  id: string;
-  componentId: string;
-  actionType: string;
-  payload: unknown;
-  createdAt: number;
-  schemaVersion: string;
-  status: 'pending' | 'validated' | 'stale' | 'cancelled';
+interface GroupNode extends BaseNode {
+  type: 'group';
+  label?: string;
+  children: ViewNode[];
 }
 
-interface StateSnapshot {
-  values: Record<string, ComponentState>;  // componentId -> state
-  meta: StateMeta;
-  valuesMeta?: Record<string, ValueMeta>;
+interface CollectionNode extends BaseNode {
+  type: 'collection';
+  label?: string;
+  template: ViewNode;
+  minItems?: number;
+  maxItems?: number;
+}
+
+interface ActionNode extends BaseNode {
+  type: 'action';
+  intentId: string;
+  label: string;
+  disabled?: boolean;
+}
+
+interface PresentationNode extends BaseNode {
+  type: 'presentation';
+  contentType: 'text' | 'markdown';
+  content: string;
+}
+
+interface NodeValue<T = unknown> {
+  value: T;
+  isDirty?: boolean;
+  isValid?: boolean;
+}
+
+interface DataSnapshot {
+  values: Record<string, NodeValue>;
+  viewContext?: Record<string, ViewContext>;
+  lineage: SnapshotLineage;
+  valueLineage?: Record<string, ValueLineage>;
+  detachedValues?: Record<string, DetachedValue>;
 }
 
 interface ContinuitySnapshot {
-  schema: SchemaSnapshot;
-  state: StateSnapshot;
+  view: ViewDefinition;
+  data: DataSnapshot;
+}
+
+interface Interaction {
+  interactionId: string;
+  sessionId: string;
+  nodeId: string;
+  type: string;
+  payload: unknown;
+  timestamp: number;
+  viewVersion: string;
+}
+
+interface PendingIntent {
+  intentId: string;
+  nodeId: string;
+  intentName: string;
+  payload: unknown;
+  queuedAt: number;
+  viewVersion: string;
+  status: 'pending' | 'validated' | 'stale' | 'cancelled';
 }
 
 interface Checkpoint {
-  id: string;
+  checkpointId: string;
   sessionId: string;
   snapshot: ContinuitySnapshot;
   eventIndex: number;
   timestamp: number;
+  trigger: 'auto' | 'manual';
 }
 ```
 
@@ -80,39 +131,42 @@ import { createSession, deserialize } from '@continuum/session';
 const session = createSession();                   // or createSession({ clock: Date.now })
 const restored = deserialize(blob);                // reconstruct from session.serialize() output
 
-// Push a new schema -- triggers reconciliation, auto-checkpoints
-session.pushSchema(schema);
+// Push a new view definition -- triggers reconciliation, auto-checkpoints
+session.pushView(view);
 
 // Read current state
-session.getSnapshot();    // ContinuitySnapshot | null
-session.getIssues();      // ReconciliationIssue[]
-session.getDiffs();       // StateDiff[]
-session.getTrace();       // ReconciliationTrace[]
-session.getEventLog();    // Interaction[]
+session.getSnapshot();        // ContinuitySnapshot | null
+session.getIssues();          // ReconciliationIssue[]
+session.getDiffs();           // StateDiff[]
+session.getResolutions();     // ReconciliationResolution[]
+session.getEventLog();        // Interaction[]
+session.getDetachedValues();  // Record<string, DetachedValue>
 
-// Update component state (user interaction)
-session.updateState('componentId', { value: 'hello' });
+// Update node state (user interaction)
+session.updateState('nodeId', { value: 'hello' });
 
 // Record a custom interaction event
-session.recordIntent({ componentId: 'name', type: 'value-change', payload: { value: 'Alice' } });
+session.recordIntent({ nodeId: 'name', type: 'value-change', payload: { value: 'Alice' } });
 
-// Pending actions
-session.submitAction({ componentId: 'form', actionType: 'submit', payload: {} });
-session.getPendingActions();         // PendingAction[]
-session.validateAction(actionId);    // mark as validated
-session.cancelAction(actionId);      // mark as cancelled
+// Pending intents
+session.submitIntent({ nodeId: 'form', intentName: 'submit', payload: {} });
+session.getPendingIntents();         // PendingIntent[]
+session.validateIntent(intentId);    // boolean
+session.cancelIntent(intentId);      // boolean
 
 // Checkpoint & Rewind
-session.checkpoint();                // manually create a checkpoint
+session.checkpoint();                // manually create a checkpoint (trigger: "manual")
+session.restoreFromCheckpoint(cp);   // restore from a checkpoint object
 session.getCheckpoints();            // Checkpoint[]
 session.rewind(checkpointId);        // restores to that checkpoint, trims stack
+session.reset();                     // reset to empty session state
 
 // Persistence
 const blob = session.serialize();    // { formatVersion: 1, ...full state }
 
 // Listeners (return unsubscribe functions)
-const unsub1 = session.onSnapshot(callback);  // fires after pushSchema, updateState, rewind
-const unsub2 = session.onIssues(callback);    // fires after pushSchema, rewind
+const unsub1 = session.onSnapshot((snapshot) => {});  // receives ContinuitySnapshot
+const unsub2 = session.onIssues(callback);    // fires after pushView, rewind
 
 // Lifecycle
 session.destroy();  // teardown, returns { issues }
@@ -133,9 +187,9 @@ import {
 
 // Provider wraps your app, handles persistence
 <ContinuumProvider
-  components={componentMap}     // Record<string, React.ComponentType>
-  persist="localStorage"        // "localStorage" | "sessionStorage" | false
-  storageKey="continuum_session" // optional custom key
+  components={nodeMap}            // Record<string, React.ComponentType>
+  persist="localStorage"          // "localStorage" | "sessionStorage" | false
+  storageKey="continuum_session"  // optional custom key
 >
   <App />
 </ContinuumProvider>
@@ -143,127 +197,172 @@ import {
 // Access the session inside the provider
 const session = useContinuumSession();
 
-// Render a schema
-<ContinuumRenderer schema={snapshot.schema} />
+// Render a view definition
+<ContinuumRenderer view={snapshot.view} />
 
-// Read/write a single component's state (uses useSyncExternalStore)
-const [value, setValue] = useContinuumState('componentId');
+// Read/write a single node's state (uses useSyncExternalStore)
+const [value, setValue] = useContinuumState('nodeId');
 
 // Subscribe to the full snapshot (re-renders on every change)
 const snapshot = useContinuumSnapshot();   // ContinuitySnapshot | null
 
-// Subscribe to diagnostics (re-renders on schema push or issue change)
-const { issues, diffs, trace, checkpoints } = useContinuumDiagnostics();
+// Subscribe to diagnostics (re-renders on view push or issue change)
+const { issues, diffs, resolutions, checkpoints } = useContinuumDiagnostics();
 
 // Check if the session was rehydrated from storage
 const wasHydrated = useContinuumHydrated();  // boolean
 ```
 
+## Angular Integration (`@continuum/angular`)
+
+```typescript
+import {
+  provideContinuum,
+  injectContinuumSession,
+  ContinuumRendererComponent,
+} from '@continuum/angular';
+import type { ContinuumNodeProps, ContinuumNodeMap } from '@continuum/angular';
+
+// Provide in your app config
+bootstrapApplication(AppComponent, {
+  providers: [
+    provideContinuum({
+      components: nodeMap,          // ContinuumNodeMap
+      persist: 'localStorage',
+    }),
+  ],
+});
+
+// Inject the session in any component
+const session = injectContinuumSession();
+
+// Render a view definition in a template
+// <continuum-renderer [view]="snapshot.view" />
+```
+
 ## Protocol Adapters (`@continuum/adapters`)
 
-Transform external UI schema formats into Continuum's `SchemaSnapshot`:
+Transform external UI formats into Continuum's `ViewDefinition`:
 
 ```typescript
 import { a2uiAdapter } from '@continuum/adapters';
 import type { ProtocolAdapter, A2UIForm } from '@continuum/adapters';
 
-// Convert A2UI JSON → SchemaSnapshot
-const schema = a2uiAdapter.toSchema(a2uiForm);
+// Convert A2UI JSON → ViewDefinition
+const view = a2uiAdapter.toView(a2uiForm);
 
-// Convert external data → Continuum state
+// Convert external data → Continuum state (Record<string, NodeValue>)
 const state = a2uiAdapter.toState({ name: 'Alice', agree: true });
 
 // Convert back
-const form = a2uiAdapter.fromSchema(schema);
+const form = a2uiAdapter.fromView(view);
 const data = a2uiAdapter.fromState(state);
 ```
 
 The `ProtocolAdapter` interface:
 
 ```typescript
-interface ProtocolAdapter<TExternalSchema, TExternalData = unknown> {
+interface ProtocolAdapter<TExternalView, TExternalData = unknown> {
   name: string;
-  toSchema(external: TExternalSchema): SchemaSnapshot;
-  fromSchema?(snapshot: SchemaSnapshot): TExternalSchema;
-  toState?(externalData: TExternalData): Record<string, ComponentState>;
-  fromState?(state: Record<string, ComponentState>): TExternalData;
+  toView(external: TExternalView): ViewDefinition;
+  fromView?(definition: ViewDefinition): TExternalView;
+  toState?(externalData: TExternalData): Record<string, NodeValue>;
+  fromState?(state: Record<string, NodeValue>): TExternalData;
 }
 ```
 
-A2UI type mapping: `TextInput` → `input`, `TextArea` → `textarea`, `Dropdown`/`SelectionInput` → `select`, `Switch`/`Toggle` → `toggle`, `DateInput` → `date`, `Section`/`Card` → `container`.
+A2UI type mapping: `TextInput` → `field` with dataType `'string'`, `TextArea` → `field` with dataType `'string'`, `Dropdown`/`SelectionInput` → `field` with dataType `'string'`, `Switch`/`Toggle` → `field` with dataType `'boolean'`, `DateInput` → `field` with dataType `'string'`, `Section`/`Card` → `group`.
 
-## Component Map
+## Node Map
 
-Components are React components receiving `ContinuumComponentProps`:
+Components are React components receiving `ContinuumNodeProps`:
 
 ```typescript
-interface ContinuumComponentProps {
-  value: ComponentState | undefined;
-  onChange: (state: ComponentState) => void;
-  definition: ComponentDefinition;
+interface ContinuumNodeProps<T = NodeValue> {
+  value: T | undefined;
+  onChange: (value: T) => void;
+  definition: ViewNode;
   children?: React.ReactNode;
+  [prop: string]: unknown;
 }
 ```
 
-Register them by type string:
+Register them by node type string:
 
 ```typescript
-const componentMap = {
-  input: TextInput,
-  select: SelectField,
-  toggle: ToggleSwitch,
-  date: DateInput,
-  textarea: TextArea,
-  'radio-group': RadioGroup,
-  slider: Slider,
-  section: Section,
-  container: ContainerLayout,
+const nodeMap = {
+  field: TextField,
+  group: SectionLayout,
+  collection: RepeaterLayout,
+  action: ActionButton,
+  presentation: DisplayContent,
   default: FallbackComponent,
 };
 ```
 
 ## Reconciliation Rules
 
-When `pushSchema(newSchema)` is called with existing state:
+When `pushView(newView)` is called with existing data:
 
-1. **Match by ID** -- if a component in the new schema has the same `id` as one in the prior schema, they match
-2. **Match by key** -- if IDs differ but `key` matches, the component is treated as renamed
-3. **Type check** -- if matched components have different `type`, state is **dropped** (TYPE_MISMATCH)
-4. **Hash check** -- if matched components have different `hash`, look for a migration rule
-5. **Migration** -- if a `MigrationRule` exists for the hash transition, apply the registered strategy
-6. **Carry** -- if type and hash match, state carries forward unchanged
-7. **New components** -- components in new schema with no match are added with empty state
-8. **Removed components** -- components in prior schema with no match in new schema are logged as removed
+1. **Match by ID** -- if a node in the new view has the same `id` as one in the prior view, they match
+2. **Match by key** -- if IDs differ but `key` matches, the node is treated as renamed
+3. **Type check** -- if matched nodes have different `type`, state is **detached** (TYPE_MISMATCH)
+4. **Hash check** -- if matched nodes have different `hash`, look for a migration rule
+5. **Migration** -- try `migrationStrategies[nodeId]`, then `MigrationRule.strategyId` via `strategyRegistry`
+6. **Fallback carry** -- if migration lookup is absent and type still matches, prior state carries forward
+7. **New nodes** -- nodes in new view with no match are added with empty state
+8. **Removed nodes** -- nodes in prior view with no match in new view are logged as removed
 
 ## Constants (`@continuum/contract`)
 
 ```typescript
-import { ISSUE_CODES, TRACE_ACTIONS, DIFF_TYPES, ISSUE_SEVERITY, ACTION_STATUS } from '@continuum/contract';
+import { ISSUE_CODES, DATA_RESOLUTIONS, VIEW_DIFFS, ISSUE_SEVERITY, INTENT_STATUS } from '@continuum/contract';
 
-ISSUE_CODES.TYPE_MISMATCH    // 'TYPE_MISMATCH'
-ISSUE_CODES.COMPONENT_REMOVED // 'COMPONENT_REMOVED'
-TRACE_ACTIONS.CARRIED         // 'carried'
-TRACE_ACTIONS.DROPPED         // 'dropped'
-DIFF_TYPES.ADDED              // 'added'
+ISSUE_CODES.TYPE_MISMATCH       // 'TYPE_MISMATCH'
+ISSUE_CODES.NODE_REMOVED        // 'NODE_REMOVED'
+ISSUE_CODES.UNKNOWN_NODE        // 'UNKNOWN_NODE'
+ISSUE_CODES.NO_PRIOR_DATA       // 'NO_PRIOR_DATA'
+ISSUE_CODES.NO_PRIOR_VIEW       // 'NO_PRIOR_VIEW'
+ISSUE_CODES.UNVALIDATED_CARRY   // 'UNVALIDATED_CARRY'
+ISSUE_CODES.MIGRATION_FAILED    // 'MIGRATION_FAILED'
+ISSUE_CODES.VALIDATION_FAILED   // 'VALIDATION_FAILED'
+
+DATA_RESOLUTIONS.CARRIED        // 'carried'
+DATA_RESOLUTIONS.DETACHED       // 'detached'
+DATA_RESOLUTIONS.MIGRATED       // 'migrated'
+DATA_RESOLUTIONS.ADDED          // 'added'
+DATA_RESOLUTIONS.RESTORED       // 'restored'
+
+VIEW_DIFFS.ADDED                // 'added'
+VIEW_DIFFS.REMOVED              // 'removed'
+VIEW_DIFFS.MIGRATED             // 'migrated'
+VIEW_DIFFS.TYPE_CHANGED         // 'type-changed'
+VIEW_DIFFS.RESTORED             // 'restored'
+
+INTENT_STATUS.PENDING           // 'pending'
+INTENT_STATUS.VALIDATED         // 'validated'
+INTENT_STATUS.STALE             // 'stale'
+INTENT_STATUS.CANCELLED         // 'cancelled'
 ```
 
 ## Key Constraints
 
-- `SchemaSnapshot.schemaId` is the field name (not `id`)
-- `session.serialize()` output includes `formatVersion: 1` -- deserialize validates this
-- `deserialize()` accepts blobs without `formatVersion` (legacy support) but rejects `formatVersion > 1`
-- `pushSchema` auto-creates a checkpoint after reconciliation
-- `rewind(id)` trims the checkpoint stack to the rewound point (cannot re-rewind past it)
+- `ViewDefinition.viewId` is the field name (not `id`)
+- `session.serialize()` output includes `formatVersion: 1`
+- `deserialize()` only accepts `formatVersion: 1`; any other value (including missing) throws an error
+- `pushView` auto-creates a checkpoint after reconciliation
+- `rewind(checkpointId)` trims the checkpoint stack to the rewound point (cannot re-rewind past it)
 - The session is stateful and single-threaded -- do not call methods concurrently
-- Component state shape is opaque (`ComponentState = Record<string, unknown> | ...`); the session does not validate it
+- Node state shape is `NodeValue<T>` (`{ value: T, isDirty?, isValid? }`); the session does not validate it beyond structure
 
 ## Project Structure
 
 ```
-packages/contract/   - Types, interfaces, constants
+packages/contract/   - Types, interfaces, constants (ViewDefinition, DataSnapshot, NodeValue)
 packages/runtime/    - Reconciliation engine (reconcile function)
 packages/session/    - Session lifecycle (createSession, deserialize)
 packages/react/      - React bindings (Provider, Renderer, hooks)
+packages/angular/    - Angular bindings (provideContinuum, signals, standalone renderer, forms)
 packages/adapters/   - Protocol adapters (ProtocolAdapter interface, A2UI adapter)
 apps/playground/     - Demo application (protocol toggle, hallucination animations)
 ```

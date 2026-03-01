@@ -15,7 +15,7 @@ export function DiffList({ diffs }: DiffListProps) {
     <div style={{ display: 'grid', gap: space.xs }}>
       {diffs.map((diff, index) => (
         <div
-          key={`${diff.componentId}-${diff.type}-${index}`}
+          key={`${diff.nodeId}-${diff.type}-${index}`}
           style={{
             border: `1px solid ${playgroundTheme.color.border}`,
             borderRadius: radius.md,
@@ -26,7 +26,7 @@ export function DiffList({ diffs }: DiffListProps) {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.sm }}>
-            <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>{diff.componentId}</span>
+            <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>{diff.nodeId}</span>
             <span
               style={{
                 ...typeScale.caption,
@@ -53,4 +53,3 @@ function tone(type: string): string {
   if (type === 'added') return playgroundTheme.color.success;
   return playgroundTheme.color.muted;
 }
-
