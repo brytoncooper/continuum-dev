@@ -1,0 +1,245 @@
+import type { DataSnapshot, DetachedValue, NodeValue, ViewNode } from '@continuum/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import type {
+  NodeResolutionAccumulator,
+  ReconciliationIssue,
+  ReconciliationOptions,
+  StateDiff,
+} from '../types.js';
+import type { ReconciliationContext } from '../context.js';
+import {
+  findPriorNode,
+  determineNodeMatchStrategy,
+} from '../context.js';
+import {
+  addedDiff,
+  addedResolution,
+  typeChangedDiff,
+  detachedResolution,
+  migratedDiff,
+  migratedResolution,
+  carriedResolution,
+  removedDiff,
+  restoredDiff,
+  restoredResolution,
+} from './differ.js';
+import { attemptMigration } from './migrator.js';
+import { carryValuesMeta } from './state-builder.js';
+import { validateNodeValue } from './validator.js';
+
+export function resolveAllNodes(
+  ctx: ReconciliationContext,
+  priorValues: Map<string, unknown>,
+  priorData: DataSnapshot,
+  now: number,
+  options: ReconciliationOptions
+): NodeResolutionAccumulator {
+  const acc: NodeResolutionAccumulator = {
+    values: {},
+    valueLineage: {},
+    detachedValues: {},
+    restoredDetachedKeys: new Set<string>(),
+    diffs: [],
+    resolutions: [],
+    issues: [],
+  };
+
+  for (const [newId, newNode] of ctx.newById) {
+    const priorNode = findPriorNode(ctx, newNode);
+    const priorValue =
+      priorValues.get(newId) ?? (priorNode ? priorData.values[priorNode.id] : undefined);
+    const matchedBy = determineNodeMatchStrategy(ctx, newNode, priorNode);
+
+    if (!priorNode) {
+      resolveNewNode(acc, newId, newNode, priorData, now);
+    } else if (priorNode.type !== newNode.type) {
+      resolveTypeMismatchedNode(acc, newId, priorNode, newNode, matchedBy, priorValue, ctx, now);
+    } else if (hasNodeHashChanged(priorNode, newNode)) {
+      resolveHashChangedNode(acc, newId, priorNode, newNode, matchedBy, priorValue, priorData, now, options);
+    } else {
+      resolveUnchangedNode(acc, newId, priorNode, matchedBy as 'id' | 'key', priorValue, priorData, now);
+    }
+
+    acc.issues.push(
+      ...validateNodeValue(
+        newNode,
+        acc.values[newId] as NodeValue | undefined
+      )
+    );
+  }
+
+  return acc;
+}
+
+function resolveNewNode(
+  acc: NodeResolutionAccumulator,
+  newId: string,
+  newNode: ViewNode,
+  priorData: DataSnapshot,
+  now: number
+): void {
+  const detachedKey = newNode.key ?? newId;
+  const detachedValue = priorData.detachedValues?.[detachedKey];
+  if (detachedValue && detachedValue.previousNodeType === newNode.type) {
+    acc.values[newId] = detachedValue.value as NodeValue;
+    acc.restoredDetachedKeys.add(detachedKey);
+    acc.diffs.push(restoredDiff(newId, detachedValue.value));
+    acc.resolutions.push(restoredResolution(newId, newNode.type, detachedValue.value));
+    return;
+  }
+  if ('defaultValue' in newNode && newNode.defaultValue !== undefined) {
+    acc.values[newId] = { value: newNode.defaultValue };
+  }
+  acc.diffs.push(addedDiff(newId));
+  acc.resolutions.push(addedResolution(newId, newNode.type));
+}
+
+function resolveTypeMismatchedNode(
+  acc: NodeResolutionAccumulator,
+  newId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
+  matchedBy: 'id' | 'key' | null,
+  priorValue: unknown,
+  ctx: ReconciliationContext,
+  now: number
+): void {
+  acc.issues.push({
+    severity: ISSUE_SEVERITY.ERROR,
+    nodeId: newId,
+    message: `Node type mismatch: ${priorNode.type} -> ${newNode.type}`,
+    code: ISSUE_CODES.TYPE_MISMATCH,
+  });
+  acc.diffs.push(typeChangedDiff(newId, priorValue, priorNode.type, newNode.type));
+  acc.resolutions.push(detachedResolution(newId, priorNode.id, matchedBy, priorNode.type, newNode.type, priorValue));
+  if (priorValue !== undefined) {
+    const detachedKey = priorNode.key ?? priorNode.id;
+    acc.detachedValues[detachedKey] = {
+      value: priorValue as NodeValue,
+      previousNodeType: priorNode.type,
+      key: priorNode.key,
+      detachedAt: now,
+      viewVersion: ctx.priorView?.version ?? 'unknown',
+      reason: 'type-mismatch',
+    };
+  }
+}
+
+function hasNodeHashChanged(
+  priorNode: ViewNode,
+  newNode: ViewNode
+): boolean {
+  return !!(priorNode.hash && newNode.hash && priorNode.hash !== newNode.hash);
+}
+
+function resolveHashChangedNode(
+  acc: NodeResolutionAccumulator,
+  newId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
+  matchedBy: 'id' | 'key' | null,
+  priorValue: unknown,
+  priorData: DataSnapshot,
+  now: number,
+  options: ReconciliationOptions
+): void {
+  const migrationResult = attemptMigration(newId, priorNode, newNode, priorValue, options);
+
+  if (migrationResult.kind === 'migrated') {
+    acc.values[newId] = migrationResult.value as NodeValue;
+    carryValuesMeta(acc.valueLineage, newId, priorNode.id, priorData, now, true);
+    acc.diffs.push(migratedDiff(newId, priorValue, migrationResult.value));
+    acc.resolutions.push(
+      migratedResolution(
+        newId,
+        priorNode.id,
+        matchedBy,
+        priorNode.type,
+        newNode.type,
+        priorValue,
+        migrationResult.value
+      )
+    );
+    return;
+  }
+
+  const message = migrationResult.kind === 'error'
+    ? `Node ${newId} migration failed: ${String(migrationResult.error)}`
+    : `Node ${newId} view changed but no migration strategy available`;
+
+  acc.issues.push({
+    severity: ISSUE_SEVERITY.WARNING,
+    nodeId: newId,
+    message,
+    code: ISSUE_CODES.MIGRATION_FAILED,
+  });
+
+  resolveUnchangedNode(acc, newId, priorNode, matchedBy as 'id' | 'key', priorValue, priorData, now);
+}
+
+function resolveUnchangedNode(
+  acc: NodeResolutionAccumulator,
+  newId: string,
+  priorNode: ViewNode,
+  matchedBy: 'id' | 'key',
+  priorValue: unknown,
+  priorData: DataSnapshot,
+  now: number
+): void {
+  if (priorValue !== undefined) {
+    acc.values[newId] = priorValue as NodeValue;
+    carryValuesMeta(acc.valueLineage, newId, priorNode.id, priorData, now, false);
+  }
+
+  acc.resolutions.push(carriedResolution(
+    newId,
+    priorNode.id,
+    matchedBy,
+    priorNode.type,
+    priorValue,
+    priorValue !== undefined ? priorValue : undefined
+  ));
+}
+
+export function detectRemovedNodes(
+  ctx: ReconciliationContext,
+  priorData: DataSnapshot,
+  options: ReconciliationOptions,
+  now: number
+): { diffs: StateDiff[]; issues: ReconciliationIssue[]; detachedValues: Record<string, DetachedValue> } {
+  const diffs: StateDiff[] = [];
+  const issues: ReconciliationIssue[] = [];
+  const detachedValues: Record<string, DetachedValue> = {};
+
+  for (const [priorId, priorValue] of Object.entries(priorData.values)) {
+    const priorComp = ctx.priorById.get(priorId);
+    const stillExists =
+      ctx.newById.has(priorId) ||
+      (priorComp?.key ? ctx.newByKey.has(priorComp.key) : false);
+
+    if (!stillExists) {
+      diffs.push(removedDiff(priorId, priorValue));
+      if (priorValue !== undefined) {
+        const detachedKey = priorComp?.key ?? priorId;
+        detachedValues[detachedKey] = {
+          value: priorValue as NodeValue,
+          previousNodeType: priorComp?.type ?? 'unknown',
+          key: priorComp?.key,
+          detachedAt: now,
+          viewVersion: ctx.priorView?.version ?? 'unknown',
+          reason: 'node-removed',
+        };
+      }
+      if (!options.allowPartialRestore) {
+        issues.push({
+          severity: ISSUE_SEVERITY.WARNING,
+          nodeId: priorId,
+          message: `Node ${priorId} was removed from view`,
+          code: ISSUE_CODES.NODE_REMOVED,
+        });
+      }
+    }
+  }
+
+  return { diffs, issues, detachedValues };
+}

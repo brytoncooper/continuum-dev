@@ -1,150 +1,150 @@
-import { DIFF_TYPES, TRACE_ACTIONS } from '@continuum/contract';
-import type { StateDiff, ReconciliationTrace } from '../types.js';
+import { VIEW_DIFFS, DATA_RESOLUTIONS } from '@continuum/contract';
+import type { StateDiff, ReconciliationResolution } from '../types.js';
 
-export function addedDiff(componentId: string): StateDiff {
+export function addedDiff(nodeId: string): StateDiff {
   return {
-    componentId,
-    type: DIFF_TYPES.ADDED,
+    nodeId,
+    type: VIEW_DIFFS.ADDED,
     newValue: undefined,
-    reason: 'Component added to schema',
+    reason: 'Node added to view',
   };
 }
 
-export function removedDiff(componentId: string, oldValue: unknown): StateDiff {
+export function removedDiff(nodeId: string, oldValue: unknown): StateDiff {
   return {
-    componentId,
-    type: DIFF_TYPES.REMOVED,
+    nodeId,
+    type: VIEW_DIFFS.REMOVED,
     oldValue,
-    reason: 'Component removed from schema',
+    reason: 'Node removed from view',
   };
 }
 
 export function typeChangedDiff(
-  componentId: string,
+  nodeId: string,
   oldValue: unknown,
   priorType: string,
   newType: string
 ): StateDiff {
   return {
-    componentId,
-    type: DIFF_TYPES.TYPE_CHANGED,
+    nodeId,
+    type: VIEW_DIFFS.TYPE_CHANGED,
     oldValue,
     reason: `Type changed from ${priorType} to ${newType}`,
   };
 }
 
 export function migratedDiff(
-  componentId: string,
+  nodeId: string,
   oldValue: unknown,
   newValue: unknown
 ): StateDiff {
   return {
-    componentId,
-    type: DIFF_TYPES.MIGRATED,
+    nodeId,
+    type: VIEW_DIFFS.MIGRATED,
     oldValue,
     newValue,
-    reason: 'Component schema changed, migration applied',
+    reason: 'Node view changed, migration applied',
   };
 }
 
 export function restoredDiff(
-  componentId: string,
+  nodeId: string,
   newValue: unknown
 ): StateDiff {
   return {
-    componentId,
-    type: DIFF_TYPES.RESTORED,
+    nodeId,
+    type: VIEW_DIFFS.RESTORED,
     newValue,
-    reason: 'Component restored from orphaned values',
+    reason: 'Node restored from detached values',
   };
 }
 
-export function addedTrace(componentId: string, newType: string): ReconciliationTrace {
+export function addedResolution(nodeId: string, newType: string): ReconciliationResolution {
   return {
-    componentId,
+    nodeId,
     priorId: null,
     matchedBy: null,
     priorType: null,
     newType,
-    action: TRACE_ACTIONS.ADDED,
+    resolution: DATA_RESOLUTIONS.ADDED,
     priorValue: undefined,
     reconciledValue: undefined,
   };
 }
 
-export function carriedTrace(
-  componentId: string,
+export function carriedResolution(
+  nodeId: string,
   priorId: string,
   matchedBy: 'id' | 'key',
-  componentType: string,
+  nodeType: string,
   priorValue: unknown,
   reconciledValue: unknown
-): ReconciliationTrace {
+): ReconciliationResolution {
   return {
-    componentId,
+    nodeId,
     priorId,
     matchedBy,
-    priorType: componentType,
-    newType: componentType,
-    action: TRACE_ACTIONS.CARRIED,
+    priorType: nodeType,
+    newType: nodeType,
+    resolution: DATA_RESOLUTIONS.CARRIED,
     priorValue,
     reconciledValue,
   };
 }
 
-export function droppedTrace(
-  componentId: string,
+export function detachedResolution(
+  nodeId: string,
   priorId: string,
   matchedBy: 'id' | 'key' | null,
   priorType: string,
   newType: string,
   priorValue: unknown
-): ReconciliationTrace {
+): ReconciliationResolution {
   return {
-    componentId,
+    nodeId,
     priorId,
     matchedBy,
     priorType,
     newType,
-    action: TRACE_ACTIONS.DROPPED,
+    resolution: DATA_RESOLUTIONS.DETACHED,
     priorValue,
     reconciledValue: undefined,
   };
 }
 
-export function migratedTrace(
-  componentId: string,
+export function migratedResolution(
+  nodeId: string,
   priorId: string,
   matchedBy: 'id' | 'key' | null,
   priorType: string,
   newType: string,
   priorValue: unknown,
   reconciledValue: unknown
-): ReconciliationTrace {
+): ReconciliationResolution {
   return {
-    componentId,
+    nodeId,
     priorId,
     matchedBy,
     priorType,
     newType,
-    action: TRACE_ACTIONS.MIGRATED,
+    resolution: DATA_RESOLUTIONS.MIGRATED,
     priorValue,
     reconciledValue,
   };
 }
 
-export function restoredTrace(
-  componentId: string,
+export function restoredResolution(
+  nodeId: string,
   priorType: string,
   reconciledValue: unknown
-): ReconciliationTrace {
+): ReconciliationResolution {
   return {
-    componentId,
+    nodeId,
     priorId: null,
     matchedBy: null,
     priorType,
     newType: priorType,
-    action: TRACE_ACTIONS.RESTORED,
+    resolution: DATA_RESOLUTIONS.RESTORED,
     priorValue: undefined,
     reconciledValue,
   };
