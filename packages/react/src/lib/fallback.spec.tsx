@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FallbackComponent } from './fallback.js';
 
 describe('FallbackComponent', () => {
-  it('returns a renderable React element for unknown component types', () => {
+  it('returns a renderable React element for unknown node types', () => {
     const onChange = vi.fn();
 
     const element = FallbackComponent({
@@ -10,7 +10,8 @@ describe('FallbackComponent', () => {
       onChange,
       definition: {
         id: 'field-1',
-        type: 'unknown-type',
+        type: 'field',
+        dataType: 'string',
         label: 'Field One',
         placeholder: 'Type here',
       },

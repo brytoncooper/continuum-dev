@@ -1,12 +1,12 @@
 import { createContext, useRef, useMemo, useEffect } from 'react';
 import { createSession, deserialize } from '@continuum/session';
 import type { Session } from '@continuum/session';
-import type { ContinuumComponentMap, ContinuumProviderProps } from './types.js';
+import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
 import { usePersistence } from './persistence.js';
 
 export interface ContinuumContextValue {
   session: Session;
-  componentMap: ContinuumComponentMap;
+  componentMap: ContinuumNodeMap;
   wasHydrated: boolean;
 }
 

@@ -1,25 +1,25 @@
 import { Component, type ReactNode } from 'react';
 
-interface ComponentErrorBoundaryProps {
-  componentId: string;
+interface NodeErrorBoundaryProps {
+  nodeId: string;
   children: ReactNode;
 }
 
-interface ComponentErrorBoundaryState {
+interface NodeErrorBoundaryState {
   hasError: boolean;
   message: string;
 }
 
-export class ComponentErrorBoundary extends Component<
-  ComponentErrorBoundaryProps,
-  ComponentErrorBoundaryState
+export class NodeErrorBoundary extends Component<
+  NodeErrorBoundaryProps,
+  NodeErrorBoundaryState
 > {
-  override state: ComponentErrorBoundaryState = {
+  override state: NodeErrorBoundaryState = {
     hasError: false,
     message: '',
   };
 
-  static getDerivedStateFromError(error: unknown): ComponentErrorBoundaryState {
+  static getDerivedStateFromError(error: unknown): NodeErrorBoundaryState {
     return {
       hasError: true,
       message: error instanceof Error ? error.message : String(error),
@@ -29,8 +29,8 @@ export class ComponentErrorBoundary extends Component<
   override render() {
     if (this.state.hasError) {
       return (
-        <div data-continuum-render-error={this.props.componentId}>
-          Component render failed: {this.props.componentId} ({this.state.message})
+        <div data-continuum-render-error={this.props.nodeId}>
+          Node render failed: {this.props.nodeId} ({this.state.message})
         </div>
       );
     }
