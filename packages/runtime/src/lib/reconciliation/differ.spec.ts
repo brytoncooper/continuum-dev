@@ -4,75 +4,75 @@ import {
   removedDiff,
   typeChangedDiff,
   migratedDiff,
-  addedTrace,
-  carriedTrace,
-  droppedTrace,
-  migratedTrace,
+  addedResolution,
+  carriedResolution,
+  detachedResolution,
+  migratedResolution,
 } from './differ.js';
 
 describe('diff factories', () => {
   it('addedDiff sets type to added with no old value', () => {
-    const diff = addedDiff('comp-1');
-    expect(diff.componentId).toBe('comp-1');
+    const diff = addedDiff('node-1');
+    expect(diff.nodeId).toBe('node-1');
     expect(diff.type).toBe('added');
     expect(diff.oldValue).toBeUndefined();
     expect(diff.newValue).toBeUndefined();
   });
 
   it('removedDiff captures the old value', () => {
-    const diff = removedDiff('comp-1', { value: 'hello' });
-    expect(diff.componentId).toBe('comp-1');
+    const diff = removedDiff('node-1', { value: 'hello' });
+    expect(diff.nodeId).toBe('node-1');
     expect(diff.type).toBe('removed');
     expect(diff.oldValue).toEqual({ value: 'hello' });
   });
 
   it('typeChangedDiff includes both type names in the reason', () => {
-    const diff = typeChangedDiff('comp-1', { value: 'hello' }, 'input', 'toggle');
+    const diff = typeChangedDiff('node-1', { value: 'hello' }, 'field', 'action');
     expect(diff.type).toBe('type-changed');
     expect(diff.oldValue).toEqual({ value: 'hello' });
-    expect(diff.reason).toContain('input');
-    expect(diff.reason).toContain('toggle');
+    expect(diff.reason).toContain('field');
+    expect(diff.reason).toContain('action');
   });
 
   it('migratedDiff captures both old and new values', () => {
-    const diff = migratedDiff('comp-1', { value: 'old' }, { value: 'new' });
+    const diff = migratedDiff('node-1', { value: 'old' }, { value: 'new' });
     expect(diff.type).toBe('migrated');
     expect(diff.oldValue).toEqual({ value: 'old' });
     expect(diff.newValue).toEqual({ value: 'new' });
   });
 });
 
-describe('trace factories', () => {
-  it('addedTrace has null prior fields', () => {
-    const trace = addedTrace('comp-1', 'input');
-    expect(trace.componentId).toBe('comp-1');
-    expect(trace.action).toBe('added');
-    expect(trace.priorId).toBeNull();
-    expect(trace.matchedBy).toBeNull();
-    expect(trace.priorType).toBeNull();
-    expect(trace.newType).toBe('input');
+describe('resolution factories', () => {
+  it('addedResolution has null prior fields', () => {
+    const res = addedResolution('node-1', 'field');
+    expect(res.nodeId).toBe('node-1');
+    expect(res.resolution).toBe('added');
+    expect(res.priorId).toBeNull();
+    expect(res.matchedBy).toBeNull();
+    expect(res.priorType).toBeNull();
+    expect(res.newType).toBe('field');
   });
 
-  it('carriedTrace records match details and preserved value', () => {
-    const trace = carriedTrace('new-id', 'old-id', 'key', 'input', 'hello', 'hello');
-    expect(trace.action).toBe('carried');
-    expect(trace.priorId).toBe('old-id');
-    expect(trace.matchedBy).toBe('key');
-    expect(trace.priorValue).toBe('hello');
-    expect(trace.reconciledValue).toBe('hello');
+  it('carriedResolution records match details and preserved value', () => {
+    const res = carriedResolution('new-id', 'old-id', 'key', 'field', 'hello', 'hello');
+    expect(res.resolution).toBe('carried');
+    expect(res.priorId).toBe('old-id');
+    expect(res.matchedBy).toBe('key');
+    expect(res.priorValue).toBe('hello');
+    expect(res.reconciledValue).toBe('hello');
   });
 
-  it('droppedTrace clears reconciledValue', () => {
-    const trace = droppedTrace('comp-1', 'comp-1', 'id', 'input', 'toggle', 'hello');
-    expect(trace.action).toBe('dropped');
-    expect(trace.reconciledValue).toBeUndefined();
-    expect(trace.priorValue).toBe('hello');
+  it('detachedResolution clears reconciledValue', () => {
+    const res = detachedResolution('node-1', 'node-1', 'id', 'field', 'action', 'hello');
+    expect(res.resolution).toBe('detached');
+    expect(res.reconciledValue).toBeUndefined();
+    expect(res.priorValue).toBe('hello');
   });
 
-  it('migratedTrace captures both prior and migrated values', () => {
-    const trace = migratedTrace('comp-1', 'comp-1', 'id', 'input', 'input', 'old', 'new');
-    expect(trace.action).toBe('migrated');
-    expect(trace.priorValue).toBe('old');
-    expect(trace.reconciledValue).toBe('new');
+  it('migratedResolution captures both prior and migrated values', () => {
+    const res = migratedResolution('node-1', 'node-1', 'id', 'field', 'field', 'old', 'new');
+    expect(res.resolution).toBe('migrated');
+    expect(res.priorValue).toBe('old');
+    expect(res.reconciledValue).toBe('new');
   });
 });

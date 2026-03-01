@@ -1,16 +1,12 @@
-import type { ComponentDefinition, ComponentState } from '@continuum/contract';
+import type { NodeValue, ViewNode } from '@continuum/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
 import type { ReconciliationIssue } from '../types.js';
 
-function readStateValue(state: ComponentState | undefined): unknown {
-  if (!state || typeof state !== 'object') {
+function readStateValue(state: NodeValue | undefined): unknown {
+  if (!state) {
     return undefined;
   }
-  const raw = state as Record<string, unknown>;
-  if ('value' in raw) return raw.value;
-  if ('checked' in raw) return raw.checked;
-  if ('selectedIds' in raw) return raw.selectedIds;
-  return undefined;
+  return state.value;
 }
 
 function isEmptyValue(value: unknown): boolean {
@@ -20,11 +16,11 @@ function isEmptyValue(value: unknown): boolean {
   return false;
 }
 
-export function validateComponentState(
-  definition: ComponentDefinition,
-  state: ComponentState | undefined
+export function validateNodeValue(
+  node: ViewNode,
+  state: NodeValue | undefined
 ): ReconciliationIssue[] {
-  const constraints = definition.constraints;
+  const constraints = 'constraints' in node ? node.constraints : undefined;
   if (!constraints) return [];
 
   const value = readStateValue(state);
@@ -33,8 +29,8 @@ export function validateComponentState(
   if (constraints.required && isEmptyValue(value)) {
     issues.push({
       severity: ISSUE_SEVERITY.WARNING,
-      componentId: definition.id,
-      message: `Component ${definition.id} failed required validation`,
+      nodeId: node.id,
+      message: `Node ${node.id} failed required validation`,
       code: ISSUE_CODES.VALIDATION_FAILED,
     });
     return issues;
@@ -44,16 +40,16 @@ export function validateComponentState(
     if (typeof constraints.min === 'number' && value < constraints.min) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
-        componentId: definition.id,
-        message: `Component ${definition.id} is below minimum ${constraints.min}`,
+        nodeId: node.id,
+        message: `Node ${node.id} is below minimum ${constraints.min}`,
         code: ISSUE_CODES.VALIDATION_FAILED,
       });
     }
     if (typeof constraints.max === 'number' && value > constraints.max) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
-        componentId: definition.id,
-        message: `Component ${definition.id} is above maximum ${constraints.max}`,
+        nodeId: node.id,
+        message: `Node ${node.id} is above maximum ${constraints.max}`,
         code: ISSUE_CODES.VALIDATION_FAILED,
       });
     }
@@ -63,16 +59,16 @@ export function validateComponentState(
     if (typeof constraints.minLength === 'number' && value.length < constraints.minLength) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
-        componentId: definition.id,
-        message: `Component ${definition.id} is shorter than minLength ${constraints.minLength}`,
+        nodeId: node.id,
+        message: `Node ${node.id} is shorter than minLength ${constraints.minLength}`,
         code: ISSUE_CODES.VALIDATION_FAILED,
       });
     }
     if (typeof constraints.maxLength === 'number' && value.length > constraints.maxLength) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
-        componentId: definition.id,
-        message: `Component ${definition.id} is longer than maxLength ${constraints.maxLength}`,
+        nodeId: node.id,
+        message: `Node ${node.id} is longer than maxLength ${constraints.maxLength}`,
         code: ISSUE_CODES.VALIDATION_FAILED,
       });
     }
@@ -82,16 +78,16 @@ export function validateComponentState(
         if (!pattern.test(value)) {
           issues.push({
             severity: ISSUE_SEVERITY.WARNING,
-            componentId: definition.id,
-            message: `Component ${definition.id} does not match pattern ${constraints.pattern}`,
+            nodeId: node.id,
+            message: `Node ${node.id} does not match pattern ${constraints.pattern}`,
             code: ISSUE_CODES.VALIDATION_FAILED,
           });
         }
       } catch {
         issues.push({
           severity: ISSUE_SEVERITY.WARNING,
-          componentId: definition.id,
-          message: `Component ${definition.id} has invalid validation pattern`,
+          nodeId: node.id,
+          message: `Node ${node.id} has invalid validation pattern`,
           code: ISSUE_CODES.VALIDATION_FAILED,
         });
       }

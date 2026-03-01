@@ -1,43 +1,44 @@
 import type {
-  ComponentDefinition,
-  ComponentState,
-  OrphanedValue,
-  SchemaSnapshot,
-  StateSnapshot,
-  ValueMeta,
+  DataSnapshot,
+  DetachedValue,
+  NodeValue,
+  ValueLineage,
+  ViewDefinition,
+  ViewNode,
 } from '@continuum/contract';
 import {
+  getChildNodes,
   ISSUE_CODES,
   ISSUE_SEVERITY,
 } from '@continuum/contract';
 import type {
-  ComponentResolutionAccumulator,
+  NodeResolutionAccumulator,
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResult,
   StateDiff,
-  ReconciliationTrace,
+  ReconciliationResolution,
 } from '../types.js';
-import { addedDiff, addedTrace } from './differ.js';
+import { addedDiff, addedResolution } from './differ.js';
 
 export function buildFreshSessionResult(
-  newSchema: SchemaSnapshot,
+  newView: ViewDefinition,
   now: number
 ): ReconciliationResult {
-  const values: Record<string, ComponentState> = {};
+  const values: Record<string, NodeValue> = {};
   const diffs: StateDiff[] = [];
-  const trace: ReconciliationTrace[] = [];
+  const resolutions: ReconciliationResolution[] = [];
 
-  collectComponentsAsFreshlyAdded(newSchema.components, values, diffs, trace);
+  collectNodesAsFreshlyAdded(newView.nodes, values, diffs, resolutions);
 
   return {
     reconciledState: {
       values,
-      meta: {
+      lineage: {
         timestamp: now,
         sessionId: generateSessionId(now),
-        schemaId: newSchema.schemaId,
-        schemaVersion: newSchema.version,
+        viewId: newView.viewId,
+        viewVersion: newView.version,
       },
     },
     diffs,
@@ -45,70 +46,74 @@ export function buildFreshSessionResult(
       {
         severity: ISSUE_SEVERITY.INFO,
         message: 'No prior state found, starting fresh',
-        code: ISSUE_CODES.NO_PRIOR_STATE,
+        code: ISSUE_CODES.NO_PRIOR_DATA,
       },
     ],
-    trace,
+    resolutions,
   };
 }
 
-function collectComponentsAsFreshlyAdded(
-  components: ComponentDefinition[],
-  values: Record<string, ComponentState>,
+function collectNodesAsFreshlyAdded(
+  nodes: ViewNode[],
+  values: Record<string, NodeValue>,
   diffs: StateDiff[],
-  trace: ReconciliationTrace[]
+  resolutions: ReconciliationResolution[]
 ): void {
-  for (const comp of components) {
-    if (comp.defaultValue !== undefined) {
-      values[comp.id] = comp.defaultValue as ComponentState;
+  for (const node of nodes) {
+    if ('defaultValue' in node && node.defaultValue !== undefined) {
+      values[node.id] = { value: node.defaultValue };
     }
-    diffs.push(addedDiff(comp.id));
-    trace.push(addedTrace(comp.id, comp.type));
-    if (comp.children) collectComponentsAsFreshlyAdded(comp.children, values, diffs, trace);
+    diffs.push(addedDiff(node.id));
+    resolutions.push(addedResolution(node.id, node.type));
+    const children = getChildNodes(node);
+    if (children.length > 0) {
+      collectNodesAsFreshlyAdded(children, values, diffs, resolutions);
+    }
   }
 }
 
-function collectComponentIds(components: ComponentDefinition[]): Set<string> {
+function collectNodeIds(nodes: ViewNode[]): Set<string> {
   const ids = new Set<string>();
 
-  function walk(nodes: ComponentDefinition[]): void {
-    for (const node of nodes) {
+  function walk(items: ViewNode[]): void {
+    for (const node of items) {
       ids.add(node.id);
-      if (node.children) {
-        walk(node.children);
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        walk(children);
       }
     }
   }
 
-  walk(components);
+  walk(nodes);
   return ids;
 }
 
 export function buildBlindCarryResult(
-  newSchema: SchemaSnapshot,
-  priorState: StateSnapshot,
+  newView: ViewDefinition,
+  priorData: DataSnapshot,
   now: number,
   options: ReconciliationOptions
 ): ReconciliationResult {
   const issues: ReconciliationIssue[] = [
     {
       severity: ISSUE_SEVERITY.WARNING,
-      message: 'Prior state exists but no prior schema provided; cannot reconcile',
-      code: ISSUE_CODES.NO_PRIOR_SCHEMA,
+      message: 'Prior data exists but no prior view provided; cannot reconcile',
+      code: ISSUE_CODES.NO_PRIOR_VIEW,
     },
   ];
 
   if (options.allowBlindCarry) {
-    const newIds = collectComponentIds(newSchema.components);
-    const carriedValues: Record<string, ComponentState> = {};
-    for (const [id, value] of Object.entries(priorState.values)) {
+    const newIds = collectNodeIds(newView.nodes);
+    const carriedValues: Record<string, NodeValue> = {};
+    for (const [id, value] of Object.entries(priorData.values)) {
       if (newIds.has(id)) {
         carriedValues[id] = value;
         issues.push({
           severity: ISSUE_SEVERITY.INFO,
-          componentId: id,
-          message: `Component ${id} state carried without schema validation`,
-          code: ISSUE_CODES.UNTRUSTED_CARRY,
+          nodeId: id,
+          message: `Node ${id} data carried without view validation`,
+          code: ISSUE_CODES.UNVALIDATED_CARRY,
         });
       }
     }
@@ -116,82 +121,82 @@ export function buildBlindCarryResult(
     return {
       reconciledState: {
         values: carriedValues,
-        meta: {
-          ...priorState.meta,
+        lineage: {
+          ...priorData.lineage,
           timestamp: now,
-          schemaId: newSchema.schemaId,
-          schemaVersion: newSchema.version,
+          viewId: newView.viewId,
+          viewVersion: newView.version,
         },
       },
       diffs: [],
       issues,
-      trace: [],
+      resolutions: [],
     };
   }
 
   return {
     reconciledState: {
       values: {},
-      meta: {
-        ...priorState.meta,
+      lineage: {
+        ...priorData.lineage,
         timestamp: now,
-        schemaId: newSchema.schemaId,
-        schemaVersion: newSchema.version,
+        viewId: newView.viewId,
+        viewVersion: newView.version,
       },
     },
     diffs: [],
     issues,
-    trace: [],
+    resolutions: [],
   };
 }
 
 export function assembleReconciliationResult(
-  resolved: ComponentResolutionAccumulator,
-  removals: { diffs: StateDiff[]; issues: ReconciliationIssue[]; orphanedValues?: Record<string, OrphanedValue> },
-  priorState: StateSnapshot,
-  newSchema: SchemaSnapshot,
+  resolved: NodeResolutionAccumulator,
+  removals: { diffs: StateDiff[]; issues: ReconciliationIssue[]; detachedValues?: Record<string, DetachedValue> },
+  priorData: DataSnapshot,
+  newView: ViewDefinition,
   now: number
 ): ReconciliationResult {
-  const schemaHash = computeSchemaHash(newSchema);
-  const hasValuesMeta = Object.keys(resolved.valuesMeta).length > 0;
-  const orphanedValues = {
-    ...(priorState.orphanedValues ?? {}),
-    ...(resolved.orphanedValues ?? {}),
-    ...(removals.orphanedValues ?? {}),
+  const viewHash = computeViewHash(newView);
+  const hasValueLineage = Object.keys(resolved.valueLineage).length > 0;
+  const detachedValues = {
+    ...(priorData.detachedValues ?? {}),
+    ...(resolved.detachedValues ?? {}),
+    ...(removals.detachedValues ?? {}),
   };
-  for (const restoredKey of resolved.restoredOrphanKeys ?? []) {
-    delete orphanedValues[restoredKey];
+  for (const restoredKey of resolved.restoredDetachedKeys ?? []) {
+    delete detachedValues[restoredKey];
   }
-  const hasOrphanedValues = Object.keys(orphanedValues).length > 0;
+  const hasDetachedValues = Object.keys(detachedValues).length > 0;
 
   return {
     reconciledState: {
       values: resolved.values,
-      meta: {
-        ...priorState.meta,
+      lineage: {
+        ...priorData.lineage,
         timestamp: now,
-        schemaId: newSchema.schemaId,
-        schemaVersion: newSchema.version,
-        ...(schemaHash !== undefined ? { schemaHash } : {}),
+        viewId: newView.viewId,
+        viewVersion: newView.version,
+        ...(viewHash !== undefined ? { viewHash } : {}),
       },
-      ...(hasValuesMeta ? { valuesMeta: resolved.valuesMeta } : {}),
-      ...(hasOrphanedValues ? { orphanedValues } : {}),
+      ...(hasValueLineage ? { valueLineage: resolved.valueLineage } : {}),
+      ...(hasDetachedValues ? { detachedValues } : {}),
     },
     diffs: [...resolved.diffs, ...removals.diffs],
     issues: [...resolved.issues, ...removals.issues],
-    trace: resolved.trace,
+    resolutions: resolved.resolutions,
   };
 }
 
 export function carryValuesMeta(
-  target: Record<string, ValueMeta>,
+  target: Record<string, ValueLineage>,
   newId: string,
   priorId: string,
-  priorState: StateSnapshot,
+  priorData: DataSnapshot,
   now: number,
   isMigrated: boolean
 ): void {
-  const priorMeta = priorState.valuesMeta?.[priorId];
+  const priorMeta = priorData.valueLineage?.[priorId];
   if (priorMeta) {
     target[newId] = isMigrated
       ? { ...priorMeta, lastUpdated: now }
@@ -199,15 +204,18 @@ export function carryValuesMeta(
   }
 }
 
-export function computeSchemaHash(schema: SchemaSnapshot): string | undefined {
+export function computeViewHash(view: ViewDefinition): string | undefined {
   const hashes: string[] = [];
-  function collect(components: ComponentDefinition[]) {
-    for (const comp of components) {
-      if (comp.hash) hashes.push(comp.hash);
-      if (comp.children) collect(comp.children);
+  function collect(nodes: ViewNode[]) {
+    for (const node of nodes) {
+      if (node.hash) hashes.push(node.hash);
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        collect(children);
+      }
     }
   }
-  collect(schema.components);
+  collect(view.nodes);
   if (hashes.length === 0) return undefined;
   return JSON.stringify(hashes.sort());
 }
