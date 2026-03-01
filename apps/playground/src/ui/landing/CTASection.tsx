@@ -1,4 +1,4 @@
-import { radius, space, typeScale } from '../tokens';
+import { radius, space } from '../tokens';
 import { landingTheme } from './landing-theme';
 
 interface CTASectionProps {
@@ -10,92 +10,103 @@ export function CTASection({ onEnter }: CTASectionProps) {
     <section
       data-testid="landing-cta"
       style={{
-        padding: `${120}px ${space.xl}px`,
+        padding: `${160}px ${space.xl}px`,
         textAlign: 'center',
-        background: landingTheme.gradients.panel,
+        background: landingTheme.gradients.cta,
         color: landingTheme.colors.text,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <h2
-        style={{
-          ...typeScale.h1,
-          fontFamily: landingTheme.fonts.display,
-          fontSize: 42,
-          margin: 0,
-          marginBottom: space.sm,
-          color: landingTheme.colors.text,
-        }}
-      >
-        See continuity in motion
-      </h2>
-      <p
-        style={{
-          ...typeScale.body,
-          color: landingTheme.colors.textMuted,
-          margin: 0,
-          maxWidth: 520,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          marginBottom: space.xxl,
-        }}
-      >
-        Try live scenarios and watch values carry forward through every schema change.
-      </p>
       <div
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: space.xs,
-          padding: `${space.md}px ${space.xl}px`,
-          borderRadius: radius.pill,
-          border: `1px solid ${landingTheme.colors.border}`,
-          marginBottom: space.xl,
-          background: landingTheme.colors.surface,
-          color: landingTheme.colors.textSoft,
-          fontSize: 12,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          fontWeight: 700,
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+          maskImage: 'radial-gradient(ellipse 50% 60% at 50% 80%, black, transparent)',
+          WebkitMaskImage: 'radial-gradient(ellipse 50% 60% at 50% 80%, black, transparent)',
+          pointerEvents: 'none',
         }}
-      >
-        Built to work with schema-driven UIs
+      />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <h2
+          style={{
+            fontFamily: landingTheme.fonts.display,
+            fontSize: 48,
+            fontWeight: 800,
+            margin: 0,
+            marginBottom: 16,
+            color: landingTheme.colors.text,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.05,
+            background: landingTheme.colors.accentGradient,
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'landing-gradient-shift 6s ease-in-out infinite',
+          }}
+        >
+          See continuity in action
+        </h2>
+        <p
+          style={{
+            fontSize: 17,
+            color: landingTheme.colors.textMuted,
+            margin: 0,
+            maxWidth: 520,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: 48,
+            lineHeight: 1.7,
+          }}
+        >
+          Walk through live scenarios and watch user data carry forward through
+          every view change &mdash; renames, restructures, type shifts, and removals.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <button
+            data-testid="cta-enter-playground"
+            onClick={onEnter}
+            style={{
+              padding: `16px 40px`,
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.01em',
+              color: '#ffffff',
+              background: landingTheme.colors.accentGradient,
+              border: 'none',
+              borderRadius: radius.lg,
+              cursor: 'pointer',
+              boxShadow: landingTheme.colors.shadowPrimary,
+              transition: 'transform 0.2s ease, box-shadow 0.3s ease',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+              e.currentTarget.style.boxShadow =
+                '0 0 80px rgba(124, 58, 237, 0.4), 0 0 160px rgba(124, 58, 237, 0.15)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = landingTheme.colors.shadowPrimary;
+            }}
+          >
+            Open the Playground
+          </button>
+          <span
+            style={{
+              fontSize: 13,
+              color: landingTheme.colors.textSoft,
+            }}
+          >
+            No signup required. Runs entirely in your browser.
+          </span>
+        </div>
       </div>
-      <button
-        data-testid="cta-enter-playground"
-        onClick={onEnter}
-        style={{
-          padding: `${space.lg}px ${space.xxl}px`,
-          fontSize: 18,
-          fontWeight: 700,
-          color: '#ffffff',
-          background: landingTheme.colors.accentGradient,
-          border: 'none',
-          borderRadius: radius.lg,
-          cursor: 'pointer',
-          boxShadow: landingTheme.colors.shadowPrimary,
-          transition: landingTheme.transitions.normal,
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.filter = 'brightness(1.06)';
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.filter = 'none';
-        }}
-      >
-        Enter the Playground
-      </button>
-      <p
-        style={{
-          ...typeScale.caption,
-          color: landingTheme.colors.textSoft,
-          margin: 0,
-          marginTop: space.lg,
-        }}
-      >
-        No signup required. Just the real scenario flow.
-      </p>
     </section>
   );
 }

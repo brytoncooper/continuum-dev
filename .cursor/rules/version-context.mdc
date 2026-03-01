@@ -1,0 +1,24 @@
+---
+description: Version context and serialization constraints for the Continuum SDK
+globs:
+  - "packages/**/*.ts"
+  - "apps/**/*.ts"
+  - "apps/**/*.tsx"
+---
+
+# Version Context
+
+This project is **v0 pre-release**. There are zero users in production and zero legacy serialized data.
+
+## Serialization
+
+- `formatVersion` is `1`. This is the first and only format version.
+- The serializer accepts only `formatVersion === 1` on deserialization.
+- Do NOT introduce migration layers, backwards-compatibility shims, or format version upgrade paths.
+- Do NOT accept missing `formatVersion` or any version other than `1`.
+
+## Constraints
+
+- Do NOT add code to handle "legacy" data formats. There is no legacy data.
+- Do NOT introduce version bumps or format migrations until the project reaches v1 with real users.
+- When v1 ships, migration infrastructure can be introduced. Until then, keep the serialization path simple and direct.

@@ -1,38 +1,36 @@
 import { useState } from 'react';
-import type { ReconciliationIssue } from '@continuum/runtime';
-import type { OrphanedValue } from '@continuum/contract';
+import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from '@continuum/runtime';
+import type { DetachedValue, ContinuitySnapshot } from '@continuum/contract';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
-import { TraceList } from './TraceList';
+import { ResolutionList } from './ResolutionList';
 import { DiffList } from './DiffList';
-import { OrphanList } from './OrphanList';
+import { DetachedList } from './DetachedList';
 import { IssuesList } from './IssuesList';
 import { SnapshotViewer } from './SnapshotViewer';
-import type { ReconciliationTrace, StateDiff } from '@continuum/runtime';
-import type { ContinuitySnapshot } from '@continuum/contract';
 
 type TabId = 'what-changed' | 'state-diffs' | 'saved-values' | 'validation' | 'raw-snapshot';
 
 interface DevtoolsTabsProps {
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   diffs: StateDiff[];
-  orphanedValues: Record<string, OrphanedValue>;
+  detachedValues: Record<string, DetachedValue>;
   issues: ReconciliationIssue[];
   snapshot: ContinuitySnapshot | null;
 }
 
 const TABS: { id: TabId; label: string; getCount: (p: DevtoolsTabsProps) => number }[] = [
-  { id: 'what-changed', label: 'What Changed', getCount: (p) => p.trace.length },
-  { id: 'state-diffs', label: 'State Diffs', getCount: (p) => p.diffs.length },
-  { id: 'saved-values', label: 'Saved Values', getCount: (p) => Object.keys(p.orphanedValues).length },
+  { id: 'what-changed', label: 'What Changed', getCount: (p) => p.resolutions.length },
+  { id: 'state-diffs', label: 'Data Diffs', getCount: (p) => p.diffs.length },
+  { id: 'saved-values', label: 'Detached Values', getCount: (p) => Object.keys(p.detachedValues).length },
   { id: 'validation', label: 'Validation', getCount: (p) => p.issues.length },
   { id: 'raw-snapshot', label: 'Raw Snapshot', getCount: () => 0 },
 ];
 
 export function DevtoolsTabs({
-  trace,
+  resolutions,
   diffs,
-  orphanedValues,
+  detachedValues,
   issues,
   snapshot,
 }: DevtoolsTabsProps) {
@@ -60,7 +58,7 @@ export function DevtoolsTabs({
         }}
       >
         {TABS.map((tab) => {
-          const count = tab.getCount({ trace, diffs, orphanedValues, issues, snapshot });
+          const count = tab.getCount({ resolutions, diffs, detachedValues, issues, snapshot });
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -112,8 +110,8 @@ export function DevtoolsTabs({
         }}
       >
         {activeTab === 'what-changed' && (
-          <div data-testid="panel-trace">
-            <TraceList trace={trace} />
+          <div data-testid="panel-resolutions">
+            <ResolutionList resolutions={resolutions} />
           </div>
         )}
         {activeTab === 'state-diffs' && (
@@ -122,8 +120,8 @@ export function DevtoolsTabs({
           </div>
         )}
         {activeTab === 'saved-values' && (
-          <div data-testid="panel-orphans">
-            <OrphanList orphanedValues={orphanedValues} />
+          <div data-testid="panel-detached">
+            <DetachedList detachedValues={detachedValues} />
           </div>
         )}
         {activeTab === 'validation' && (

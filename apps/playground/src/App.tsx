@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { SchemaSnapshot } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum/contract';
 import {
   ContinuumProvider,
   ContinuumRenderer,
@@ -34,7 +34,7 @@ interface PlaygroundContentProps {
 function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const { issues, diffs, trace, checkpoints } = useContinuumDiagnostics();
+  const { issues, diffs, resolutions, checkpoints } = useContinuumDiagnostics();
   const wasHydrated = useContinuumHydrated();
 
   const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? '');
@@ -61,12 +61,12 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
       if (!step) {
         return;
       }
-      session.pushSchema(step.schema as SchemaSnapshot);
+      session.pushView(step.view as ViewDefinition);
       if (step.initialState && clamped === 0) {
-        const existingValues = session.getSnapshot()?.state.values ?? {};
-        for (const [componentId, value] of Object.entries(step.initialState)) {
-          if (existingValues[componentId] === undefined) {
-            session.updateState(componentId, value);
+        const existingValues = session.getSnapshot()?.data.values ?? {};
+        for (const [nodeId, value] of Object.entries(step.initialState)) {
+          if (existingValues[nodeId] === undefined) {
+            session.updateState(nodeId, value);
           }
         }
       }
@@ -85,7 +85,7 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
       pushStep(0);
       return;
     }
-    const index = activeSteps.findIndex((step) => step.schema.version === existing.schema.version);
+    const index = activeSteps.findIndex((step) => step.view.version === existing.view.version);
     if (index >= 0) {
       setStepIndex(index);
       return;
@@ -123,7 +123,7 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
         return;
       }
       const matchedIndex = activeSteps.findIndex(
-        (step) => step.schema.version === updatedSnapshot.schema.version
+        (step) => step.view.version === updatedSnapshot.view.version
       );
       setStepIndex(matchedIndex);
     },
@@ -131,15 +131,15 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
   );
 
   const handleHallucinate = useCallback(() => {
-    const activeSchema = session.getSnapshot()?.schema;
-    if (!activeSchema) {
+    const activeView = session.getSnapshot()?.view;
+    if (!activeView) {
       return;
     }
-    session.pushSchema(hallucinate(activeSchema));
+    session.pushView(hallucinate(activeView));
   }, [session]);
 
   const currentStep = activeSteps[Math.max(0, stepIndex)] ?? null;
-  const orphanedValues = snapshot?.state.orphanedValues ?? {};
+  const detachedValues = snapshot?.data.detachedValues ?? {};
   if (!selectedScenario) {
     return null;
   }
@@ -149,8 +149,8 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
 
   return (
     <>
-      <TraceAnimations trace={trace} />
-      <ReconciliationToast trace={trace} />
+      <TraceAnimations resolutions={resolutions} />
+      <ReconciliationToast resolutions={resolutions} />
       <AppShell
         header={
           <StoryHeader
@@ -161,7 +161,7 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
               protocolMode === 'a2ui' ? 'A2UI Protocol Mode' : selectedScenario.title
             }
             activeScenarioSubtitle={
-              protocolMode === 'a2ui' ? 'Adapter-generated schema walkthrough' : selectedScenario.subtitle
+              protocolMode === 'a2ui' ? 'Adapter-generated view walkthrough' : selectedScenario.subtitle
             }
             protocolMode={protocolMode}
             onScenarioSelect={handleScenarioSelect}
@@ -173,9 +173,9 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
             banner={<RefreshBanner wasRehydrated={wasHydrated} />}
             devtools={
               <DevtoolsTabs
-                trace={trace}
+                resolutions={resolutions}
                 diffs={diffs}
-                orphanedValues={orphanedValues}
+                detachedValues={detachedValues}
                 issues={issues}
                 snapshot={snapshot}
               />
@@ -195,13 +195,13 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
               />
             }
             valueCallout={
-              <ValueCallout hint={currentStep?.outcomeHint} trace={trace} diffs={diffs} />
+              <ValueCallout hint={currentStep?.outcomeHint} resolutions={resolutions} diffs={diffs} />
             }
             renderedUi={
-              snapshot?.schema ? (
-                <ContinuumRenderer schema={snapshot.schema} />
+              snapshot?.view ? (
+                <ContinuumRenderer view={snapshot.view} />
               ) : (
-                <div>No schema loaded</div>
+                <div>No view loaded</div>
               )
             }
           />
@@ -226,8 +226,8 @@ export default function App() {
   const sessionOptions: SessionOptions = {
     reconciliation: {
       strategyRegistry: {
-        'email-v1-to-v2': (_componentId, _oldSchema, _newSchema, oldState) => oldState,
-        'date-v1-to-v2': (_componentId, _oldSchema, _newSchema, oldState) => oldState,
+        'email-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
+        'date-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
       },
     },
     validateOnUpdate: true,

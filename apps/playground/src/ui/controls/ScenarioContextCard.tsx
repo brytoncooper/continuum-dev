@@ -64,8 +64,8 @@ export function ScenarioContextCard({
             <button
               key={i}
               data-testid={hasCheckpoint ? `rewind-${i}` : undefined}
-              onClick={() => hasCheckpoint && onRewind(checkpoints[i].id)}
-              title={hasCheckpoint ? `Rewind to ${checkpoints[i].snapshot.schema.version}` : undefined}
+              onClick={() => hasCheckpoint && onRewind(checkpoints[i].checkpointId)}
+              title={hasCheckpoint ? `Rewind to ${checkpoints[i].snapshot.view.version}` : undefined}
               style={{
                 width: 28,
                 height: 28,

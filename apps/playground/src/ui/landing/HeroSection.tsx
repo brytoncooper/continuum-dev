@@ -1,4 +1,4 @@
-import { radius, shadow, space, typeScale } from '../tokens';
+import { radius, space } from '../tokens';
 import { landingTheme } from './landing-theme';
 
 interface HeroSectionProps {
@@ -14,8 +14,8 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: `${160}px ${space.xl}px ${140}px`,
-        background: landingTheme.gradients.page,
+        padding: `${180}px ${space.xl}px ${160}px`,
+        background: landingTheme.gradients.hero,
         position: 'relative',
         overflow: 'hidden',
         fontFamily: landingTheme.fonts.body,
@@ -24,87 +24,130 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'linear-gradient(135deg, rgba(95, 61, 210, 0.16), rgba(32, 199, 181, 0.12))',
-          opacity: 0.45,
+          width: 600,
+          height: 600,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(124, 58, 237, 0.15), transparent 70%)',
+          top: '-10%',
+          left: '15%',
+          filter: 'blur(80px)',
+          animation: 'landing-orb-1 12s ease-in-out infinite',
           pointerEvents: 'none',
         }}
       />
-      <div style={{ position: 'relative', maxWidth: 760, textAlign: 'center' }}>
+      <div
+        style={{
+          position: 'absolute',
+          width: 500,
+          height: 500,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(34, 211, 238, 0.1), transparent 70%)',
+          bottom: '-5%',
+          right: '10%',
+          filter: 'blur(80px)',
+          animation: 'landing-orb-2 15s ease-in-out infinite',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+          maskImage: 'radial-gradient(ellipse 60% 50% at 50% 40%, black, transparent)',
+          WebkitMaskImage: 'radial-gradient(ellipse 60% 50% at 50% 40%, black, transparent)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div style={{ position: 'relative', maxWidth: 820, textAlign: 'center', zIndex: 1 }}>
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: space.sm,
-            padding: `${space.xs}px ${space.md}px`,
+            padding: `6px ${space.lg}px`,
             borderRadius: radius.pill,
-            background: landingTheme.colors.panel,
-            border: `1px solid ${landingTheme.colors.panelBorder}`,
-            color: landingTheme.colors.textMuted,
-            marginBottom: space.xl,
-            letterSpacing: '0.08em',
+            background: 'rgba(124, 58, 237, 0.1)',
+            border: `1px solid rgba(124, 58, 237, 0.25)`,
+            color: landingTheme.colors.accentBright,
+            marginBottom: 40,
+            letterSpacing: '0.12em',
             textTransform: 'uppercase',
             fontSize: 11,
             fontWeight: 700,
             fontFamily: landingTheme.fonts.display,
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
           }}
         >
-          State continuity for schema-driven apps
+          Data continuity for view-driven applications
         </div>
+
         <h1
           style={{
-            ...typeScale.h1,
             fontFamily: landingTheme.fonts.display,
-            fontSize: 56,
-            lineHeight: 1.05,
+            fontSize: 72,
+            lineHeight: 1.0,
+            fontWeight: 800,
             color: landingTheme.colors.text,
             margin: 0,
-            marginBottom: space.lg,
+            marginBottom: 24,
             background: landingTheme.colors.accentGradient,
+            backgroundSize: '200% auto',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
+            animation: 'landing-gradient-shift 6s ease-in-out infinite',
+            letterSpacing: '-0.03em',
           }}
         >
-          Preserve intent when schemas evolve, without losing moments.
+          User data survives
+          <br />
+          every view change.
         </h1>
+
         <p
           style={{
-            ...typeScale.body,
             fontSize: 20,
+            fontWeight: 400,
             color: landingTheme.colors.textMuted,
-            lineHeight: 1.6,
+            lineHeight: 1.7,
             margin: 0,
-            marginBottom: space.xxxl,
-            maxWidth: 660,
+            marginBottom: 48,
+            maxWidth: 600,
             marginLeft: 'auto',
             marginRight: 'auto',
           }}
         >
-          Continuum keeps user state coherent while interfaces iterate, regenerate, and adapt. This makes
-          schema-driven experiences feel stable even while their structure changes in real time.
+          AI agents regenerate interfaces constantly. Continuum reconciles
+          user data across every view version so nothing entered is ever
+          silently lost.
         </p>
+
         <div
           style={{
             display: 'flex',
             flexWrap: 'wrap',
             gap: space.md,
             justifyContent: 'center',
+            marginBottom: 48,
           }}
         >
           {landingTheme.badges.map((badge) => (
             <span
               key={badge}
               style={{
-                padding: `${space.xs}px ${space.md}px`,
+                padding: `5px ${space.md}px`,
                 borderRadius: radius.pill,
-                background: landingTheme.colors.accentGlow,
-                color: landingTheme.colors.accent,
+                background: 'rgba(255, 255, 255, 0.04)',
+                color: landingTheme.colors.textMuted,
                 border: `1px solid ${landingTheme.colors.border}`,
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.04em',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.06em',
                 textTransform: 'uppercase',
               }}
             >
@@ -112,32 +155,35 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
             </span>
           ))}
         </div>
+
         <button
           data-testid="hero-enter-playground"
           onClick={onEnter}
           style={{
-            marginTop: space.xxl,
-            padding: `${space.md}px ${space.xxxl}px`,
+            position: 'relative',
+            padding: `14px 48px`,
             fontSize: 16,
             fontWeight: 700,
+            letterSpacing: '0.02em',
             color: '#ffffff',
             background: landingTheme.colors.accentGradient,
             border: 'none',
             borderRadius: radius.lg,
             cursor: 'pointer',
             boxShadow: landingTheme.colors.shadowPrimary,
-            transition: landingTheme.transitions.normal,
+            transition: 'transform 0.2s ease, box-shadow 0.3s ease',
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.filter = 'brightness(1.05)';
+            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+            e.currentTarget.style.boxShadow =
+              '0 0 80px rgba(124, 58, 237, 0.4), 0 0 160px rgba(124, 58, 237, 0.15)';
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.filter = 'none';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = landingTheme.colors.shadowPrimary;
           }}
         >
-          Enter the Playground
+          Open the Playground
         </button>
       </div>
     </section>

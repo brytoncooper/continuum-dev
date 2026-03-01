@@ -3,7 +3,7 @@ import type { Scenario } from './types';
 export const migrationStrategyScenario: Scenario = {
   id: 'migration-strategy',
   title: 'AI Upgrades Field Formats',
-  subtitle: 'Continuum migrates values when schema hashes evolve',
+  subtitle: 'Continuum migrates values when view hashes evolve',
   capabilityTag: 'Migration',
   steps: [
     {
@@ -11,14 +11,14 @@ export const migrationStrategyScenario: Scenario = {
       label: 'Step 1',
       description: 'Start with baseline traveler profile fields',
       narrativePrompt: 'Enter contact details that should survive format upgrades.',
-      schema: {
-        schemaId: 'traveler-profile',
+      view: {
+        viewId: 'traveler-profile',
         version: '1.0',
-        components: [
+        nodes: [
           {
             id: 'full_name',
             key: 'full_name',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Full Name',
             placeholder: 'e.g. Sam Rivera',
@@ -27,7 +27,7 @@ export const migrationStrategyScenario: Scenario = {
           {
             id: 'contact_email',
             key: 'contact_email',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Email Address',
             placeholder: 'sam@email.com',
@@ -55,15 +55,15 @@ export const migrationStrategyScenario: Scenario = {
       id: 'migration-step-2',
       label: 'Step 2',
       description: 'AI upgrades email validation and formatting logic',
-      narrativePrompt: 'The email component hash changes from v1 to v2.',
-      schema: {
-        schemaId: 'traveler-profile',
+      narrativePrompt: 'The email node hash changes from v1 to v2.',
+      view: {
+        viewId: 'traveler-profile',
         version: '2.0',
-        components: [
+        nodes: [
           {
             id: 'full_name',
             key: 'full_name',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Full Name',
             placeholder: 'e.g. Sam Rivera',
@@ -72,7 +72,7 @@ export const migrationStrategyScenario: Scenario = {
           {
             id: 'contact_email',
             key: 'contact_email',
-            type: 'input',
+            type: 'field',
             hash: 'input:v2',
             label: 'Email Address',
             placeholder: 'sam@email.com',
@@ -103,15 +103,15 @@ export const migrationStrategyScenario: Scenario = {
       id: 'migration-step-3',
       label: 'Step 3',
       description: 'AI changes date field hash for new formatter',
-      narrativePrompt: 'Passport date component upgrades while preserving existing value.',
-      schema: {
-        schemaId: 'traveler-profile',
+      narrativePrompt: 'Passport date node upgrades while preserving existing value.',
+      view: {
+        viewId: 'traveler-profile',
         version: '3.0',
-        components: [
+        nodes: [
           {
             id: 'full_name',
             key: 'full_name',
-            type: 'input',
+            type: 'field',
             hash: 'input:v1',
             label: 'Full Name',
             placeholder: 'e.g. Sam Rivera',
@@ -120,7 +120,7 @@ export const migrationStrategyScenario: Scenario = {
           {
             id: 'contact_email',
             key: 'contact_email',
-            type: 'input',
+            type: 'field',
             hash: 'input:v2',
             label: 'Email Address',
             placeholder: 'sam@email.com',
@@ -149,4 +149,3 @@ export const migrationStrategyScenario: Scenario = {
     },
   ],
 };
-

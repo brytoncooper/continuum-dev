@@ -1,13 +1,21 @@
 import { useRef, useEffect, useState } from 'react';
-import { radius, shadow, space, typeScale } from '../tokens';
+import { space, typeScale } from '../tokens';
 import { landingTheme } from './landing-theme';
 
 const packages = [
-  { name: '@continuum/contract', desc: 'Core types and constants' },
-  { name: '@continuum/runtime', desc: 'Reconciliation engine' },
-  { name: '@continuum/session', desc: 'Session lifecycle' },
-  { name: '@continuum/react', desc: 'React bindings' },
-  { name: '@continuum/adapters', desc: 'Protocol adapters (A2UI, etc.)', branch: true },
+  { name: '@continuum/contract', desc: 'ViewDefinition, NodeValue, and all shared types', layer: 0 },
+  { name: '@continuum/runtime', desc: 'Reconciliation engine \u2014 match, migrate, resolve', layer: 1 },
+  { name: '@continuum/session', desc: 'Session lifecycle, checkpoints, persistence', layer: 2 },
+  { name: '@continuum/react', desc: 'React bindings and renderer', layer: 3 },
+  { name: '@continuum/angular', desc: 'Angular bindings and renderer', layer: 3 },
+  { name: '@continuum/adapters', desc: 'Protocol adapters (A2UI, etc.)', layer: 3, branch: true },
+];
+
+const layerColors = [
+  'rgba(124, 58, 237, 0.25)',
+  'rgba(99, 102, 241, 0.2)',
+  'rgba(34, 211, 238, 0.18)',
+  'rgba(52, 211, 153, 0.15)',
 ];
 
 export function ArchitectureSection() {
@@ -21,7 +29,7 @@ export function ArchitectureSection() {
       ([entry]) => {
         if (entry.isIntersecting) setVisible(true);
       },
-      { threshold: 0.2, rootMargin: '0px 0px -80px 0px' }
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -32,89 +40,120 @@ export function ArchitectureSection() {
       ref={ref}
       data-testid="landing-architecture"
       style={{
-        padding: `${120}px ${space.xl}px`,
+        padding: `${140}px ${space.xl}px`,
         background: landingTheme.gradients.page,
         color: landingTheme.colors.text,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transform: visible ? 'translateY(0)' : 'translateY(32px)',
+        transition: 'opacity 0.8s ease, transform 0.8s ease',
       }}
     >
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ maxWidth: 580, margin: '0 auto' }}>
         <div
           style={{
             ...typeScale.label,
-            color: landingTheme.colors.textMuted,
+            color: landingTheme.colors.textSoft,
             textTransform: 'uppercase',
-            letterSpacing: '0.18em',
+            letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: space.md,
+            fontSize: 11,
           }}
         >
           The foundation
         </div>
         <h2
           style={{
-            ...typeScale.h1,
             fontFamily: landingTheme.fonts.display,
-            fontSize: 42,
+            fontSize: 44,
+            fontWeight: 800,
             color: landingTheme.colors.text,
             margin: 0,
-            marginBottom: space.xxl,
+            marginBottom: 20,
             textAlign: 'center',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
           }}
         >
-          Designed as a modular stack
+          A modular stack
         </h2>
         <p
           style={{
-            ...typeScale.body,
+            fontSize: 15,
             color: landingTheme.colors.textMuted,
             textAlign: 'center',
             margin: 0,
-            marginBottom: space.xxl,
+            marginBottom: 48,
+            lineHeight: 1.6,
           }}
         >
           Continuum splits into clear packages so teams can adopt pieces incrementally.
         </p>
+
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: 0,
-            background: landingTheme.gradients.panel,
-            borderRadius: radius.lg,
+            borderRadius: 16,
             border: `1px solid ${landingTheme.colors.border}`,
-            boxShadow: shadow.card,
             overflow: 'hidden',
+            position: 'relative',
           }}
         >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 1,
+              background: 'linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.5), rgba(34, 211, 238, 0.3), transparent)',
+            }}
+          />
           {packages.map((p, i) => (
             <div
               key={p.name}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: space.xs,
-                padding: space.lg,
-                borderBottom:
-                  i < packages.length - 1 ? `1px solid ${landingTheme.colors.border}` : 'none',
-                marginLeft: p.branch ? space.xxl : 0,
-                borderLeft: p.branch ? `3px solid ${landingTheme.colors.accent}` : 'none',
-                backgroundImage: i % 2 === 0 ? landingTheme.colors.accentGlow : 'none',
+                gap: 4,
+                padding: '16px 24px',
+                borderBottom: i < packages.length - 1
+                  ? `1px solid ${landingTheme.colors.border}`
+                  : 'none',
+                marginLeft: p.branch ? 32 : 0,
+                borderLeft: p.branch
+                  ? `2px solid ${landingTheme.colors.accentCyan}`
+                  : 'none',
+                background: layerColors[p.layer] ?? 'transparent',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                animation: visible
+                  ? `landing-card-appear 0.4s ease ${i * 0.08}s both`
+                  : 'none',
               }}
             >
               <span
                 style={{
-                  ...typeScale.mono,
-                  color: landingTheme.colors.accent,
-                  fontWeight: 700,
                   fontFamily: landingTheme.fonts.mono,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: landingTheme.colors.accentBright,
+                  letterSpacing: '-0.01em',
                 }}
               >
                 {p.name}
               </span>
-              <span style={{ ...typeScale.caption, color: landingTheme.colors.textSoft }}>{p.desc}</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: landingTheme.colors.textSoft,
+                  lineHeight: 1.4,
+                }}
+              >
+                {p.desc}
+              </span>
             </div>
           ))}
         </div>
