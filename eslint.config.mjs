@@ -51,6 +51,15 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:angular',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:runtime',
+                'scope:session',
+                'scope:angular',
+              ],
+            },
+            {
               sourceTag: 'scope:playground',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
