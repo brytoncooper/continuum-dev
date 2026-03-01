@@ -7,6 +7,10 @@
   },
   "private": true,
   "devDependencies": {
+    "@angular/common": "^20.3.17",
+    "@angular/core": "^20.3.17",
+    "@angular/forms": "^20.3.17",
+    "@angular/platform-browser": "^20.3.17",
     "@eslint/js": "^9.8.0",
     "@nx/devkit": "22.5.1",
     "@nx/eslint": "22.5.0",

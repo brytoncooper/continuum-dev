@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/angular",
+    "tsBuildInfoFile": "../../dist/packages/angular/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "lib": ["es2022", "dom"]
+  },
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../contract/tsconfig.lib.json" },
+    { "path": "../runtime/tsconfig.lib.json" },
+    { "path": "../session/tsconfig.lib.json" }
+  ]
+}
