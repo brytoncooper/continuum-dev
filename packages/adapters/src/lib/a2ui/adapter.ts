@@ -1,91 +1,129 @@
-import type {
-  SchemaSnapshot,
-  ComponentDefinition,
-  ComponentState,
+import {
+  getChildNodes,
+  type ViewDefinition,
+  type ViewNode,
+  type FieldNode,
+  type GroupNode,
+  type NodeValue,
 } from '@continuum/contract';
 import type { ProtocolAdapter } from '../adapter.js';
 import type { A2UIForm, A2UIField } from './types.js';
 
-const TYPE_MAP: Record<string, string> = {
-  TextInput: 'input',
-  TextArea: 'textarea',
-  Dropdown: 'select',
-  SelectionInput: 'select',
-  Switch: 'toggle',
-  Toggle: 'toggle',
-  DateInput: 'date',
-  Section: 'container',
-  Card: 'container',
+const DATA_TYPE_MAP: Record<string, 'string' | 'number' | 'boolean'> = {
+  TextInput: 'string',
+  TextArea: 'string',
+  Dropdown: 'string',
+  SelectionInput: 'string',
+  Switch: 'boolean',
+  Toggle: 'boolean',
+  DateInput: 'string',
 };
 
 const CONTAINER_TYPES = new Set(['Section', 'Card']);
 
-function convertA2UIFieldToComponentDefinition(
+function convertA2UIFieldToViewNode(
   field: A2UIField,
   nextGeneratedId: () => number
-): ComponentDefinition {
+): ViewNode {
   const rawType = typeof field.type === 'string' ? field.type : 'default';
   const id = field.name ?? `${rawType.toLowerCase()}_${nextGeneratedId()}`;
-  const type = TYPE_MAP[rawType] ?? 'default';
 
-  const def: ComponentDefinition = { id, type, key: id };
+  if (CONTAINER_TYPES.has(rawType)) {
+    const children = Array.isArray(field.fields)
+      ? field.fields.map((child) =>
+          convertA2UIFieldToViewNode(child, nextGeneratedId)
+        )
+      : [];
+    const node: GroupNode = {
+      id,
+      type: 'group',
+      key: id,
+      children,
+    };
+    if (field.label) {
+      node.label = field.label;
+    }
+    return node;
+  }
+
+  const dataType = DATA_TYPE_MAP[rawType] ?? 'string';
+  const node: FieldNode = {
+    id,
+    type: 'field',
+    key: id,
+    dataType,
+  };
 
   if (field.label) {
-    def.label = field.label;
+    node.label = field.label;
   }
 
   if (field.options) {
-    def.props = { options: field.options };
+    (node as FieldNode & { options?: { id: string; label: string }[] }).options = field.options;
   }
 
-  if (CONTAINER_TYPES.has(rawType) && Array.isArray(field.fields)) {
-    def.children = field.fields.map((child) =>
-      convertA2UIFieldToComponentDefinition(child, nextGeneratedId)
-    );
-  }
-
-  return def;
+  return node;
 }
 
-function convertComponentDefinitionToA2UIField(def: ComponentDefinition): A2UIField {
-  const reverseMap: Record<string, string> = {
-    input: 'TextInput',
-    textarea: 'TextArea',
-    select: 'Dropdown',
-    toggle: 'Switch',
-    date: 'DateInput',
-    container: 'Section',
-    default: 'Section',
+function convertViewNodeToA2UIField(node: ViewNode): A2UIField {
+  const dataTypeToA2UI: Record<string, string> = {
+    string: 'TextInput',
+    number: 'TextInput',
+    boolean: 'Switch',
   };
 
-  const field: A2UIField = {
-    name: def.id,
-    type: reverseMap[def.type] ?? 'TextInput',
-    label: def.label ?? def.path ?? def.key ?? def.id,
-  };
+  let type: string;
+  let label: string | undefined;
 
-  const rawOptions = (def.props as Record<string, unknown> | undefined)?.options;
-  if (Array.isArray(rawOptions)) {
-    field.options = rawOptions as { id: string; label: string }[];
-  } else if (def.stateShape && Array.isArray(def.stateShape)) {
-    field.options = def.stateShape as { id: string; label: string }[];
+  switch (node.type) {
+    case 'group':
+      type = 'Section';
+      label = node.label ?? node.key ?? node.id;
+      break;
+    case 'collection':
+      type = 'Section';
+      label = node.label ?? node.key ?? node.id;
+      break;
+    case 'field':
+      type = dataTypeToA2UI[node.dataType] ?? 'TextInput';
+      label = node.label ?? node.key ?? node.id;
+      break;
+    case 'action':
+      type = 'TextInput';
+      label = node.label ?? node.key ?? node.id;
+      break;
+    case 'presentation':
+      type = 'TextInput';
+      label = node.key ?? node.id;
+      break;
+    default: {
+      const n = node as unknown as { id: string; key?: string };
+      type = 'TextInput';
+      label = n.key ?? n.id;
+      break;
+    }
   }
 
-  if (def.children && def.children.length > 0) {
-    field.fields = def.children.map(convertComponentDefinitionToA2UIField);
+  const field: A2UIField = { name: node.id, type, label };
+
+  if ('options' in node && Array.isArray((node as unknown as { options: unknown }).options)) {
+    field.options = (node as unknown as { options: { id: string; label: string }[] }).options;
+  }
+
+  const children = getChildNodes(node);
+  if (children.length > 0) {
+    field.fields = children.map(convertViewNodeToA2UIField);
   }
 
   return field;
 }
 
-function createDefaultStateForComponentType(type: string): ComponentState {
-  switch (type) {
-    case 'toggle':
-      return { checked: false };
-    case 'select':
-      return { selectedIds: [] as string[] };
-    case 'container':
-      return {};
+function createDefaultNodeValue(dataType: string): NodeValue {
+  switch (dataType) {
+    case 'boolean':
+      return { value: false };
+    case 'number':
+      return { value: 0 };
     default:
       return { value: '' };
   }
@@ -94,7 +132,7 @@ function createDefaultStateForComponentType(type: string): ComponentState {
 export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
   name: 'a2ui',
 
-  toSchema(form: A2UIForm): SchemaSnapshot {
+  toView(form: A2UIForm): ViewDefinition {
     let generatedId = 0;
     const nextGeneratedId = () => {
       generatedId += 1;
@@ -104,59 +142,44 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
     const fields = Array.isArray(form.fields) ? form.fields : [];
 
     return {
-      schemaId: form.id ?? 'a2ui-form',
+      viewId: form.id ?? 'a2ui-form',
       version: form.version ?? '1.0',
-      components: fields.map((field) =>
-        convertA2UIFieldToComponentDefinition(field, nextGeneratedId)
+      nodes: fields.map((field) =>
+        convertA2UIFieldToViewNode(field, nextGeneratedId)
       ),
     };
   },
 
-  fromSchema(snapshot: SchemaSnapshot): A2UIForm {
+  fromView(definition: ViewDefinition): A2UIForm {
     return {
-      id: snapshot.schemaId,
-      version: snapshot.version,
-      fields: snapshot.components.map(convertComponentDefinitionToA2UIField),
+      id: definition.viewId,
+      version: definition.version,
+      fields: definition.nodes.map(convertViewNodeToA2UIField),
     };
   },
 
-  toState(externalData: Record<string, unknown>): Record<string, ComponentState> {
-    const result: Record<string, ComponentState> = {};
+  toState(externalData: Record<string, unknown>): Record<string, NodeValue> {
+    const result: Record<string, NodeValue> = {};
     for (const [key, val] of Object.entries(externalData)) {
-      if (typeof val === 'boolean') {
-        result[key] = { checked: val };
-      } else if (Array.isArray(val)) {
-        result[key] = { selectedIds: val.map((item) => String(item)) };
-      } else {
-        result[key] = { value: String(val ?? '') };
-      }
+      result[key] = { value: val ?? '' };
     }
     return result;
   },
 
-  fromState(state: Record<string, ComponentState>): Record<string, unknown> {
+  fromState(state: Record<string, NodeValue>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(state)) {
       if (val == null) {
         result[key] = val;
         continue;
       }
-      const raw = val as Record<string, unknown>;
-      if ('checked' in raw) {
-        result[key] = raw['checked'];
-      } else if ('selectedIds' in raw) {
-        result[key] = raw['selectedIds'];
-      } else if ('value' in raw) {
-        result[key] = raw['value'];
-      } else {
-        result[key] = raw;
-      }
+      result[key] = val.value;
     }
     return result;
   },
 };
 
 export {
-  createDefaultStateForComponentType,
-  createDefaultStateForComponentType as stateForType,
+  createDefaultNodeValue,
+  createDefaultNodeValue as valueForDataType,
 };
