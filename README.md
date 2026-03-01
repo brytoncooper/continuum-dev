@@ -1,26 +1,27 @@
 # Continuum
 
-**Protocol-agnostic state continuity for schema-driven UIs.**
+**Protocol-agnostic state continuity for view-driven UIs.**
 
-Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a schema update reorganizes your form, or a user refreshes the page -- their data stays intact.
+Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a view update reorganizes your form, or a user refreshes the page -- their data stays intact.
 
 ## Why Continuum
 
-Schema-driven UIs are fragile. An AI generates a form, the user fills it out, the AI regenerates -- and everything the user typed is gone. Continuum solves this with deterministic reconciliation: match components across schema versions, carry state forward, migrate when shapes change, and log what happened.
+View-driven UIs are fragile. An AI generates a form, the user fills it out, the AI regenerates -- and everything the user typed is gone. Continuum solves this with deterministic reconciliation: match nodes across view versions, carry state forward, migrate when shapes change, and log what happened.
 
-**For AI developers:** Your agent generates UI schemas. Continuum handles the state lifecycle -- persistence, reconciliation, rewind, and audit trail -- so your agent can focus on generating, not bookkeeping.
+**For AI developers:** Your agent generates view definitions. Continuum handles the data lifecycle -- persistence, reconciliation, rewind, and audit trail -- so your agent can focus on generating, not bookkeeping.
 
-**For app developers:** Drop-in persistent, rewindable state for any React app. When you add AI later, your app is already wired for it.
+**For app developers:** Drop-in persistent, rewindable state for React and Angular apps. When you add AI later, your app is already wired for it.
 
 ## Packages
 
 | Package | Description |
 |---|---|
-| `@continuum/contract` | Core types and constants -- SchemaSnapshot, StateSnapshot, Checkpoint |
-| `@continuum/runtime` | Reconciliation engine -- diffs schemas, carries state, logs traces |
-| `@continuum/session` | Session manager -- orchestrates pushSchema, updateState, checkpoint, rewind, serialize |
+| `@continuum/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint |
+| `@continuum/runtime` | Reconciliation engine -- diffs views, carries state, logs resolutions |
+| `@continuum/session` | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
 | `@continuum/react` | React bindings -- Provider, Renderer, hooks |
-| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into SchemaSnapshot |
+| `@continuum/angular` | Angular bindings -- provideContinuum, signals, standalone renderer, forms |
+| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition |
 
 ## Quick Start
 
@@ -30,17 +31,18 @@ npm install @continuum/react @continuum/contract
 
 ```tsx
 import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/react';
-import type { SchemaSnapshot } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum/contract';
 
-const componentMap = {
-  input: MyInputComponent,
-  toggle: MyToggleComponent,
-  select: MySelectComponent,
+const nodeMap = {
+  field: MyFieldComponent,
+  group: MySectionComponent,
+  action: MyActionButton,
+  presentation: MyDisplayContent,
 };
 
 function App() {
   return (
-    <ContinuumProvider components={componentMap} persist="localStorage">
+    <ContinuumProvider components={nodeMap} persist="localStorage">
       <YourApp />
     </ContinuumProvider>
   );
@@ -49,31 +51,43 @@ function App() {
 function YourApp() {
   const session = useContinuumSession();
 
-  function handleSchemaFromAgent(schema: SchemaSnapshot) {
-    session.pushSchema(schema);
+  function handleViewFromAgent(view: ViewDefinition) {
+    session.pushView(view);
   }
 
   const snapshot = session.getSnapshot();
 
   return snapshot ? (
-    <ContinuumRenderer schema={snapshot.schema} />
+    <ContinuumRenderer view={snapshot.view} />
   ) : null;
 }
 ```
 
-State is automatically reconciled on each `pushSchema`. User input is preserved across schema changes when components match by key or ID. Sessions persist to localStorage and survive refresh.
+State is automatically reconciled on each `pushView`. User input is preserved across view changes when nodes match by key or ID. Sessions persist to localStorage and survive refresh.
 
 ## Key Features
 
-**Reconciliation** -- Deterministic algorithm that matches components across schema versions by ID, key, and type. Carries forward state for matches, drops for type mismatches, and supports custom migration strategies.
+**Reconciliation** -- Deterministic algorithm that matches nodes across view versions by ID, key, and type. Carries forward state for matches, detaches for type mismatches, and supports custom migration strategies.
 
-**Auto-Checkpoint & Rewind** -- Every `pushSchema` creates a checkpoint. Call `session.getCheckpoints()` to see the timeline and `session.rewind(id)` to restore any prior version instantly.
+**Auto-Checkpoint & Rewind** -- Every `pushView` creates a checkpoint. Call `session.getCheckpoints()` to see the timeline and `session.rewind(checkpointId)` to restore any prior version instantly.
 
-**Serialization** -- `session.serialize()` produces a versioned JSON blob containing the full session state, schema, event log, and checkpoints. `deserialize()` reconstructs a working session. Format-versioned for forward compatibility.
+**Serialization** -- `session.serialize()` produces a versioned JSON blob containing the full session state, view, event log, and checkpoints. `deserialize()` reconstructs a working session. Format-versioned for forward compatibility.
 
 **Persistence** -- The React provider handles localStorage/sessionStorage persistence automatically. Sessions rehydrate on page load with full state intact.
 
-**Audit Trail** -- Every schema push generates a reconciliation trace (what was carried, migrated, dropped, added) and diffs. Every user interaction is logged with timestamps.
+**Audit Trail** -- Every view push generates reconciliation resolutions (what was carried, migrated, detached, added) and diffs. Every user interaction is logged with timestamps.
+
+## Session API Highlights
+
+The session surface in `@continuum/session` includes:
+
+- Core reads: `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getDetachedValues`
+- Mutations: `pushView`, `updateState`, `recordIntent`
+- Intent lifecycle: `submitIntent`, `getPendingIntents`, `validateIntent`, `cancelIntent`
+- Time travel: `checkpoint`, `restoreFromCheckpoint`, `getCheckpoints`, `rewind`, `reset`
+- Persistence and subscriptions: `serialize`, `onSnapshot`, `onIssues`, `destroy`
+
+Serialized payloads use `formatVersion: 1`; deserialization only accepts version 1.
 
 ## Development
 
@@ -94,6 +108,7 @@ npx nx run playground:e2e      # Run e2e tests
 @continuum/session     (session lifecycle)
        ↓
 @continuum/react       (React bindings)
+@continuum/angular     (Angular bindings)
        ↓
 apps/playground        (demo application)
 
@@ -105,8 +120,8 @@ apps/playground        (demo application)
 | Guide | Description |
 |---|---|
 | [Quick Start](docs/QUICK_START.md) | 5-minute integration guide with copy-paste code |
-| [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent schemas, custom migrations, protocol adapters, persistence, lifecycle |
-| [Schema Contract](docs/SCHEMA_CONTRACT.md) | Definitive reference for SchemaSnapshot format and reconciliation rules |
+| [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent views, custom migrations, protocol adapters, persistence, lifecycle |
+| [Schema Contract](docs/SCHEMA_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules |
 | [AI Integration](docs/AI_INTEGRATION.md) | Connecting an AI agent to Continuum with prompt templates and examples |
 
 See [docs/](docs/README.md) for the full documentation index -- product vision, architecture, current gaps, and the phase roadmap.

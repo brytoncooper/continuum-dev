@@ -1,22 +1,25 @@
 import { useRef, useEffect, useState } from 'react';
-import { radius, shadow, space, typeScale } from '../tokens';
+import { space, typeScale } from '../tokens';
 import { landingTheme } from './landing-theme';
 
 const problems = [
   {
-    title: 'Every schema change rewrites the UI',
-    icon: '🔄',
-    body: 'Agents and generators can emit a whole new component tree, causing stateful widgets to reset.',
+    title: 'View updates reset the UI',
+    body: 'AI agents emit entirely new view trees, causing fields and selections to silently reset.',
+    gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(124, 58, 237, 0.08))',
+    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   {
-    title: 'Forms lose their memory',
-    icon: '💨',
-    body: 'Drafts, selections, and pending edits are often discarded in the transition.',
+    title: 'User data vanishes mid-flow',
+    body: 'Drafts, choices, and pending inputs are discarded whenever the view structure changes.',
+    gradient: 'linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(124, 58, 237, 0.08))',
+    borderColor: 'rgba(251, 191, 36, 0.2)',
   },
   {
-    title: 'Trust drops at the exact wrong moment',
-    icon: '🛡️',
-    body: 'People hesitate to continue when the app they trusted just forgets what they entered.',
+    title: 'Trust erodes instantly',
+    body: 'Users stop engaging when the interface forgets everything they just entered.',
+    gradient: 'linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(124, 58, 237, 0.08))',
+    borderColor: 'rgba(34, 211, 238, 0.2)',
   },
 ];
 
@@ -31,7 +34,7 @@ export function ProblemSection() {
       ([entry]) => {
         if (entry.isIntersecting) setVisible(true);
       },
-      { threshold: 0.2, rootMargin: '0px 0px -80px 0px' }
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -42,79 +45,87 @@ export function ProblemSection() {
       ref={ref}
       data-testid="landing-problem"
       style={{
-        padding: `${110}px ${space.xl}px`,
+        padding: `${140}px ${space.xl}px`,
         color: landingTheme.colors.text,
+        background: landingTheme.gradients.page,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transform: visible ? 'translateY(0)' : 'translateY(32px)',
+        transition: 'opacity 0.8s ease, transform 0.8s ease',
       }}
     >
-      <div style={{ maxWidth: 920, margin: '0 auto' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
         <div
           style={{
             ...typeScale.label,
-            color: landingTheme.colors.textMuted,
+            color: landingTheme.colors.textSoft,
             marginBottom: space.md,
             textAlign: 'center',
-            letterSpacing: '0.2em',
+            letterSpacing: '0.25em',
             textTransform: 'uppercase',
+            fontSize: 11,
           }}
         >
           The silent failure mode
         </div>
         <h2
           style={{
-            ...typeScale.h1,
             fontFamily: landingTheme.fonts.display,
-            fontSize: 42,
+            fontSize: 44,
+            fontWeight: 800,
             color: landingTheme.colors.text,
             margin: 0,
-            marginBottom: space.xxl,
+            marginBottom: 48,
             textAlign: 'center',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
           }}
         >
-          Dynamic schemas often break continuity
+          Dynamic views break data continuity
         </h2>
+
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: space.xl,
-            marginBottom: space.xxl,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 20,
+            marginBottom: 48,
           }}
         >
-          {problems.map((p) => (
+          {problems.map((p, i) => (
             <div
               key={p.title}
               style={{
-                padding: space.xl,
-                background: landingTheme.gradients.panel,
-                borderRadius: radius.lg,
-                border: `1px solid ${landingTheme.colors.border}`,
-                boxShadow: shadow.card,
-                backgroundImage: landingTheme.colors.accentGlow,
-                textAlign: 'center',
-                transition: landingTheme.transitions.normal,
+                padding: 28,
+                background: p.gradient,
+                borderRadius: 16,
+                border: `1px solid ${p.borderColor}`,
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                textAlign: 'left',
+                animation: visible
+                  ? `landing-card-appear 0.6s ease ${i * 0.12}s both`
+                  : 'none',
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: space.md }}>{p.icon}</div>
               <h3
                 style={{
-                  ...typeScale.h2,
                   fontFamily: landingTheme.fonts.display,
+                  fontSize: 17,
+                  fontWeight: 700,
                   color: landingTheme.colors.text,
                   margin: 0,
-                  marginBottom: space.sm,
+                  marginBottom: 10,
+                  letterSpacing: '-0.01em',
                 }}
               >
                 {p.title}
               </h3>
               <p
                 style={{
-                  ...typeScale.body,
+                  fontSize: 14,
                   color: landingTheme.colors.textMuted,
                   margin: 0,
-                  lineHeight: 1.5,
+                  lineHeight: 1.6,
                 }}
               >
                 {p.body}
@@ -122,18 +133,23 @@ export function ProblemSection() {
             </div>
           ))}
         </div>
+
         <p
           style={{
-            ...typeScale.body,
             fontSize: 16,
             color: landingTheme.colors.textMuted,
-            lineHeight: 1.6,
+            lineHeight: 1.7,
             textAlign: 'center',
             margin: 0,
+            maxWidth: 640,
+            marginLeft: 'auto',
+            marginRight: 'auto',
           }}
         >
-          When any schema changes—AI generation, CMS sync, or feature rollout—the screen often feels
-          unstable. <strong style={{ color: landingTheme.colors.text }}>Continuum restores continuity.</strong>
+          Whenever a view changes — AI generation, CMS sync, or feature rollout — user data is at risk.{' '}
+          <strong style={{ color: landingTheme.colors.accentBright }}>
+            Continuum makes that risk invisible.
+          </strong>
         </p>
       </div>
     </section>

@@ -1,35 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ReconciliationTrace } from '@continuum/runtime';
+import type { ReconciliationResolution } from '@continuum/runtime';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
 
 interface ReconciliationToastProps {
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
 }
 
-export function ReconciliationToast({ trace }: ReconciliationToastProps) {
+export function ReconciliationToast({ resolutions }: ReconciliationToastProps) {
   const [visible, setVisible] = useState(false);
   const [summary, setSummary] = useState('');
-  const previousTraceRef = useRef<ReconciliationTrace[]>([]);
+  const previousResolutionsRef = useRef<ReconciliationResolution[]>([]);
 
   useEffect(() => {
     const changed =
-      trace.length > 0 &&
-      (trace.length !== previousTraceRef.current.length ||
-        trace.some(
+      resolutions.length > 0 &&
+      (resolutions.length !== previousResolutionsRef.current.length ||
+        resolutions.some(
           (entry, index) =>
-            entry.componentId !== previousTraceRef.current[index]?.componentId ||
-            entry.action !== previousTraceRef.current[index]?.action
+            entry.nodeId !== previousResolutionsRef.current[index]?.nodeId ||
+            entry.resolution !== previousResolutionsRef.current[index]?.resolution
         ));
 
-    previousTraceRef.current = trace;
+    previousResolutionsRef.current = resolutions;
     if (!changed) {
       return;
     }
 
     const counts: Record<string, number> = {};
-    for (const entry of trace) {
-      counts[entry.action] = (counts[entry.action] ?? 0) + 1;
+    for (const entry of resolutions) {
+      counts[entry.resolution] = (counts[entry.resolution] ?? 0) + 1;
     }
 
     const parts: string[] = [];
@@ -42,7 +42,7 @@ export function ReconciliationToast({ trace }: ReconciliationToastProps) {
     setVisible(true);
     const timer = setTimeout(() => setVisible(false), 4000);
     return () => clearTimeout(timer);
-  }, [trace]);
+  }, [resolutions]);
 
   if (!visible || !summary) {
     return null;
@@ -88,4 +88,3 @@ export function ReconciliationToast({ trace }: ReconciliationToastProps) {
     </div>
   );
 }
-

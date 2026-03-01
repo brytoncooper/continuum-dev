@@ -1,19 +1,19 @@
 import { useRef, useEffect, useState } from 'react';
-import { radius, shadow, space, typeScale } from '../tokens';
+import { space, typeScale } from '../tokens';
 import { landingTheme } from './landing-theme';
 
 const flowSteps = [
-  { label: 'Schema v1', desc: 'Baseline definition' },
-  { label: 'User fills data', desc: 'Values entered' },
-  { label: 'Schema v2', desc: 'AI or agent updates' },
-  { label: 'Continuum reconciles', desc: 'Match & migrate' },
-  { label: 'State preserved', desc: 'Values transfer forward' },
+  { label: 'View v1', desc: 'Baseline definition', accent: 'rgba(124, 58, 237, 0.3)' },
+  { label: 'User fills data', desc: 'Values entered', accent: 'rgba(99, 102, 241, 0.3)' },
+  { label: 'View v2', desc: 'AI updates the view', accent: 'rgba(34, 211, 238, 0.3)' },
+  { label: 'Reconcile', desc: 'Match, migrate, preserve', accent: 'rgba(52, 211, 153, 0.3)' },
+  { label: 'Data intact', desc: 'Values carry forward', accent: 'rgba(167, 139, 250, 0.3)' },
 ];
 
 const features = [
-  { title: 'Match by key', desc: 'Deterministic component identity across revisions' },
-  { title: 'Migrate on change', desc: 'Custom strategies for schema evolution' },
-  { title: 'Checkpoint & rewind', desc: 'Restore any prior state with confidence' },
+  { title: 'Match by key', desc: 'Deterministic node identity across revisions', icon: '\u2192' },
+  { title: 'Migrate on change', desc: 'Custom strategies for view evolution', icon: '\u21BB' },
+  { title: 'Checkpoint & rewind', desc: 'Restore any prior state with confidence', icon: '\u23EA' },
 ];
 
 export function SolutionSection() {
@@ -27,7 +27,7 @@ export function SolutionSection() {
       ([entry]) => {
         if (entry.isIntersecting) setVisible(true);
       },
-      { threshold: 0.2, rootMargin: '0px 0px -80px 0px' }
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -38,78 +38,94 @@ export function SolutionSection() {
       ref={ref}
       data-testid="landing-solution"
       style={{
-        padding: `${110}px ${space.xl}px`,
+        padding: `${140}px ${space.xl}px`,
         background: landingTheme.gradients.page,
         color: landingTheme.colors.text,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: 'opacity 0.6s ease, transform 0.6s ease',
+        transform: visible ? 'translateY(0)' : 'translateY(32px)',
+        transition: 'opacity 0.8s ease, transform 0.8s ease',
+        position: 'relative',
       }}
     >
-      <div style={{ maxWidth: 920, margin: '0 auto' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
         <div
           style={{
             ...typeScale.label,
-            color: landingTheme.colors.textMuted,
+            color: landingTheme.colors.textSoft,
             textTransform: 'uppercase',
-            letterSpacing: '0.18em',
+            letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: space.md,
+            fontSize: 11,
           }}
         >
           Continuity engine
         </div>
         <h2
           style={{
-            ...typeScale.h1,
             fontFamily: landingTheme.fonts.display,
-            fontSize: 42,
+            fontSize: 44,
+            fontWeight: 800,
             color: landingTheme.colors.text,
             margin: 0,
-            marginBottom: space.xxl,
+            marginBottom: 56,
             textAlign: 'center',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
           }}
         >
-          State continuity, engineered for resilience
+          Data continuity, engineered for resilience
         </h2>
+
         <div
           style={{
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'center',
-            gap: space.sm,
-            marginBottom: space.xxl,
+            alignItems: 'center',
+            gap: 0,
+            marginBottom: 56,
           }}
         >
           {flowSteps.map((step, i) => (
-            <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: space.sm }}>
+            <div
+              key={step.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                animation: visible
+                  ? `landing-card-appear 0.5s ease ${i * 0.1}s both`
+                  : 'none',
+              }}
+            >
               <div
                 style={{
-                  padding: `${space.sm}px ${space.md}px`,
-                  background: landingTheme.colors.surface,
-                  backgroundImage: landingTheme.colors.accentGlow,
-                  borderRadius: radius.md,
-                  border: `1px solid ${landingTheme.colors.border}`,
-                  boxShadow: shadow.card,
+                  padding: `12px 20px`,
+                  background: step.accent,
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  borderRadius: 12,
+                  border: `1px solid rgba(255, 255, 255, 0.08)`,
                   textAlign: 'center',
-                  minWidth: 120,
+                  minWidth: 130,
                 }}
               >
                 <div
                   style={{
-                    ...typeScale.caption,
                     fontFamily: landingTheme.fonts.display,
-                    color: landingTheme.colors.text,
+                    fontSize: 13,
                     fontWeight: 700,
+                    color: landingTheme.colors.text,
+                    letterSpacing: '-0.01em',
                   }}
                 >
                   {step.label}
                 </div>
                 <div
                   style={{
-                    ...typeScale.caption,
-                    color: landingTheme.colors.textSoft,
                     fontSize: 10,
+                    color: landingTheme.colors.textSoft,
+                    marginTop: 2,
                   }}
                 >
                   {step.desc}
@@ -118,60 +134,79 @@ export function SolutionSection() {
               {i < flowSteps.length - 1 && (
                 <span
                   style={{
-                    color: landingTheme.colors.textSoft,
-                    fontSize: 18,
-                    flexShrink: 0,
+                    color: landingTheme.colors.accentBright,
+                    fontSize: 16,
+                    padding: '0 8px',
+                    opacity: 0.5,
+                    animation: visible
+                      ? `landing-flow-arrow 2s ease ${0.8 + i * 0.3}s infinite`
+                      : 'none',
                   }}
                 >
-                  →
+                  &#x2192;
                 </span>
               )}
             </div>
           ))}
         </div>
+
         <div
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: space.md,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 16,
           }}
         >
-          {features.map((f) => (
+          {features.map((f, i) => (
             <div
               key={f.title}
               style={{
-                padding: `${space.md}px ${space.lg}px`,
-                background: landingTheme.gradients.panel,
-                boxShadow: landingTheme.colors.shadowSurface,
-                borderRadius: radius.pill,
+                padding: `20px 24px`,
+                background: landingTheme.colors.panel,
                 border: `1px solid ${landingTheme.colors.border}`,
-                display: 'inline-flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                maxWidth: 200,
-                textAlign: 'center',
+                borderRadius: 14,
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+                animation: visible
+                  ? `landing-card-appear 0.5s ease ${0.5 + i * 0.1}s both`
+                  : 'none',
               }}
             >
               <span
                 style={{
-                  ...typeScale.caption,
-                  color: landingTheme.colors.accent,
-                  fontFamily: landingTheme.fonts.display,
-                  fontWeight: 700,
+                  fontSize: 20,
+                  color: landingTheme.colors.accentCyan,
+                  flexShrink: 0,
+                  marginTop: 1,
                 }}
               >
-                {f.title}
+                {f.icon}
               </span>
-              <span
-                style={{
-                  ...typeScale.caption,
-                  color: landingTheme.colors.textSoft,
-                  fontSize: 11,
-                }}
-              >
-                {f.desc}
-              </span>
+              <div>
+                <div
+                  style={{
+                    fontFamily: landingTheme.fonts.display,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: landingTheme.colors.accentBright,
+                    marginBottom: 4,
+                  }}
+                >
+                  {f.title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: landingTheme.colors.textSoft,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {f.desc}
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -15,7 +15,7 @@ export function IssuesList({ issues }: IssuesListProps) {
     <div style={{ display: 'grid', gap: space.xs }}>
       {issues.map((issue, index) => (
         <div
-          key={`${issue.code}-${issue.componentId ?? 'global'}-${index}`}
+          key={`${issue.code}-${issue.nodeId ?? 'global'}-${index}`}
           style={{
             border: `1px solid ${tone(issue.severity)}`,
             borderRadius: radius.md,
@@ -27,7 +27,7 @@ export function IssuesList({ issues }: IssuesListProps) {
         >
           <div style={{ ...typeScale.caption, color: tone(issue.severity) }}>
             {issue.code}
-            {issue.componentId ? ` · ${issue.componentId}` : ''}
+            {issue.nodeId ? ` · ${issue.nodeId}` : ''}
           </div>
           <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>{issue.message}</div>
         </div>
@@ -47,4 +47,3 @@ function background(severity: string): string {
   if (severity === 'warning') return playgroundTheme.color.warningBg;
   return playgroundTheme.color.infoBg;
 }
-
