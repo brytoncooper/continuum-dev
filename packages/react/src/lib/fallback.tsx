@@ -1,19 +1,24 @@
-import type { ComponentState } from '@continuum/contract';
-import type { ContinuumComponentProps } from './types.js';
+import type { NodeValue } from '@continuum/contract';
+import type { ContinuumNodeProps } from './types.js';
 
 export function FallbackComponent({
   value,
   onChange,
   definition,
-}: ContinuumComponentProps) {
+}: ContinuumNodeProps) {
   const raw = value as Record<string, unknown> | undefined;
   const textValue =
     typeof raw?.['value'] === 'string' || typeof raw?.['value'] === 'number'
       ? String(raw['value'])
       : '';
 
-  const displayName = definition.label ?? definition.id;
-  const placeholder = definition.placeholder ?? `Enter value for "${displayName}"`;
+  const meta = definition as unknown as Record<string, unknown>;
+  const displayName =
+    (typeof meta['label'] === 'string' ? meta['label'] : null) ??
+    definition.id;
+  const placeholder =
+    (typeof meta['placeholder'] === 'string' ? meta['placeholder'] : null) ??
+    `Enter value for "${displayName}"`;
 
   return (
     <div
@@ -29,7 +34,7 @@ export function FallbackComponent({
       </div>
       <input
         value={textValue}
-        onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
         placeholder={placeholder}
         style={{
           display: 'block',
@@ -43,7 +48,7 @@ export function FallbackComponent({
       />
       <details style={{ marginTop: 8 }}>
         <summary style={{ fontSize: 11, color: '#666', cursor: 'pointer' }}>
-          Schema definition
+          Node definition
         </summary>
         <pre
           style={{

@@ -1,9 +1,9 @@
-import type { SchemaSnapshot, ComponentState } from '@continuum/contract';
+import type { ViewDefinition, NodeValue } from '@continuum/contract';
 
-export interface ProtocolAdapter<TExternalSchema, TExternalData = unknown> {
+export interface ProtocolAdapter<TExternalView, TExternalData = unknown> {
   name: string;
-  toSchema(external: TExternalSchema): SchemaSnapshot;
-  fromSchema?(snapshot: SchemaSnapshot): TExternalSchema;
-  toState?(externalData: TExternalData): Record<string, ComponentState>;
-  fromState?(state: Record<string, ComponentState>): TExternalData;
+  toView(external: TExternalView): ViewDefinition;
+  fromView?(definition: ViewDefinition): TExternalView;
+  toState?(externalData: TExternalData): Record<string, NodeValue>;
+  fromState?(state: Record<string, NodeValue>): TExternalData;
 }
