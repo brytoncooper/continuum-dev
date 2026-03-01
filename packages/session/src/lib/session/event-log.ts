@@ -1,45 +1,46 @@
 import type {
-  ComponentDefinition,
+  ViewNode,
   Interaction,
-  ComponentState,
-  ValueMeta,
+  NodeValue,
+  ValueLineage,
 } from '@continuum/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import { getChildNodes, ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 import { buildSnapshotFromCurrentState, notifySnapshotAndIssueListeners } from './listeners.js';
 import { cloneCheckpointSnapshot } from './checkpoint-manager.js';
-import { validateComponentState } from '@continuum/runtime';
+import { validateNodeValue } from '@continuum/runtime';
 
-function collectComponentsById(components: ComponentDefinition[]): Map<string, ComponentDefinition> {
-  const byId = new Map<string, ComponentDefinition>();
-  const walk = (nodes: ComponentDefinition[]) => {
-    for (const node of nodes) {
+function collectNodesById(nodes: ViewNode[]): Map<string, ViewNode> {
+  const byId = new Map<string, ViewNode>();
+  const walk = (items: ViewNode[]) => {
+    for (const node of items) {
       byId.set(node.id, node);
-      if (node.children) {
-        walk(node.children);
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        walk(children);
       }
     }
   };
-  walk(components);
+  walk(nodes);
   return byId;
 }
 
 export function recordIntent(
   internal: SessionState,
-  partial: Omit<Interaction, 'id' | 'timestamp' | 'sessionId' | 'schemaVersion'>
+  partial: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>
 ): void {
-  if (internal.destroyed || !internal.currentState || !internal.currentSchema) return;
+  if (internal.destroyed || !internal.currentData || !internal.currentView) return;
 
   const now = internal.clock();
   const id = generateId('int', internal.clock);
 
   const interaction: Interaction = {
-    id,
+    interactionId: id,
     sessionId: internal.sessionId,
-    schemaVersion: internal.currentSchema.version,
+    viewVersion: internal.currentView.version,
     timestamp: now,
-    componentId: partial.componentId,
+    nodeId: partial.nodeId,
     type: partial.type,
     payload: partial.payload,
   };
@@ -49,46 +50,46 @@ export function recordIntent(
     internal.eventLog.splice(0, internal.eventLog.length - internal.maxEventLogSize);
   }
 
-  const componentMap = collectComponentsById(internal.currentSchema.components);
-  const componentDefinition = componentMap.get(partial.componentId);
-  if (!componentDefinition) {
+  const nodeMap = collectNodesById(internal.currentView.nodes);
+  const nodeDefinition = nodeMap.get(partial.nodeId);
+  if (!nodeDefinition) {
     internal.issues = [
       ...internal.issues,
       {
         severity: ISSUE_SEVERITY.WARNING,
-        componentId: partial.componentId,
-        message: `Component ${partial.componentId} not found in current schema`,
-        code: ISSUE_CODES.UNKNOWN_COMPONENT,
+        nodeId: partial.nodeId,
+        message: `Node ${partial.nodeId} not found in current view`,
+        code: ISSUE_CODES.UNKNOWN_NODE,
       },
     ];
     notifySnapshotAndIssueListeners(internal);
     return;
   }
 
-  internal.currentState = {
-    ...internal.currentState,
+  internal.currentData = {
+    ...internal.currentData,
     values: {
-      ...internal.currentState.values,
-      [partial.componentId]: partial.payload as ComponentState,
+      ...internal.currentData.values,
+      [partial.nodeId]: partial.payload as NodeValue,
     },
-    meta: {
-      ...internal.currentState.meta,
+    lineage: {
+      ...internal.currentData.lineage,
       timestamp: now,
       lastInteractionId: id,
     },
-    valuesMeta: {
-      ...internal.currentState.valuesMeta,
-      [partial.componentId]: {
+    valueLineage: {
+      ...internal.currentData.valueLineage,
+      [partial.nodeId]: {
         lastUpdated: now,
         lastInteractionId: id,
-      } as ValueMeta,
+      } as ValueLineage,
     },
   };
 
   if (internal.validateOnUpdate) {
-    const validationIssues = validateComponentState(
-      componentDefinition,
-      partial.payload as ComponentState
+    const validationIssues = validateNodeValue(
+      nodeDefinition,
+      partial.payload as NodeValue
     );
     if (validationIssues.length > 0) {
       internal.issues = [...internal.issues, ...validationIssues];
@@ -97,7 +98,7 @@ export function recordIntent(
 
   const lastAutoCheckpoint = [...internal.checkpoints]
     .reverse()
-    .find((checkpoint) => checkpoint.kind === 'auto');
+    .find((checkpoint) => checkpoint.trigger === 'auto');
   if (lastAutoCheckpoint) {
     const snapshot = buildSnapshotFromCurrentState(internal);
     if (snapshot) {
