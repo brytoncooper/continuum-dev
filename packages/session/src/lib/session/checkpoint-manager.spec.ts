@@ -1,11 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { autoCheckpoint, createManualCheckpoint, restoreFromCheckpoint, rewind } from './checkpoint-manager.js';
-import type { SchemaSnapshot, StateSnapshot, Checkpoint } from '@continuum/contract';
 
 function setupWithSnapshot(internal: ReturnType<typeof createEmptySessionState>) {
-  internal.currentSchema = { schemaId: 's1', version: '1.0', components: [] };
-  internal.currentState = { values: { a: { value: 'hello' } }, meta: { timestamp: 1000, sessionId: 's' } };
+  internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+  internal.currentData = { values: { a: { value: 'hello' } }, lineage: { timestamp: 1000, sessionId: 's' } };
 }
 
 describe('autoCheckpoint', () => {
@@ -17,7 +16,7 @@ describe('autoCheckpoint', () => {
 
     expect(internal.checkpoints).toHaveLength(1);
     expect(internal.checkpoints[0].sessionId).toBe('s');
-    expect(internal.checkpoints[0].snapshot.state.values['a']).toEqual({ value: 'hello' });
+    expect(internal.checkpoints[0].snapshot.data.values['a']).toEqual({ value: 'hello' });
   });
 
   it('does nothing when snapshot is null', () => {
@@ -37,38 +36,38 @@ describe('createManualCheckpoint', () => {
     const cp = createManualCheckpoint(internal);
 
     expect(cp.sessionId).toBe('s');
-    expect(cp.snapshot.state.values['a']).toEqual({ value: 'hello' });
+    expect(cp.snapshot.data.values['a']).toEqual({ value: 'hello' });
     expect(internal.checkpoints).toHaveLength(1);
-    expect(internal.checkpoints[0].id).toBe(cp.id);
+    expect(internal.checkpoints[0].checkpointId).toBe(cp.checkpointId);
   });
 });
 
 describe('restoreFromCheckpoint', () => {
-  it('restores schema and state from the checkpoint', () => {
+  it('restores view and data from the checkpoint', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
 
-    internal.currentState = { values: { a: { value: 'changed' } }, meta: { timestamp: 2000, sessionId: 's' } };
+    internal.currentData = { values: { a: { value: 'changed' } }, lineage: { timestamp: 2000, sessionId: 's' } };
 
     restoreFromCheckpoint(internal, internal.checkpoints[0]);
 
-    expect(internal.currentState!.values['a']).toEqual({ value: 'hello' });
+    expect(internal.currentData!.values['a']).toEqual({ value: 'hello' });
   });
 
-  it('clears issues, diffs, trace, and pending actions', () => {
+  it('clears issues, diffs, resolutions, and pending intents', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.issues = [{ severity: 'info', message: 'test', code: 'TEST' }];
-    internal.pendingActions = [{ id: 'a', componentId: 'a', actionType: 'x', payload: {}, createdAt: 0, schemaVersion: '1', status: 'pending' }];
+    internal.pendingIntents = [{ intentId: 'a', nodeId: 'a', intentName: 'x', payload: {}, queuedAt: 0, viewVersion: '1', status: 'pending' }];
 
     restoreFromCheckpoint(internal, internal.checkpoints[0]);
 
     expect(internal.issues).toEqual([]);
     expect(internal.diffs).toEqual([]);
-    expect(internal.trace).toEqual([]);
-    expect(internal.pendingActions).toEqual([]);
+    expect(internal.resolutions).toEqual([]);
+    expect(internal.pendingIntents).toEqual([]);
   });
 
   it('does nothing when destroyed', () => {
@@ -76,25 +75,25 @@ describe('restoreFromCheckpoint', () => {
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.destroyed = true;
-    const stateBefore = internal.currentState;
+    const dataBefore = internal.currentData;
 
     restoreFromCheckpoint(internal, internal.checkpoints[0]);
 
-    expect(internal.currentState).toBe(stateBefore);
+    expect(internal.currentData).toBe(dataBefore);
   });
 
-  it('restores into isolated state objects that do not mutate checkpoint snapshots', () => {
+  it('restores into isolated data objects that do not mutate checkpoint snapshots', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithSnapshot(internal);
 
     const cp = createManualCheckpoint(internal);
     restoreFromCheckpoint(internal, cp);
 
-    internal.currentState!.values['a'] = { value: 'mutated' };
-    internal.currentSchema!.schemaId = 'changed';
+    internal.currentData!.values['a'] = { value: 'mutated' };
+    internal.currentView!.viewId = 'changed';
 
-    expect(cp.snapshot.state.values['a']).toEqual({ value: 'hello' });
-    expect(cp.snapshot.schema.schemaId).toBe('s1');
+    expect(cp.snapshot.data.values['a']).toEqual({ value: 'hello' });
+    expect(cp.snapshot.view.viewId).toBe('s1');
   });
 });
 
@@ -104,17 +103,17 @@ describe('rewind', () => {
     const internal = createEmptySessionState('s', () => time++);
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
-    internal.currentSchema = { schemaId: 's2', version: '2.0', components: [] };
+    internal.currentView = { viewId: 's2', version: '2.0', nodes: [] };
     autoCheckpoint(internal);
-    internal.currentSchema = { schemaId: 's3', version: '3.0', components: [] };
+    internal.currentView = { viewId: 's3', version: '3.0', nodes: [] };
     autoCheckpoint(internal);
 
     expect(internal.checkpoints).toHaveLength(3);
 
-    rewind(internal, internal.checkpoints[0].id);
+    rewind(internal, internal.checkpoints[0].checkpointId);
 
     expect(internal.checkpoints).toHaveLength(1);
-    expect(internal.currentSchema!.schemaId).toBe('s1');
+    expect(internal.currentView!.viewId).toBe('s1');
   });
 
   it('throws when checkpoint id is not found', () => {

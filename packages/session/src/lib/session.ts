@@ -4,9 +4,9 @@ import { createEmptySessionState, generateId, resetSessionState } from './sessio
 import type { SessionState } from './session/session-state.js';
 import { buildSnapshotFromCurrentState, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
 import { createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
-import { submitAction, validateAction, cancelAction } from './session/action-manager.js';
+import { submitIntent, validateIntent, cancelIntent } from './session/intent-manager.js';
 import { recordIntent } from './session/event-log.js';
-import { pushSchema } from './session/schema-pusher.js';
+import { pushView } from './session/view-pusher.js';
 import { serializeSession, deserializeToState } from './session/serializer.js';
 import { teardownSessionAndClearState } from './session/destroyer.js';
 
@@ -16,24 +16,24 @@ function assembleSessionFromInternalState(internal: SessionState): Session {
     getSnapshot() { return internal.destroyed ? null : buildSnapshotFromCurrentState(internal); },
     getIssues() { return internal.destroyed ? [] : [...internal.issues]; },
     getDiffs() { return internal.destroyed ? [] : [...internal.diffs]; },
-    getTrace() { return internal.destroyed ? [] : [...internal.trace]; },
+    getResolutions() { return internal.destroyed ? [] : [...internal.resolutions]; },
     getEventLog() { return internal.destroyed ? [] : [...internal.eventLog]; },
-    getPendingActions() { return internal.destroyed ? [] : [...internal.pendingActions]; },
-    getOrphanedValues() {
+    getPendingIntents() { return internal.destroyed ? [] : [...internal.pendingIntents]; },
+    getDetachedValues() {
       if (internal.destroyed) return {};
-      return { ...(internal.currentState?.orphanedValues ?? {}) };
+      return { ...(internal.currentData?.detachedValues ?? {}) };
     },
     getCheckpoints() { return internal.destroyed ? [] : [...internal.checkpoints]; },
 
-    pushSchema(schema) { pushSchema(internal, schema); },
+    pushView(view) { pushView(internal, view); },
     recordIntent(partial) { recordIntent(internal, partial); },
-    updateState(componentId, payload) {
-      recordIntent(internal, { componentId, type: INTERACTION_TYPES.STATE_UPDATE, payload });
+    updateState(nodeId, payload) {
+      recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload });
     },
 
-    submitAction(partial) { submitAction(internal, partial); },
-    validateAction(actionId) { return validateAction(internal, actionId); },
-    cancelAction(actionId) { return cancelAction(internal, actionId); },
+    submitIntent(partial) { submitIntent(internal, partial); },
+    validateIntent(intentId) { return validateIntent(internal, intentId); },
+    cancelIntent(intentId) { return cancelIntent(internal, intentId); },
 
     checkpoint() { return createManualCheckpoint(internal); },
     restoreFromCheckpoint(cp) { restoreFromCheckpoint(internal, cp); },
@@ -57,7 +57,7 @@ export function createSession(options?: SessionOptions): Session {
   const clock = options?.clock ?? Date.now;
   const internal = createEmptySessionState(generateId('session', clock), clock);
   internal.maxEventLogSize = options?.maxEventLogSize ?? internal.maxEventLogSize;
-  internal.maxPendingActions = options?.maxPendingActions ?? internal.maxPendingActions;
+  internal.maxPendingIntents = options?.maxPendingIntents ?? internal.maxPendingIntents;
   internal.maxCheckpoints = options?.maxCheckpoints ?? internal.maxCheckpoints;
   internal.reconciliationOptions = options?.reconciliation;
   internal.validateOnUpdate = options?.validateOnUpdate ?? internal.validateOnUpdate;
@@ -72,7 +72,7 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
     options?.clock ?? Date.now,
     {
       maxEventLogSize: options?.maxEventLogSize,
-      maxPendingActions: options?.maxPendingActions,
+      maxPendingIntents: options?.maxPendingIntents,
       maxCheckpoints: options?.maxCheckpoints,
     }
   );

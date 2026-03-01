@@ -1,15 +1,14 @@
 import type {
   Interaction,
-  Checkpoint as ContractCheckpoint,
-  PendingAction,
+  PendingIntent,
   Checkpoint,
-  SchemaSnapshot,
-  StateSnapshot,
+  ViewDefinition,
+  DataSnapshot,
 } from '@continuum/contract';
-import type { ReconciliationIssue, ReconciliationTrace, StateDiff } from '@continuum/runtime';
+import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
-const CURRENT_FORMAT_VERSION = 2;
+const CURRENT_FORMAT_VERSION = 1;
 
 function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -19,15 +18,15 @@ export function serializeSession(internal: SessionState): unknown {
   return deepClone({
     formatVersion: CURRENT_FORMAT_VERSION,
     sessionId: internal.sessionId,
-    currentSchema: internal.currentSchema,
-    currentState: internal.currentState,
-    priorSchema: internal.priorSchema,
+    currentView: internal.currentView,
+    currentData: internal.currentData,
+    priorView: internal.priorView,
     eventLog: internal.eventLog,
-    pendingActions: internal.pendingActions,
+    pendingIntents: internal.pendingIntents,
     checkpoints: internal.checkpoints,
     issues: internal.issues,
     diffs: internal.diffs,
-    trace: internal.trace,
+    resolutions: internal.resolutions,
     settings: {
       allowBlindCarry: internal.reconciliationOptions?.allowBlindCarry,
       allowPartialRestore: internal.reconciliationOptions?.allowPartialRestore,
@@ -39,15 +38,15 @@ export function serializeSession(internal: SessionState): unknown {
 interface SerializedSessionData {
   formatVersion?: number;
   sessionId: string;
-  currentSchema: SchemaSnapshot | null;
-  currentState: StateSnapshot | null;
-  priorSchema: SchemaSnapshot | null;
+  currentView: ViewDefinition | null;
+  currentData: DataSnapshot | null;
+  priorView: ViewDefinition | null;
   eventLog: Interaction[];
-  pendingActions: PendingAction[];
+  pendingIntents: PendingIntent[];
   checkpoints: Checkpoint[];
   issues: ReconciliationIssue[];
   diffs: StateDiff[];
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   settings?: {
     allowBlindCarry?: boolean;
     allowPartialRestore?: boolean;
@@ -71,7 +70,7 @@ function assertArrayField(
 
 function assertObjectOrNullField(
   data: Record<string, unknown>,
-  field: 'currentSchema' | 'currentState' | 'priorSchema'
+  field: 'currentView' | 'currentData' | 'priorView'
 ): void {
   const value = data[field];
   if (value !== undefined && value !== null && !isRecord(value)) {
@@ -95,69 +94,51 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
     throw new Error('Invalid serialized session: "formatVersion" must be a number');
   }
 
-  assertObjectOrNullField(data, 'currentSchema');
-  assertObjectOrNullField(data, 'currentState');
-  assertObjectOrNullField(data, 'priorSchema');
+  assertObjectOrNullField(data, 'currentView');
+  assertObjectOrNullField(data, 'currentData');
+  assertObjectOrNullField(data, 'priorView');
   assertArrayField(data, 'eventLog');
-  assertArrayField(data, 'pendingActions');
+  assertArrayField(data, 'pendingIntents');
   assertArrayField(data, 'checkpoints');
   assertArrayField(data, 'issues');
   assertArrayField(data, 'diffs');
-  assertArrayField(data, 'trace');
-}
-
-function normalizeCheckpoints(
-  checkpoints: Checkpoint[] | undefined,
-  formatVersion?: number
-): ContractCheckpoint[] {
-  const rawCheckpoints = checkpoints ?? [];
-  return rawCheckpoints.map((checkpoint) => {
-    if (checkpoint.kind) {
-      return checkpoint;
-    }
-    if (formatVersion === undefined || formatVersion <= 1) {
-      return { ...checkpoint, kind: 'auto' as const };
-    }
-    return { ...checkpoint, kind: 'auto' as const };
-  });
+  assertArrayField(data, 'resolutions');
 }
 
 export function deserializeToState(
   data: unknown,
   clock: () => number,
-  limits?: { maxEventLogSize?: number; maxPendingActions?: number; maxCheckpoints?: number }
+  limits?: { maxEventLogSize?: number; maxPendingIntents?: number; maxCheckpoints?: number }
 ): SessionState {
   validateSerializedSessionData(data);
   const raw = data;
 
-  if (raw.formatVersion !== undefined && raw.formatVersion > CURRENT_FORMAT_VERSION) {
+  if (raw.formatVersion !== undefined && raw.formatVersion !== CURRENT_FORMAT_VERSION) {
     throw new Error(
-      `Unsupported format version ${raw.formatVersion}. This runtime supports up to version ${CURRENT_FORMAT_VERSION}.`
+      `Unsupported format version ${raw.formatVersion}. This runtime supports version ${CURRENT_FORMAT_VERSION}.`
     );
   }
-
-  const checkpoints = normalizeCheckpoints(raw.checkpoints, raw.formatVersion);
 
   return {
     sessionId: raw.sessionId,
     clock,
     maxEventLogSize: limits?.maxEventLogSize ?? 1000,
-    maxPendingActions: limits?.maxPendingActions ?? 500,
+    maxPendingIntents: limits?.maxPendingIntents ?? 500,
     maxCheckpoints: limits?.maxCheckpoints ?? 50,
     reconciliationOptions: {
       allowBlindCarry: raw.settings?.allowBlindCarry,
       allowPartialRestore: raw.settings?.allowPartialRestore,
     },
     validateOnUpdate: raw.settings?.validateOnUpdate ?? false,
-    currentSchema: raw.currentSchema ?? null,
-    currentState: raw.currentState ?? null,
-    priorSchema: raw.priorSchema ?? null,
+    currentView: raw.currentView ?? null,
+    currentData: raw.currentData ?? null,
+    priorView: raw.priorView ?? null,
     issues: raw.issues ?? [],
     diffs: raw.diffs ?? [],
-    trace: raw.trace ?? [],
+    resolutions: raw.resolutions ?? [],
     eventLog: raw.eventLog ?? [],
-    pendingActions: raw.pendingActions ?? [],
-    checkpoints,
+    pendingIntents: raw.pendingIntents ?? [],
+    checkpoints: raw.checkpoints ?? [],
     snapshotListeners: new Set(),
     issueListeners: new Set(),
     destroyed: false,

@@ -1,22 +1,22 @@
 import type {
   ContinuitySnapshot,
   Interaction,
-  OrphanedValue,
-  PendingAction,
+  DetachedValue,
+  PendingIntent,
   Checkpoint,
-  SchemaSnapshot,
+  ViewDefinition,
 } from '@continuum/contract';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
-  ReconciliationTrace,
+  ReconciliationResolution,
   StateDiff,
 } from '@continuum/runtime';
 
 export interface SessionOptions {
   clock?: () => number;
   maxEventLogSize?: number;
-  maxPendingActions?: number;
+  maxPendingIntents?: number;
   maxCheckpoints?: number;
   reconciliation?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate?: boolean;
@@ -27,16 +27,16 @@ export interface Session {
   getSnapshot(): ContinuitySnapshot | null;
   getIssues(): ReconciliationIssue[];
   getDiffs(): StateDiff[];
-  getTrace(): ReconciliationTrace[];
-  pushSchema(schema: SchemaSnapshot): void;
-  recordIntent(interaction: Omit<Interaction, 'id' | 'timestamp' | 'sessionId' | 'schemaVersion'>): void;
-  updateState(componentId: string, payload: unknown): void;
+  getResolutions(): ReconciliationResolution[];
+  pushView(view: ViewDefinition): void;
+  recordIntent(interaction: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>): void;
+  updateState(nodeId: string, payload: unknown): void;
   getEventLog(): Interaction[];
-  submitAction(action: Omit<PendingAction, 'id' | 'createdAt' | 'status' | 'schemaVersion'>): void;
-  getPendingActions(): PendingAction[];
-  getOrphanedValues(): Record<string, OrphanedValue>;
-  validateAction(actionId: string): boolean;
-  cancelAction(actionId: string): boolean;
+  submitIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): void;
+  getPendingIntents(): PendingIntent[];
+  getDetachedValues(): Record<string, DetachedValue>;
+  validateIntent(intentId: string): boolean;
+  cancelIntent(intentId: string): boolean;
   checkpoint(): Checkpoint;
   restoreFromCheckpoint(checkpoint: Checkpoint): void;
   getCheckpoints(): Checkpoint[];
