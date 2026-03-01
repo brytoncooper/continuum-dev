@@ -1,85 +1,169 @@
 # Schema Contract Reference
 
-The definitive reference for Continuum's schema format, reconciliation rules, state conventions, and serialization format.
+The definitive reference for Continuum's view definition format, reconciliation rules, state conventions, and serialization format.
 
 ---
 
-## SchemaSnapshot
+## ViewDefinition
 
 The top-level structure describing a UI at a point in time.
 
 ```typescript
-interface SchemaSnapshot {
-  schemaId: string;
+interface ViewDefinition {
+  viewId: string;
   version: string;
-  components: ComponentDefinition[];
+  nodes: ViewNode[];
 }
 ```
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `schemaId` | `string` | yes | Stable identifier for the form. Stays the same across versions (e.g. `"loan-app"`). |
-| `version` | `string` | yes | Version identifier. Should increment on each schema push (e.g. `"1.0"`, `"2.0"`). |
-| `components` | `ComponentDefinition[]` | yes | Top-level components in render order. Can be empty. |
+| `viewId` | `string` | yes | Stable identifier for the form. Stays the same across versions (e.g. `"loan-app"`). |
+| `version` | `string` | yes | Version identifier. Should increment on each view push (e.g. `"1.0"`, `"2.0"`). |
+| `nodes` | `ViewNode[]` | yes | Top-level nodes in render order. Can be empty. |
 
 **Constraints:**
 
-- `schemaId` should remain constant across versions of the same logical form
+- `viewId` should remain constant across versions of the same logical form
 - `version` is compared by string equality (not numeric ordering) for checkpoint matching
-- The same `schemaId` + `version` pair should always produce the same component tree
+- The same `viewId` + `version` pair should always produce the same node tree
 
 ---
 
-## ComponentDefinition
+## ViewNode
 
-A single UI component within a schema.
+A discriminated union of node types within a view definition.
 
 ```typescript
-interface ComponentDefinition {
+type ViewNode =
+  | FieldNode
+  | GroupNode
+  | CollectionNode
+  | ActionNode
+  | PresentationNode;
+```
+
+### BaseNode
+
+All node types share these fields:
+
+```typescript
+interface BaseNode {
   id: string;
   type: string;
   key?: string;
-  path?: string;
+  hidden?: boolean;
   hash?: string;
-  stateType?: string;
-  stateShape?: unknown;
   migrations?: MigrationRule[];
-  children?: ComponentDefinition[];
 }
 ```
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `id` | `string` | yes | Unique identifier within this schema version. May change across versions. |
-| `type` | `string` | yes | Component type string. Maps to a React component in the component map. |
-| `key` | `string` | no | Stable semantic key for matching across schema versions. If a component's `id` changes but its `key` stays the same, Continuum treats it as a rename and carries state. |
-| `path` | `string` | no | Display label or hierarchical path. Used by adapters to store field labels. |
-| `hash` | `string` | no | Schema shape hash. When a matched component's hash changes, Continuum looks for a migration rule. If absent, no hash-based migration occurs. |
-| `stateType` | `string` | no | Hint about the expected state shape (e.g. `"text"`, `"selection"`). Informational only. |
-| `stateShape` | `unknown` | no | Additional metadata about the component (e.g. dropdown options as `{ id, label }[]`). |
+| `id` | `string` | yes | Unique identifier within this view version. May change across versions. |
+| `type` | `string` | yes | Node type discriminator: `'field'`, `'group'`, `'collection'`, `'action'`, or `'presentation'`. |
+| `key` | `string` | no | Stable semantic key for matching across view versions. If a node's `id` changes but its `key` stays the same, Continuum treats it as a rename and carries state. |
+| `hidden` | `boolean` | no | If true, node is excluded from rendering in default renderer. |
+| `hash` | `string` | no | View shape hash. When a matched node's hash changes, Continuum looks for a migration rule. If absent, no hash-based migration occurs. |
 | `migrations` | `MigrationRule[]` | no | Declarative migration rules for hash transitions. |
-| `children` | `ComponentDefinition[]` | no | Nested child components (for container/section types). Rendered recursively. |
+
+### FieldNode
+
+For text inputs, date inputs, number inputs, boolean toggles, and any value-based node.
+
+```typescript
+interface FieldNode extends BaseNode {
+  type: 'field';
+  dataType: 'string' | 'number' | 'boolean';
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  readOnly?: boolean;
+  defaultValue?: unknown;
+  constraints?: FieldConstraints;
+}
+
+interface FieldConstraints {
+  required?: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+}
+```
+
+### GroupNode
+
+For sections, cards, and container layouts with nested children.
+
+```typescript
+interface GroupNode extends BaseNode {
+  type: 'group';
+  label?: string;
+  children: ViewNode[];
+}
+```
+
+### CollectionNode
+
+For repeatable/list items backed by a template node.
+
+```typescript
+interface CollectionNode extends BaseNode {
+  type: 'collection';
+  label?: string;
+  template: ViewNode;
+  minItems?: number;
+  maxItems?: number;
+}
+```
+
+### ActionNode
+
+For buttons and intent triggers.
+
+```typescript
+interface ActionNode extends BaseNode {
+  type: 'action';
+  intentId: string;
+  label: string;
+  disabled?: boolean;
+}
+```
+
+### PresentationNode
+
+For read-only display content.
+
+```typescript
+interface PresentationNode extends BaseNode {
+  type: 'presentation';
+  contentType: 'text' | 'markdown';
+  content: string;
+}
+```
 
 ### id vs key
 
-- `id` is the **address** -- it uniquely identifies the component in this specific schema version
-- `key` is the **identity** -- it semantically identifies what the component represents across versions
+- `id` is the **address** -- it uniquely identifies the node in this specific view version
+- `key` is the **identity** -- it semantically identifies what the node represents across versions
 
 Example: renaming `first_name` to `given_name` (different `id`, same `key: 'first_name'`) preserves the user's input.
 
-### Minimum Valid Component
+### Minimum Valid Node
 
-The minimum contract for a component is `{ id, type }`. All other fields are optional:
+The minimum contract for a field node is `{ id, type, dataType }`:
 
 ```json
-{ "id": "name", "type": "input" }
+{ "id": "name", "type": "field", "dataType": "string" }
 ```
 
 ---
 
 ## MigrationRule
 
-Declares how state should be migrated when a component's `hash` changes.
+Declares how state should be migrated when a node's `hash` changes.
 
 ```typescript
 interface MigrationRule {
@@ -91,28 +175,28 @@ interface MigrationRule {
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `fromHash` | `string` | yes | Hash of the prior schema shape |
-| `toHash` | `string` | yes | Hash of the new schema shape |
+| `fromHash` | `string` | yes | Hash of the prior view shape |
+| `toHash` | `string` | yes | Hash of the new view shape |
 | `strategyId` | `string` | no | Key into the `strategyRegistry` in `ReconciliationOptions`. If absent, Continuum falls back to carrying state as-is. |
 
 ---
 
 ## Reconciliation Rules
 
-When `pushSchema(newSchema)` is called with existing state, each component in the new schema is processed through this decision tree:
+When `pushView(newView)` is called with existing data, each node in the new view is processed through this decision tree:
 
 ```mermaid
 flowchart TD
-    Start["For each component in new schema"] --> MatchId{"Prior component with same id?"}
+    Start["For each node in new view"] --> MatchId{"Prior node with same id?"}
     MatchId -->|Yes| Matched["Match found (by id)"]
-    MatchId -->|No| MatchKey{"Prior component with same key?"}
+    MatchId -->|No| MatchKey{"Prior node with same key?"}
     MatchKey -->|Yes| Matched2["Match found (by key)"]
-    MatchKey -->|No| Added["ADDED: empty state, green trace"]
+    MatchKey -->|No| Added["ADDED: empty state, added resolution"]
 
     Matched --> TypeCheck{"Types match?"}
     Matched2 --> TypeCheck
 
-    TypeCheck -->|No| Dropped["DROPPED: state lost, TYPE_MISMATCH error"]
+    TypeCheck -->|No| Detached["DETACHED: state lost, TYPE_MISMATCH error"]
     TypeCheck -->|Yes| HashCheck{"Hashes match?"}
 
     HashCheck -->|Yes| Carried["CARRIED: state preserved"]
@@ -125,71 +209,42 @@ flowchart TD
 
 ### Step-by-step
 
-1. **Match by ID** -- look for a prior component with the same `id`
-2. **Match by key** -- if no ID match, look for a prior component with the same `key`
-3. **No match** -- component is new. Trace action: `added`. State is empty.
-4. **Type check** -- if matched components have different `type`, state is **dropped**. Issue: `TYPE_MISMATCH` (error). Trace action: `dropped`.
+1. **Match by ID** -- look for a prior node with the same `id`
+2. **Match by key** -- if no ID match, look for a prior node with the same `key`
+3. **No match** -- node is new. Resolution: `added`. State is empty.
+4. **Type check** -- if matched nodes have different `type`, state is **detached**. Issue: `TYPE_MISMATCH` (error). Resolution: `detached`.
 5. **Hash check** -- if types match but `hash` values differ, attempt migration
 6. **Migration** -- resolution order:
-   - `ReconciliationOptions.migrationStrategies[componentId]` (per-component override)
+   - `ReconciliationOptions.migrationStrategies[nodeId]` (per-node override)
    - `MigrationRule` on the definition + `ReconciliationOptions.strategyRegistry[rule.strategyId]`
    - Fallback: carry prior state as-is (same type assumed compatible)
-   - If strategy returns `null`: state dropped, `MIGRATION_FAILED` issue
-7. **Carry** -- if type and hash match (or no hash is set), state carries forward unchanged. Trace action: `carried`.
-8. **Removed components** -- prior components not present in the new schema are logged as `COMPONENT_REMOVED` (warning). They appear in `diffs` but not in `trace` (which only covers new-schema components).
+   - `MIGRATION_FAILED` is issued when no strategy is available or strategy execution throws
+7. **Carry** -- if type and hash match (or no hash is set), state carries forward unchanged. Resolution: `carried`.
+8. **Removed nodes** -- prior nodes not present in the new view are logged as `NODE_REMOVED` (warning). They appear in `diffs` but not in `resolutions` (which only cover new-view nodes).
 
 ---
 
-## State Shape Conventions
+## NodeValue
 
-Continuum does not validate state shapes, but these are the conventional shapes per component type:
-
-### ValueInputState
-
-For text inputs, date inputs, textareas, sliders, and any value-based component.
+The universal state shape for all value-bearing nodes.
 
 ```typescript
-interface ValueInputState {
-  value: string | number;
+interface NodeValue<T = unknown> {
+  value: T;
   isDirty?: boolean;
+  isValid?: boolean;
 }
 ```
 
-### ToggleState
+All node types use `NodeValue<T>` where `T` matches the node's `dataType`:
 
-For checkboxes, switches, and boolean toggles.
+| dataType | T | Example |
+|---|---|---|
+| `'string'` | `string` | `{ value: 'Alice' }` |
+| `'number'` | `number` | `{ value: 42 }` |
+| `'boolean'` | `boolean` | `{ value: true, isDirty: true }` |
 
-```typescript
-interface ToggleState {
-  checked: boolean;
-}
-```
-
-### SelectionState
-
-For dropdowns, radio groups, multi-selects, and any selection-based component.
-
-```typescript
-interface SelectionState {
-  selectedIds: string[];
-}
-```
-
-### ViewportState
-
-For scrollable containers, expandable sections, and viewport-aware components.
-
-```typescript
-interface ViewportState {
-  scrollX: number;
-  scrollY: number;
-  expanded?: boolean;
-}
-```
-
-### Custom State
-
-Any `Record<string, unknown>` is valid. The session stores it opaquely:
+Custom values are also valid -- the session stores them opaquely:
 
 ```typescript
 session.updateState('chart', { zoom: 1.5, panX: 100, panY: 50 });
@@ -197,11 +252,70 @@ session.updateState('chart', { zoom: 1.5, panX: 100, panY: 50 });
 
 ---
 
+## DataSnapshot
+
+The state container for an entire view.
+
+```typescript
+interface DataSnapshot {
+  values: Record<string, NodeValue>;
+  viewContext?: Record<string, ViewContext>;
+  lineage: SnapshotLineage;
+  valueLineage?: Record<string, ValueLineage>;
+  detachedValues?: Record<string, DetachedValue>;
+}
+
+interface ViewContext {
+  scrollX?: number;
+  scrollY?: number;
+  isExpanded?: boolean;
+  isFocused?: boolean;
+}
+
+interface SnapshotLineage {
+  timestamp: number;
+  sessionId: string;
+  viewId?: string;
+  viewVersion?: string;
+  viewHash?: string;
+  lastInteractionId?: string;
+}
+
+interface ValueLineage {
+  lastUpdated?: number;
+  lastInteractionId?: string;
+}
+
+interface DetachedValue {
+  value: unknown;
+  previousNodeType: string;
+  key?: string;
+  detachedAt: number;
+  viewVersion: string;
+  reason: 'node-removed' | 'type-mismatch' | 'migration-failed';
+}
+```
+
+---
+
+## ContinuitySnapshot
+
+The combined view + data at a point in time.
+
+```typescript
+interface ContinuitySnapshot {
+  view: ViewDefinition;
+  data: DataSnapshot;
+}
+```
+
+---
+
 ## Versioning Strategy
 
-- `schemaId` stays constant for the lifetime of a form (e.g. `"loan-application"`)
+- `viewId` stays constant for the lifetime of a form (e.g. `"loan-application"`)
 - `version` increments with each push (e.g. `"1.0"` → `"2.0"` → `"3.0"`)
-- Version changes trigger pending action staling (actions submitted against an old version are marked `stale`)
+- Version changes trigger pending intent staling (intents submitted against an old version are marked `stale`)
 - Checkpoints record the version at the time of creation
 
 There is no prescribed version format. Strings are compared by equality, not ordering.
@@ -214,27 +328,32 @@ There is no prescribed version format. Strings are compared by equality, not ord
 
 ```typescript
 {
-  formatVersion: 1,             // format version for forward compatibility
-  sessionId: string,            // unique session identifier
-  currentSchema: SchemaSnapshot | null,
-  currentState: StateSnapshot | null,
-  priorSchema: SchemaSnapshot | null,
-  eventLog: Interaction[],      // full interaction history
-  pendingActions: PendingAction[],
-  checkpoints: Checkpoint[],    // full checkpoint stack
+  formatVersion: 1,
+  sessionId: string,
+  currentView: ViewDefinition | null,
+  currentData: DataSnapshot | null,
+  priorView: ViewDefinition | null,
+  eventLog: Interaction[],
+  pendingIntents: PendingIntent[],
+  checkpoints: Checkpoint[],
   issues: ReconciliationIssue[],
   diffs: StateDiff[],
-  trace: ReconciliationTrace[],
+  resolutions: ReconciliationResolution[],
+  settings?: {
+    allowBlindCarry?: boolean,
+    allowPartialRestore?: boolean,
+    validateOnUpdate?: boolean,
+  },
 }
 ```
 
 ### Forward Compatibility
 
 - `formatVersion` is checked on deserialization
-- Missing `formatVersion` is accepted (legacy support)
-- `formatVersion <= 1` is accepted
-- `formatVersion > 1` throws an error
+- Only `formatVersion: 1` is accepted (the current version)
+- Missing `formatVersion` or any other value throws an error
+- This is a v0 clean-slate release; no legacy format support
 
 ### Size Considerations
 
-The serialized blob includes the full checkpoint stack. Each checkpoint contains a complete `ContinuitySnapshot` (schema + state). For long-lived sessions with many schema pushes, the blob can grow large. Consider periodically trimming checkpoints or using selective serialization for production use.
+The serialized blob includes the full checkpoint stack. Each checkpoint contains a complete `ContinuitySnapshot` (view + data). For long-lived sessions with many view pushes, the blob can grow large. Consider periodically trimming checkpoints or using selective serialization for production use.

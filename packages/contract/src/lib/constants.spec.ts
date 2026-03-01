@@ -1,35 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { ACTION_STATUS, DIFF_TYPES, INTERACTION_TYPES, ISSUE_CODES, ISSUE_SEVERITY, TRACE_ACTIONS } from './constants.js';
-import type { PendingAction } from './interaction.js';
+import { DATA_RESOLUTIONS, INTERACTION_TYPES, INTENT_STATUS, ISSUE_CODES, ISSUE_SEVERITY, VIEW_DIFFS } from './constants.js';
+import type { PendingIntent } from './interactions.js';
 
 describe('contract constants', () => {
   it('defines stable issue, trace, and diff constants', () => {
     expect(Object.values(ISSUE_CODES)).toEqual([
-      'NO_PRIOR_STATE',
-      'NO_PRIOR_SCHEMA',
+      'NO_PRIOR_DATA',
+      'NO_PRIOR_VIEW',
       'TYPE_MISMATCH',
-      'COMPONENT_REMOVED',
+      'NODE_REMOVED',
       'MIGRATION_FAILED',
-      'UNTRUSTED_CARRY',
+      'UNVALIDATED_CARRY',
       'VALIDATION_FAILED',
-      'UNKNOWN_COMPONENT',
+      'UNKNOWN_NODE',
     ]);
-    expect(Object.values(TRACE_ACTIONS)).toEqual(['carried', 'migrated', 'dropped', 'added', 'restored']);
-    expect(Object.values(DIFF_TYPES)).toEqual(['added', 'removed', 'migrated', 'type-changed', 'restored']);
+    expect(Object.values(DATA_RESOLUTIONS)).toEqual(['carried', 'migrated', 'detached', 'added', 'restored']);
+    expect(Object.values(VIEW_DIFFS)).toEqual(['added', 'removed', 'migrated', 'type-changed', 'restored']);
     expect(Object.values(ISSUE_SEVERITY)).toEqual(['error', 'warning', 'info']);
-    expect(Object.values(INTERACTION_TYPES)).toEqual(['state-update', 'value-change']);
+    expect(Object.values(INTERACTION_TYPES)).toEqual(['data-update', 'value-change', 'view-context-change']);
   });
 
-  it('keeps PendingAction.status aligned with ACTION_STATUS values', () => {
-    const action: PendingAction = {
-      id: 'a',
-      componentId: 'c',
-      actionType: 'submit',
+  it('keeps PendingIntent.status aligned with INTENT_STATUS values', () => {
+    const action: PendingIntent = {
+      intentId: 'a',
+      nodeId: 'c',
+      intentName: 'submit',
       payload: {},
-      createdAt: 0,
-      schemaVersion: '1',
-      status: ACTION_STATUS.PENDING,
+      queuedAt: 0,
+      viewVersion: '1',
+      status: INTENT_STATUS.PENDING,
     };
-    expect(Object.values(ACTION_STATUS)).toContain(action.status);
+    expect(Object.values(INTENT_STATUS)).toContain(action.status);
   });
 });
