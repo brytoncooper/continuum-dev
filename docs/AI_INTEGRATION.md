@@ -7,14 +7,14 @@ How to connect an AI agent to Continuum so it can generate and evolve UIs while 
 ## How It Works
 
 ```
-AI Agent → generates SchemaSnapshot JSON → session.pushSchema(schema)
+AI Agent → generates ViewDefinition JSON → session.pushView(view)
                                                     ↓
                                             Reconciliation runs
                                                     ↓
                                             User state preserved
 ```
 
-The AI never interacts with Continuum directly. Your application receives the AI's output, formats it as a `SchemaSnapshot`, and pushes it into the session. Continuum handles the rest.
+The AI never interacts with Continuum directly. Your application receives the AI's output, formats it as a `ViewDefinition`, and pushes it into the session. Continuum handles the rest.
 
 ---
 
@@ -24,9 +24,9 @@ The AI never interacts with Continuum directly. Your application receives the AI
 
 ```json
 {
-  "schemaId": "my-form",
+  "viewId": "my-form",
   "version": "1",
-  "components": [
+  "nodes": [
     { "id": "name", "type": "input" },
     { "id": "email", "type": "input" }
   ]
@@ -39,9 +39,9 @@ Add `key` fields so Continuum can match components even if the AI renames IDs:
 
 ```json
 {
-  "schemaId": "my-form",
+  "viewId": "my-form",
   "version": "2",
-  "components": [
+  "nodes": [
     { "id": "full_name", "type": "input", "key": "name" },
     { "id": "email_address", "type": "input", "key": "email" },
     { "id": "phone", "type": "input", "key": "phone" }
@@ -150,12 +150,12 @@ The AI sees the current IDs and keys and can produce a compatible evolution.
 
 ---
 
-## Handling Schema Diffs After pushSchema
+## Handling View Diffs After pushView
 
 After pushing a new schema, inspect what happened:
 
 ```typescript
-session.pushSchema(newSchemaFromAgent);
+session.pushView(newViewFromAgent);
 
 const trace = session.getTrace();
 for (const entry of trace) {
@@ -207,7 +207,7 @@ if (dropped.length > 0) {
 If the AI omits `id` or `type`, components may not render or reconcile correctly. Validate before pushing:
 
 ```typescript
-function validateSchema(schema: SchemaSnapshot): string[] {
+function validateView(view: ViewDefinition): string[] {
   const errors: string[] = [];
 
   if (!schema.schemaId) errors.push('Missing schemaId');
@@ -232,7 +232,7 @@ if (errors.length > 0) {
   console.error('Invalid schema from AI:', errors);
   // Ask the AI to regenerate, or apply fixes
 } else {
-  session.pushSchema(schemaFromAgent);
+  session.pushView(viewFromAgent);
 }
 ```
 
@@ -241,7 +241,7 @@ if (errors.length > 0) {
 Continuum indexes components by ID. Duplicate IDs cause the last one to win in the index, which leads to unpredictable state matching. Validate uniqueness:
 
 ```typescript
-function findDuplicateIds(schema: SchemaSnapshot): string[] {
+function findDuplicateIds(view: ViewDefinition): string[] {
   const seen = new Set<string>();
   const dupes: string[] = [];
 
@@ -266,7 +266,7 @@ Use OpenAI's structured output (or function calling) to get well-formed schemas:
 
 ```typescript
 import OpenAI from 'openai';
-import type { SchemaSnapshot } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum/contract';
 
 const client = new OpenAI();
 
@@ -275,17 +275,17 @@ const response = await client.chat.completions.create({
   messages: [
     {
       role: 'system',
-      content: `You produce UI form schemas as JSON. Output ONLY valid JSON matching this TypeScript interface:
+      content: `You produce UI form views as JSON. Output ONLY valid JSON matching this TypeScript interface:
 
-interface SchemaSnapshot {
-  schemaId: string;
+interface ViewDefinition {
+  viewId: string;
   version: string;
-  components: {
+  nodes: {
     id: string;
     type: "input" | "textarea" | "select" | "toggle" | "date" | "section";
     key: string;
-    stateShape?: { id: string; label: string }[];
-    children?: ComponentDefinition[];
+    options?: { value: string; label: string }[];
+    children?: ViewNode[];
   }[];
 }`,
     },
@@ -297,8 +297,8 @@ interface SchemaSnapshot {
   response_format: { type: 'json_object' },
 });
 
-const schema = JSON.parse(response.choices[0].message.content!) as SchemaSnapshot;
-session.pushSchema(schema);
+const view = JSON.parse(response.choices[0].message.content!) as ViewDefinition;
+session.pushView(view);
 ```
 
 ### With Function Calling
@@ -344,8 +344,8 @@ const response = await client.chat.completions.create({
 
 const call = response.choices[0].message.tool_calls?.[0];
 if (call?.function.name === 'render_form') {
-  const schema = JSON.parse(call.function.arguments) as SchemaSnapshot;
-  session.pushSchema(schema);
+  const view = JSON.parse(call.function.arguments) as ViewDefinition;
+  session.pushView(view);
 }
 ```
 
@@ -359,8 +359,8 @@ If your AI agent natively speaks Google's A2UI protocol, use the built-in adapte
 import { a2uiAdapter } from '@continuum/adapters';
 
 function handleA2UIResponse(a2uiJson: A2UIForm) {
-  const schema = a2uiAdapter.toSchema(a2uiJson);
-  session.pushSchema(schema);
+  const view = a2uiAdapter.toView(a2uiJson);
+  session.pushView(view);
 }
 ```
 
