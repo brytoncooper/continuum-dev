@@ -1,7 +1,15 @@
 {
   "name": "@continuum/adapters",
   "version": "0.0.1",
-  "private": true,
+  "description": "Protocol adapters for the Continuum continuity runtime",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CooperContinuum/continuum.git",
+    "directory": "packages/adapters"
+  },
+  "author": "CooperContinuum",
+  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "a2ui", "adapter", "protocol"],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
