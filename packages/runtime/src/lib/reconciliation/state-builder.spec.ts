@@ -199,17 +199,34 @@ describe('computeViewHash', () => {
     expect(computeViewHash(view)).toBeUndefined();
   });
 
-  it('produces a deterministic hash from sorted node hashes', () => {
+  it('produces a deterministic hash for equivalent views', () => {
     const viewA = makeView([
       makeNode({ id: 'a', hash: 'alpha' }),
       makeNode({ id: 'b', type: 'action', hash: 'beta' }),
     ]);
     const viewB = makeView([
-      makeNode({ id: 'b', type: 'action', hash: 'beta' }),
       makeNode({ id: 'a', hash: 'alpha' }),
+      makeNode({ id: 'b', type: 'action', hash: 'beta' }),
     ]);
 
     expect(computeViewHash(viewA)).toBe(computeViewHash(viewB));
+  });
+
+  it('produces different hashes for different structures with same node hashes', () => {
+    const flat = makeView([
+      makeNode({ id: 'a', hash: 'same' }),
+      makeNode({ id: 'b', hash: 'same' }),
+    ]);
+    const nested = makeView([
+      makeNode({
+        id: 'a',
+        type: 'group',
+        hash: 'same',
+        children: [makeNode({ id: 'b', hash: 'same' })],
+      }),
+    ]);
+
+    expect(computeViewHash(flat)).not.toBe(computeViewHash(nested));
   });
 });
 
