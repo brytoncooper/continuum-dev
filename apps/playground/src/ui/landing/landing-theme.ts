@@ -9,8 +9,8 @@ export const landingTheme = {
     panel: 'rgba(255, 255, 255, 0.04)',
     panelBorder: 'rgba(124, 58, 237, 0.25)',
     text: '#f0f0f8',
-    textMuted: 'rgba(224, 224, 240, 0.65)',
-    textSoft: 'rgba(200, 200, 220, 0.45)',
+    textMuted: 'rgba(224, 224, 240, 0.72)',
+    textSoft: 'rgba(200, 200, 220, 0.6)',
     border: 'rgba(255, 255, 255, 0.08)',
     borderGlow: 'rgba(124, 58, 237, 0.35)',
     accent: '#a78bfa',
@@ -45,5 +45,5 @@ export const landingTheme = {
     normal: transition.normal,
     slow: transition.slow,
   },
-  badges: ['Data continuity', 'AI-native', 'Zero lock-in'],
+  badges: ['Ephemeral UI', 'AI-native', 'Zero lock-in'],
 } as const;
