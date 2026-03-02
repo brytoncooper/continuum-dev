@@ -87,7 +87,7 @@ The session surface in `@continuum/session` includes:
 - Time travel: `checkpoint`, `restoreFromCheckpoint`, `getCheckpoints`, `rewind`, `reset`
 - Persistence and subscriptions: `serialize`, `onSnapshot`, `onIssues`, `destroy`
 
-Serialized payloads use `formatVersion: 1`; deserialization only accepts version 1.
+Serialized payloads use `formatVersion: 1`; deserialization accepts `formatVersion: 1` and also accepts blobs without `formatVersion` for compatibility.
 
 ## Development
 
