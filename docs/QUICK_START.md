@@ -10,56 +10,51 @@ npm install @continuum/react @continuum/contract
 
 ## 2. Define Your Component Map
 
-Create components for each type your schemas will use. Each receives `value`, `onChange`, `definition`, and optional `children`.
+Create components for each type your views will use. Each receives `value`, `onChange`, `definition`, and optional `children`.
 
 ```tsx
 // components.tsx
-import type { ComponentState } from '@continuum/contract';
-import type { ContinuumComponentProps, ContinuumComponentMap } from '@continuum/react';
+import type { NodeValue } from '@continuum/contract';
+import type { ContinuumNodeProps, ContinuumNodeMap } from '@continuum/react';
 
-function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const text = typeof raw?.['value'] === 'string' ? raw['value'] : '';
+function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
+  const text = (value as NodeValue<string> | undefined)?.value ?? '';
 
   return (
     <label>
       {definition.key ?? definition.id}
       <input
         value={text}
-        onChange={(e) => onChange({ value: e.target.value } as ComponentState)}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
       />
     </label>
   );
 }
 
-function Toggle({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const checked = Boolean(raw?.['checked']);
+function Toggle({ value, onChange, definition }: ContinuumNodeProps) {
+  const checked = Boolean((value as NodeValue<boolean> | undefined)?.value);
 
   return (
     <label>
       <input
         type="checkbox"
         checked={checked}
-        onChange={(e) => onChange({ checked: e.target.checked } as ComponentState)}
+        onChange={(e) => onChange({ value: e.target.checked } as NodeValue)}
       />
       {definition.key ?? definition.id}
     </label>
   );
 }
 
-function Select({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const selected = (raw?.['selectedIds'] as string[]) ?? [];
+function Select({ value, onChange, definition }: ContinuumNodeProps) {
+  const selected = (value as NodeValue<string> | undefined)?.value ?? '';
 
   return (
     <label>
       {definition.key ?? definition.id}
       <select
-        value={selected[0] ?? ''}
-        onChange={(e) =>
-          onChange({ selectedIds: e.target.value ? [e.target.value] : [] } as ComponentState)
-        }
+        value={selected}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
       >
         <option value="">-- select --</option>
         <option value="a">Option A</option>
@@ -69,7 +64,7 @@ function Select({ value, onChange, definition }: ContinuumComponentProps) {
   );
 }
 
-export const componentMap: ContinuumComponentMap = {
+export const componentMap: ContinuumNodeMap = {
   input: TextInput,
   toggle: Toggle,
   select: Select,
@@ -85,7 +80,7 @@ import { componentMap } from './components';
 
 export default function App() {
   return (
-    <ContinuumProvider components={componentMap} persist="localStorage">
+    <ContinuumProvider componentMap={componentMap} persist="localStorage">
       <MyPage />
     </ContinuumProvider>
   );
@@ -104,12 +99,12 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum/react';
-import type { SchemaSnapshot } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum/contract';
 
-const schema: SchemaSnapshot = {
-  schemaId: 'my-form',
+const view: ViewDefinition = {
+  viewId: 'my-form',
   version: '1.0',
-  components: [
+  nodes: [
     { id: 'name', type: 'input', key: 'name' },
     { id: 'email', type: 'input', key: 'email' },
     { id: 'agree', type: 'toggle', key: 'agree' },
@@ -122,27 +117,27 @@ export function MyPage() {
 
   useEffect(() => {
     if (!session.getSnapshot()) {
-      session.pushSchema(schema);
+      session.pushView(view);
     }
   }, [session]);
 
-  if (!snapshot?.schema) return <div>Loading...</div>;
+  if (!snapshot?.view) return <div>Loading...</div>;
 
-  return <ContinuumRenderer schema={snapshot.schema} />;
+  return <ContinuumRenderer view={snapshot.view} />;
 }
 ```
 
 Fill in some values, then refresh the page. Your data is still there.
 
-## 5. Push a New Schema Version
+## 5. Push a New View Version
 
-When your AI agent (or any other source) produces a new schema, just push it:
+When your AI agent (or any other source) produces a new view, just push it:
 
 ```typescript
-session.pushSchema({
-  schemaId: 'my-form',
+session.pushView({
+  viewId: 'my-form',
   version: '2.0',
-  components: [
+  nodes: [
     { id: 'full_name', type: 'input', key: 'name' },  // renamed id, same key → state carries
     { id: 'email', type: 'input', key: 'email' },      // unchanged → state carries
     { id: 'phone', type: 'input', key: 'phone' },      // new → empty state
@@ -155,7 +150,7 @@ The user's name value carries to `full_name` because they share the key `'name'`
 
 ## 6. Add Rewind
 
-Every `pushSchema` auto-creates a checkpoint. Let users rewind to any prior version:
+Every `pushView` auto-creates a checkpoint. Let users rewind to any prior version:
 
 ```tsx
 import { useContinuumSession, useContinuumDiagnostics } from '@continuum/react';
@@ -168,7 +163,7 @@ function RewindControls() {
     <div>
       {checkpoints.map((cp, i) => (
         <button key={cp.id} onClick={() => session.rewind(cp.id)}>
-          Rewind to v{cp.snapshot.schema.version}
+          Rewind to v{cp.snapshot.view.version}
         </button>
       ))}
     </div>
@@ -178,17 +173,17 @@ function RewindControls() {
 
 ## 7. Inspect What Happened
 
-After any `pushSchema`, check the reconciliation results:
+After any `pushView`, check the reconciliation results:
 
 ```typescript
-const trace = session.getTrace();
-// [{ componentId: 'full_name', action: 'carried', matchedBy: 'key', ... }]
+const resolutions = session.getResolutions();
+// [{ nodeId: 'full_name', resolution: 'carried', matchedBy: 'key', ... }]
 
 const diffs = session.getDiffs();
-// [{ componentId: 'phone', type: 'added' }, { componentId: 'name', type: 'removed' }]
+// [{ nodeId: 'phone', type: 'added' }, { nodeId: 'name', type: 'removed' }]
 
 const issues = session.getIssues();
-// [{ severity: 'warning', code: 'COMPONENT_REMOVED', componentId: 'name', ... }]
+// [{ severity: 'warning', code: 'NODE_REMOVED', nodeId: 'name', ... }]
 ```
 
 Or use the `useContinuumDiagnostics()` hook for reactive updates in your UI.

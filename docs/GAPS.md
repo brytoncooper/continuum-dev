@@ -1,6 +1,6 @@
 # Current Limitations
 
-**Last audited:** 2026-02-24
+**Last audited:** 2026-03-01
 
 This document catalogs what Continuum can and can't do today. It is a living document -- gaps are marked `OPEN`, `IN PROGRESS`, or `CLOSED` as work progresses.
 
@@ -12,23 +12,23 @@ These are things that are missing or broken in ways that would block a real-worl
 
 ---
 
-**No default values for new components** `OPEN`
+**No default values for new nodes** `CLOSED`
 
-When the AI adds a new field to the schema, its state starts as `undefined`. There is no way for the schema to declare "this field should start with the value X." Every new field renders blank, even if the AI intended an initial value.
+When the AI adds a new field to the view, its state starts as `undefined`. There is no way for the view to declare "this field should start with the value X." Every new field renders blank, even if the AI intended an initial value.
 
 *When this matters:* Any time the AI generates a field with a sensible default (e.g., a country selector that should default to "US").
 
 ---
 
-**No validation or constraints** `OPEN`
+**No validation or constraints** `CLOSED`
 
-The schema can't express "this field is required," "this number must be between 1 and 100," or "this field must be a valid email." There is no min, max, pattern, or required flag. The `stateShape` field exists on the contract type but is never read by anything.
+The view can't express "this field is required," "this number must be between 1 and 100," or "this field must be a valid email." There is no min, max, pattern, or required flag. The `stateShape` field exists on the contract type but is never read by anything.
 
 *When this matters:* Any form that needs input validation before submission.
 
 ---
 
-**No presentation metadata** `OPEN`
+**No presentation metadata** `CLOSED`
 
 Components have no `label`, `placeholder`, `description`, `disabled`, `readOnly`, or `hidden` fields. The renderer falls back to showing the field's raw ID as its display name. The AI can't say "this field should be labeled 'Email Address'" -- it just shows "email."
 
@@ -36,15 +36,15 @@ Components have no `label`, `placeholder`, `description`, `disabled`, `readOnly`
 
 ---
 
-**No custom props from schema to components** `OPEN`
+**No custom props from schema to components** `CLOSED`
 
-A select/dropdown component can't receive its options from the schema. The options are hardcoded in the component implementation. This means the AI can't define what a dropdown's choices are -- every select shows the same "Option A / Option B / Option C" regardless of what the AI intended.
+A select/dropdown component can't receive its options from the view. The options are hardcoded in the component implementation. This means the AI can't define what a dropdown's choices are -- every select shows the same "Option A / Option B / Option C" regardless of what the AI intended.
 
 *When this matters:* Any dynamic form with dropdowns, radio groups, or any component that needs configuration beyond a type name.
 
 ---
 
-**Session doesn't forward reconciliation options** `OPEN`
+**Session doesn't forward reconciliation options** `CLOSED`
 
 The reconciler supports configuration like custom migration strategies, a strategy registry, and flags like `allowBlindCarry`. But the session never passes these through when it calls the reconciler. A developer using the session API has no way to configure how reconciliation behaves.
 
@@ -54,15 +54,15 @@ The reconciler supports configuration like custom migration strategies, a strate
 
 **No input validation on deserialize** `CLOSED`
 
-Deserialization now validates payload shape before reconstructing `SessionState` (object payload, string `sessionId`, numeric `formatVersion` when present, object-or-null schema/state fields, and array-typed collection fields). Invalid blobs fail fast with explicit errors.
+Deserialization now validates payload shape before reconstructing `SessionState` (object payload, string `sessionId`, numeric `formatVersion` when present, object-or-null view/data fields, and array-typed collection fields). Invalid blobs fail fast with explicit errors.
 
 *When this matters:* Any production deployment where localStorage is shared or users have dev tools access.
 
 ---
 
-**No error boundary on rendered components** `OPEN`
+**No error boundary on rendered nodes** `CLOSED`
 
-If a single component in the schema throws a rendering error (bad data, missing prop, component bug), the entire form crashes. There is no error boundary wrapping individual components, so one bad field takes down the whole UI.
+If a single node in the view throws a rendering error (bad data, missing prop, component bug), the entire form crashes. There is no error boundary wrapping individual nodes, so one bad field takes down the whole UI.
 
 *Workaround:* Wrap your own component implementations in try/catch or React error boundaries.
 
@@ -76,15 +76,15 @@ If a user opens the same app in two browser tabs, both tabs write to the same lo
 
 ---
 
-**recordIntent accepts nonexistent component IDs** `OPEN`
+**recordIntent accepts nonexistent node IDs** `OPEN`
 
-You can call `session.updateState('doesnt_exist', { value: 'hello' })` and the session will happily store state for a component ID that isn't in the current schema. No warning, no error. This state pollutes the snapshot and survives serialization.
+You can call `session.updateState('doesnt_exist', { value: 'hello' })` and the session will happily store state for a node ID that isn't in the current view. No warning, no error. This state pollutes the snapshot and survives serialization.
 
-*When this matters:* Any integration where the calling code might have a typo or stale reference to a component ID.
+*When this matters:* Any integration where the calling code might have a typo or stale reference to a node ID.
 
 ---
 
-**Dead schema fields** `OPEN`
+**Dead schema fields** `CLOSED`
 
 `ComponentDefinition` declares `stateType`, `stateShape`, and `path` fields, but nothing in the system reads them. A developer might set these expecting validation or behavior and get nothing. They exist in the type definitions but are completely inert.
 
@@ -104,7 +104,7 @@ The `type` field on recorded interactions (the event log) is a plain string with
 
 **allowBlindCarry doesn't match by key** `OPEN`
 
-The `allowBlindCarry` option (used when prior state exists but no prior schema is available) only matches components by ID. If a component's ID changed but its key was preserved, blind carry will miss it. This is inconsistent with normal reconciliation, which checks keys as a fallback.
+The `allowBlindCarry` option (used when prior state exists but no prior view is available) only matches nodes by ID. If a node's ID changed but its key was preserved, blind carry will miss it. This is inconsistent with normal reconciliation, which checks keys as a fallback.
 
 ---
 
@@ -114,29 +114,29 @@ These things function today but would cause problems at scale or under real-worl
 
 ---
 
-**Duplicate IDs silently overwrite** `OPEN`
+**Duplicate IDs silently overwrite** `CLOSED`
 
-If the AI generates two components with the same ID, the reconciler indexes them into a map and the last one wins. No warning, no error. The first component's state is silently lost.
+If the AI generates two nodes with the same ID, the reconciler indexes them into a map and the last one wins. No warning, no error. The first node's state is silently lost.
 
-*When this matters:* Any AI that might hallucinate duplicate IDs in a large schema.
-
----
-
-**Duplicate keys silently overwrite** `OPEN`
-
-Same problem as duplicate IDs, but for the `key` field. Two components with the same key will collide in the matching algorithm.
+*When this matters:* Any AI that might hallucinate duplicate IDs in a large view.
 
 ---
 
-**Unbounded checkpoint growth** `OPEN`
+**Duplicate keys silently overwrite** `CLOSED`
 
-Every `pushSchema` call auto-creates a checkpoint. There is no maximum limit, no pruning, and no compaction. A long-lived session with many schema pushes will accumulate checkpoints without bound, growing memory usage and serialized size.
-
-*When this matters:* Sessions that last more than a few minutes with frequent schema changes.
+Same problem as duplicate IDs, but for the `key` field. Two nodes with the same key will collide in the matching algorithm.
 
 ---
 
-**Unbounded event log** `OPEN`
+**Unbounded checkpoint growth** `CLOSED`
+
+Every `pushView` call auto-creates a checkpoint. There is no maximum limit, no pruning, and no compaction. A long-lived session with many view pushes will accumulate checkpoints without bound, growing memory usage and serialized size.
+
+*When this matters:* Sessions that last more than a few minutes with frequent view changes.
+
+---
+
+**Unbounded event log** `CLOSED`
 
 Every `recordIntent` (every keystroke, every toggle, every selection) appends to the event log forever. There is no cap, no rotation, and no compaction. The log is included in serialization.
 
@@ -150,15 +150,15 @@ The persistence layer catches storage errors silently but doesn't check how much
 
 ---
 
-**No debouncing on persistence writes** `OPEN`
+**No debouncing on persistence writes** `CLOSED`
 
 Every snapshot change triggers a synchronous `JSON.stringify` of the entire session followed by a `localStorage.setItem`. When a user types in a text input, this fires on every keystroke. For a session with a large event log, this means a potentially expensive serialization on every character typed.
 
 ---
 
-**Migration works by accident in the demo** `OPEN`
+**Migration works by accident in the demo** `CLOSED`
 
-Step 3 of the playground demo shows an "email migration" (hash changes from v1 to v2). The migration rule references a strategy ID (`email-v1-to-v2`), but no strategy registry is provided. The migration "succeeds" only because the fallback path in the reconciler passes state through unchanged when the component type matches. No actual migration function runs.
+Step 3 of the playground demo shows an "email migration" (hash changes from v1 to v2). The migration rule references a strategy ID (`email-v1-to-v2`), but no strategy registry is provided. The migration "succeeds" only because the fallback path in the reconciler passes state through unchanged when the node type matches. No actual migration function runs.
 
 *When this matters:* If a developer looks at the demo and expects real migration to work, they'll find that the strategy registry is disconnected from the session.
 
@@ -166,21 +166,21 @@ Step 3 of the playground demo shows an "email migration" (hash changes from v1 t
 
 **No cycle detection on children** `OPEN`
 
-The reconciler recursively walks `comp.children` with no depth limit and no visited-set. A malformed schema where component A contains component B which contains component A would cause a stack overflow.
+The reconciler recursively walks `comp.children` with no depth limit and no visited-set. A malformed view where node A contains node B which contains node A would cause a stack overflow.
 
 ---
 
 **Schema hash is structurally weak** `OPEN`
 
-The internal `computeSchemaHash` function sorts all component hashes and joins them with `:`. Two schemas with identical component hashes but completely different structures (different nesting, different IDs, different order) produce the same schema hash.
+The internal `computeViewHash` function sorts all node hashes and joins them with `:`. Two views with identical node hashes but completely different structures (different nesting, different IDs, different order) produce the same view hash.
 
 ---
 
-**No React.memo on rendered components** `OPEN`
+**No React.memo on rendered nodes** `OPEN`
 
-Every snapshot change (including unrelated components' state changes) triggers a full re-render of every component in the tree. There is no memoization to skip re-rendering components whose state hasn't changed.
+Every snapshot change (including unrelated nodes' state changes) triggers a full re-render of every node in the tree. There is no memoization to skip re-rendering nodes whose state hasn't changed.
 
-*When this matters:* Forms with more than ~10 components, especially if any component is expensive to render.
+*When this matters:* Forms with more than ~10 nodes, especially if any node is expensive to render.
 
 ---
 
@@ -210,7 +210,7 @@ Session IDs, checkpoint IDs, and interaction IDs are generated using `Math.rando
 
 **Deep clone via JSON round-trip** `OPEN`
 
-Checkpoints and rewind use `JSON.parse(JSON.stringify(...))` for deep cloning. This silently drops `undefined` values, `Date` objects, `Map`/`Set`, and other non-JSON types. It also runs in O(n) on every `pushSchema`.
+Checkpoints and rewind use `JSON.parse(JSON.stringify(...))` for deep cloning. This silently drops `undefined` values, `Date` objects, `Map`/`Set`, and other non-JSON types. It also runs in O(n) on every `pushView`.
 
 ---
 
@@ -252,7 +252,7 @@ These are known limits of the current design. Supporting them would require desi
 
 **No list or repeater components** `OPEN`
 
-Every component is a fixed node in the schema tree. There is no way to represent "a list of addresses where the user can add or remove entries." Dynamic-length collections of components are not supported. The schema is a static tree.
+Every node is a fixed node in the view tree. There is no way to represent "a list of addresses where the user can add or remove entries." Dynamic-length collections of nodes are not supported. The view is a static tree.
 
 *When this matters:* Any form with repeatable sections (line items, addresses, phone numbers, etc.).
 
@@ -262,13 +262,13 @@ Every component is a fixed node in the schema tree. There is no way to represent
 
 The reconciler indexes all components into flat maps by ID and key, regardless of nesting depth. A child component and a top-level component with the same ID or key will collide. The matching algorithm has no concept of "this ID belongs to this parent."
 
-*When this matters:* Deeply nested schemas where the AI might reuse IDs at different levels (e.g., a "name" field inside both a "billing" section and a "shipping" section).
+*When this matters:* Deeply nested views where the AI might reuse IDs at different levels (e.g., a "name" field inside both a "billing" section and a "shipping" section).
 
 ---
 
 **No multi-step migration chains** `OPEN`
 
-Migrations only support a single `fromHash -> toHash` pair. If a component's state was created at hash v1 and the new schema declares hash v3, there is no automatic v1 -> v2 -> v3 chain. The migration either finds a direct v1 -> v3 rule or falls through to the default behavior.
+Migrations only support a single `fromHash -> toHash` pair. If a node's state was created at hash v1 and the new view declares hash v3, there is no automatic v1 -> v2 -> v3 chain. The migration either finds a direct v1 -> v3 rule or falls through to the default behavior.
 
 ---
 
@@ -280,7 +280,7 @@ The React provider reads from `localStorage` during the render phase to determin
 
 **No undo/redo below checkpoint level** `OPEN`
 
-The only time-travel mechanism is checkpoint-based rewind, which restores the entire session to a prior schema-push boundary. There is no way to undo a single field edit, a single interaction, or any change smaller than a full schema version.
+The only time-travel mechanism is checkpoint-based rewind, which restores the entire session to a prior view-push boundary. There is no way to undo a single field edit, a single interaction, or any change smaller than a full view version.
 
 ---
 
@@ -308,7 +308,7 @@ The demo component map includes `input`, `select`, `toggle`, and `container`. No
 
 ---
 
-**No deeply nested schemas** `OPEN`
+**No deeply nested views** `OPEN`
 
 All 5 demo steps use flat component lists with no `children`. The only nesting comes from the random hallucinate button. There is no intentional demo of parent-child component relationships.
 
