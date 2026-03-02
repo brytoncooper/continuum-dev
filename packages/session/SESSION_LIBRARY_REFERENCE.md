@@ -693,26 +693,13 @@ Checks:
 
 Throws descriptive errors for invalid data.
 
-### Function: `normalizeCheckpoints(checkpoints, formatVersion): ContractCheckpoint[]`
-
-Behavior:
-
-- defaults missing checkpoints to empty
-- ensures each checkpoint has `trigger`
-- if missing, assigns `trigger: 'auto'`
-
-Compatibility:
-
-- supports legacy/older blobs with no checkpoint trigger
-
 ### Function: `deserializeToState(data, clock, limits?): SessionState`
 
 Behavior flow:
 
 1. validate structure with `validateSerializedSessionData`
-2. reject unsupported forward format versions (`> 1`)
-3. normalize checkpoints
-4. construct `SessionState` object with:
+2. reject unsupported format versions (`formatVersion` must be `1` when present)
+3. construct `SessionState` object with:
    - restored fields or safe defaults
    - new `clock` from argument
    - limits from `limits` arg or defaults
