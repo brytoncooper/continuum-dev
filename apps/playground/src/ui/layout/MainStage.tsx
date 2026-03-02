@@ -38,10 +38,10 @@ export function MainStage({
         <div
           data-testid="generated-ui"
           style={{
-            background: playgroundTheme.color.surface,
+            background: playgroundTheme.gradient.panel,
             borderRadius: radius.lg,
-            border: `1px solid ${playgroundTheme.color.border}`,
-            boxShadow: playgroundTheme.shadow.card,
+            border: `1px solid ${playgroundTheme.color.panelBorder}`,
+            boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
             padding: space.xl,
             display: 'grid',
             gap: space.lg,

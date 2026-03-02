@@ -83,7 +83,7 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
             WebkitBackdropFilter: 'blur(12px)',
           }}
         >
-          Data continuity for view-driven applications
+          The continuity layer for AI-generated interfaces
         </div>
 
         <h1
@@ -104,9 +104,9 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
             letterSpacing: '-0.03em',
           }}
         >
-          User data survives
+          AI rebuilds the interface.
           <br />
-          every view change.
+          User data survives.
         </h1>
 
         <p
@@ -122,9 +122,9 @@ export function HeroSection({ onEnter }: HeroSectionProps) {
             marginRight: 'auto',
           }}
         >
-          AI agents regenerate interfaces constantly. Continuum reconciles
-          user data across every view version so nothing entered is ever
-          silently lost.
+          Ephemeral UI moves fast and breaks trust when values disappear.
+          Continuum reconciles user data across every generated view so
+          nothing entered is silently lost.
         </p>
 
         <div

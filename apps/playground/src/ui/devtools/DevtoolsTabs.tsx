@@ -42,8 +42,8 @@ export function DevtoolsTabs({
       style={{
         background: playgroundTheme.gradient.panel,
         borderRadius: radius.lg,
-        border: `1px solid ${playgroundTheme.color.border}`,
-        boxShadow: playgroundTheme.shadow.card,
+        border: `1px solid ${playgroundTheme.color.panelBorder}`,
+        boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
         overflow: 'hidden',
       }}
     >
@@ -54,7 +54,7 @@ export function DevtoolsTabs({
           gap: space.xs,
           padding: `${space.sm}px ${space.md}px`,
           borderBottom: `1px solid ${playgroundTheme.color.border}`,
-          background: playgroundTheme.color.surfaceAlt,
+          background: `linear-gradient(132deg, ${playgroundTheme.color.surfaceAlt}, rgba(244, 250, 255, 0.95))`,
         }}
       >
         {TABS.map((tab) => {
