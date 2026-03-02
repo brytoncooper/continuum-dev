@@ -15,9 +15,19 @@ export type ContinuumNodeMap = Record<
   Type<ContinuumNodeProps<unknown>>
 >;
 
+export interface ContinuumPersistError {
+  reason: 'size_limit' | 'storage_error';
+  key: string;
+  attemptedBytes?: number;
+  maxBytes?: number;
+  cause?: unknown;
+}
+
 export interface ContinuumProviderOptions {
   components: ContinuumNodeMap;
   persist?: 'sessionStorage' | 'localStorage' | false;
   storageKey?: string;
+  maxPersistBytes?: number;
+  onPersistError?: (error: ContinuumPersistError) => void;
   sessionOptions?: SessionOptions;
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { Injector } from '@angular/core';
 import { createSession } from '@continuum/session';
 import type { ViewDefinition } from '@continuum/contract';
@@ -20,6 +20,7 @@ describe('provideContinuum', () => {
   afterEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    vi.useRealTimers();
   });
 
   it('provides session and creates working injector', () => {
@@ -62,6 +63,7 @@ describe('provideContinuum', () => {
   });
 
   it('persists to localStorage on snapshot change', () => {
+    vi.useFakeTimers();
     const nodeMap = {};
     const injector = Injector.create({
       providers: provideContinuum({
@@ -73,10 +75,68 @@ describe('provideContinuum', () => {
     const session = injector.get(CONTIUUM_SESSION);
     session.pushView(view);
     session.updateState('field', { value: 'persisted' });
+    vi.runAllTimers();
 
     const raw = localStorage.getItem('continuum_session');
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string);
     expect(parsed.currentData?.values?.field).toEqual({ value: 'persisted' });
+  });
+
+  it('skips persistence and reports size_limit when payload exceeds maxPersistBytes', () => {
+    vi.useFakeTimers();
+    const errors: Array<Record<string, unknown>> = [];
+    const nodeMap = {};
+    const injector = Injector.create({
+      providers: provideContinuum({
+        components: nodeMap,
+        persist: 'localStorage',
+        maxPersistBytes: 1,
+        onPersistError: (error) => {
+          errors.push(error as unknown as Record<string, unknown>);
+        },
+      }),
+    });
+
+    const session = injector.get(CONTIUUM_SESSION);
+    session.pushView(view);
+    session.updateState('field', { value: 'too-large' });
+    vi.runAllTimers();
+
+    expect(localStorage.getItem('continuum_session')).toBeNull();
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].reason).toBe('size_limit');
+    expect(errors[0].key).toBe('continuum_session');
+    expect(errors[0].maxBytes).toBe(1);
+    expect((errors[0].attemptedBytes as number) > 1).toBe(true);
+  });
+
+  it('reports storage_error when setItem throws', () => {
+    vi.useFakeTimers();
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => { throw new Error('quota exceeded'); });
+    const errors: Array<Record<string, unknown>> = [];
+    const nodeMap = {};
+    const injector = Injector.create({
+      providers: provideContinuum({
+        components: nodeMap,
+        persist: 'localStorage',
+        onPersistError: (error) => {
+          errors.push(error as unknown as Record<string, unknown>);
+        },
+      }),
+    });
+
+    const session = injector.get(CONTIUUM_SESSION);
+    session.pushView(view);
+    session.updateState('field', { value: 'persisted' });
+    vi.runAllTimers();
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].reason).toBe('storage_error');
+    expect(errors[0].key).toBe('continuum_session');
+    expect((errors[0].cause as Error).message).toBe('quota exceeded');
+    setItemSpy.mockRestore();
   });
 });
