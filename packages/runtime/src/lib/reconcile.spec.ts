@@ -555,7 +555,7 @@ describe('reconcile', () => {
       expect(result.reconciledState.lineage.viewHash).toBeUndefined();
     });
 
-    it('produces the same viewHash regardless of node order', () => {
+    it('produces different viewHash values when node order changes', () => {
       const priorView = makeView([makeNode({ id: 'a' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
@@ -572,7 +572,7 @@ describe('reconcile', () => {
       const resultB = reconcile(viewOrderB, priorView, priorData);
 
       expect(resultA.reconciledState.lineage.viewHash).toBeDefined();
-      expect(resultA.reconciledState.lineage.viewHash).toBe(
+      expect(resultA.reconciledState.lineage.viewHash).not.toBe(
         resultB.reconciledState.lineage.viewHash
       );
     });

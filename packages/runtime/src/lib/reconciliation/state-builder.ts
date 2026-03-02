@@ -7,11 +7,11 @@ import type {
   ViewNode,
 } from '@continuum/contract';
 import {
-  getChildNodes,
   ISSUE_CODES,
   ISSUE_SEVERITY,
 } from '@continuum/contract';
 import { collectDuplicateIssues } from '../context.js';
+import { traverseViewNodes } from './view-traversal.js';
 import type {
   NodeResolutionAccumulator,
   ReconciliationIssue,
@@ -62,11 +62,12 @@ function collectNodesAsFreshlyAdded(
   nodes: ViewNode[],
   values: Record<string, NodeValue>,
   diffs: StateDiff[],
-  resolutions: ReconciliationResolution[],
-  parentPath = ''
+  resolutions: ReconciliationResolution[]
 ): void {
-  for (const node of nodes) {
-    const nodeId = buildNodePath(parentPath, node.id);
+  const traversal = traverseViewNodes(nodes);
+  for (const entry of traversal.visited) {
+    const node = entry.node;
+    const nodeId = entry.nodeId;
     if (node.type === 'collection') {
       values[nodeId] = createInitialCollectionValue(node);
     } else if ('defaultValue' in node && node.defaultValue !== undefined) {
@@ -74,51 +75,30 @@ function collectNodesAsFreshlyAdded(
     }
     diffs.push(addedDiff(nodeId));
     resolutions.push(addedResolution(nodeId, node.type));
-    const children = getChildNodes(node);
-    if (children.length > 0) {
-      collectNodesAsFreshlyAdded(children, values, diffs, resolutions, nodeId);
-    }
   }
 }
 
 function collectNodeIds(nodes: ViewNode[]): Set<string> {
   const ids = new Set<string>();
-
-  function walk(items: ViewNode[], parentPath: string): void {
-    for (const node of items) {
-      const nodeId = buildNodePath(parentPath, node.id);
-      ids.add(nodeId);
-      const children = getChildNodes(node);
-      if (children.length > 0) {
-        walk(children, nodeId);
-      }
-    }
+  const traversal = traverseViewNodes(nodes);
+  for (const entry of traversal.visited) {
+    ids.add(entry.nodeId);
   }
-
-  walk(nodes, '');
   return ids;
 }
 
 function collectNodeKeyToIdMap(nodes: ViewNode[]): Map<string, string> {
   const keyToId = new Map<string, string>();
-
-  function walk(items: ViewNode[], parentPath: string): void {
-    for (const node of items) {
-      const nodeId = buildNodePath(parentPath, node.id);
-      if (node.key) {
-        const scopedKey = buildNodePath(parentPath, node.key);
-        if (!keyToId.has(scopedKey)) {
-          keyToId.set(scopedKey, nodeId);
-        }
-      }
-      const children = getChildNodes(node);
-      if (children.length > 0) {
-        walk(children, nodeId);
+  const traversal = traverseViewNodes(nodes);
+  for (const entry of traversal.visited) {
+    const node = entry.node;
+    if (node.key) {
+      const scopedKey = buildNodePath(entry.parentPath, node.key);
+      if (!keyToId.has(scopedKey)) {
+        keyToId.set(scopedKey, entry.nodeId);
       }
     }
   }
-
-  walk(nodes, '');
   return keyToId;
 }
 
@@ -260,19 +240,24 @@ export function carryValuesMeta(
 }
 
 export function computeViewHash(view: ViewDefinition): string | undefined {
-  const hashes: string[] = [];
-  function collect(nodes: ViewNode[]) {
-    for (const node of nodes) {
-      if (node.hash) hashes.push(node.hash);
-      const children = getChildNodes(node);
-      if (children.length > 0) {
-        collect(children);
-      }
+  const traversal = traverseViewNodes(view.nodes);
+  let hasHash = false;
+  const descriptors = traversal.visited.map((entry) => {
+    if (entry.node.hash) {
+      hasHash = true;
     }
+    return {
+      positionPath: entry.positionPath,
+      nodeId: entry.nodeId,
+      type: entry.node.type,
+      hash: entry.node.hash ?? null,
+    };
+  });
+  if (!hasHash) {
+    return undefined;
   }
-  collect(view.nodes);
-  if (hashes.length === 0) return undefined;
-  return JSON.stringify(hashes.sort());
+  descriptors.sort((a, b) => a.positionPath.localeCompare(b.positionPath));
+  return JSON.stringify(descriptors);
 }
 
 export function generateSessionId(now: number): string {
