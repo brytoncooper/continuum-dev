@@ -11,6 +11,7 @@ import {
   ISSUE_CODES,
   ISSUE_SEVERITY,
 } from '@continuum/contract';
+import { collectDuplicateIssues } from '../context.js';
 import type {
   NodeResolutionAccumulator,
   ReconciliationIssue,
@@ -31,6 +32,8 @@ export function buildFreshSessionResult(
 
   collectNodesAsFreshlyAdded(newView.nodes, values, diffs, resolutions);
 
+  const duplicateIssues = collectDuplicateIssues(newView.nodes);
+
   return {
     reconciledState: {
       values,
@@ -48,6 +51,7 @@ export function buildFreshSessionResult(
         message: 'No prior state found, starting fresh',
         code: ISSUE_CODES.NO_PRIOR_DATA,
       },
+      ...duplicateIssues,
     ],
     resolutions,
   };
@@ -95,12 +99,14 @@ export function buildBlindCarryResult(
   now: number,
   options: ReconciliationOptions
 ): ReconciliationResult {
+  const duplicateIssues = collectDuplicateIssues(newView.nodes);
   const issues: ReconciliationIssue[] = [
     {
       severity: ISSUE_SEVERITY.WARNING,
       message: 'Prior data exists but no prior view provided; cannot reconcile',
       code: ISSUE_CODES.NO_PRIOR_VIEW,
     },
+    ...duplicateIssues,
   ];
 
   if (options.allowBlindCarry) {
