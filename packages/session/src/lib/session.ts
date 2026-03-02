@@ -12,6 +12,13 @@ import { teardownSessionAndClearState } from './session/destroyer.js';
 import { attachPersistence } from './session/persistence.js';
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
+const SESSION_DESTROYED_ERROR = 'Session has been destroyed';
+
+function assertNotDestroyed(internal: SessionState): void {
+  if (internal.destroyed) {
+    throw new Error(SESSION_DESTROYED_ERROR);
+  }
+}
 
 function assembleSessionFromInternalState(
   internal: SessionState,
@@ -19,41 +26,44 @@ function assembleSessionFromInternalState(
 ): Session {
   const session: Session = {
     get sessionId() { return internal.sessionId; },
-    getSnapshot() { return internal.destroyed ? null : buildSnapshotFromCurrentState(internal); },
-    getIssues() { return internal.destroyed ? [] : [...internal.issues]; },
-    getDiffs() { return internal.destroyed ? [] : [...internal.diffs]; },
-    getResolutions() { return internal.destroyed ? [] : [...internal.resolutions]; },
-    getEventLog() { return internal.destroyed ? [] : [...internal.eventLog]; },
-    getPendingIntents() { return internal.destroyed ? [] : [...internal.pendingIntents]; },
+    get isDestroyed() { return internal.destroyed; },
+    getSnapshot() { assertNotDestroyed(internal); return buildSnapshotFromCurrentState(internal); },
+    getIssues() { assertNotDestroyed(internal); return [...internal.issues]; },
+    getDiffs() { assertNotDestroyed(internal); return [...internal.diffs]; },
+    getResolutions() { assertNotDestroyed(internal); return [...internal.resolutions]; },
+    getEventLog() { assertNotDestroyed(internal); return [...internal.eventLog]; },
+    getPendingIntents() { assertNotDestroyed(internal); return [...internal.pendingIntents]; },
     getDetachedValues() {
-      if (internal.destroyed) return {};
+      assertNotDestroyed(internal);
       return { ...(internal.currentData?.detachedValues ?? {}) };
     },
-    getCheckpoints() { return internal.destroyed ? [] : [...internal.checkpoints]; },
+    getCheckpoints() { assertNotDestroyed(internal); return [...internal.checkpoints]; },
 
-    pushView(view) { pushView(internal, view); },
-    recordIntent(partial) { recordIntent(internal, partial); },
+    pushView(view) { assertNotDestroyed(internal); pushView(internal, view); },
+    recordIntent(partial) { assertNotDestroyed(internal); recordIntent(internal, partial); },
     updateState(nodeId, payload) {
+      assertNotDestroyed(internal);
       recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload });
     },
 
-    submitIntent(partial) { submitIntent(internal, partial); },
-    validateIntent(intentId) { return validateIntent(internal, intentId); },
-    cancelIntent(intentId) { return cancelIntent(internal, intentId); },
+    submitIntent(partial) { assertNotDestroyed(internal); submitIntent(internal, partial); },
+    validateIntent(intentId) { assertNotDestroyed(internal); return validateIntent(internal, intentId); },
+    cancelIntent(intentId) { assertNotDestroyed(internal); return cancelIntent(internal, intentId); },
 
-    checkpoint() { return createManualCheckpoint(internal); },
-    restoreFromCheckpoint(cp) { restoreFromCheckpoint(internal, cp); },
-    rewind(checkpointId) { rewind(internal, checkpointId); },
+    checkpoint() { assertNotDestroyed(internal); return createManualCheckpoint(internal); },
+    restoreFromCheckpoint(cp) { assertNotDestroyed(internal); restoreFromCheckpoint(internal, cp); },
+    rewind(checkpointId) { assertNotDestroyed(internal); rewind(internal, checkpointId); },
     reset() {
-      if (internal.destroyed) return;
+      assertNotDestroyed(internal);
       resetSessionState(internal);
     },
 
-    onSnapshot(listener) { return subscribeSnapshot(internal, listener); },
-    onIssues(listener) { return subscribeIssues(internal, listener); },
+    onSnapshot(listener) { assertNotDestroyed(internal); return subscribeSnapshot(internal, listener); },
+    onIssues(listener) { assertNotDestroyed(internal); return subscribeIssues(internal, listener); },
 
-    serialize() { return serializeSession(internal); },
+    serialize() { assertNotDestroyed(internal); return serializeSession(internal); },
     destroy() {
+      assertNotDestroyed(internal);
       cleanupPersistence?.();
       return teardownSessionAndClearState(internal);
     },

@@ -44,6 +44,7 @@ export interface SessionOptions {
 
 export interface Session {
   readonly sessionId: string;
+  readonly isDestroyed: boolean;
   getSnapshot(): ContinuitySnapshot | null;
   getIssues(): ReconciliationIssue[];
   getDiffs(): StateDiff[];
