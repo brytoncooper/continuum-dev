@@ -100,6 +100,51 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
     expect(result.reconciledState.values['orphan']).toBeUndefined();
   });
+
+  it('carries value by key when id changed', () => {
+    const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
+    const data = makeData({ email: { value: 'test@example.com' } });
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+
+    expect(result.reconciledState.values['field_456']).toEqual({ value: 'test@example.com' });
+    expect(result.reconciledState.values['email']).toBeUndefined();
+  });
+
+  it('prefers id matching over key matching when both are possible', () => {
+    const view = makeView([
+      makeNode({ id: 'a' }),
+      makeNode({ id: 'b', key: 'a' }),
+    ]);
+    const data = makeData({ a: { value: 'hello' } });
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+
+    expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
+    expect(result.reconciledState.values['b']).toBeUndefined();
+  });
+
+  it('matches nested keys using scoped paths', () => {
+    const view = makeView([
+      makeNode({
+        id: 'form',
+        type: 'group',
+        children: [makeNode({ id: 'field_1', key: 'email' })],
+      }),
+    ]);
+    const data = makeData({ 'form/email': { value: 'nested@example.com' } });
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+
+    expect(result.reconciledState.values['form/field_1']).toEqual({ value: 'nested@example.com' });
+    expect(result.reconciledState.values['form/email']).toBeUndefined();
+  });
+
+  it('drops values with no id or key match', () => {
+    const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
+    const data = makeData({ no_match: { value: 'gone' } });
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+
+    expect(result.reconciledState.values['field_456']).toBeUndefined();
+    expect(result.reconciledState.values['no_match']).toBeUndefined();
+  });
 });
 
 describe('assembleReconciliationResult', () => {
