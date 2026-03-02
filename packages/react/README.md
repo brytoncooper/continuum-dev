@@ -64,9 +64,11 @@ Wraps your application and manages the Continuum session.
 | `components` | `ContinuumComponentMap` | required | Map of component type strings to React components |
 | `persist` | `'localStorage' \| 'sessionStorage' \| false` | `false` | Where to persist session data |
 | `storageKey` | `string` | `'continuum_session'` | Key used in storage |
+| `maxPersistBytes` | `number` | — | Optional max serialized payload size in bytes before writes are skipped |
+| `onPersistError` | `(error: ContinuumPersistError) => void` | — | Called for skipped writes (`size_limit`) and storage failures (`storage_error`) |
 | `children` | `React.ReactNode` | required | Child elements |
 
-On mount, the provider attempts to rehydrate from storage. If rehydration succeeds, `useContinuumHydrated()` returns `true`. On every snapshot change, the session is automatically serialized back to storage.
+On mount, the provider attempts to rehydrate from storage. If rehydration succeeds, `useContinuumHydrated()` returns `true`. On every snapshot change, the session is automatically serialized back to storage. When `maxPersistBytes` is set and the payload exceeds the limit, the write is skipped and `onPersistError` is notified (or a warning is logged if no callback is provided).
 
 ### `<ContinuumRenderer>`
 
@@ -178,7 +180,7 @@ function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
 
 ## Internal Exports
 
-### `usePersistence(session, storage, key)`
+### `usePersistence(session, storage, key, maxPersistBytes?, onPersistError?)`
 
 Hook that subscribes to snapshot changes and persists to the given `Storage` object.
 

@@ -18,10 +18,20 @@ export type ContinuumNodeMap = Record<
 export type ContinuumComponentProps<T = NodeValue> = ContinuumNodeProps<T>;
 export type ContinuumComponentMap = ContinuumNodeMap;
 
+export interface ContinuumPersistError {
+  reason: 'size_limit' | 'storage_error';
+  key: string;
+  attemptedBytes?: number;
+  maxBytes?: number;
+  cause?: unknown;
+}
+
 export interface ContinuumProviderProps {
   components: ContinuumNodeMap;
   persist?: 'sessionStorage' | 'localStorage' | false;
   storageKey?: string;
+  maxPersistBytes?: number;
+  onPersistError?: (error: ContinuumPersistError) => void;
   sessionOptions?: SessionOptions;
   children: React.ReactNode;
 }

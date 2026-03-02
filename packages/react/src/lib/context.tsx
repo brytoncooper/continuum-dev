@@ -1,8 +1,7 @@
 import { createContext, useRef, useMemo, useEffect } from 'react';
-import { createSession, deserialize } from '@continuum/session';
+import { hydrateOrCreate } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
-import { usePersistence } from './persistence.js';
 
 export interface ContinuumContextValue {
   session: Session;
@@ -16,38 +15,18 @@ const DEFAULT_STORAGE_KEY = 'continuum_session';
 
 function resolveStorage(
   persist: ContinuumProviderProps['persist']
-): Storage | null {
-  if (!persist) return null;
+): Storage | undefined {
   if (persist === 'sessionStorage') return globalThis.sessionStorage;
   if (persist === 'localStorage') return globalThis.localStorage;
-  return null;
-}
-
-function hydrateOrCreate(
-  storage: Storage | null,
-  key: string,
-  sessionOptions: ContinuumProviderProps['sessionOptions']
-): { session: Session; wasHydrated: boolean } {
-  if (storage) {
-    const raw = storage.getItem(key);
-    if (raw) {
-      try {
-        return {
-          session: deserialize(JSON.parse(raw), sessionOptions),
-          wasHydrated: true,
-        };
-      } catch {
-        storage.removeItem(key);
-      }
-    }
-  }
-  return { session: createSession(sessionOptions), wasHydrated: false };
+  return undefined;
 }
 
 export function ContinuumProvider({
   components,
   persist = false,
   storageKey = DEFAULT_STORAGE_KEY,
+  maxPersistBytes,
+  onPersistError,
   sessionOptions,
   children,
 }: ContinuumProviderProps) {
@@ -56,12 +35,24 @@ export function ContinuumProvider({
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!sessionRef.current) {
-    sessionRef.current = hydrateOrCreate(storage, storageKey, sessionOptions);
+    const wasHydrated = Boolean(storage?.getItem(storageKey));
+    const session = hydrateOrCreate({
+      ...sessionOptions,
+      persistence: storage
+        ? {
+          storage,
+          key: storageKey,
+          maxBytes: maxPersistBytes,
+          onError: onPersistError ?? ((error) => {
+            console.warn('Continuum persistence error', error);
+          }),
+        }
+        : undefined,
+    });
+    sessionRef.current = { session, wasHydrated };
   }
 
   const { session, wasHydrated } = sessionRef.current;
-
-  usePersistence(session, storage, storageKey);
   useEffect(() => {
     if (destroyTimerRef.current) {
       clearTimeout(destroyTimerRef.current);
