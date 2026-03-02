@@ -13,12 +13,11 @@ This project is **v0 pre-release**. There are zero users in production and zero 
 ## Serialization
 
 - `formatVersion` is `1`. This is the first and only format version.
-- The serializer accepts only `formatVersion === 1` on deserialization.
-- Do NOT introduce migration layers, backwards-compatibility shims, or format version upgrade paths.
-- Do NOT accept missing `formatVersion` or any version other than `1`.
+- On deserialization, missing `formatVersion` is accepted for backward compatibility. When present, only `1` is accepted; any other value throws.
+- Do NOT introduce migration layers, backwards-compatibility shims, or format version upgrade paths beyond the existing missing-version tolerance.
 
 ## Constraints
 
-- Do NOT add code to handle "legacy" data formats. There is no legacy data.
+- Do NOT add code to handle "legacy" data formats beyond what already exists.
 - Do NOT introduce version bumps or format migrations until the project reaches v1 with real users.
 - When v1 ships, migration infrastructure can be introduced. Until then, keep the serialization path simple and direct.
