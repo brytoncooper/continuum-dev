@@ -15,6 +15,8 @@ describe('contract constants', () => {
       'UNKNOWN_NODE',
       'DUPLICATE_NODE_ID',
       'DUPLICATE_NODE_KEY',
+      'VIEW_CHILD_CYCLE_DETECTED',
+      'VIEW_MAX_DEPTH_EXCEEDED',
       'COLLECTION_CONSTRAINT_VIOLATED',
       'SCOPE_COLLISION',
     ]);
