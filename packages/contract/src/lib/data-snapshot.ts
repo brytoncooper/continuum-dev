@@ -1,6 +1,6 @@
 export interface DataSnapshot {
   values: Record<string, NodeValue>;
-  viewContext?: Record<string, ViewContext>;
+  viewContext?: Record<string, ViewportState>;
   lineage: SnapshotLineage;
   valueLineage?: Record<string, ValueLineage>;
   detachedValues?: Record<string, DetachedValue>;
@@ -20,12 +20,17 @@ export interface CollectionNodeState {
   items: CollectionItemState[];
 }
 
-export interface ViewContext {
+export interface ViewportState {
   scrollX?: number;
   scrollY?: number;
+  zoom?: number;
+  offsetX?: number;
+  offsetY?: number;
   isExpanded?: boolean;
   isFocused?: boolean;
 }
+
+export type ViewContext = ViewportState;
 
 export interface SnapshotLineage {
   timestamp: number;

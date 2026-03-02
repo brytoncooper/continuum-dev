@@ -1,9 +1,10 @@
 import { INTERACTION_TYPES } from '@continuum/contract';
+import type { ViewportState } from '@continuum/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
 import { createEmptySessionState, generateId, resetSessionState } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
-import { buildSnapshotFromCurrentState, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
-import { createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
+import { buildSnapshotFromCurrentState, notifySnapshotListeners, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
+import { cloneCheckpointSnapshot, createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
 import { submitIntent, validateIntent, cancelIntent } from './session/intent-manager.js';
 import { recordIntent } from './session/event-log.js';
 import { pushView } from './session/view-pusher.js';
@@ -18,6 +19,40 @@ function assertNotDestroyed(internal: SessionState): void {
   if (internal.destroyed) {
     throw new Error(SESSION_DESTROYED_ERROR);
   }
+}
+
+function applyViewportStateUpdate(
+  internal: SessionState,
+  nodeId: string,
+  state: ViewportState
+): void {
+  if (!internal.currentData) {
+    return;
+  }
+  const now = internal.clock();
+  internal.currentData = {
+    ...internal.currentData,
+    viewContext: {
+      ...(internal.currentData.viewContext ?? {}),
+      [nodeId]: state,
+    },
+    lineage: {
+      ...internal.currentData.lineage,
+      timestamp: now,
+    },
+  };
+
+  const lastAutoCheckpoint = [...internal.checkpoints]
+    .reverse()
+    .find((checkpoint) => checkpoint.trigger === 'auto');
+  if (lastAutoCheckpoint) {
+    const snapshot = buildSnapshotFromCurrentState(internal);
+    if (snapshot) {
+      lastAutoCheckpoint.snapshot = cloneCheckpointSnapshot(snapshot);
+    }
+  }
+
+  notifySnapshotListeners(internal);
 }
 
 function assembleSessionFromInternalState(
@@ -44,6 +79,14 @@ function assembleSessionFromInternalState(
     updateState(nodeId, payload) {
       assertNotDestroyed(internal);
       recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload });
+    },
+    getViewportState(nodeId) {
+      assertNotDestroyed(internal);
+      return internal.currentData?.viewContext?.[nodeId];
+    },
+    updateViewportState(nodeId, state) {
+      assertNotDestroyed(internal);
+      applyViewportStateUpdate(internal, nodeId, state);
     },
 
     submitIntent(partial) { assertNotDestroyed(internal); submitIntent(internal, partial); },

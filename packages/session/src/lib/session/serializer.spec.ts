@@ -58,6 +58,32 @@ describe('serializeSession', () => {
     expect(serialized.currentData.values.a.value).toBeInstanceOf(Date);
     expect(serialized.currentData.values.a.value).toEqual(createdAt);
   });
+
+  it('preserves viewport state before persistence encoding', () => {
+    const internal = createEmptySessionState('s', () => 1000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      viewContext: {
+        a: { scrollX: 12, scrollY: 20, zoom: 1.25, offsetX: 5, offsetY: 8 },
+      },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+
+    const serialized = serializeSession(internal) as {
+      currentData: {
+        viewContext?: Record<string, { scrollX?: number; scrollY?: number; zoom?: number; offsetX?: number; offsetY?: number }>;
+      };
+    };
+
+    expect(serialized.currentData.viewContext?.a).toEqual({
+      scrollX: 12,
+      scrollY: 20,
+      zoom: 1.25,
+      offsetX: 5,
+      offsetY: 8,
+    });
+  });
 });
 
 describe('deserializeToState', () => {
@@ -99,6 +125,36 @@ describe('deserializeToState', () => {
     expect(restored.pendingIntents).toEqual([]);
     expect(restored.checkpoints).toEqual([]);
     expect(restored.issues).toEqual([]);
+  });
+
+  it('restores viewport state', () => {
+    const data = {
+      sessionId: 's',
+      currentView: { viewId: 's1', version: '1', nodes: [] },
+      currentData: {
+        values: {},
+        viewContext: {
+          chart: { scrollX: 5, scrollY: 15, zoom: 2, offsetX: 1, offsetY: 3 },
+        },
+        lineage: { timestamp: 1, sessionId: 's' },
+      },
+      priorView: null,
+      eventLog: [],
+      pendingIntents: [],
+      checkpoints: [],
+      issues: [],
+      diffs: [],
+      resolutions: [],
+    };
+
+    const restored = deserializeToState(data, () => 0);
+    expect(restored.currentData?.viewContext?.chart).toEqual({
+      scrollX: 5,
+      scrollY: 15,
+      zoom: 2,
+      offsetX: 1,
+      offsetY: 3,
+    });
   });
 
   it('throws when payload is not an object', () => {
