@@ -927,4 +927,138 @@ describe('reconcile', () => {
       expect(restoredResult.diffs.some((diff) => diff.type === 'restored')).toBe(true);
     });
   });
+
+  describe('duplicate detection', () => {
+    it('detects duplicate node IDs in new view', () => {
+      const view = makeView([
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+      ]);
+
+      const result = reconcile(view, null, null);
+
+      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_ID
+      expect(result.issues[1]).toEqual({
+        severity: 'error',
+        nodeId: 'duplicate',
+        message: 'Duplicate node id: duplicate',
+        code: 'DUPLICATE_NODE_ID',
+      });
+    });
+
+    it('detects duplicate node keys in new view', () => {
+      const view = makeView([
+        makeNode({ id: 'a', key: 'dup-key', type: 'field', dataType: 'string' }),
+        makeNode({ id: 'b', key: 'dup-key', type: 'field', dataType: 'string' }),
+      ]);
+
+      const result = reconcile(view, null, null);
+
+      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_KEY
+      expect(result.issues[1]).toEqual({
+        severity: 'warning',
+        nodeId: 'b',
+        message: 'Duplicate node key: dup-key',
+        code: 'DUPLICATE_NODE_KEY',
+      });
+    });
+
+    it('detects duplicate IDs in nested nodes', () => {
+      const view = makeView([
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+        makeNode({
+          id: 'group',
+          type: 'group',
+          children: [
+            makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+          ],
+        }),
+      ]);
+
+      const result = reconcile(view, null, null);
+
+      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_ID
+      expect(result.issues[1]).toEqual({
+        severity: 'error',
+        nodeId: 'duplicate',
+        message: 'Duplicate node id: duplicate',
+        code: 'DUPLICATE_NODE_ID',
+      });
+    });
+
+    it('detects duplicate keys in nested nodes', () => {
+      const view = makeView([
+        makeNode({ id: 'a', key: 'dup-key', type: 'field', dataType: 'string' }),
+        makeNode({
+          id: 'group',
+          type: 'group',
+          children: [
+            makeNode({ id: 'b', key: 'dup-key', type: 'field', dataType: 'string' }),
+          ],
+        }),
+      ]);
+
+      const result = reconcile(view, null, null);
+
+      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_KEY
+      expect(result.issues[1]).toEqual({
+        severity: 'warning',
+        nodeId: 'b',
+        message: 'Duplicate node key: dup-key',
+        code: 'DUPLICATE_NODE_KEY',
+      });
+    });
+
+    it('preserves last-write-wins behavior for duplicate IDs', () => {
+      const view = makeView([
+        makeNode({
+          id: 'duplicate',
+          key: 'stable-key',
+          type: 'field',
+          dataType: 'string',
+          label: 'First',
+        }),
+        makeNode({
+          id: 'duplicate',
+          key: 'stable-key',
+          type: 'field',
+          dataType: 'string',
+          label: 'Second',
+          defaultValue: 'second',
+        }),
+      ]);
+
+      const result = reconcile(view, null, null);
+
+      expect(result.reconciledState.values['duplicate']).toEqual({ value: 'second' });
+    });
+
+    it('detects duplicates in blind carry scenario', () => {
+      const view = makeView([
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+      ]);
+      const priorData = makeData({ duplicate: { value: 'old' } });
+
+      const result = reconcile(view, null, priorData, { allowBlindCarry: true });
+
+      expect(result.issues.some(i => i.code === 'DUPLICATE_NODE_ID')).toBe(true);
+      expect(result.issues.some(i => i.code === 'NO_PRIOR_VIEW')).toBe(true);
+    });
+
+    it('detects duplicates in view transition', () => {
+      const priorView = makeView([
+        makeNode({ id: 'a', type: 'field', dataType: 'string' }),
+      ]);
+      const newView = makeView([
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+        makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
+      ]);
+      const priorData = makeData({ a: { value: 'old' } });
+
+      const result = reconcile(newView, priorView, priorData);
+
+      expect(result.issues.some(i => i.code === 'DUPLICATE_NODE_ID')).toBe(true);
+    });
+  });
 });
