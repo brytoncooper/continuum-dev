@@ -9,8 +9,14 @@ import { recordIntent } from './session/event-log.js';
 import { pushView } from './session/view-pusher.js';
 import { serializeSession, deserializeToState } from './session/serializer.js';
 import { teardownSessionAndClearState } from './session/destroyer.js';
+import { attachPersistence } from './session/persistence.js';
 
-function assembleSessionFromInternalState(internal: SessionState): Session {
+const DEFAULT_STORAGE_KEY = 'continuum_session';
+
+function assembleSessionFromInternalState(
+  internal: SessionState,
+  cleanupPersistence?: () => void
+): Session {
   const session: Session = {
     get sessionId() { return internal.sessionId; },
     getSnapshot() { return internal.destroyed ? null : buildSnapshotFromCurrentState(internal); },
@@ -47,7 +53,10 @@ function assembleSessionFromInternalState(internal: SessionState): Session {
     onIssues(listener) { return subscribeIssues(internal, listener); },
 
     serialize() { return serializeSession(internal); },
-    destroy() { return teardownSessionAndClearState(internal); },
+    destroy() {
+      cleanupPersistence?.();
+      return teardownSessionAndClearState(internal);
+    },
   };
 
   return session;
@@ -61,9 +70,13 @@ export function createSession(options?: SessionOptions): Session {
   internal.maxCheckpoints = options?.maxCheckpoints ?? internal.maxCheckpoints;
   internal.reconciliationOptions = options?.reconciliation;
   internal.validateOnUpdate = options?.validateOnUpdate ?? internal.validateOnUpdate;
-  return assembleSessionFromInternalState(
-    internal
-  );
+  const cleanupPersistence = options?.persistence
+    ? attachPersistence(internal, {
+      ...options.persistence,
+      key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
+    })
+    : undefined;
+  return assembleSessionFromInternalState(internal, cleanupPersistence);
 }
 
 export function deserialize(data: unknown, options?: SessionOptions): Session {
@@ -82,7 +95,26 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
   if (options?.validateOnUpdate !== undefined) {
     internal.validateOnUpdate = options.validateOnUpdate;
   }
-  return assembleSessionFromInternalState(internal);
+  const cleanupPersistence = options?.persistence
+    ? attachPersistence(internal, {
+      ...options.persistence,
+      key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
+    })
+    : undefined;
+  return assembleSessionFromInternalState(internal, cleanupPersistence);
+}
+
+export function hydrateOrCreate(options?: SessionOptions): Session {
+  if (!options?.persistence) return createSession(options);
+  const storageKey = options.persistence.key ?? DEFAULT_STORAGE_KEY;
+  const raw = options.persistence.storage.getItem(storageKey);
+  if (!raw) return createSession(options);
+  try {
+    return deserialize(JSON.parse(raw), options);
+  } catch {
+    options.persistence.storage.removeItem(storageKey);
+    return createSession(options);
+  }
 }
 
 export const sessionFactory: SessionFactory = { createSession, deserialize };
