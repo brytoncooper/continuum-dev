@@ -349,11 +349,11 @@ INTENT_STATUS.CANCELLED         // 'cancelled'
 
 - `ViewDefinition.viewId` is the field name (not `id`)
 - `session.serialize()` output includes `formatVersion: 1`
-- `deserialize()` only accepts `formatVersion: 1`; any other value (including missing) throws an error
+- `deserialize()` accepts `formatVersion: 1`, and accepts missing `formatVersion` for backward compatibility
 - `pushView` auto-creates a checkpoint after reconciliation
-- `rewind(checkpointId)` trims the checkpoint stack to the rewound point (cannot re-rewind past it)
+- `rewind(checkpointId)` trims the checkpoint stack to the rewound point (cannot rewind past it)
 - The session is stateful and single-threaded -- do not call methods concurrently
-- Node state shape is `NodeValue<T>` (`{ value: T, isDirty?, isValid? }`); the session does not validate it beyond structure
+- Node state shape is `NodeValue<T>` (`{ value: T, isDirty?, isValid? }`); updates are not validated by default, but validation can be enabled with `SessionOptions.validateOnUpdate`
 
 ## Project Structure
 
