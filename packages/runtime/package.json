@@ -1,7 +1,15 @@
 {
   "name": "@continuum/runtime",
   "version": "0.0.1",
-  "private": true,
+  "description": "Reconciliation engine for AI-generated view continuity",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CooperContinuum/continuum.git",
+    "directory": "packages/runtime"
+  },
+  "author": "CooperContinuum",
+  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "engine"],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
