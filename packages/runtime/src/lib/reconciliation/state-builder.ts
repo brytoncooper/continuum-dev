@@ -99,6 +99,29 @@ function collectNodeIds(nodes: ViewNode[]): Set<string> {
   return ids;
 }
 
+function collectNodeKeyToIdMap(nodes: ViewNode[]): Map<string, string> {
+  const keyToId = new Map<string, string>();
+
+  function walk(items: ViewNode[], parentPath: string): void {
+    for (const node of items) {
+      const nodeId = buildNodePath(parentPath, node.id);
+      if (node.key) {
+        const scopedKey = buildNodePath(parentPath, node.key);
+        if (!keyToId.has(scopedKey)) {
+          keyToId.set(scopedKey, nodeId);
+        }
+      }
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        walk(children, nodeId);
+      }
+    }
+  }
+
+  walk(nodes, '');
+  return keyToId;
+}
+
 export function buildBlindCarryResult(
   newView: ViewDefinition,
   priorData: DataSnapshot,
@@ -117,10 +140,13 @@ export function buildBlindCarryResult(
 
   if (options.allowBlindCarry) {
     const newIds = collectNodeIds(newView.nodes);
+    const keyToId = collectNodeKeyToIdMap(newView.nodes);
     const carriedValues: Record<string, NodeValue> = {};
+    const carriedNodeIds = new Set<string>();
     for (const [id, value] of Object.entries(priorData.values)) {
       if (newIds.has(id)) {
         carriedValues[id] = value;
+        carriedNodeIds.add(id);
         issues.push({
           severity: ISSUE_SEVERITY.INFO,
           nodeId: id,
@@ -128,6 +154,23 @@ export function buildBlindCarryResult(
           code: ISSUE_CODES.UNVALIDATED_CARRY,
         });
       }
+    }
+    for (const [id, value] of Object.entries(priorData.values)) {
+      if (newIds.has(id)) {
+        continue;
+      }
+      const matchedNodeId = keyToId.get(id);
+      if (!matchedNodeId || carriedNodeIds.has(matchedNodeId)) {
+        continue;
+      }
+      carriedValues[matchedNodeId] = value;
+      carriedNodeIds.add(matchedNodeId);
+      issues.push({
+        severity: ISSUE_SEVERITY.INFO,
+        nodeId: matchedNodeId,
+        message: `Node ${id} data carried to ${matchedNodeId} via key match without view validation`,
+        code: ISSUE_CODES.UNVALIDATED_CARRY,
+      });
     }
 
     return {
