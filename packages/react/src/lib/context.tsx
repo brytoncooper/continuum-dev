@@ -1,10 +1,151 @@
 import { createContext, useRef, useMemo, useEffect } from 'react';
 import { hydrateOrCreate } from '@continuum/session';
 import type { Session } from '@continuum/session';
+import type { ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/contract';
 import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
+
+type Listener = () => void;
+
+function notifyListeners(listeners: Set<Listener>): void {
+  for (const listener of [...listeners]) {
+    listener();
+  }
+}
+
+function getChangedNodeIds(
+  previous: ContinuitySnapshot | null,
+  next: ContinuitySnapshot | null
+): string[] {
+  if (!previous || !next) {
+    return [];
+  }
+  const previousValues = previous.data.values ?? {};
+  const nextValues = next.data.values ?? {};
+  const previousViewContext = previous.data.viewContext ?? {};
+  const nextViewContext = next.data.viewContext ?? {};
+  if (
+    previousValues === nextValues &&
+    previousViewContext === nextViewContext
+  ) {
+    return [];
+  }
+  const ids = new Set<string>([
+    ...Object.keys(previousValues),
+    ...Object.keys(nextValues),
+    ...Object.keys(previousViewContext),
+    ...Object.keys(nextViewContext),
+  ]);
+  const changed: string[] = [];
+  for (const id of ids) {
+    const previousValue = previousValues[id] as NodeValue | undefined;
+    const nextValue = nextValues[id] as NodeValue | undefined;
+    const previousViewport = previousViewContext[id] as ViewportState | undefined;
+    const nextViewport = nextViewContext[id] as ViewportState | undefined;
+    if (
+      previousValue !== nextValue ||
+      previousViewport !== nextViewport
+    ) {
+      changed.push(id);
+    }
+  }
+  return changed;
+}
+
+export interface ContinuumStore {
+  getSnapshot(): ContinuitySnapshot | null;
+  subscribeSnapshot(listener: Listener): () => void;
+  subscribeDiagnostics(listener: Listener): () => void;
+  getNodeValue(nodeId: string): NodeValue | undefined;
+  getNodeViewport(nodeId: string): ViewportState | undefined;
+  subscribeNode(nodeId: string, listener: Listener): () => void;
+  destroy(): void;
+}
+
+function createContinuumStore(session: Session): ContinuumStore {
+  let snapshot = session.getSnapshot();
+  const snapshotListeners = new Set<Listener>();
+  const diagnosticsListeners = new Set<Listener>();
+  const nodeListeners = new Map<string, Set<Listener>>();
+
+  const cleanupSnapshot = session.onSnapshot((nextSnapshot) => {
+    const previousSnapshot = snapshot;
+    snapshot = nextSnapshot;
+
+    notifyListeners(snapshotListeners);
+    notifyListeners(diagnosticsListeners);
+
+    if (!previousSnapshot || !nextSnapshot) {
+      for (const listeners of nodeListeners.values()) {
+        notifyListeners(listeners);
+      }
+      return;
+    }
+
+    const changedIds = getChangedNodeIds(previousSnapshot, nextSnapshot);
+    for (const id of changedIds) {
+      const listeners = nodeListeners.get(id);
+      if (listeners) {
+        notifyListeners(listeners);
+      }
+    }
+  });
+
+  const cleanupIssues = session.onIssues(() => {
+    notifyListeners(diagnosticsListeners);
+  });
+
+  return {
+    getSnapshot: () => snapshot,
+    subscribeSnapshot(listener) {
+      snapshotListeners.add(listener);
+      return () => {
+        snapshotListeners.delete(listener);
+      };
+    },
+    subscribeDiagnostics(listener) {
+      diagnosticsListeners.add(listener);
+      return () => {
+        diagnosticsListeners.delete(listener);
+      };
+    },
+    getNodeValue(nodeId) {
+      return snapshot?.data.values?.[nodeId] as NodeValue | undefined;
+    },
+    getNodeViewport(nodeId) {
+      return snapshot?.data.viewContext?.[nodeId];
+    },
+    subscribeNode(nodeId, listener) {
+      const existing = nodeListeners.get(nodeId);
+      if (existing) {
+        existing.add(listener);
+      } else {
+        nodeListeners.set(nodeId, new Set([listener]));
+      }
+
+      return () => {
+        const listeners = nodeListeners.get(nodeId);
+        if (!listeners) {
+          return;
+        }
+        listeners.delete(listener);
+        if (listeners.size === 0) {
+          nodeListeners.delete(nodeId);
+        }
+      };
+    },
+    destroy() {
+      cleanupSnapshot();
+      cleanupIssues();
+      snapshotListeners.clear();
+      diagnosticsListeners.clear();
+      nodeListeners.clear();
+    },
+  };
+}
 
 export interface ContinuumContextValue {
   session: Session;
+  store: ContinuumStore;
   componentMap: ContinuumNodeMap;
   wasHydrated: boolean;
 }
@@ -59,7 +200,11 @@ export function ContinuumProvider({
 }: ContinuumProviderProps) {
   const storage = resolveStorage(persist);
   const stableComponents = useStableMap(components);
-  const sessionRef = useRef<{ session: Session; wasHydrated: boolean } | null>(null);
+  const sessionRef = useRef<{
+    session: Session;
+    store: ContinuumStore;
+    wasHydrated: boolean;
+  } | null>(null);
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!sessionRef.current) {
@@ -77,10 +222,11 @@ export function ContinuumProvider({
         }
         : undefined,
     });
-    sessionRef.current = { session, wasHydrated };
+    const store = createContinuumStore(session);
+    sessionRef.current = { session, store, wasHydrated };
   }
 
-  const { session, wasHydrated } = sessionRef.current;
+  const { session, store, wasHydrated } = sessionRef.current;
   useEffect(() => {
     if (destroyTimerRef.current) {
       clearTimeout(destroyTimerRef.current);
@@ -88,15 +234,16 @@ export function ContinuumProvider({
     }
     return () => {
       destroyTimerRef.current = setTimeout(() => {
+        store.destroy();
         session.destroy();
         destroyTimerRef.current = null;
       }, 0);
     };
-  }, [session]);
+  }, [session, store]);
 
   const value = useMemo<ContinuumContextValue>(
-    () => ({ session, componentMap: stableComponents, wasHydrated }),
-    [session, stableComponents, wasHydrated]
+    () => ({ session, store, componentMap: stableComponents, wasHydrated }),
+    [session, store, stableComponents, wasHydrated]
   );
 
   return (

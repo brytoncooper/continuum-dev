@@ -5,7 +5,7 @@ import { createSession } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumProvider } from './context.js';
-import { useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState } from './hooks.js';
+import { useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState, useContinuumViewport } from './hooks.js';
 import { ContinuumRenderer } from './renderer.js';
 
 const viewDef: ViewDefinition = {
@@ -108,6 +108,44 @@ describe('react integration', () => {
       button.click();
     });
     expect(button.textContent).toBe('next');
+    view.unmount();
+  });
+
+  it('supports viewport updates through useContinuumViewport', () => {
+    function App() {
+      const session = useContinuumSession();
+      const [viewport, setViewport] = useContinuumViewport('field');
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      return (
+        <button
+          data-testid="viewport-button"
+          onClick={() =>
+            setViewport({
+              scrollX: 20,
+              scrollY: 30,
+              zoom: 1.2,
+              offsetX: 4,
+              offsetY: 7,
+            })}
+        >
+          {viewport?.zoom ?? 0}
+        </button>
+      );
+    }
+
+    const view = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    const button = view.container.querySelector('[data-testid="viewport-button"]') as HTMLButtonElement;
+    act(() => {
+      button.click();
+    });
+    expect(button.textContent).toBe('1.2');
     view.unmount();
   });
 
@@ -358,6 +396,55 @@ describe('react integration', () => {
     });
     expect(renderCounts.group).toBe(1);
     expect(renderCounts.other).toBe(2);
+    rendered.unmount();
+  });
+
+  it('uses provider store fanout instead of per-node session subscriptions', () => {
+    const ids = Array.from({ length: 20 }, (_, index) => `field-${index}`);
+    const largeView: ViewDefinition = {
+      viewId: 'large-view',
+      version: '1',
+      nodes: ids.map((id) => ({ id, type: 'field', dataType: 'string' })),
+    };
+    let capturedSession: Session | null = null;
+    let onSnapshotRegistrations = 0;
+    let patched = false;
+
+    function Probe({ nodeId }: { nodeId: string }) {
+      useContinuumState(nodeId);
+      return null;
+    }
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(largeView);
+      }
+      if (!patched) {
+        patched = true;
+        const original = session.onSnapshot.bind(session);
+        (session as Session & { onSnapshot: Session['onSnapshot'] }).onSnapshot = ((listener) => {
+          onSnapshotRegistrations += 1;
+          return original(listener);
+        }) as Session['onSnapshot'];
+      }
+      return (
+        <>
+          {ids.map((id) => (
+            <Probe key={id} nodeId={id} />
+          ))}
+        </>
+      );
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(capturedSession).toBeTruthy();
+    expect(onSnapshotRegistrations).toBe(0);
     rendered.unmount();
   });
 
