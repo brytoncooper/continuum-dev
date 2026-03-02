@@ -5,6 +5,7 @@ import type {
   ViewDefinition,
   DataSnapshot,
 } from '@continuum/contract';
+import { isInteractionType } from '@continuum/contract';
 import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from '@continuum/runtime';
 import type { SessionState } from './session-state.js';
 
@@ -78,6 +79,20 @@ function assertObjectOrNullField(
   }
 }
 
+function assertValidEventLogTypes(data: Record<string, unknown>): void {
+  const value = data.eventLog;
+  if (!Array.isArray(value)) return;
+  for (let i = 0; i < value.length; i++) {
+    const interaction = value[i];
+    if (!isRecord(interaction)) {
+      throw new Error(`Invalid serialized session: "eventLog[${i}]" must be an object`);
+    }
+    if (!isInteractionType(interaction.type)) {
+      throw new Error(`Invalid serialized session: "eventLog[${i}].type" must be a valid interaction type`);
+    }
+  }
+}
+
 function validateSerializedSessionData(data: unknown): asserts data is SerializedSessionData {
   if (!isRecord(data)) {
     throw new Error('Invalid serialized session: expected an object');
@@ -103,6 +118,7 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
   assertArrayField(data, 'issues');
   assertArrayField(data, 'diffs');
   assertArrayField(data, 'resolutions');
+  assertValidEventLogTypes(data);
 }
 
 export function deserializeToState(
