@@ -2,7 +2,7 @@
 
 React bindings for the Continuum SDK.
 
-Provides a context provider, a schema-driven renderer, and hooks for accessing session state. Handles persistence to localStorage/sessionStorage automatically.
+Provides a context provider, a view-driven renderer, and hooks for accessing session state. Handles persistence to localStorage/sessionStorage automatically.
 
 ## Installation
 
@@ -35,13 +35,18 @@ function App() {
 function Page() {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
+  const view = {
+    viewId: 'view-1',
+    version: '1',
+    nodes: [{ id: 'field', type: 'field', dataType: 'string' }],
+  };
 
   useEffect(() => {
-    session.pushSchema(schemaFromAgent);
+    session.pushView(view);
   }, []);
 
-  return snapshot?.schema
-    ? <ContinuumRenderer schema={snapshot.schema} />
+  return snapshot?.view
+    ? <ContinuumRenderer view={snapshot.view} />
     : null;
 }
 ```
@@ -65,23 +70,23 @@ On mount, the provider attempts to rehydrate from storage. If rehydration succee
 
 ### `<ContinuumRenderer>`
 
-Renders a schema by mapping each `ComponentDefinition` to a React component from the component map.
+Renders a view by mapping each `ViewNode` to a React component from the component map.
 
 ```tsx
-<ContinuumRenderer schema={snapshot.schema} />
+<ContinuumRenderer view={snapshot.view} />
 ```
 
 **Props:**
 
 | Prop | Type | Description |
 |---|---|---|
-| `schema` | `SchemaSnapshot` | The schema to render |
+| `view` | `ViewDefinition` | The view to render |
 
 Each component is wrapped in a `<div data-continuum-id={definition.id}>` for identification. Children are rendered recursively. If a component type isn't in the map, falls back to `componentMap['default']`, then to the built-in `FallbackComponent`.
 
 ### `<FallbackComponent>`
 
-A built-in component rendered when a type isn't found in the component map. Displays a red dashed border with the unknown type name and an expandable schema definition viewer.
+A built-in component rendered when a type isn't found in the component map. Displays a red dashed border with the unknown type name and an expandable view definition viewer.
 
 ## Hooks
 
@@ -95,14 +100,14 @@ function useContinuumSession(): Session;
 
 Throws if used outside a provider.
 
-### `useContinuumState(componentId)`
+### `useContinuumState(nodeId)`
 
 Reads and writes a single component's state. Uses `useSyncExternalStore` for tear-free reads.
 
 ```typescript
 function useContinuumState(
-  componentId: string
-): [ComponentState | undefined, (value: ComponentState) => void];
+  nodeId: string
+): [NodeValue | undefined, (value: NodeValue) => void];
 ```
 
 ### `useContinuumSnapshot()`
@@ -115,13 +120,13 @@ function useContinuumSnapshot(): ContinuitySnapshot | null;
 
 ### `useContinuumDiagnostics()`
 
-Subscribes to reconciliation diagnostics. Re-renders when issues, diffs, trace, or checkpoints change.
+Subscribes to reconciliation diagnostics. Re-renders when issues, diffs, resolutions, or checkpoints change.
 
 ```typescript
 function useContinuumDiagnostics(): {
   issues: ReconciliationIssue[];
   diffs: StateDiff[];
-  trace: ReconciliationTrace[];
+  resolutions: ReconciliationResolution[];
   checkpoints: Checkpoint[];
 };
 ```
@@ -141,10 +146,10 @@ Throws if used outside a provider.
 Every component in the map receives `ContinuumComponentProps`:
 
 ```typescript
-interface ContinuumComponentProps<T = ComponentState> {
+interface ContinuumComponentProps<T = NodeValue> {
   value: T | undefined;             // current state for this component
   onChange: (value: T) => void;     // update state
-  definition: ComponentDefinition;  // schema definition
+  definition: ViewNode;  // view definition
   children?: React.ReactNode;       // rendered children (for containers)
 }
 
