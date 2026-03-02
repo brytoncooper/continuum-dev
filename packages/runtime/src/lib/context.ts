@@ -1,43 +1,37 @@
-import { getChildNodes, type DataSnapshot, type ViewDefinition, type ViewNode, ISSUE_SEVERITY, ISSUE_CODES } from '@continuum/contract';
+import { type DataSnapshot, type ViewDefinition, type ViewNode, ISSUE_SEVERITY, ISSUE_CODES } from '@continuum/contract';
 import type { ReconciliationIssue } from './types.js';
+import { type TraversedViewNode, traverseViewNodes } from './reconciliation/view-traversal.js';
 
 export function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[] {
   const issues: ReconciliationIssue[] = [];
   const byId = new Map<string, ViewNode>();
   const byKey = new Map<string, ViewNode>();
-
-  function walk(nodes: ViewNode[], parentPath: string) {
-    for (const node of nodes) {
-      const indexedId = toIndexedId(node.id, parentPath);
-      if (byId.has(indexedId)) {
+  const traversal = traverseViewNodes(nodes);
+  for (const entry of traversal.visited) {
+    const indexedId = entry.nodeId;
+    if (byId.has(indexedId)) {
+      issues.push({
+        severity: ISSUE_SEVERITY.ERROR,
+        nodeId: entry.node.id,
+        message: `Duplicate node id: ${entry.node.id}`,
+        code: ISSUE_CODES.DUPLICATE_NODE_ID,
+      });
+    }
+    byId.set(indexedId, entry.node);
+    if (entry.node.key) {
+      const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
+      if (byKey.has(indexedKey)) {
         issues.push({
-          severity: ISSUE_SEVERITY.ERROR,
-          nodeId: node.id,
-          message: `Duplicate node id: ${node.id}`,
-          code: ISSUE_CODES.DUPLICATE_NODE_ID,
+          severity: ISSUE_SEVERITY.WARNING,
+          nodeId: entry.node.id,
+          message: `Duplicate node key: ${entry.node.key}`,
+          code: ISSUE_CODES.DUPLICATE_NODE_KEY,
         });
       }
-      byId.set(indexedId, node);
-      if (node.key) {
-        const indexedKey = toIndexedKey(node.key, parentPath);
-        if (byKey.has(indexedKey)) {
-          issues.push({
-            severity: ISSUE_SEVERITY.WARNING,
-            nodeId: node.id,
-            message: `Duplicate node key: ${node.key}`,
-            code: ISSUE_CODES.DUPLICATE_NODE_KEY,
-          });
-        }
-        byKey.set(indexedKey, node);
-      }
-      const children = getChildNodes(node);
-      if (children.length > 0) {
-        walk(children, indexedId);
-      }
+      byKey.set(indexedKey, entry.node);
     }
   }
-
-  walk(nodes, '');
+  issues.push(...traversal.issues);
   return issues;
 }
 
@@ -70,12 +64,17 @@ export function buildReconciliationContext(
   const newNodeIds = new WeakMap<ViewNode, string>();
   const priorNodeIds = new WeakMap<ViewNode, string>();
   const issues: ReconciliationIssue[] = [];
-  const newKeyCounts = collectKeyCounts(newView.nodes);
-  const priorKeyCounts = priorView ? collectKeyCounts(priorView.nodes) : new Map<string, number>();
+  const newTraversal = traverseViewNodes(newView.nodes);
+  const priorTraversal = priorView ? traverseViewNodes(priorView.nodes) : null;
+  const newKeyCounts = collectKeyCounts(newTraversal.visited);
+  const priorKeyCounts = priorTraversal ? collectKeyCounts(priorTraversal.visited) : new Map<string, number>();
+  issues.push(...newTraversal.issues);
+  if (priorTraversal) {
+    issues.push(...priorTraversal.issues);
+  }
 
   indexNodesByIdAndKey(
-    newView.nodes,
-    '',
+    newTraversal.visited,
     newById,
     newByKey,
     newIdsByRawId,
@@ -85,8 +84,7 @@ export function buildReconciliationContext(
   );
   if (priorView) {
     indexNodesByIdAndKey(
-      priorView.nodes,
-      '',
+      priorTraversal?.visited ?? [],
       priorById,
       priorByKey,
       priorIdsByRawId,
@@ -188,26 +186,18 @@ export function findNewNodeByPriorNode(
   );
 }
 
-function collectKeyCounts(nodes: ViewNode[]): Map<string, number> {
+function collectKeyCounts(traversed: TraversedViewNode[]): Map<string, number> {
   const counts = new Map<string, number>();
-  const walk = (items: ViewNode[]): void => {
-    for (const node of items) {
-      if (node.key) {
-        counts.set(node.key, (counts.get(node.key) ?? 0) + 1);
-      }
-      const children = getChildNodes(node);
-      if (children.length > 0) {
-        walk(children);
-      }
+  for (const entry of traversed) {
+    if (entry.node.key) {
+      counts.set(entry.node.key, (counts.get(entry.node.key) ?? 0) + 1);
     }
-  };
-  walk(nodes);
+  }
   return counts;
 }
 
 function indexNodesByIdAndKey(
-  nodes: ViewNode[],
-  parentPath: string,
+  traversed: TraversedViewNode[],
   byId: Map<string, ViewNode>,
   byKey: Map<string, ViewNode>,
   idsByRawId: Map<string, string[]>,
@@ -215,57 +205,36 @@ function indexNodesByIdAndKey(
   keyCounts: Map<string, number>,
   issues: ReconciliationIssue[]
 ): void {
-  for (const node of nodes) {
-    const indexedId = toIndexedId(node.id, parentPath);
+  for (const entry of traversed) {
+    const indexedId = entry.nodeId;
     if (byId.has(indexedId)) {
       issues.push({
         severity: ISSUE_SEVERITY.ERROR,
-        nodeId: node.id,
-        message: `Duplicate node id: ${node.id}`,
+        nodeId: entry.node.id,
+        message: `Duplicate node id: ${entry.node.id}`,
         code: ISSUE_CODES.DUPLICATE_NODE_ID,
       });
     }
-    byId.set(indexedId, node);
-    nodeIds.set(node, indexedId);
-    idsByRawId.set(node.id, [...(idsByRawId.get(node.id) ?? []), indexedId]);
+    byId.set(indexedId, entry.node);
+    nodeIds.set(entry.node, indexedId);
+    idsByRawId.set(entry.node.id, [...(idsByRawId.get(entry.node.id) ?? []), indexedId]);
 
-    if (node.key) {
-      const indexedKey = toIndexedKey(node.key, parentPath);
+    if (entry.node.key) {
+      const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
       if (byKey.has(indexedKey)) {
         issues.push({
           severity: ISSUE_SEVERITY.WARNING,
-          nodeId: node.id,
-          message: `Duplicate node key: ${node.key}`,
+          nodeId: entry.node.id,
+          message: `Duplicate node key: ${entry.node.key}`,
           code: ISSUE_CODES.DUPLICATE_NODE_KEY,
         });
       }
-      byKey.set(indexedKey, node);
-      if (!byKey.has(node.key) && (keyCounts.get(node.key) ?? 0) === 1) {
-        byKey.set(node.key, node);
+      byKey.set(indexedKey, entry.node);
+      if (!byKey.has(entry.node.key) && (keyCounts.get(entry.node.key) ?? 0) === 1) {
+        byKey.set(entry.node.key, entry.node);
       }
     }
-
-    const children = getChildNodes(node);
-    if (children.length > 0) {
-      indexNodesByIdAndKey(
-        children,
-        indexedId,
-        byId,
-        byKey,
-        idsByRawId,
-        nodeIds,
-        keyCounts,
-        issues
-      );
-    }
   }
-}
-
-function toIndexedId(id: string, parentPath: string): string {
-  if (parentPath.length > 0) {
-    return `${parentPath}/${id}`;
-  }
-  return id;
 }
 
 function toIndexedKey(key: string, parentPath: string): string {
