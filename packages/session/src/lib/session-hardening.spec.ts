@@ -1,3 +1,4 @@
+import { INTERACTION_TYPES } from '@continuum/contract';
 import type { ViewDefinition, ViewNode } from '@continuum/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createSession, deserialize } from './session.js';
@@ -85,22 +86,40 @@ describe('session hardening', () => {
     expect(snapshots.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('clears checkpoints, diffs, and resolutions on destroy and getters return empty values', () => {
+  it('throws on all accessors and mutators after destroy', () => {
     const session = createSession();
     session.pushView(viewV1);
     session.updateState('a', { value: 'value' });
     session.pushView(viewV2);
-    session.checkpoint();
+    const checkpoint = session.checkpoint();
 
     session.destroy();
 
-    expect(session.getSnapshot()).toBeNull();
-    expect(session.getIssues()).toEqual([]);
-    expect(session.getDiffs()).toEqual([]);
-    expect(session.getResolutions()).toEqual([]);
-    expect(session.getEventLog()).toEqual([]);
-    expect(session.getPendingIntents()).toEqual([]);
-    expect(session.getCheckpoints()).toEqual([]);
+    expect(session.isDestroyed).toBe(true);
+    expect(() => session.getSnapshot()).toThrow('Session has been destroyed');
+    expect(() => session.getIssues()).toThrow('Session has been destroyed');
+    expect(() => session.getDiffs()).toThrow('Session has been destroyed');
+    expect(() => session.getResolutions()).toThrow('Session has been destroyed');
+    expect(() => session.getEventLog()).toThrow('Session has been destroyed');
+    expect(() => session.getPendingIntents()).toThrow('Session has been destroyed');
+    expect(() => session.getDetachedValues()).toThrow('Session has been destroyed');
+    expect(() => session.getCheckpoints()).toThrow('Session has been destroyed');
+    expect(() => session.pushView(viewV1)).toThrow('Session has been destroyed');
+    expect(() => session.recordIntent({ nodeId: 'a', type: INTERACTION_TYPES.DATA_UPDATE, payload: { value: 'x' } }))
+      .toThrow('Session has been destroyed');
+    expect(() => session.updateState('a', { value: 'x' })).toThrow('Session has been destroyed');
+    expect(() => session.submitIntent({ nodeId: 'a', intentName: 'submit', payload: {} }))
+      .toThrow('Session has been destroyed');
+    expect(() => session.validateIntent('missing')).toThrow('Session has been destroyed');
+    expect(() => session.cancelIntent('missing')).toThrow('Session has been destroyed');
+    expect(() => session.checkpoint()).toThrow('Session has been destroyed');
+    expect(() => session.restoreFromCheckpoint(checkpoint)).toThrow('Session has been destroyed');
+    expect(() => session.rewind('missing')).toThrow('Session has been destroyed');
+    expect(() => session.reset()).toThrow('Session has been destroyed');
+    expect(() => session.onSnapshot(() => {})).toThrow('Session has been destroyed');
+    expect(() => session.onIssues(() => {})).toThrow('Session has been destroyed');
+    expect(() => session.serialize()).toThrow('Session has been destroyed');
+    expect(() => session.destroy()).toThrow('Session has been destroyed');
   });
 
   it('returns booleans for validateIntent and cancelIntent', () => {

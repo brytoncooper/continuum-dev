@@ -52,7 +52,7 @@ describe('Session Ledger', () => {
       expect(session.getIssues()).toEqual([]);
     });
 
-    it('destroy clears snapshot, stops listeners, and ignores further pushes', () => {
+    it('destroy marks session destroyed and blocks further access', () => {
       const session = createSession();
       const view = makeView([makeNode({ id: 'a' })]);
       session.pushView(view);
@@ -64,9 +64,9 @@ describe('Session Ledger', () => {
 
       session.destroy();
 
-      expect(session.getSnapshot()).toBeNull();
-
-      session.pushView(view);
+      expect(session.isDestroyed).toBe(true);
+      expect(() => session.getSnapshot()).toThrow('Session has been destroyed');
+      expect(() => session.pushView(view)).toThrow('Session has been destroyed');
       expect(snapshotCallCount).toBe(0);
     });
 
@@ -999,15 +999,15 @@ describe('Session Ledger', () => {
       expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({ value: 'nested' });
     });
 
-    it('updateState and recordIntent ignore calls after destroy', () => {
+    it('updateState and recordIntent throw after destroy', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.destroy();
 
-      session.updateState('a', { value: 'nope' });
-      session.recordIntent({ nodeId: 'a', type: 'value-change', payload: { value: 'nope' } });
-
-      expect(session.getEventLog()).toHaveLength(0);
+      expect(() => session.updateState('a', { value: 'nope' })).toThrow('Session has been destroyed');
+      expect(() =>
+        session.recordIntent({ nodeId: 'a', type: 'value-change', payload: { value: 'nope' } })
+      ).toThrow('Session has been destroyed');
     });
   });
 });
