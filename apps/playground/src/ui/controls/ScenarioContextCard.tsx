@@ -35,10 +35,10 @@ export function ScenarioContextCard({
     <div
       style={{
         padding: space.xl,
-        background: playgroundTheme.gradient.panel,
+        background: `linear-gradient(160deg, ${playgroundTheme.color.surface} 0%, rgba(247, 245, 255, 0.96) 60%, rgba(240, 252, 249, 0.95) 100%)`,
         borderRadius: radius.lg,
-        border: `1px solid ${playgroundTheme.color.border}`,
-        boxShadow: playgroundTheme.shadow.card,
+        border: `1px solid ${playgroundTheme.color.panelBorder}`,
+        boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
         display: 'grid',
         gap: space.lg,
       }}

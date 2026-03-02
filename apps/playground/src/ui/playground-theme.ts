@@ -8,6 +8,8 @@ export const playgroundTheme = {
     surfaceMuted: '#eef1f7',
     panel: 'linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(252, 250, 255, 0.95))',
     panelBorder: 'rgba(71, 85, 105, 0.24)',
+    borderGlow: 'rgba(79, 70, 229, 0.22)',
+    borderGlowAlt: 'rgba(13, 148, 136, 0.2)',
     text: '#13111f',
     muted: '#1f2937',
     soft: '#334155',
@@ -31,11 +33,11 @@ export const playgroundTheme = {
   },
   gradient: {
     page:
-      'radial-gradient(circle at 10% 8%, rgba(79, 70, 229, 0.06), transparent 45%), radial-gradient(circle at 88% 12%, rgba(13, 148, 136, 0.06), transparent 42%), linear-gradient(155deg, #f6f7fb 0%, #f6f8fb 46%, #f9fcff 100%)',
+      'radial-gradient(circle at 10% 8%, rgba(79, 70, 229, 0.11), transparent 45%), radial-gradient(circle at 88% 12%, rgba(13, 148, 136, 0.1), transparent 42%), linear-gradient(155deg, #f6f7fb 0%, #f6f8fb 46%, #f9fcff 100%)',
     accent:
       'linear-gradient(132deg, #4f46e5 0%, #6366f1 52%, #0d9488 100%)',
     glow:
-      'linear-gradient(132deg, rgba(79, 70, 229, 0.09), rgba(13, 148, 136, 0.08))',
+      'linear-gradient(132deg, rgba(79, 70, 229, 0.12), rgba(13, 148, 136, 0.1))',
   },
   type: {
     display: '"Syne", "Montserrat", sans-serif',
