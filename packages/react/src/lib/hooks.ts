@@ -1,6 +1,6 @@
 import { useContext, useCallback, useRef, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, NodeValue } from '@continuum/contract';
+import type { ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
@@ -34,6 +34,27 @@ function shallowNodeValueEqual(
   );
 }
 
+function shallowViewportEqual(
+  left: ViewportState | undefined,
+  right: ViewportState | undefined
+): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return (
+    left.scrollX === right.scrollX &&
+    left.scrollY === right.scrollY &&
+    left.zoom === right.zoom &&
+    left.offsetX === right.offsetX &&
+    left.offsetY === right.offsetY &&
+    left.isExpanded === right.isExpanded &&
+    left.isFocused === right.isFocused
+  );
+}
+
 export function useContinuumSession(): Session {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -47,17 +68,22 @@ export function useContinuumSession(): Session {
 export function useContinuumState(
   nodeId: string
 ): [NodeValue | undefined, (value: NodeValue) => void] {
-  const session = useContinuumSession();
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumState must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session, store } = ctx;
   const valueCacheRef = useRef<NodeValue | undefined>(undefined);
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => session.onSnapshot(onStoreChange),
-    [session]
+    (onStoreChange: () => void) => store.subscribeNode(nodeId, onStoreChange),
+    [store, nodeId]
   );
 
   const getSnapshot = useCallback(() => {
-    const snap = session.getSnapshot();
-    const nextValue = snap?.data.values?.[nodeId] as NodeValue | undefined;
+    const nextValue = store.getNodeValue(nodeId);
     const cachedValue = valueCacheRef.current;
 
     if (shallowNodeValueEqual(cachedValue, nextValue)) {
@@ -66,7 +92,7 @@ export function useContinuumState(
 
     valueCacheRef.current = nextValue;
     return nextValue;
-  }, [session, nodeId]);
+  }, [store, nodeId]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
@@ -81,7 +107,13 @@ export function useContinuumState(
 }
 
 export function useContinuumSnapshot(): ContinuitySnapshot | null {
-  const session = useContinuumSession();
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumSnapshot must be used within a <ContinuumProvider>'
+    );
+  }
+  const { store } = ctx;
   const snapshotCacheRef = useRef<{
     view: ContinuitySnapshot['view'] | null;
     data: ContinuitySnapshot['data'] | null;
@@ -93,12 +125,12 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
   });
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => session.onSnapshot(() => onStoreChange()),
-    [session]
+    (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
+    [store]
   );
 
   const getSnapshot = useCallback(() => {
-    const nextSnapshot = session.getSnapshot();
+    const nextSnapshot = store.getSnapshot();
     const cache = snapshotCacheRef.current;
 
     if (!nextSnapshot) {
@@ -120,13 +152,57 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
     cache.data = nextSnapshot.data;
     cache.snapshot = nextSnapshot;
     return nextSnapshot;
-  }, [session]);
+  }, [store]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+export function useContinuumViewport(
+  nodeId: string
+): [ViewportState | undefined, (state: ViewportState) => void] {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumViewport must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session, store } = ctx;
+  const viewportCacheRef = useRef<ViewportState | undefined>(undefined);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribeNode(nodeId, onStoreChange),
+    [store, nodeId]
+  );
+
+  const getSnapshot = useCallback(() => {
+    const nextValue = store.getNodeViewport(nodeId);
+    const cachedValue = viewportCacheRef.current;
+    if (shallowViewportEqual(cachedValue, nextValue)) {
+      return cachedValue;
+    }
+    viewportCacheRef.current = nextValue;
+    return nextValue;
+  }, [store, nodeId]);
+
+  const viewport = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const setViewport = useCallback(
+    (next: ViewportState) => {
+      session.updateViewportState(nodeId, next);
+    },
+    [session, nodeId]
+  );
+
+  return [viewport, setViewport];
+}
+
 export function useContinuumDiagnostics() {
-  const session = useContinuumSession();
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumDiagnostics must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session, store } = ctx;
   const diagnosticsCacheRef = useRef<{
     issues: ReturnType<Session['getIssues']>;
     diffs: ReturnType<Session['getDiffs']>;
@@ -161,15 +237,8 @@ export function useContinuumDiagnostics() {
   );
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      const unsub1 = session.onSnapshot(() => onStoreChange());
-      const unsub2 = session.onIssues(() => onStoreChange());
-      return () => {
-        unsub1();
-        unsub2();
-      };
-    },
-    [session]
+    (onStoreChange: () => void) => store.subscribeDiagnostics(onStoreChange),
+    [store]
   );
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
