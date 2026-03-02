@@ -40,6 +40,36 @@ describe('createManualCheckpoint', () => {
     expect(internal.checkpoints).toHaveLength(1);
     expect(internal.checkpoints[0].checkpointId).toBe(cp.checkpointId);
   });
+
+  it('preserves undefined values in checkpoint snapshots', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: undefined, isDirty: true } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+
+    const cp = createManualCheckpoint(internal);
+
+    expect(cp.snapshot.data.values.a).toHaveProperty('value');
+    expect(cp.snapshot.data.values.a.value).toBeUndefined();
+    expect(cp.snapshot.data.values.a.isDirty).toBe(true);
+  });
+
+  it('preserves Date values in checkpoint snapshots', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    const createdAt = new Date('2026-03-01T00:00:00.000Z');
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: createdAt } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+
+    const cp = createManualCheckpoint(internal);
+
+    expect(cp.snapshot.data.values.a.value).toBeInstanceOf(Date);
+    expect(cp.snapshot.data.values.a.value).toEqual(createdAt);
+  });
 });
 
 describe('restoreFromCheckpoint', () => {
@@ -94,6 +124,26 @@ describe('restoreFromCheckpoint', () => {
 
     expect(cp.snapshot.data.values['a']).toEqual({ value: 'hello' });
     expect(cp.snapshot.view.viewId).toBe('s1');
+  });
+
+  it('preserves Date values when restoring from checkpoint', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    const createdAt = new Date('2026-03-01T00:00:00.000Z');
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: createdAt } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+    const cp = createManualCheckpoint(internal);
+
+    internal.currentData = {
+      values: { a: { value: 'changed' } },
+      lineage: { timestamp: 2000, sessionId: 's' },
+    };
+    restoreFromCheckpoint(internal, cp);
+
+    expect(internal.currentData?.values.a.value).toBeInstanceOf(Date);
+    expect(internal.currentData?.values.a.value).toEqual(createdAt);
   });
 });
 
