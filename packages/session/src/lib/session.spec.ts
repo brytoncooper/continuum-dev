@@ -992,11 +992,11 @@ describe('Session Ledger', () => {
 
       const session = createSession();
       session.pushView(makeView([root], 's1', '1'));
-      session.updateState('deep', { value: 'nested' });
+      session.updateState('root/mid/deep', { value: 'nested' });
 
       session.pushView(makeView([root], 's2', '2'));
 
-      expect(session.getSnapshot()!.data.values['deep']).toEqual({ value: 'nested' });
+      expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({ value: 'nested' });
     });
 
     it('updateState and recordIntent ignore calls after destroy', () => {

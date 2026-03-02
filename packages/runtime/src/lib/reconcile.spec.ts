@@ -140,14 +140,14 @@ describe('reconcile', () => {
         }),
       ]);
       const priorData = makeData({
-        'nested-input': { value: 'carried' },
+        'section/nested-input': { value: 'carried' },
       });
 
       const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
-      expect(result.reconciledState.values['nested-input']).toEqual({ value: 'carried' });
+      expect(result.reconciledState.values['section/nested-input']).toEqual({ value: 'carried' });
     });
 
     it('still emits NO_PRIOR_VIEW warning alongside UNVALIDATED_CARRY when allowBlindCarry is true', () => {
@@ -759,11 +759,11 @@ describe('reconcile', () => {
 
       const priorView = makeView([root]);
       const newView = makeView([root]);
-      const priorData = makeData({ deep: { value: 'buried' } });
+      const priorData = makeData({ 'root/mid/deep': { value: 'buried' } });
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.values['deep']).toEqual({ value: 'buried' });
+      expect(result.reconciledState.values['root/mid/deep']).toEqual({ value: 'buried' });
     });
 
     it('detects removal of a deeply nested node', () => {
@@ -772,11 +772,11 @@ describe('reconcile', () => {
 
       const priorView = makeView([root]);
       const newView = makeView([makeNode({ id: 'root', type: 'group', children: [] })]);
-      const priorData = makeData({ deep: { value: 'gone' } });
+      const priorData = makeData({ 'root/deep': { value: 'gone' } });
 
       const result = reconcile(newView, priorView, priorData);
 
-      const removedDiff = result.diffs.find((d) => d.nodeId === 'deep');
+      const removedDiff = result.diffs.find((d) => d.nodeId === 'root/deep');
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
     });
@@ -789,11 +789,11 @@ describe('reconcile', () => {
 
       const priorView = makeView([rootOld]);
       const newView = makeView([rootNew]);
-      const priorData = makeData({ 'old-deep': { value: 'nested-carry' } });
+      const priorData = makeData({ 'root/old-deep': { value: 'nested-carry' } });
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.values['new-deep']).toEqual({ value: 'nested-carry' });
+      expect(result.reconciledState.values['root/new-deep']).toEqual({ value: 'nested-carry' });
     });
   });
 
@@ -963,7 +963,7 @@ describe('reconcile', () => {
       });
     });
 
-    it('detects duplicate IDs in nested nodes', () => {
+    it('does not flag duplicate IDs across parent scope boundaries', () => {
       const view = makeView([
         makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
         makeNode({
@@ -977,16 +977,11 @@ describe('reconcile', () => {
 
       const result = reconcile(view, null, null);
 
-      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_ID
-      expect(result.issues[1]).toEqual({
-        severity: 'error',
-        nodeId: 'duplicate',
-        message: 'Duplicate node id: duplicate',
-        code: 'DUPLICATE_NODE_ID',
-      });
+      expect(result.issues).toHaveLength(1);
+      expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
     });
 
-    it('detects duplicate keys in nested nodes', () => {
+    it('does not flag duplicate keys across parent scope boundaries', () => {
       const view = makeView([
         makeNode({ id: 'a', key: 'dup-key', type: 'field', dataType: 'string' }),
         makeNode({
@@ -1000,13 +995,8 @@ describe('reconcile', () => {
 
       const result = reconcile(view, null, null);
 
-      expect(result.issues).toHaveLength(2); // NO_PRIOR_DATA + DUPLICATE_NODE_KEY
-      expect(result.issues[1]).toEqual({
-        severity: 'warning',
-        nodeId: 'b',
-        message: 'Duplicate node key: dup-key',
-        code: 'DUPLICATE_NODE_KEY',
-      });
+      expect(result.issues).toHaveLength(1);
+      expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
     });
 
     it('preserves last-write-wins behavior for duplicate IDs', () => {

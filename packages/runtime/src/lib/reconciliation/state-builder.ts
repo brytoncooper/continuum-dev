@@ -21,6 +21,7 @@ import type {
   ReconciliationResolution,
 } from '../types.js';
 import { addedDiff, addedResolution } from './differ.js';
+import { createInitialCollectionValue } from './collection-resolver.js';
 
 export function buildFreshSessionResult(
   newView: ViewDefinition,
@@ -61,17 +62,21 @@ function collectNodesAsFreshlyAdded(
   nodes: ViewNode[],
   values: Record<string, NodeValue>,
   diffs: StateDiff[],
-  resolutions: ReconciliationResolution[]
+  resolutions: ReconciliationResolution[],
+  parentPath = ''
 ): void {
   for (const node of nodes) {
-    if ('defaultValue' in node && node.defaultValue !== undefined) {
-      values[node.id] = { value: node.defaultValue };
+    const nodeId = buildNodePath(parentPath, node.id);
+    if (node.type === 'collection') {
+      values[nodeId] = createInitialCollectionValue(node);
+    } else if ('defaultValue' in node && node.defaultValue !== undefined) {
+      values[nodeId] = { value: node.defaultValue };
     }
-    diffs.push(addedDiff(node.id));
-    resolutions.push(addedResolution(node.id, node.type));
+    diffs.push(addedDiff(nodeId));
+    resolutions.push(addedResolution(nodeId, node.type));
     const children = getChildNodes(node);
     if (children.length > 0) {
-      collectNodesAsFreshlyAdded(children, values, diffs, resolutions);
+      collectNodesAsFreshlyAdded(children, values, diffs, resolutions, nodeId);
     }
   }
 }
@@ -79,17 +84,18 @@ function collectNodesAsFreshlyAdded(
 function collectNodeIds(nodes: ViewNode[]): Set<string> {
   const ids = new Set<string>();
 
-  function walk(items: ViewNode[]): void {
+  function walk(items: ViewNode[], parentPath: string): void {
     for (const node of items) {
-      ids.add(node.id);
+      const nodeId = buildNodePath(parentPath, node.id);
+      ids.add(nodeId);
       const children = getChildNodes(node);
       if (children.length > 0) {
-        walk(children);
+        walk(children, nodeId);
       }
     }
   }
 
-  walk(nodes);
+  walk(nodes, '');
   return ids;
 }
 
@@ -228,4 +234,11 @@ export function computeViewHash(view: ViewDefinition): string | undefined {
 
 export function generateSessionId(now: number): string {
   return `session_${now}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+function buildNodePath(parentPath: string, nodeId: string): string {
+  if (parentPath.length === 0) {
+    return nodeId;
+  }
+  return `${parentPath}/${nodeId}`;
 }

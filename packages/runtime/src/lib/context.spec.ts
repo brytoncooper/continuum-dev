@@ -47,8 +47,8 @@ describe('buildReconciliationContext', () => {
     ]);
     const ctx = buildReconciliationContext(newView, null);
     expect(ctx.newById.has('group')).toBe(true);
-    expect(ctx.newById.has('child-1')).toBe(true);
-    expect(ctx.newById.has('child-2')).toBe(true);
+    expect(ctx.newById.has('group/child-1')).toBe(true);
+    expect(ctx.newById.has('group/child-2')).toBe(true);
   });
 });
 

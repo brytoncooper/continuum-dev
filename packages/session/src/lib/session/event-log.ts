@@ -13,16 +13,17 @@ import { validateNodeValue } from '@continuum/runtime';
 
 function collectNodesById(nodes: ViewNode[]): Map<string, ViewNode> {
   const byId = new Map<string, ViewNode>();
-  const walk = (items: ViewNode[]) => {
+  const walk = (items: ViewNode[], parentPath: string) => {
     for (const node of items) {
-      byId.set(node.id, node);
+      const nodeId = parentPath.length > 0 ? `${parentPath}/${node.id}` : node.id;
+      byId.set(nodeId, node);
       const children = getChildNodes(node);
       if (children.length > 0) {
-        walk(children);
+        walk(children, nodeId);
       }
     }
   };
-  walk(nodes);
+  walk(nodes, '');
   return byId;
 }
 
