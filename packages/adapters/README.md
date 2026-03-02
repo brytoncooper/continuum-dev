@@ -2,7 +2,7 @@
 
 Protocol adapter layer for the Continuum SDK.
 
-Transforms external UI schema formats into Continuum's `SchemaSnapshot`. Ships with a built-in adapter for Google's A2UI (Agent-to-User Interface) protocol.
+Transforms external UI schema formats into Continuum's `ViewDefinition` and `NodeValue` shapes. Ships with a built-in adapter for Google's A2UI (Agent-to-User Interface) protocol.
 
 ## Installation
 
@@ -13,31 +13,31 @@ npm install @continuum/adapters
 ## ProtocolAdapter Interface
 
 ```typescript
-interface ProtocolAdapter<TExternalSchema, TExternalData = unknown> {
+interface ProtocolAdapter<TExternalView, TExternalData = unknown> {
   name: string;
-  toSchema(external: TExternalSchema): SchemaSnapshot;
-  fromSchema?(snapshot: SchemaSnapshot): TExternalSchema;
-  toState?(externalData: TExternalData): Record<string, ComponentState>;
-  fromState?(state: Record<string, ComponentState>): TExternalData;
+  toView(external: TExternalView): ViewDefinition;
+  fromView?(snapshot: ViewDefinition): TExternalView;
+  toState?(externalData: TExternalData): Record<string, NodeValue>;
+  fromState?(state: Record<string, NodeValue>): TExternalData;
 }
 ```
 
 | Method | Required | Description |
 |---|---|---|
-| `name` | yes | Identifier for this adapter (e.g. `'a2ui'`) |
-| `toSchema` | yes | Convert external schema format to `SchemaSnapshot` |
-| `fromSchema` | no | Convert `SchemaSnapshot` back to external format |
-| `toState` | no | Convert external data to Continuum `ComponentState` records |
-| `fromState` | no | Convert Continuum state back to external data format |
+| `name` | yes | Identifier for this adapter (for example, `a2ui`) |
+| `toView` | yes | Convert external view format into a `ViewDefinition` |
+| `fromView` | no | Convert a `ViewDefinition` back to external format |
+| `toState` | no | Convert external data payload into Continuum `NodeValue` map |
+| `fromState` | no | Convert Continuum state map back to external data format |
 
 ## Built-in: A2UI Adapter
 
-The `a2uiAdapter` transforms Google A2UI JSON into Continuum schemas.
+`a2uiAdapter` transforms Google A2UI JSON into Continuum nodes.
 
 ```typescript
 import { a2uiAdapter } from '@continuum/adapters';
 
-const schema = a2uiAdapter.toSchema({
+const view = a2uiAdapter.toView({
   id: 'my-form',
   version: '1.0',
   fields: [
@@ -47,23 +47,23 @@ const schema = a2uiAdapter.toSchema({
 });
 
 // Use with a session
-session.pushSchema(schema);
+session.pushView(view);
 ```
 
 ### Type Mapping
 
-| A2UI Type | Continuum Type | State Shape |
+| A2UI Type | Continuum Node Type | `dataType` |
 |---|---|---|
-| `TextInput` | `input` | `{ value: string }` |
-| `TextArea` | `textarea` | `{ value: string }` |
-| `Dropdown` | `select` | `{ selectedIds: string[] }` |
-| `SelectionInput` | `select` | `{ selectedIds: string[] }` |
-| `Switch` | `toggle` | `{ checked: boolean }` |
-| `Toggle` | `toggle` | `{ checked: boolean }` |
-| `DateInput` | `date` | `{ value: string }` |
-| `Section` | `container` | children only |
-| `Card` | `container` | children only |
-| _(unknown)_ | `default` | `{ value: string }` |
+| `TextInput` | `field` | `string` |
+| `TextArea` | `field` | `string` |
+| `Dropdown` | `field` | `string` |
+| `SelectionInput` | `field` | `string` |
+| `Switch` | `field` | `boolean` |
+| `Toggle` | `field` | `boolean` |
+| `DateInput` | `field` | `string` |
+| `Section` | `group` | n/a |
+| `Card` | `group` | n/a |
+| unknown | `field` | `string` |
 
 ### A2UI Types
 
@@ -76,11 +76,11 @@ interface A2UIForm {
 }
 
 interface A2UIField {
-  name?: string;                    // becomes the component id (auto-generated if missing)
-  type: A2UIFieldType | string;    // one of the supported A2UI types
-  label?: string;                  // stored as ComponentDefinition.path
-  options?: A2UIOption[];          // for dropdowns/selection inputs
-  fields?: A2UIField[];           // nested fields (for Section/Card)
+  name?: string;
+  type: A2UIFieldType | string;
+  label?: string;
+  options?: A2UIOption[];
+  fields?: A2UIField[];
 }
 
 interface A2UIOption {
@@ -89,8 +89,15 @@ interface A2UIOption {
 }
 
 type A2UIFieldType =
-  | 'TextInput' | 'TextArea' | 'Dropdown' | 'SelectionInput'
-  | 'Switch' | 'Toggle' | 'DateInput' | 'Section' | 'Card';
+  | 'TextInput'
+  | 'TextArea'
+  | 'Dropdown'
+  | 'SelectionInput'
+  | 'Switch'
+  | 'Toggle'
+  | 'DateInput'
+  | 'Section'
+  | 'Card';
 ```
 
 ### Round-trip
@@ -98,8 +105,8 @@ type A2UIFieldType =
 ```typescript
 const form: A2UIForm = { fields: [{ name: 'email', type: 'TextInput' }] };
 
-const schema = a2uiAdapter.toSchema(form);
-const backToForm = a2uiAdapter.fromSchema(schema);
+const view = a2uiAdapter.toView(form);
+const backToForm = a2uiAdapter.fromView(view);
 
 const state = a2uiAdapter.toState({ email: 'alice@example.com', agree: true });
 const backToData = a2uiAdapter.fromState(state);
@@ -107,25 +114,30 @@ const backToData = a2uiAdapter.fromState(state);
 
 ## Utility Exports
 
-### `stateForType(type)`
+### `createDefaultNodeValue(dataType)`
 
-Returns a default empty `ComponentState` for a given Continuum component type.
+Returns a default `NodeValue` value for the provided data type.
 
 ```typescript
-stateForType('toggle')  // { checked: false }
-stateForType('select')  // { selectedIds: [] }
-stateForType('input')   // { value: '' }
+createDefaultNodeValue('boolean'); // { value: false }
+createDefaultNodeValue('number'); // { value: 0 }
+createDefaultNodeValue('string'); // { value: '' }
+createDefaultNodeValue('any-unknown'); // { value: '' }
 ```
 
-### `resetCounter()`
+### `valueForDataType`
 
-Resets the internal auto-ID counter used when A2UI fields lack a `name`. Primarily for testing.
+Alias for `createDefaultNodeValue`.
+
+```typescript
+const defaultValue = valueForDataType('number');
+```
 
 ## Writing a Custom Adapter
 
 ```typescript
 import type { ProtocolAdapter } from '@continuum/adapters';
-import type { SchemaSnapshot, ComponentState } from '@continuum/contract';
+import type { ViewDefinition, NodeValue } from '@continuum/contract';
 
 interface MyFormat {
   widgets: { uid: string; kind: string }[];
@@ -134,14 +146,15 @@ interface MyFormat {
 export const myAdapter: ProtocolAdapter<MyFormat> = {
   name: 'my-protocol',
 
-  toSchema(external: MyFormat): SchemaSnapshot {
+  toView(external: MyFormat): ViewDefinition {
     return {
-      schemaId: 'my-app',
+      viewId: 'my-app',
       version: '1.0',
-      components: external.widgets.map((w) => ({
+      nodes: external.widgets.map((w) => ({
         id: w.uid,
-        type: w.kind,
+        type: 'field',
         key: w.uid,
+        dataType: 'string',
       })),
     };
   },

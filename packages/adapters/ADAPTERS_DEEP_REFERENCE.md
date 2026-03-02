@@ -10,7 +10,7 @@ Current implementation scope:
 
 - Defines a generic adapter interface (`ProtocolAdapter`)
 - Ships one production adapter: `a2uiAdapter` for Google's A2UI-style forms
-- Provides value conversion helpers used by adapters (`createDefaultValueForNodeType`, `valueForType`)
+- Provides value conversion helpers used by adapters (`createDefaultNodeValue`, `valueForDataType`)
 - Contains behavioral tests for mapping correctness and hardening edge cases
 
 ## Package File Inventory
@@ -43,12 +43,12 @@ What it covers:
 - `ProtocolAdapter` interface shape
 - A2UI adapter usage examples
 - A2UI-to-Continuum node mapping table
-- Utility export usage (`valueForType`, `resetCounter` mention)
+- Utility export usage (`valueForDataType`; no `resetCounter` export exists)
 - Custom adapter authoring example
 
 Notes:
 
-- README mentions `resetCounter()`, but there is no `resetCounter` export in current code. This appears to be documentation drift.
+- README confirms there is no `resetCounter()` export in current code.
 - Core mapping examples are aligned with actual implementation.
 
 ---
@@ -224,23 +224,23 @@ This file contains all conversion logic between A2UI and Continuum.
 
 ## Constants and Lookup Structures
 
-### `TYPE_MAP: Record<string, { type: string, dataType?: string }>`
+### `DATA_TYPE_MAP: Record<string, 'string' | 'number' | 'boolean'>`
 
 A2UI field type to Continuum node type mapping:
 
-- `TextInput -> field` (dataType: `text`)
-- `TextArea -> field` (dataType: `textarea`)
-- `Dropdown -> field` (dataType: `select`)
-- `SelectionInput -> field` (dataType: `select`)
-- `Switch -> field` (dataType: `toggle`)
-- `Toggle -> field` (dataType: `toggle`)
-- `DateInput -> field` (dataType: `date`)
+- `TextInput -> field` (dataType: `string`)
+- `TextArea -> field` (dataType: `string`)
+- `Dropdown -> field` (dataType: `string`)
+- `SelectionInput -> field` (dataType: `string`)
+- `Switch -> field` (dataType: `boolean`)
+- `Toggle -> field` (dataType: `boolean`)
+- `DateInput -> field` (dataType: `string`)
 - `Section -> group`
 - `Card -> group`
 
-Fallback for unknown keys: `field` (default dataType).
+Fallback for unknown keys: `field` (default dataType: `string`).
 
-### `GROUP_TYPES: Set<string>`
+### `CONTAINER_TYPES: Set<string>`
 
 Group-recognized A2UI types:
 
@@ -263,10 +263,10 @@ Algorithm:
 2. Resolve node `id`:
    - Use `field.name` when present.
    - Otherwise generate deterministic id: ``${rawType.toLowerCase()}_${nextGeneratedId()}``.
-3. Resolve Continuum `type` and optional `dataType` via `TYPE_MAP` (fallback `'field'`).
+3. Resolve Continuum `type` and optional `dataType` via `DATA_TYPE_MAP` (fallback `field` with `dataType: 'string'`).
 4. Initialize base `ViewNode` with `{ id, type, key: id }`.
 5. If `field.label` exists, set `def.label`.
-6. If `field.options` exists, set `def.props = { options: field.options }`.
+6. If `field.options` exists, map options into `node.options`.
 7. If type is group and `field.fields` is an array, recursively map children.
 
 Behavioral details:
@@ -283,13 +283,11 @@ Purpose:
 
 Internal reverse mapping (using `type` and `dataType`):
 
-- `field` (dataType: `text`) -> `TextInput`
-- `field` (dataType: `textarea`) -> `TextArea`
-- `field` (dataType: `select`) -> `Dropdown`
-- `field` (dataType: `toggle`) -> `Switch`
-- `field` (dataType: `date`) -> `DateInput`
-- `field` (no dataType) -> `TextInput`
+- `field` (dataType: `string`) -> `TextInput`
+- `field` (dataType: `number`) -> `TextInput`
+- `field` (dataType: `boolean`) -> `Switch`
 - `group` -> `Section`
+- `collection` -> `Section`
 - unknown type fallback -> `TextInput`
 
 Algorithm:
@@ -297,19 +295,18 @@ Algorithm:
 1. Build `field` with:
    - `name = def.id`
    - `type = reverseMap(def.type, def.dataType) ?? 'TextInput'`
-   - `label = def.label ?? def.path ?? def.key ?? def.id`
+   - `label = def.label ?? def.key ?? def.id`
 2. Resolve options in priority order:
-   - `def.props.options` if array
-   - else `def.stateShape` if array
+   - `def.options` if array
 3. Recursively map `def.children` to `field.fields` when present/non-empty.
 
 Behavioral details:
 
 - Label fallback ensures round-trip still emits readable label.
-- Select options can be reconstructed from either props or view metadata.
+- Select options are reconstructed from node `options` when present.
 - Unknown node types lose original type identity and normalize to `TextInput`.
 
-### `createDefaultValueForNodeType(type): NodeValue<any>`
+### `createDefaultNodeValue(dataType: string): NodeValue`
 
 Purpose:
 
@@ -317,12 +314,13 @@ Purpose:
 
 Returns:
 
-- `group -> { value: undefined }`
-- any other type (field) -> `{ value: '' }`
+- `boolean -> { value: false }`
+- `number -> { value: 0 }`
+- all other values -> `{ value: '' }`
 
 Usage:
 
-- Exported for utility use and alias-exported as `valueForType`.
+- Exported for utility use and alias-exported as `valueForDataType`.
 
 ## Exported Adapter Object
 
@@ -371,7 +369,7 @@ Return structure:
 Behavior contracts:
 
 - Preserves nested node tree via recursive child mapping.
-- Converts select options from view props/data metadata when present.
+- Converts options from node `options` metadata when present.
 
 ### `toState(externalData: Record<string, unknown>): Record<string, NodeValue<any>>`
 
@@ -381,14 +379,14 @@ Purpose:
 
 Per-key conversion rules:
 
-- boolean -> `{ value: boolean }`
-- array -> `{ value: string[] }` (stringifies each item)
-- everything else -> `{ value: string }` (`null`/`undefined` become empty string)
+- each key is wrapped as `{ value: rawValue }`
+- `null` and `undefined` are normalized to empty string `''`
+- arrays, objects, numbers, booleans, and strings are preserved
 
 Behavior contracts:
 
 - Mixed-type objects are supported in one pass.
-- Numeric and other primitive values normalize to string-valued node values.
+- Unknown shapes are preserved as `value` payload, including mixed arrays.
 
 ### `fromState(state: Record<string, NodeValue<any>>): Record<string, unknown>`
 
@@ -408,8 +406,8 @@ Behavior contracts:
 
 ## Named Exports at End of File
 
-- `createDefaultValueForNodeType`
-- `valueForType` (alias of `createDefaultValueForNodeType`)
+- `createDefaultNodeValue`
+- `valueForDataType` (alias of `createDefaultNodeValue`)
 
 ---
 
@@ -446,8 +444,8 @@ Checks include:
 - `toView` handling when `fields` is runtime-invalid
 - Non-string field type behavior during generated ID/type fallback
 - `fromState` null handling
-- `toState` string normalization for mixed arrays
-- Explicit default value for `group`
+- `toState` preserves mixed arrays and mixed values
+- Explicit default value for `number`
 - Unknown view node type fallback on reverse mapping
 
 What this establishes:
@@ -466,12 +464,12 @@ All methods/functions defined in this package, with where they live:
 - `fromState` (`ProtocolAdapter` interface, optional) - `src/lib/adapter.ts`
 - `convertA2UIFieldToViewNode` - `src/lib/a2ui/adapter.ts`
 - `convertViewNodeToA2UIField` - `src/lib/a2ui/adapter.ts`
-- `createDefaultValueForNodeType` - `src/lib/a2ui/adapter.ts`
+- `createDefaultNodeValue` - `src/lib/a2ui/adapter.ts`
 - `a2uiAdapter.toView` - `src/lib/a2ui/adapter.ts`
 - `a2uiAdapter.fromView` - `src/lib/a2ui/adapter.ts`
 - `a2uiAdapter.toState` - `src/lib/a2ui/adapter.ts`
 - `a2uiAdapter.fromState` - `src/lib/a2ui/adapter.ts`
-- `valueForType` (alias export) - `src/lib/a2ui/adapter.ts`
+- `valueForDataType` (alias export) - `src/lib/a2ui/adapter.ts`
 
 ---
 
