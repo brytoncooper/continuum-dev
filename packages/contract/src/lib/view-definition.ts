@@ -20,6 +20,11 @@ export interface BaseNode {
   migrations?: MigrationRule[];
 }
 
+export interface FieldOption {
+  value: string;
+  label: string;
+}
+
 export interface FieldNode extends BaseNode {
   type: 'field';
   dataType: 'string' | 'number' | 'boolean';
@@ -29,6 +34,7 @@ export interface FieldNode extends BaseNode {
   readOnly?: boolean;
   defaultValue?: unknown;
   constraints?: FieldConstraints;
+  options?: FieldOption[];
 }
 
 export interface GroupNode extends BaseNode {
