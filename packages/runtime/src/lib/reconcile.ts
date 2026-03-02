@@ -34,5 +34,7 @@ function reconcileViewTransition(
   const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
   const resolved = resolveAllNodes(ctx, priorValues, priorData, now, options);
   const removals = detectRemovedNodes(ctx, priorData, options, now);
-  return assembleReconciliationResult(resolved, removals, priorData, newView, now);
+  const result = assembleReconciliationResult(resolved, removals, priorData, newView, now);
+  result.issues.unshift(...ctx.issues);
+  return result;
 }

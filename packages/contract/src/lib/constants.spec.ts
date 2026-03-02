@@ -13,6 +13,8 @@ describe('contract constants', () => {
       'UNVALIDATED_CARRY',
       'VALIDATION_FAILED',
       'UNKNOWN_NODE',
+      'DUPLICATE_NODE_ID',
+      'DUPLICATE_NODE_KEY',
     ]);
     expect(Object.values(DATA_RESOLUTIONS)).toEqual(['carried', 'migrated', 'detached', 'added', 'restored']);
     expect(Object.values(VIEW_DIFFS)).toEqual(['added', 'removed', 'migrated', 'type-changed', 'restored']);
