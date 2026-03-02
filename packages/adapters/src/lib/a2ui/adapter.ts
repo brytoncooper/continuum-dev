@@ -59,7 +59,11 @@ function convertA2UIFieldToViewNode(
   }
 
   if (field.options) {
-    (node as FieldNode & { options?: { id: string; label: string }[] }).options = field.options;
+    node.options = field.options.map((o) => ({
+      value: o.id,
+      label: o.label,
+      id: o.id,
+    })) as FieldNode['options'];
   }
 
   return node;
@@ -106,8 +110,11 @@ function convertViewNodeToA2UIField(node: ViewNode): A2UIField {
 
   const field: A2UIField = { name: node.id, type, label };
 
-  if ('options' in node && Array.isArray((node as unknown as { options: unknown }).options)) {
-    field.options = (node as unknown as { options: { id: string; label: string }[] }).options;
+  if (node.type === 'field' && node.options) {
+    field.options = node.options.map((o) => {
+      const legacyId = (o as unknown as { id?: string }).id;
+      return { id: legacyId ?? o.value, label: o.label };
+    });
   }
 
   const children = getChildNodes(node);
