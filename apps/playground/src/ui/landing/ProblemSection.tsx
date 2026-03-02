@@ -80,7 +80,7 @@ export function ProblemSection() {
             lineHeight: 1.1,
           }}
         >
-          Dynamic views break data continuity
+          AI-generated views silently break trust
         </h2>
 
         <div
