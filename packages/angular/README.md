@@ -66,7 +66,11 @@ Configures Continuum in the application injector.
 | `components` | `ContinuumNodeMap` | required | Map of component type strings to Angular components |
 | `persist` | `'sessionStorage' \| 'localStorage' \| false` | `false` | Where to persist session data |
 | `storageKey` | `string` | `'continuum_session'` | Key used in storage |
+| `maxPersistBytes` | `number` | — | Optional max serialized payload size in bytes before writes are skipped |
+| `onPersistError` | `(error: ContinuumPersistError) => void` | — | Called for skipped writes (`size_limit`) and storage failures (`storage_error`) |
 | `sessionOptions` | `SessionOptions` | — | Optional session configuration |
+
+When `maxPersistBytes` is set and a snapshot exceeds the limit, persistence is skipped for that snapshot and `onPersistError` is called. If no callback is provided, a warning is logged.
 
 ### Injection APIs
 

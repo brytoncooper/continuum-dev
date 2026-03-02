@@ -1,8 +1,7 @@
 import { Provider, signal } from '@angular/core';
-import { createSession, deserialize } from '@continuum/session';
-import type { Session } from '@continuum/session';
+import { hydrateOrCreate } from '@continuum/session';
 import type { ContinuitySnapshot } from '@continuum/contract';
-import type { ContinuumProviderOptions } from './types.js';
+import type { ContinuumPersistError, ContinuumProviderOptions } from './types.js';
 import {
   CONTIUUM_NODE_MAP,
   CONTIUUM_SESSION,
@@ -12,56 +11,47 @@ import {
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
 
-function resolveStorage(
-  persist: ContinuumProviderOptions['persist']
-): Storage | null {
-  if (!persist) return null;
-  if (persist === 'sessionStorage') return globalThis.sessionStorage;
-  if (persist === 'localStorage') return globalThis.localStorage;
-  return null;
+function emitPersistError(
+  onPersistError: ((error: ContinuumPersistError) => void) | undefined,
+  error: ContinuumPersistError
+): void {
+  if (onPersistError) {
+    onPersistError(error);
+    return;
+  }
+  console.warn('Continuum persistence error', error);
 }
 
-function hydrateOrCreate(
-  storage: Storage | null,
-  key: string,
-  sessionOptions: ContinuumProviderOptions['sessionOptions']
-): { session: Session; wasHydrated: boolean } {
-  if (storage) {
-    const raw = storage.getItem(key);
-    if (raw) {
-      try {
-        return {
-          session: deserialize(JSON.parse(raw), sessionOptions),
-          wasHydrated: true,
-        };
-      } catch {
-        storage.removeItem(key);
-      }
-    }
-  }
-  return { session: createSession(sessionOptions), wasHydrated: false };
+function resolveStorage(
+  persist: ContinuumProviderOptions['persist']
+): Storage | undefined {
+  if (persist === 'sessionStorage') return globalThis.sessionStorage;
+  if (persist === 'localStorage') return globalThis.localStorage;
+  return undefined;
 }
 
 export function provideContinuum(options: ContinuumProviderOptions): Provider[] {
   const storage = resolveStorage(options.persist);
   const key = options.storageKey ?? DEFAULT_STORAGE_KEY;
-  const { session, wasHydrated } = hydrateOrCreate(
-    storage,
-    key,
-    options.sessionOptions
-  );
+  const wasHydrated = Boolean(storage?.getItem(key));
+  const session = hydrateOrCreate({
+    ...options.sessionOptions,
+    persistence: storage
+      ? {
+        storage,
+        key,
+        maxBytes: options.maxPersistBytes,
+        onError: options.onPersistError ?? ((error: ContinuumPersistError) => {
+          emitPersistError(undefined, error);
+        }),
+      }
+      : undefined,
+  });
 
   const snapshotSignal = signal<ContinuitySnapshot | null>(session.getSnapshot());
   session.onSnapshot(() => {
     snapshotSignal.set(session.getSnapshot());
   });
-
-  if (storage) {
-    session.onSnapshot(() => {
-      const serialized = session.serialize();
-      storage.setItem(key, JSON.stringify(serialized));
-    });
-  }
 
   return [
     { provide: CONTIUUM_SESSION, useValue: session },
