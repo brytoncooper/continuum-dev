@@ -120,6 +120,16 @@ Subscribes to the full `ContinuitySnapshot`. Re-renders on every snapshot change
 function useContinuumSnapshot(): ContinuitySnapshot | null;
 ```
 
+### `useContinuumViewport(nodeId)`
+
+Reads and writes per-node viewport context (scroll/zoom/offset/focus metadata).
+
+```typescript
+function useContinuumViewport(
+  nodeId: string
+): [ViewportState | undefined, (state: ViewportState) => void];
+```
+
 ### `useContinuumDiagnostics()`
 
 Subscribes to reconciliation diagnostics. Re-renders when issues, diffs, resolutions, or checkpoints change.
@@ -193,6 +203,7 @@ The React context. Exported for advanced use cases but not typically used direct
 ```typescript
 interface ContinuumContextValue {
   session: Session;
+  store: ContinuumStore;
   componentMap: ContinuumComponentMap;
   wasHydrated: boolean;
 }
