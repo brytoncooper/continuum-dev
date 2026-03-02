@@ -4,7 +4,7 @@ import type {
   NodeValue,
   ValueLineage,
 } from '@continuum/contract';
-import { getChildNodes, ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import { getChildNodes, ISSUE_CODES, ISSUE_SEVERITY, isInteractionType } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 import { buildSnapshotFromCurrentState, notifySnapshotAndIssueListeners } from './listeners.js';
@@ -32,6 +32,9 @@ export function recordIntent(
   partial: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>
 ): void {
   if (internal.destroyed || !internal.currentData || !internal.currentView) return;
+  if (!isInteractionType(partial.type)) {
+    throw new Error(`Invalid interaction type: ${String(partial.type)}`);
+  }
 
   const now = internal.clock();
   const id = generateId('int', internal.clock);

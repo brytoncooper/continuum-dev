@@ -51,6 +51,12 @@ export const INTERACTION_TYPES = {
 
 export type InteractionType = (typeof INTERACTION_TYPES)[keyof typeof INTERACTION_TYPES];
 
+const INTERACTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(INTERACTION_TYPES));
+
+export function isInteractionType(value: unknown): value is InteractionType {
+  return typeof value === 'string' && INTERACTION_TYPE_VALUES.has(value);
+}
+
 export const INTENT_STATUS = {
   PENDING: 'pending',
   VALIDATED: 'validated',

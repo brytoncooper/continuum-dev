@@ -1,11 +1,11 @@
 import type { ContinuitySnapshot } from './continuity-snapshot.js';
-import type { IntentStatus } from './constants.js';
+import type { IntentStatus, InteractionType } from './constants.js';
 
 export interface Interaction {
   interactionId: string;
   sessionId: string;
   nodeId: string;
-  type: string;
+  type: InteractionType;
   payload: unknown;
   timestamp: number;
   viewVersion: string;

@@ -18,7 +18,7 @@ describe('serializeSession', () => {
   it('includes all session data', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
-    internal.eventLog = [{ interactionId: 'i1', sessionId: 's', nodeId: 'a', type: 'x', payload: {}, timestamp: 1, viewVersion: '1.0' }];
+    internal.eventLog = [{ interactionId: 'i1', sessionId: 's', nodeId: 'a', type: 'value-change', payload: {}, timestamp: 1, viewVersion: '1.0' }];
 
     const serialized = serializeSession(internal) as Record<string, unknown>;
 
@@ -86,5 +86,22 @@ describe('deserializeToState', () => {
     };
 
     expect(() => deserializeToState(bad, () => 0)).toThrow('eventLog');
+  });
+
+  it('throws when eventLog contains an invalid interaction type', () => {
+    const bad = {
+      sessionId: 's',
+      currentView: null,
+      currentData: null,
+      priorView: null,
+      eventLog: [{ interactionId: 'i1', sessionId: 's', nodeId: 'a', type: 'x', payload: {}, timestamp: 1, viewVersion: '1.0' }],
+      pendingIntents: [],
+      checkpoints: [],
+      issues: [],
+      diffs: [],
+      resolutions: [],
+    };
+
+    expect(() => deserializeToState(bad, () => 0)).toThrow('eventLog[0].type');
   });
 });

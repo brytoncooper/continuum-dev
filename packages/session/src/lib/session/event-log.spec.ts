@@ -67,4 +67,15 @@ describe('recordIntent', () => {
 
     expect(internal.eventLog).toHaveLength(0);
   });
+
+  it('throws when interaction type is invalid', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    setupWithView(internal);
+
+    expect(() => recordIntent(internal, {
+      nodeId: 'a',
+      type: 'invalid-type' as never,
+      payload: { value: 'hello' },
+    })).toThrow('Invalid interaction type');
+  });
 });
