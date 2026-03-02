@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ViewDefinition } from '@continuum/contract';
+import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import {
   ContinuumProvider,
   ContinuumRenderer,
@@ -27,21 +28,49 @@ import { MainStage } from './ui/layout/MainStage';
 
 type ProtocolMode = 'native' | 'a2ui';
 
+const defaultScenarioId = scenarios[0]?.id ?? '';
+
+const sessionOptions: SessionOptions = {
+  reconciliation: {
+    strategyRegistry: {
+      'email-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
+      'date-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
+    },
+  },
+  validateOnUpdate: true,
+};
+
 interface PlaygroundContentProps {
   onBackToIntro: () => void;
+  routeScenarioId: string;
+  onScenarioRouteChange: (scenarioId: string) => void;
 }
 
-function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
+function PlaygroundContent({
+  onBackToIntro,
+  routeScenarioId,
+  onScenarioRouteChange,
+}: PlaygroundContentProps) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
   const { issues, diffs, resolutions, checkpoints } = useContinuumDiagnostics();
   const wasHydrated = useContinuumHydrated();
 
-  const [selectedScenarioId, setSelectedScenarioId] = useState(scenarios[0]?.id ?? '');
+  const [selectedScenarioId, setSelectedScenarioId] = useState(routeScenarioId);
   const [stepIndex, setStepIndex] = useState(-1);
   const [protocolMode, setProtocolMode] = useState<ProtocolMode>('native');
   const initializedRef = useRef(false);
   const scenarioEffectReadyRef = useRef(false);
+
+  useEffect(() => {
+    if (routeScenarioId === selectedScenarioId) {
+      return;
+    }
+    session.reset();
+    setSelectedScenarioId(routeScenarioId);
+    setProtocolMode('native');
+    setStepIndex(0);
+  }, [routeScenarioId, selectedScenarioId, session]);
 
   const selectedScenario = useMemo(() => {
     return scenarios.find((scenario) => scenario.id === selectedScenarioId) ?? null;
@@ -95,12 +124,12 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
 
   const handleScenarioSelect = useCallback(
     (scenarioId: string) => {
-      session.reset();
-      setSelectedScenarioId(scenarioId);
-      setProtocolMode('native');
-      setStepIndex(0);
+      if (scenarioId === selectedScenarioId) {
+        return;
+      }
+      onScenarioRouteChange(scenarioId);
     },
-    [session]
+    [onScenarioRouteChange, selectedScenarioId]
   );
 
   useEffect(() => {
@@ -211,57 +240,83 @@ function PlaygroundContent({ onBackToIntro }: PlaygroundContentProps) {
   );
 }
 
-export default function App() {
-  const [showPlayground, setShowPlayground] = useState(false);
+function LandingRoute() {
+  const navigate = useNavigate();
   const [exiting, setExiting] = useState(false);
 
   const handleEnterPlayground = useCallback(() => {
     setExiting(true);
-    setTimeout(() => {
-      setShowPlayground(true);
-      setExiting(false);
+    window.setTimeout(() => {
+      navigate('/playground');
     }, 600);
-  }, []);
+  }, [navigate]);
 
-  const sessionOptions: SessionOptions = {
-    reconciliation: {
-      strategyRegistry: {
-        'email-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
-        'date-v1-to-v2': (_nodeId, _priorNode, _newNode, priorValue) => priorValue,
-      },
-    },
-    validateOnUpdate: true,
-  };
+  return (
+    <div
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+        opacity: exiting ? 0 : 1,
+        transform: exiting ? 'translateY(-40px)' : 'translateY(0)',
+      }}
+    >
+      <LandingPage onEnter={handleEnterPlayground} />
+    </div>
+  );
+}
 
-  if (!showPlayground) {
-    return (
-      <>
-        <style>{globalStyles}</style>
-        <div
-        style={{
-          position: 'relative',
-          minHeight: '100vh',
-          transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
-          opacity: exiting ? 0 : 1,
-          transform: exiting ? 'translateY(-40px)' : 'translateY(0)',
-        }}
-      >
-        <LandingPage onEnter={handleEnterPlayground} />
-      </div>
-      </>
-    );
+function PlaygroundRoute() {
+  const navigate = useNavigate();
+  const { scenarioId } = useParams<{ scenarioId: string }>();
+
+  if (!defaultScenarioId) {
+    return null;
+  }
+
+  if (!scenarioId) {
+    return <Navigate to={`/playground/${defaultScenarioId}`} replace />;
+  }
+
+  const validScenario = scenarios.some((scenario) => scenario.id === scenarioId);
+  if (!validScenario) {
+    return <Navigate to={`/playground/${defaultScenarioId}`} replace />;
   }
 
   return (
-    <>
-      <style>{globalStyles}</style>
-      <ContinuumProvider
+    <ContinuumProvider
       components={componentMap}
       persist="localStorage"
       sessionOptions={sessionOptions}
     >
-      <PlaygroundContent onBackToIntro={() => setShowPlayground(false)} />
+      <PlaygroundContent
+        onBackToIntro={() => navigate('/')}
+        routeScenarioId={scenarioId}
+        onScenarioRouteChange={(nextScenarioId) => navigate(`/playground/${nextScenarioId}`)}
+      />
     </ContinuumProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <style>{globalStyles}</style>
+      <Routes>
+        <Route path="/" element={<LandingRoute />} />
+        <Route
+          path="/playground"
+          element={
+            defaultScenarioId ? (
+              <Navigate to={`/playground/${defaultScenarioId}`} replace />
+            ) : (
+              <LandingRoute />
+            )
+          }
+        />
+        <Route path="/playground/:scenarioId" element={<PlaygroundRoute />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 }
