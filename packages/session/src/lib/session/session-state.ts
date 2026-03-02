@@ -89,5 +89,6 @@ export function replaceInternalState(
 }
 
 export function generateId(prefix: string, clock: () => number): string {
-  return `${prefix}_${clock()}_${Math.random().toString(36).substring(2, 9)}`;
+  const randomPart = globalThis.crypto.randomUUID().replace(/-/g, '');
+  return `${prefix}_${clock()}_${randomPart}`;
 }

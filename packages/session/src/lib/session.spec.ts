@@ -308,6 +308,31 @@ describe('Session Ledger', () => {
       const log = session.getEventLog();
       expect(log).toHaveLength(1);
     });
+
+    it('stores and reads viewport state by node id', () => {
+      session.updateViewportState('a', {
+        scrollX: 10,
+        scrollY: 20,
+        zoom: 1.5,
+        offsetX: 2,
+        offsetY: 3,
+      });
+
+      expect(session.getViewportState('a')).toEqual({
+        scrollX: 10,
+        scrollY: 20,
+        zoom: 1.5,
+        offsetX: 2,
+        offsetY: 3,
+      });
+      expect(session.getSnapshot()?.data.viewContext?.['a']).toEqual({
+        scrollX: 10,
+        scrollY: 20,
+        zoom: 1.5,
+        offsetX: 2,
+        offsetY: 3,
+      });
+    });
   });
 
   describe('pending intents', () => {

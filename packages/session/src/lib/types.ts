@@ -2,6 +2,7 @@ import type {
   ContinuitySnapshot,
   Interaction,
   DetachedValue,
+  ViewportState,
   PendingIntent,
   Checkpoint,
   ViewDefinition,
@@ -52,6 +53,8 @@ export interface Session {
   pushView(view: ViewDefinition): void;
   recordIntent(interaction: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>): void;
   updateState(nodeId: string, payload: unknown): void;
+  getViewportState(nodeId: string): ViewportState | undefined;
+  updateViewportState(nodeId: string, state: ViewportState): void;
   getEventLog(): Interaction[];
   submitIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): void;
   getPendingIntents(): PendingIntent[];
