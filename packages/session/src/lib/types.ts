@@ -13,6 +13,25 @@ import type {
   StateDiff,
 } from '@continuum/runtime';
 
+export interface SessionPersistenceStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+export interface SessionPersistenceOptions {
+  storage: SessionPersistenceStorage;
+  key?: string;
+  maxBytes?: number;
+  onError?: (error: {
+    reason: 'size_limit' | 'storage_error';
+    key: string;
+    attemptedBytes?: number;
+    maxBytes?: number;
+    cause?: unknown;
+  }) => void;
+}
+
 export interface SessionOptions {
   clock?: () => number;
   maxEventLogSize?: number;
@@ -20,6 +39,7 @@ export interface SessionOptions {
   maxCheckpoints?: number;
   reconciliation?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate?: boolean;
+  persistence?: SessionPersistenceOptions;
 }
 
 export interface Session {

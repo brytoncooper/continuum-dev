@@ -71,6 +71,23 @@ export function resetSessionState(internal: SessionState): void {
   internal.checkpoints = [];
 }
 
+export function replaceInternalState(
+  internal: SessionState,
+  next: SessionState
+): void {
+  internal.currentView = next.currentView;
+  internal.currentData = next.currentData;
+  internal.priorView = next.priorView;
+  internal.issues = next.issues;
+  internal.diffs = next.diffs;
+  internal.resolutions = next.resolutions;
+  internal.eventLog = next.eventLog;
+  internal.pendingIntents = next.pendingIntents;
+  internal.checkpoints = next.checkpoints;
+  internal.validateOnUpdate = next.validateOnUpdate;
+  internal.reconciliationOptions = next.reconciliationOptions;
+}
+
 export function generateId(prefix: string, clock: () => number): string {
   return `${prefix}_${clock()}_${Math.random().toString(36).substring(2, 9)}`;
 }
