@@ -2,7 +2,7 @@
 
 The stateless reconciliation engine for the Continuum SDK.
 
-Given a new schema, a prior schema, and prior state, the `reconcile()` function produces a reconciled state along with diffs, traces, and issues. It is a pure function with no side effects.
+Given a new view, a prior view, and prior data, the `reconcile()` function produces a reconciled state along with diffs, resolutions, and issues. It is a pure function with no side effects.
 
 ## Installation
 
@@ -18,9 +18,9 @@ npm install @continuum/runtime
 import { reconcile } from '@continuum/runtime';
 
 function reconcile(
-  newSchema: SchemaSnapshot,
-  priorSchema: SchemaSnapshot | null,
-  priorState: StateSnapshot | null,
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
   options?: ReconciliationOptions
 ): ReconciliationResult;
 ```
@@ -29,32 +29,32 @@ function reconcile(
 
 | Parameter | Type | Description |
 |---|---|---|
-| `newSchema` | `SchemaSnapshot` | The new UI schema to reconcile against |
-| `priorSchema` | `SchemaSnapshot \| null` | The schema the prior state was built against (`null` on first push) |
-| `priorState` | `StateSnapshot \| null` | The user's existing state (`null` on first push) |
+| `newView` | `ViewDefinition` | The new view to reconcile |
+| `priorView` | `ViewDefinition \| null` | The prior view (`null` when no prior view is available) |
+| `priorData` | `DataSnapshot \| null` | The prior persisted data (`null` when no prior data is available) |
 | `options` | `ReconciliationOptions` | Optional configuration |
 
 **Behavior by scenario:**
 
-- **No prior state** (`priorState === null`): returns fresh empty state for all components (all marked `added`)
-- **No prior schema** (`priorSchema === null`): attempts blind carry by matching component IDs, or drops all state
-- **Both exist**: runs the full reconciliation pipeline (match, diff, migrate, carry)
+- **No prior data** (`priorData === null`): returns fresh reconciled state for all nodes (all marked `added`)
+- **No prior view** (`priorView === null`): attempts blind carry by node ID when allowed, otherwise starts from empty values
+- **Both exist**: runs full reconciliation (context indexing, id/key matching, migration, carry, and removals)
 
 ### Usage
 
 ```typescript
 import { reconcile } from '@continuum/runtime';
 
-const result = reconcile(newSchema, priorSchema, priorState, {
+const result = reconcile(newView, priorView, priorData, {
   migrationStrategies: {
-    email: (id, oldDef, newDef, oldState) => oldState,
+    fieldNodeId: (nodeId, priorNode, newNode, priorValue) => priorValue,
   },
 });
 
-console.log(result.reconciledState);  // StateSnapshot
-console.log(result.diffs);            // what changed
-console.log(result.trace);            // per-component action log
-console.log(result.issues);           // warnings and errors
+console.log(result.reconciledState);  // DataSnapshot
+console.log(result.diffs);      // what changed
+console.log(result.resolutions); // per-node resolution records
+console.log(result.issues);     // warnings and errors
 ```
 
 ## Types
@@ -63,10 +63,10 @@ console.log(result.issues);           // warnings and errors
 
 ```typescript
 interface ReconciliationResult {
-  reconciledState: StateSnapshot;      // the merged state ready for rendering
+  reconciledState: DataSnapshot;        // the merged state ready for rendering
   diffs: StateDiff[];                  // what changed during reconciliation
   issues: ReconciliationIssue[];       // warnings, errors, and info
-  trace: ReconciliationTrace[];        // per-component action log
+  resolutions: ReconciliationResolution[]; // per-node resolution log
 }
 ```
 
@@ -74,10 +74,10 @@ interface ReconciliationResult {
 
 ```typescript
 interface ReconciliationOptions {
-  allowPartialRestore?: boolean;     // allow partial state restoration (default: false)
-  allowBlindCarry?: boolean;         // carry state by ID when no prior schema exists (default: true)
-  migrationStrategies?: Record<string, MigrationStrategy>;  // per-component migration overrides
-  strategyRegistry?: Record<string, MigrationStrategy>;     // named strategies referenced by MigrationRule.strategyId
+  allowPartialRestore?: boolean;     // allow partial state restoration when detached values apply (default: false)
+  allowBlindCarry?: boolean;         // carry state by ID when no prior view exists (default: false)
+  migrationStrategies?: Record<string, MigrationStrategy>;  // per-node migration overrides
+  strategyRegistry?: Record<string, MigrationStrategy>;     // named strategies for schema migration rules
   clock?: () => number;              // custom clock for timestamps (default: Date.now)
 }
 ```
@@ -86,26 +86,26 @@ interface ReconciliationOptions {
 
 ```typescript
 interface StateDiff {
-  componentId: string;
-  type: 'added' | 'removed' | 'migrated' | 'type-changed';
+  nodeId: string;
+  type: 'added' | 'removed' | 'migrated' | 'type-changed' | 'restored';
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string;
 }
 ```
 
-### ReconciliationTrace
+### ReconciliationResolution
 
-Per-component record of what happened during reconciliation.
+Per-node record of what happened during reconciliation.
 
 ```typescript
-interface ReconciliationTrace {
-  componentId: string;                           // component in the new schema
-  priorId: string | null;                        // matched component from prior schema
+interface ReconciliationResolution {
+  nodeId: string;                                // node in the new view
+  priorId: string | null;                        // matched node from prior view
   matchedBy: 'id' | 'key' | null;               // how the match was found
-  priorType: string | null;                      // type in prior schema
-  newType: string;                               // type in new schema
-  action: 'carried' | 'migrated' | 'dropped' | 'added';
+  priorType: string | null;                      // type in prior view
+  newType: string;                               // type in new view
+  resolution: 'added' | 'carried' | 'migrated' | 'detached' | 'restored';
   priorValue: unknown;                           // state before reconciliation
   reconciledValue: unknown;                      // state after reconciliation
 }
@@ -116,7 +116,7 @@ interface ReconciliationTrace {
 ```typescript
 interface ReconciliationIssue {
   severity: 'error' | 'warning' | 'info';
-  componentId?: string;
+  nodeId?: string;
   message: string;
   code: string;    // one of ISSUE_CODES values
 }
@@ -126,11 +126,11 @@ interface ReconciliationIssue {
 
 ```typescript
 type MigrationStrategy = (
-  componentId: string,
-  oldSchema: ComponentDefinition,
-  newSchema: ComponentDefinition,
-  oldState: unknown
-) => unknown | null;   // return null to signal migration failure
+  nodeId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
+  priorValue: unknown
+) => unknown;
 ```
 
 ## Context Utilities
@@ -143,57 +143,57 @@ Indexes both schemas into lookup maps for efficient matching.
 
 ```typescript
 function buildReconciliationContext(
-  newSchema: SchemaSnapshot,
-  priorSchema: SchemaSnapshot | null
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null
 ): ReconciliationContext;
 ```
 
-### `findPriorComponent()`
+### `findPriorNode()`
 
-Finds the matching prior component for a new component (by ID first, then by key).
+Finds the matching prior node for a new node (by ID first, then by key).
 
 ```typescript
-function findPriorComponent(
+function findPriorNode(
   ctx: ReconciliationContext,
-  newComponent: ComponentDefinition
-): ComponentDefinition | null;
+  newNode: ViewNode
+): ViewNode | null;
 ```
 
 ### `buildPriorValueLookupByIdAndKey()`
 
-Maps prior state values to new component IDs using key-based matching.
+Maps prior data values to new node IDs using key-based matching.
 
 ```typescript
 function buildPriorValueLookupByIdAndKey(
-  priorState: StateSnapshot,
+  priorData: DataSnapshot,
   ctx: ReconciliationContext
 ): Map<string, unknown>;
 ```
 
-### `determineComponentMatchStrategy()`
+### `determineNodeMatchStrategy()`
 
-Returns how a match was found (`'id'`, `'key'`, or `null`).
+Returns how a node match was found (`'id'`, `'key'`, or `null`).
 
 ```typescript
-function determineComponentMatchStrategy(
+function determineNodeMatchStrategy(
   ctx: ReconciliationContext,
-  newComponent: ComponentDefinition,
-  priorComponent: ComponentDefinition | null
+  newNode: ViewNode,
+  priorNode: ViewNode | null
 ): 'id' | 'key' | null;
 ```
 
 ## Matching Algorithm
 
-When reconciling a schema transition, each component in the new schema is processed:
+When reconciling a view transition, each node in the new view is processed:
 
-1. **Match by ID** -- look for a prior component with the same `id`
-2. **Match by key** -- if no ID match, look for a prior component with the same `key`
-3. **No match** -- component is new (`added` trace, empty state)
-4. **Type check** -- if matched but types differ, state is **dropped** (`TYPE_MISMATCH` issue)
+1. **Match by ID** -- look for a prior node with the same `id`
+2. **Match by key** -- if no ID match, look for a prior node with the same `key`
+3. **No match** -- node is new (`added` resolution) and receives initial value
+4. **Type check** -- if matched but types differ, state is detached and issue `TYPE_MISMATCH` is raised
 5. **Hash check** -- if types match but hashes differ, attempt migration
-6. **Migration** -- check `migrationStrategies[componentId]`, then `MigrationRule` + `strategyRegistry`, then fallback (carry as-is if same type)
-7. **Carry** -- if type and hash match, state carries forward unchanged
-8. **Removed** -- prior components not in the new schema are logged as `COMPONENT_REMOVED`
+6. **Migration** -- check `migrationStrategies[nodeId]`, then `newNode.migrations` + `strategyRegistry`, then fallback to same-type carry
+7. **Carry** -- if type and hash match, or migration fallback succeeds, state carries forward
+8. **Removed** -- prior nodes not in the new view are logged as removed (`removed` diffs) and may be moved to detached values
 
 ## Links
 

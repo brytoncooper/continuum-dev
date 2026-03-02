@@ -13,7 +13,7 @@ It is written for both:
 `@continuum/runtime` is a pure reconciliation engine:
 - Input: `newView`, `priorView`, `priorData`, and optional reconciliation options.
 - Output: a deterministic `ReconciliationResult` containing:
-  - `reconciledData`
+  - `reconciledState`
   - `diffs`
   - `issues`
   - `resolutions`
@@ -44,8 +44,9 @@ Core guarantee: no I/O side effects in reconciliation itself. Given the same inp
 13. `src/lib/reconciliation/differ.ts`
 14. `src/lib/reconciliation/migrator.ts`
 15. `src/lib/reconciliation/node-resolver.ts`
-16. `src/lib/reconciliation/state-builder.ts`
-17. `src/lib/reconciliation/validator.ts`
+16. `src/lib/reconciliation/collection-resolver.ts`
+17. `src/lib/reconciliation/state-builder.ts`
+18. `src/lib/reconciliation/validator.ts`
 
 ### Tests
 
@@ -55,7 +56,10 @@ Core guarantee: no I/O side effects in reconciliation itself. Given the same inp
 21. `src/lib/reconciliation/differ.spec.ts`
 22. `src/lib/reconciliation/migrator.spec.ts`
 23. `src/lib/reconciliation/node-resolver.spec.ts`
-24. `src/lib/reconciliation/state-builder.spec.ts`
+24. `src/lib/reconciliation/collection-resolver.spec.ts`
+25. `src/lib/reconciliation/scoped-matching.spec.ts`
+26. `src/lib/reconciliation/migration-chain.spec.ts`
+27. `src/lib/reconciliation/state-builder.spec.ts`
 
 ---
 
@@ -71,6 +75,7 @@ Top-level flow:
 3. Full reconciliation path uses:
    - `context.ts` for indexing and matching,
    - `node-resolver.ts` for per-node decisions,
+   - `collection-resolver.ts` for collection-specific node reconciliation,
    - `migrator.ts` for migration strategy resolution,
    - `differ.ts` for normalized diff/resolution records,
    - `validator.ts` for constraint checks,
@@ -203,7 +208,7 @@ Methods/functions:
 ## `src/lib/context.ts`
 
 Purpose:
-- build view indexing maps and match helpers used by reconciliation.
+- build view indexing maps, duplicate detection, and match helpers used by reconciliation.
 
 ### `buildReconciliationContext(newView, priorView): ReconciliationContext`
 
@@ -216,7 +221,7 @@ Behavior:
 Internal helper:
 - `indexNodesByIdAndKey(nodes, byId, byKey)`
   - walks node trees recursively.
-  - last-write-wins semantics if duplicate IDs or keys exist.
+  - map storage resolves last-write-wins for indexing while duplicate diagnostics are collected as issues.
 
 ### `findPriorNode(ctx, newNode): ViewNode | null`
 
@@ -241,8 +246,15 @@ Why this matters:
 Behavior:
 - returns:
   - `null` if `priorNode` is null
-  - `'id'` if `ctx.priorById.has(newNode.id)`
+  - `'id'` if `ctx.priorById.has(newNodeId)` or equivalent indexed match exists
   - `'key'` otherwise
+
+### `collectDuplicateIssues(nodes)` 
+
+Behavior:
+- recursively scans a view for duplicate IDs and keys.
+- emits `DUPLICATE_NODE_ID` errors for ID collisions.
+- emits `DUPLICATE_NODE_KEY` warnings for key collisions.
 
 Notes:
 - assumes caller already provided a valid `priorNode` from match logic.
@@ -440,6 +452,25 @@ Behavior:
 
 ---
 
+## `src/lib/reconciliation/collection-resolver.ts`
+
+Purpose:
+- collection-specific state building and migration paths.
+
+### `createInitialCollectionValue(node)`
+
+Behavior:
+- creates a baseline collection value honoring `minItems`.
+
+### `reconcileCollectionValue(priorNode, newNode, priorValue, options)`
+
+Behavior:
+- normalizes prior collection values before reconciliation.
+- enforces collection constraints (`minItems`, `maxItems`).
+- performs template migration when template hash changes.
+- emits `TYPE_MISMATCH` when template types diverge and returns initial values.
+- emits `MIGRATION_FAILED` warnings when strategy execution fails or is unavailable.
+
 ## `src/lib/reconciliation/state-builder.ts`
 
 Purpose:
@@ -513,12 +544,12 @@ Behavior:
 Purpose:
 - lightweight node-value validation against view constraints.
 
-### `readNodeValue(state)` (internal)
+### `readStateValue(state)` (internal)
 
 Behavior:
 - extracts candidate value from `NodeValue<T>`:
   - `value`
-- returns `undefined` for non-object or unsupported shape.
+- returns `undefined` when `state` is `null` or `undefined`.
 
 ### `isEmptyValue(value)` (internal)
 
@@ -586,6 +617,32 @@ Coverage domains:
 - empty view transitions
 - stress case with 500 nodes
 - detached value storage and restoration
+
+---
+
+## `src/lib/reconciliation/collection-resolver.spec.ts`
+
+Coverage:
+- collection initialization behavior
+- template migration success/failure behavior
+- template-type mismatch behavior
+- collection min/max item constraints
+
+---
+
+## `src/lib/reconciliation/scoped-matching.spec.ts`
+
+Coverage:
+- scoped matching and nested path behavior for ids and keys
+- duplicate matching behavior under nested scopes
+
+---
+
+## `src/lib/reconciliation/migration-chain.spec.ts`
+
+Coverage:
+- ordered migration handler behavior
+- migration fallback behavior when handlers return pass-through/none
 
 ---
 
@@ -661,6 +718,7 @@ Coverage:
 - `findPriorNode` (exported)
 - `buildPriorValueLookupByIdAndKey` (exported)
 - `determineNodeMatchStrategy` (exported)
+- `collectDuplicateIssues` (exported)
 - `indexNodesByIdAndKey` (internal)
 
 ## `src/lib/reconcile.ts`
@@ -687,9 +745,14 @@ Coverage:
 - `detectRemovedNodes` (exported)
 - `resolveNewNode` (internal)
 - `resolveTypeMismatchedNode` (internal)
+- `resolveCollectionNode` (internal)
 - `hasNodeHashChanged` (internal)
 - `resolveHashChangedNode` (internal)
 - `resolveUnchangedNode` (internal)
+
+## `src/lib/reconciliation/collection-resolver.ts`
+- `createInitialCollectionValue` (exported)
+- `reconcileCollectionValue` (exported)
 
 ## `src/lib/reconciliation/state-builder.ts`
 - `buildFreshSessionResult` (exported)
@@ -703,7 +766,7 @@ Coverage:
 
 ## `src/lib/reconciliation/validator.ts`
 - `validateNodeValue` (exported)
-- `readNodeValue` (internal)
+- `readStateValue` (internal)
 - `isEmptyValue` (internal)
 
 ## Test helper methods across specs
@@ -720,6 +783,7 @@ Coverage:
 
 2. Type safety over carry:
    - type mismatch never carries prior value into new node value.
+   - collection template-type mismatches emit `TYPE_MISMATCH` and avoid preserving incompatible template payloads.
 
 3. Migration fallback policy:
    - migration failure does not hard fail reconciliation; it warns and falls back to carry path for same-type transitions.
@@ -742,7 +806,8 @@ Coverage:
 ## 9) Known Design Tradeoffs
 
 1. Duplicate ID/key handling:
-   - map indexing means last-write-wins; no explicit duplicate detection errors.
+   - duplicate IDs/keys are detected and surfaced as issues.
+   - map indexing still selects a single effective match per index key.
 
 2. Session ID generation:
    - uses `Math.random()`, which is nondeterministic by design.
