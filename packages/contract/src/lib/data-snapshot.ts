@@ -12,6 +12,14 @@ export interface NodeValue<T = unknown> {
   isValid?: boolean;
 }
 
+export interface CollectionItemState {
+  values: Record<string, NodeValue>;
+}
+
+export interface CollectionNodeState {
+  items: CollectionItemState[];
+}
+
 export interface ViewContext {
   scrollX?: number;
   scrollY?: number;
