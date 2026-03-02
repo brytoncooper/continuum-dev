@@ -13,8 +13,8 @@ const styleOptions = [
   { id: 'foodie', label: 'Food & Dining' },
 ];
 
-export const schemaEvolutionScenario: Scenario = {
-  id: 'schema-evolution',
+export const viewEvolutionScenario: Scenario = {
+  id: 'view-evolution',
   title: 'AI Refines Your Trip',
   subtitle: 'Watch your travel preferences survive view evolution',
   capabilityTag: 'View Evolution',

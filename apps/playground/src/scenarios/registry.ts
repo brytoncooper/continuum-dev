@@ -2,11 +2,11 @@ import { actionLifecycleScenario } from './action-lifecycle';
 import { keyMatchingScenario } from './key-matching';
 import { migrationStrategyScenario } from './migration-strategy';
 import { orphanRetentionScenario } from './orphan-retention';
-import { schemaEvolutionScenario } from './schema-evolution';
+import { viewEvolutionScenario } from './view-evolution';
 import type { Scenario } from './types';
 
 export const scenarios: Scenario[] = [
-  schemaEvolutionScenario,
+  viewEvolutionScenario,
   migrationStrategyScenario,
   orphanRetentionScenario,
   keyMatchingScenario,
