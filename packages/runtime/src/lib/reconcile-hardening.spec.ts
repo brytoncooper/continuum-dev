@@ -113,12 +113,12 @@ describe('runtime hardening', () => {
     };
     const context = buildReconciliationContext(next, previous);
     const data: DataSnapshot = {
-      values: { 'old-child': { value: 'nested' } },
+      values: { 'root/old-child': { value: 'nested' } },
       lineage: { timestamp: 0, sessionId: 's' },
     };
 
     const lookup = buildPriorValueLookupByIdAndKey(data, context);
-    expect(lookup.get('new-child')).toEqual({ value: 'nested' });
+    expect(lookup.get('root/new-child')).toEqual({ value: 'nested' });
   });
 
   it('handles empty views without producing invalid arrays', () => {

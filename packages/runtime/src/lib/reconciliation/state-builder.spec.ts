@@ -70,7 +70,7 @@ describe('buildFreshSessionResult', () => {
 
     expect(result.diffs).toHaveLength(2);
     expect(result.diffs[0].nodeId).toBe('parent');
-    expect(result.diffs[1].nodeId).toBe('child');
+    expect(result.diffs[1].nodeId).toBe('parent/child');
   });
 
   it('emits NO_PRIOR_DATA info issue', () => {
