@@ -43,7 +43,7 @@ At a high level, it turns Continuum's session model into React-native primitives
 
 Main runtime flow:
 1. `ContinuumProvider` creates or hydrates a `Session`.
-2. Provider publishes `{ session, nodeMap, wasHydrated }` in `ContinuumContext`.
+2. Provider publishes `{ session, componentMap, wasHydrated }` in `ContinuumContext`.
 3. Hooks subscribe to session events via `useSyncExternalStore` and re-render safely.
 4. `ContinuumRenderer` walks `ViewDefinition.nodes` and renders each `ViewNode`.
 5. State updates from node `onChange` call `session.updateState(nodeId, value)`.
@@ -84,7 +84,6 @@ Role:
 
 Important fields:
 - `name`: `@continuum/react`
-- `private`: `true` (not published as-is)
 - `type`: `module` (ESM)
 - `main` / `types`: `./src/index.ts`
 - `exports["."]`: `./src/index.ts`
@@ -221,7 +220,7 @@ Purpose:
 - Props accepted by `ContinuumProvider`.
 
 Fields:
-- `nodeMap`: node registry (required)
+- `componentMap`: node registry (required)
 - `persist`: `'sessionStorage' | 'localStorage' | false` (optional)
 - `storageKey`: custom storage key (optional)
 - `sessionOptions`: options forwarded to `createSession`/`deserialize` (optional)
@@ -236,7 +235,7 @@ Role:
 
 Fields:
 - `session: Session`
-- `nodeMap: ContinuumNodeMap`
+- `componentMap: ContinuumNodeMap`
 - `wasHydrated: boolean`
 
 ### `const ContinuumContext = createContext<ContinuumContextValue | null>(null)`
@@ -307,7 +306,7 @@ Detailed lifecycle behavior:
    - On mount/effect rerun, clear any previous pending destroy timer
    - On cleanup, schedule `session.destroy()` in `setTimeout(..., 0)`
    - Then clear timer ref
-6. Memoize context value from `session`, `nodeMap`, `wasHydrated`.
+6. Memoize context value from `session`, `componentMap`, `wasHydrated`.
 7. Render `<ContinuumContext.Provider value={value}>{children}</ContinuumContext.Provider>`.
 
 Why delayed destroy matters:
@@ -316,7 +315,7 @@ Why delayed destroy matters:
 
 Potential edge cases:
 - If storage APIs are unavailable in current runtime, direct `globalThis.localStorage/sessionStorage` access can throw before provider completes.
-- `nodeMap` identity changes trigger new memoized context object, causing downstream re-renders.
+- `componentMap` identity changes trigger new memoized context object, causing downstream re-renders.
 
 ## `src/lib/persistence.ts`
 
@@ -472,8 +471,8 @@ Inputs:
 Behavior:
 1. Read context, throw if absent.
 2. Resolve render component by priority:
-   - `nodeMap[definition.type]`
-   - `nodeMap['default']`
+  - `componentMap[definition.type]`
+  - `componentMap['default']`
    - `FallbackComponent`
 3. Read state tuple via `useContinuumState(definition.id)`.
 4. If `definition.hidden` is truthy, render `null`.
@@ -485,13 +484,12 @@ Behavior:
      - `value`
      - `onChange`
      - `definition`
-     - spread `definition.props ?? {}`
      - `children` as rendered child nodes
 
 Important semantics:
 - Every visible node gets a stable `data-continuum-id`.
 - Per-node error boundary isolates render failures by node id.
-- `definition.props` is blindly spread; prop collisions can override standard props if names overlap.
+- `definition` is passed directly, and props are not spread onto the component.
 
 ### `ContinuumRenderer({ view })`
 
@@ -598,7 +596,7 @@ Role:
 
 Supporting definitions:
 - `view`: simple one-node view fixture
-- `nodeMap`: field + default node fixtures
+- `componentMap`: field + default node fixtures
 - global test flag: `IS_REACT_ACT_ENVIRONMENT = true`
 
 ### Helper function: `renderIntoDom(element)`
@@ -644,10 +642,10 @@ Verifies:
 Verifies:
 - Node with `hidden: true` is not rendered into DOM.
 
-### Test: "forwards definition.props to rendered node"
+### Test: "forwards definition to rendered component"
 
 Verifies:
-- `definition.props` spread reaches node implementation.
+- `definition` reaches node implementation.
 
 ### Test: "isolates node render errors with per-node boundary"
 
@@ -713,7 +711,7 @@ Inferred runtime dependency graph:
 
 Current tradeoffs:
 - Silent persistence errors favor availability over observability.
-- `definition.props` spread is flexible but permissive.
+- `definition` is provided directly and is easier to reason about than blind spread.
 - Storage access assumes browser globals.
 
 Safe extension points:
@@ -738,7 +736,7 @@ Project metadata (from Nx MCP `nx_project_details`):
 - project: `@continuum/react`
 - type: `library`
 - root: `packages/react`
-- tags: `npm:private`, `scope:react`
+- tags: `scope:react`
 - project dependencies: `contract`, `@continuum/session`
 
 ## Quick Index of Functions and Methods

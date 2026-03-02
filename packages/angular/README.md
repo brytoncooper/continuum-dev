@@ -16,6 +16,7 @@ Peer dependencies: `@angular/core`, `@angular/common`, `@angular/forms` >= 20.
 
 ```typescript
 import { ApplicationConfig } from '@angular/core';
+import type { ViewDefinition } from '@continuum/contract';
 import { provideContinuum } from '@continuum/angular';
 import { ContinuumRendererComponent } from '@continuum/angular';
 
@@ -39,7 +40,7 @@ export const appConfig: ApplicationConfig = {
 ```html
 <!-- In your component template -->
 @if (snapshot(); as snap) {
-  <continuum-renderer [schema]="snap.schema" />
+  <continuum-renderer [view]="snap.view" />
 }
 ```
 
@@ -47,9 +48,10 @@ export const appConfig: ApplicationConfig = {
 // In your component
 snapshot = injectContinuumSnapshot();
 session = injectContinuumSession();
+agentView: ViewDefinition = { viewId: 'view-1', version: '1', nodes: [] };
 
 ngOnInit() {
-  this.session.pushSchema(schemaFromAgent);
+  this.session.pushView(this.agentView);
 }
 ```
 
@@ -61,7 +63,7 @@ Configures Continuum in the application injector.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `components` | `ContinuumComponentMap` | required | Map of component type strings to Angular components |
+| `components` | `ContinuumNodeMap` | required | Map of component type strings to Angular components |
 | `persist` | `'sessionStorage' \| 'localStorage' \| false` | `false` | Where to persist session data |
 | `storageKey` | `string` | `'continuum_session'` | Key used in storage |
 | `sessionOptions` | `SessionOptions` | — | Optional session configuration |
@@ -74,33 +76,33 @@ All inject functions must be called from an injection context (e.g. constructor,
 |----------|---------|-------------|
 | `injectContinuumSession()` | `Session` | The Continuum session |
 | `injectContinuumSnapshot()` | `Signal<ContinuitySnapshot \| null>` | Reactive snapshot signal |
-| `injectContinuumState(componentId)` | `[Signal<...>, (value) => void]` | State signal and setter for a component |
-| `injectContinuumDiagnostics()` | `Signal<{issues, diffs, trace, checkpoints}>` | Reconciliation diagnostics |
+| `injectContinuumState(nodeId)` | `[Signal<...>, (value) => void]` | State signal and setter for a node |
+| `injectContinuumDiagnostics()` | `Signal<{issues, diffs, resolutions, checkpoints}>` | Reconciliation diagnostics |
 | `injectContinuumHydrated()` | `boolean` | Whether the session was rehydrated from storage |
 
 ### Components
 
 | Component | Description |
 |-----------|-------------|
-| `<continuum-renderer>` | Renders a schema. Input: `schema: SchemaSnapshot` |
+| `<continuum-renderer>` | Renders a view. Input: `view: ViewDefinition` |
 | `<continuum-fallback>` | Built-in fallback for unknown component types |
-| `<continuum-children-renderer>` | Renders child definitions. Use in container components. Input: `definitions: ComponentDefinition[]` |
+| `<continuum-children-renderer>` | Renders child definitions. Use in container components. Input: `definitions: ViewNode[]` |
 
 ### Forms
 
 **Reactive Forms:** `bindContinuumReactiveForm(bindings, options?)` syncs `FormControl` instances with session state.
 
-**Signal Forms:** `bindContinuumSignalForm<T>(componentId, options?)` returns `{ value: Signal<T>, update: (v) => void }` for signal-first binding.
+**Signal Forms:** `bindContinuumSignalForm<T>(nodeId)` returns `{ value: Signal<T>, update: (v) => void }` for signal-first binding.
 
 ## Component Map Pattern
 
-Components in the map receive `ContinuumComponentProps`:
+Components in the map receive `ContinuumNodeProps`:
 
 ```typescript
-interface ContinuumComponentProps<T = ComponentState> {
+interface ContinuumNodeProps<T = NodeValue> {
   value: T | undefined;
   onChange: (value: T) => void;
-  definition: ComponentDefinition;
+  definition: ViewNode;
   children?: unknown;
 }
 ```
