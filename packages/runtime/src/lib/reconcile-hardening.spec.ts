@@ -129,4 +129,39 @@ describe('runtime hardening', () => {
     expect(Array.isArray(result.resolutions)).toBe(true);
     expect(Array.isArray(result.issues)).toBe(true);
   });
+
+  it('reports cycle issues for cyclic child graphs', () => {
+    const cycleRoot = makeNode({ id: 'root', type: 'group', children: [] });
+    const cycleChild = makeNode({ id: 'child', type: 'group', children: [] });
+    (cycleRoot as { children: ViewNode[] }).children.push(cycleChild);
+    (cycleChild as { children: ViewNode[] }).children.push(cycleRoot);
+    const cyclicView: ViewDefinition = {
+      viewId: 'cycle-view',
+      version: '1',
+      nodes: [cycleRoot],
+    };
+
+    const result = reconcile(cyclicView, null, null);
+
+    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.VIEW_CHILD_CYCLE_DETECTED)).toBe(true);
+  });
+
+  it('reports max-depth issues for overly deep trees', () => {
+    let current = makeNode({ id: 'n0', type: 'group', children: [] });
+    const root = current;
+    for (let i = 1; i < 300; i++) {
+      const next = makeNode({ id: `n${i}`, type: 'group', children: [] });
+      (current as { children: ViewNode[] }).children.push(next);
+      current = next;
+    }
+    const deepView: ViewDefinition = {
+      viewId: 'deep-view',
+      version: '1',
+      nodes: [root],
+    };
+
+    const result = reconcile(deepView, null, null);
+
+    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.VIEW_MAX_DEPTH_EXCEEDED)).toBe(true);
+  });
 });
