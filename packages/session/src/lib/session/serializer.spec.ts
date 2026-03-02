@@ -24,6 +24,40 @@ describe('serializeSession', () => {
 
     expect((serialized.eventLog as unknown[]).length).toBe(1);
   });
+
+  it('preserves undefined node values before persistence encoding', () => {
+    const internal = createEmptySessionState('s', () => 1000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: undefined, isDirty: true } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+
+    const serialized = serializeSession(internal) as {
+      currentData: { values: Record<string, { value?: unknown; isDirty?: boolean }> };
+    };
+
+    expect(serialized.currentData.values.a).toHaveProperty('value');
+    expect(serialized.currentData.values.a.value).toBeUndefined();
+    expect(serialized.currentData.values.a.isDirty).toBe(true);
+  });
+
+  it('preserves Date node values before persistence encoding', () => {
+    const internal = createEmptySessionState('s', () => 1000);
+    const createdAt = new Date('2026-03-01T00:00:00.000Z');
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: createdAt } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+
+    const serialized = serializeSession(internal) as {
+      currentData: { values: Record<string, { value?: unknown }> };
+    };
+
+    expect(serialized.currentData.values.a.value).toBeInstanceOf(Date);
+    expect(serialized.currentData.values.a.value).toEqual(createdAt);
+  });
 });
 
 describe('deserializeToState', () => {

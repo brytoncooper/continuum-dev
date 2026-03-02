@@ -7,7 +7,7 @@ import {
 } from './listeners.js';
 
 export function cloneCheckpointSnapshot<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 export function autoCheckpoint(internal: SessionState): void {

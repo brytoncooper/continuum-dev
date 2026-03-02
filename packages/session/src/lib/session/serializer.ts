@@ -12,7 +12,7 @@ import type { SessionState } from './session-state.js';
 const CURRENT_FORMAT_VERSION = 1;
 
 function deepClone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }
 
 export function serializeSession(internal: SessionState): unknown {
