@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { memo, useContext } from 'react';
 import type { ViewDefinition, ViewNode } from '@continuum/contract';
 import { getChildNodes } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
@@ -6,7 +6,9 @@ import { useContinuumState } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
 import { NodeErrorBoundary } from './error-boundary.js';
 
-function NodeRenderer({ definition }: { definition: ViewNode }) {
+const noopOnChange = () => undefined;
+
+function useResolvedComponent(definition: ViewNode) {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
     throw new Error(
@@ -15,12 +17,37 @@ function NodeRenderer({ definition }: { definition: ViewNode }) {
   }
 
   const { componentMap } = ctx;
-  const Component =
+  return (
     componentMap[definition.type] ??
     componentMap['default'] ??
-    FallbackComponent;
+    FallbackComponent
+  );
+}
+
+const StatefulNodeRenderer = memo(function StatefulNodeRenderer({ definition }: { definition: ViewNode }) {
+  const Component = useResolvedComponent(definition);
 
   const [value, setValue] = useContinuumState(definition.id);
+
+  if (definition.hidden) {
+    return null;
+  }
+
+  return (
+    <div data-continuum-id={definition.id}>
+      <NodeErrorBoundary nodeId={definition.id}>
+        <Component
+          value={value}
+          onChange={setValue}
+          definition={definition}
+        />
+      </NodeErrorBoundary>
+    </div>
+  );
+});
+
+const ContainerNodeRenderer = memo(function ContainerNodeRenderer({ definition }: { definition: ViewNode }) {
+  const Component = useResolvedComponent(definition);
 
   if (definition.hidden) {
     return null;
@@ -34,8 +61,8 @@ function NodeRenderer({ definition }: { definition: ViewNode }) {
     <div data-continuum-id={definition.id}>
       <NodeErrorBoundary nodeId={definition.id}>
         <Component
-          value={value}
-          onChange={setValue}
+          value={undefined}
+          onChange={noopOnChange}
           definition={definition}
         >
           {childNodes}
@@ -43,7 +70,15 @@ function NodeRenderer({ definition }: { definition: ViewNode }) {
       </NodeErrorBoundary>
     </div>
   );
-}
+});
+
+const NodeRenderer = memo(function NodeRenderer({ definition }: { definition: ViewNode }) {
+  const childNodes = getChildNodes(definition);
+  if (childNodes.length > 0) {
+    return <ContainerNodeRenderer definition={definition} />;
+  }
+  return <StatefulNodeRenderer definition={definition} />;
+});
 
 export function ContinuumRenderer({ view }: { view: ViewDefinition }) {
   return (

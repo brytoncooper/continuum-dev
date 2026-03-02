@@ -1,4 +1,4 @@
-import { act, StrictMode, type ReactElement } from 'react';
+import { act, StrictMode, useState, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ContinuitySnapshot, ViewDefinition } from '@continuum/contract';
 import { createSession } from '@continuum/session';
@@ -222,7 +222,12 @@ describe('react integration', () => {
     rendered.unmount();
     vi.runAllTimers();
     const finalizedSession = capturedSession as Session | null;
-    expect(finalizedSession?.getSnapshot()).toBeNull();
+    expect(finalizedSession).toBeTruthy();
+    if (!finalizedSession) {
+      throw new Error('Expected session to be captured');
+    }
+    expect(finalizedSession.isDestroyed).toBe(true);
+    expect(() => finalizedSession.getSnapshot()).toThrow('Session has been destroyed');
     vi.useRealTimers();
   });
 
@@ -255,6 +260,185 @@ describe('react integration', () => {
       button.click();
     });
     expect(button.textContent).toBe('strict-next');
+    rendered.unmount();
+  });
+
+  it('does not re-render memoized nodes on unrelated parent renders', () => {
+    const renderCounts = { field: 0 };
+    const perfMap = {
+      field: ({ definition }: { definition: { id: string } }) => {
+        renderCounts.field += 1;
+        return <div data-testid={`perf-${definition.id}`}>ok</div>;
+      },
+    };
+
+    function App() {
+      const session = useContinuumSession();
+      const [tick, setTick] = useState(0);
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      return (
+        <>
+          <button data-testid="parent-rerender" onClick={() => setTick((value) => value + 1)}>
+            {tick}
+          </button>
+          <ContinuumRenderer view={viewDef} />
+        </>
+      );
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={perfMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    const button = rendered.container.querySelector('[data-testid="parent-rerender"]') as HTMLButtonElement;
+    expect(renderCounts.field).toBe(1);
+    act(() => {
+      button.click();
+    });
+    expect(renderCounts.field).toBe(1);
+    rendered.unmount();
+  });
+
+  it('does not subscribe container nodes to state updates', () => {
+    const nestedView: ViewDefinition = {
+      viewId: 'nested',
+      version: '1',
+      nodes: [
+        {
+          id: 'group',
+          type: 'group',
+          children: [{ id: 'field', type: 'field', dataType: 'string' }],
+        },
+        { id: 'other', type: 'field', dataType: 'string' },
+      ],
+    };
+    const renderCounts = { group: 0, field: 0, other: 0 };
+    const nestedMap = {
+      group: ({ children }: { children?: ReactNode }) => {
+        renderCounts.group += 1;
+        return <section>{children}</section>;
+      },
+      field: ({ definition }: { definition: { id: string } }) => {
+        if (definition.id === 'other') {
+          renderCounts.other += 1;
+        } else {
+          renderCounts.field += 1;
+        }
+        return <div data-testid={`nested-${definition.id}`}>field</div>;
+      },
+    };
+    let capturedSession: Session | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(nestedView);
+      }
+      return <ContinuumRenderer view={nestedView} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={nestedMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    expect(renderCounts.group).toBe(1);
+    expect(renderCounts.other).toBe(1);
+    expect(capturedSession).toBeTruthy();
+    if (!capturedSession) {
+      throw new Error('Expected session to be captured');
+    }
+    act(() => {
+      capturedSession.updateState('other', { value: 'next' });
+    });
+    expect(renderCounts.group).toBe(1);
+    expect(renderCounts.other).toBe(2);
+    rendered.unmount();
+  });
+
+  it('keeps node value reference stable across equivalent restored values', () => {
+    const renderCounts = { field: 0 };
+    const map = {
+      field: () => {
+        renderCounts.field += 1;
+        return <div data-testid="stable-value">stable</div>;
+      },
+    };
+    let capturedSession: Session | null = null;
+    let checkpointId = '';
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+        session.updateState('field', { value: 'same', isDirty: true });
+        checkpointId = session.checkpoint().checkpointId;
+      }
+      return <ContinuumRenderer view={viewDef} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    expect(renderCounts.field).toBe(1);
+    act(() => {
+      const checkpoint = capturedSession
+        ?.getCheckpoints()
+        .find((item) => item.checkpointId === checkpointId);
+      if (!checkpoint || !capturedSession) {
+        throw new Error('Expected checkpoint and session to exist');
+      }
+      capturedSession.restoreFromCheckpoint(checkpoint);
+    });
+    expect(renderCounts.field).toBe(1);
+    rendered.unmount();
+  });
+
+  it('stabilizes inline component map references across parent re-renders', () => {
+    const renderCounts = { field: 0 };
+    const fieldComponent = () => {
+      renderCounts.field += 1;
+      return <div data-testid="stable-map">stable-map</div>;
+    };
+
+    function ProviderShell() {
+      const [tick, setTick] = useState(0);
+      return (
+        <>
+          <button data-testid="provider-rerender" onClick={() => setTick((value) => value + 1)}>
+            {tick}
+          </button>
+          <ContinuumProvider components={{ field: fieldComponent }}>
+            <InlineMapApp />
+          </ContinuumProvider>
+        </>
+      );
+    }
+
+    function InlineMapApp() {
+      const session = useContinuumSession();
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      return <ContinuumRenderer view={viewDef} />;
+    }
+
+    const rendered = renderIntoDom(<ProviderShell />);
+    const button = rendered.container.querySelector('[data-testid="provider-rerender"]') as HTMLButtonElement;
+    expect(renderCounts.field).toBe(1);
+    act(() => {
+      button.click();
+    });
+    expect(renderCounts.field).toBe(1);
     rendered.unmount();
   });
 });

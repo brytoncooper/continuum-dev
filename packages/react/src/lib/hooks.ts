@@ -17,6 +17,23 @@ function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
   return true;
 }
 
+function shallowNodeValueEqual(
+  left: NodeValue | undefined,
+  right: NodeValue | undefined
+): boolean {
+  if (left === right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return (
+    left.value === right.value &&
+    left.isDirty === right.isDirty &&
+    left.isValid === right.isValid
+  );
+}
+
 export function useContinuumSession(): Session {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -31,6 +48,7 @@ export function useContinuumState(
   nodeId: string
 ): [NodeValue | undefined, (value: NodeValue) => void] {
   const session = useContinuumSession();
+  const valueCacheRef = useRef<NodeValue | undefined>(undefined);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => session.onSnapshot(onStoreChange),
@@ -39,7 +57,15 @@ export function useContinuumState(
 
   const getSnapshot = useCallback(() => {
     const snap = session.getSnapshot();
-    return snap?.data.values?.[nodeId] as NodeValue | undefined;
+    const nextValue = snap?.data.values?.[nodeId] as NodeValue | undefined;
+    const cachedValue = valueCacheRef.current;
+
+    if (shallowNodeValueEqual(cachedValue, nextValue)) {
+      return cachedValue;
+    }
+
+    valueCacheRef.current = nextValue;
+    return nextValue;
   }, [session, nodeId]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

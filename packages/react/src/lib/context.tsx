@@ -21,6 +21,33 @@ function resolveStorage(
   return undefined;
 }
 
+function mapsMatch(
+  left: ContinuumNodeMap,
+  right: ContinuumNodeMap
+): boolean {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+  for (let index = 0; index < rightKeys.length; index += 1) {
+    const key = rightKeys[index];
+    if (left[key] !== right[key]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function useStableMap(map: ContinuumNodeMap): ContinuumNodeMap {
+  const ref = useRef(map);
+  if (mapsMatch(ref.current, map)) {
+    return ref.current;
+  }
+  ref.current = map;
+  return map;
+}
+
 export function ContinuumProvider({
   components,
   persist = false,
@@ -31,6 +58,7 @@ export function ContinuumProvider({
   children,
 }: ContinuumProviderProps) {
   const storage = resolveStorage(persist);
+  const stableComponents = useStableMap(components);
   const sessionRef = useRef<{ session: Session; wasHydrated: boolean } | null>(null);
   const destroyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,8 +95,8 @@ export function ContinuumProvider({
   }, [session]);
 
   const value = useMemo<ContinuumContextValue>(
-    () => ({ session, componentMap: components, wasHydrated }),
-    [session, components, wasHydrated]
+    () => ({ session, componentMap: stableComponents, wasHydrated }),
+    [session, stableComponents, wasHydrated]
   );
 
   return (
