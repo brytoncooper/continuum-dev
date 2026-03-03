@@ -2,6 +2,8 @@
 
 **Protocol-agnostic state continuity for view-driven UIs.**
 
+> [!WARNING] > **Pre-release Note**: Continuum is currently in active development. The APIs, package exports, and installation processes described below are subject to change.
+
 Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a view update reorganizes your form, or a user refreshes the page -- their data stays intact.
 
 ## Why Continuum
@@ -14,14 +16,14 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `@continuum/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint |
-| `@continuum/runtime` | Reconciliation engine -- diffs views, carries state, logs resolutions |
-| `@continuum/session` | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
-| `@continuum/react` | React bindings -- Provider, Renderer, hooks |
-| `@continuum/angular` | Angular bindings -- provideContinuum, signals, standalone renderer, forms |
-| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition |
+| Package               | Description                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| `@continuum/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint      |
+| `@continuum/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions                |
+| `@continuum/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
+| `@continuum/react`    | React bindings -- Provider, Renderer, hooks                                          |
+| `@continuum/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            |
+| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           |
 
 ## Quick Start
 
@@ -30,10 +32,15 @@ npm install @continuum/react @continuum/contract
 ```
 
 ```tsx
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/react';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+} from '@continuum/react';
+import type { ContinuumNodeMap } from '@continuum/react';
 import type { ViewDefinition } from '@continuum/contract';
 
-const nodeMap = {
+const nodeMap: ContinuumNodeMap = {
   field: MyFieldComponent,
   group: MySectionComponent,
   action: MyActionButton,
@@ -57,9 +64,7 @@ function YourApp() {
 
   const snapshot = session.getSnapshot();
 
-  return snapshot ? (
-    <ContinuumRenderer view={snapshot.view} />
-  ) : null;
+  return snapshot ? <ContinuumRenderer view={snapshot.view} /> : null;
 }
 ```
 
@@ -117,12 +122,12 @@ apps/playground        (demo application)
 
 ## Documentation
 
-| Guide | Description |
-|---|---|
-| [Quick Start](docs/QUICK_START.md) | 5-minute integration guide with copy-paste code |
+| Guide                                          | Description                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| [Quick Start](docs/QUICK_START.md)             | 5-minute integration guide with copy-paste code                                 |
 | [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent views, custom migrations, protocol adapters, persistence, lifecycle |
-| [Schema Contract](docs/SCHEMA_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules |
-| [AI Integration](docs/AI_INTEGRATION.md) | Connecting an AI agent to Continuum with prompt templates and examples |
+| [View Contract Reference](docs/SCHEMA_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules      |
+| [AI Integration](docs/AI_INTEGRATION.md)       | Connecting an AI agent to Continuum with prompt templates and examples          |
 
 See [docs/](docs/README.md) for the full documentation index -- product vision, architecture, current gaps, and the phase roadmap.
 
