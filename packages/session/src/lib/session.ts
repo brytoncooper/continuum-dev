@@ -116,7 +116,11 @@ function assembleSessionFromInternalState(
       assertNotDestroyed(internal);
       const proposal = internal.pendingProposals[nodeId];
       if (!proposal) return;
-      recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload: proposal.proposedValue });
+      recordIntent(internal, { 
+        nodeId, 
+        type: INTERACTION_TYPES.DATA_UPDATE, 
+        payload: { ...proposal.proposedValue, isDirty: true } 
+      });
       delete internal.pendingProposals[nodeId];
     },
     rejectProposal(nodeId: string) {
