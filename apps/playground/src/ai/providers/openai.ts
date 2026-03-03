@@ -1,5 +1,6 @@
 import type { AIProvider, GenerateResult, ChatMessage } from '../types';
 import type { ViewDefinition } from '@continuum/contract';
+import { VIEW_SCHEMA } from '../schema/view-json-schema';
 
 interface OpenAIResponse {
   choices?: Array<{ message?: { content?: string } }>;
@@ -96,7 +97,14 @@ export const openAIProvider: AIProvider = {
       body: JSON.stringify({
         model: request.model,
         messages: await toOpenAIMessages(request.systemPrompt, request.messages, request.apiKey),
-        response_format: { type: 'json_object' },
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'ViewDefinition',
+            schema: VIEW_SCHEMA,
+            strict: false
+          }
+        },
       }),
     });
 

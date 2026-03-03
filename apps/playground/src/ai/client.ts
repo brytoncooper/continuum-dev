@@ -1,5 +1,8 @@
 import type { ViewDefinition } from '@continuum/contract';
 import type { ChatMessage, ProviderId, AIAttachment } from './types';
+import { runPipeline, type PipelineStage } from './pipeline/run-pipeline';
+
+export type { PipelineStage };
 
 export interface GenerateViewRequest {
   provider: ProviderId;
@@ -43,4 +46,11 @@ export async function generateView(request: GenerateViewRequest): Promise<Genera
     throw new Error(payload.error ?? `AI request failed (${response.status})`);
   }
   return payload;
+}
+
+export async function generateViewPipeline(
+  request: GenerateViewRequest,
+  onStage: (stage: PipelineStage) => void
+): Promise<GenerateViewResponse> {
+  return runPipeline(request, onStage);
 }

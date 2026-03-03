@@ -77,6 +77,21 @@ export function buildEvolutionMessages(prompt: string, currentView: ViewDefiniti
   ];
 }
 
+export function buildPatchMessages(prompt: string, currentView: ViewDefinition, attachments?: AIAttachment[]): ChatMessage[] {
+  const compactView = {
+    viewId: currentView.viewId,
+    version: currentView.version,
+    nodes: currentView.nodes?.map(n => ({ id: n.id, type: n.type, key: n.key }))
+  };
+  return [
+    {
+      role: 'user',
+      content: `Current view summary:\n${JSON.stringify(compactView, null, 2)}\n\nInstruction:\n${prompt.trim()}`,
+      attachments,
+    },
+  ];
+}
+
 export function buildCorrectionMessages(args: {
   prompt: string;
   currentView: ViewDefinition;
