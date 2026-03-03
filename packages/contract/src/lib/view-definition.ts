@@ -53,6 +53,7 @@ export interface CollectionNode extends BaseNode {
   template: ViewNode;
   minItems?: number;
   maxItems?: number;
+  defaultValues?: Array<Record<string, unknown>>;
 }
 
 export interface ActionNode extends BaseNode {

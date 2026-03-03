@@ -8,6 +8,7 @@ export interface DataSnapshot {
 
 export interface NodeValue<T = unknown> {
   value: T;
+  suggestion?: T;
   isDirty?: boolean;
   isValid?: boolean;
 }
