@@ -53,6 +53,7 @@ export const globalStyles = `
   .continuum-field select:hover:not(:disabled),
   .continuum-field textarea:hover:not(:disabled):not(:read-only) {
     border-color: ${color.textMuted};
+    background: #fafbfd;
   }
 
   .continuum-field input:focus,
@@ -62,7 +63,57 @@ export const globalStyles = `
     box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
   }
 
-  .continuum-field + .continuum-field { margin-top: 0; }
+  .continuum-field + .continuum-field { margin-top: 4px; }
+
+  .continuum-field input::placeholder,
+  .continuum-field textarea::placeholder {
+    color: ${color.textMuted};
+    opacity: 0.7;
+    font-style: normal;
+  }
+
+  .continuum-field input:disabled,
+  .continuum-field select:disabled,
+  .continuum-field textarea:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: ${color.surfaceAlt};
+  }
+
+  [data-continuum-collection-item] {
+    border: 1px solid ${color.border};
+    border-radius: 14px;
+    background: ${color.surfaceAlt};
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  [data-continuum-collection-item]:hover {
+    border-color: ${color.textMuted};
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  [data-continuum-collection-add],
+  [data-continuum-collection-remove] {
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid ${color.border};
+    background: ${color.surface};
+    color: ${color.text};
+    padding: 0 16px;
+    font: inherit;
+    font-weight: 500;
+    font-size: 13px;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+  }
+
+  [data-continuum-collection-add]:hover:not(:disabled),
+  [data-continuum-collection-remove]:hover:not(:disabled) {
+    border-color: ${color.textMuted};
+    background: ${color.surfaceAlt};
+  }
 
   @keyframes reconciliation-toast-enter {
     from { opacity: 0; transform: translateX(-50%) translateY(16px); }
