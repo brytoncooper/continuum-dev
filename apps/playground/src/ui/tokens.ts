@@ -36,7 +36,9 @@ export const space = {
   lg: 16,
   xl: 20,
   xxl: 24,
+  xl2: 28,
   xxxl: 32,
+  xl3: 36,
 } as const;
 
 export const radius = {
