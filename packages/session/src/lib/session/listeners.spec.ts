@@ -7,6 +7,7 @@ import {
   notifySnapshotAndIssueListeners,
 } from './listeners.js';
 import type { ViewDefinition, DataSnapshot } from '@continuum/contract';
+import { ISSUE_CODES } from '@continuum/contract';
 
 function makeView(): ViewDefinition {
   return { viewId: 's1', version: '1.0', nodes: [] };
@@ -55,6 +56,37 @@ describe('notifySnapshotListeners', () => {
     expect(listener2).toHaveBeenCalledOnce();
   });
 
+  it('isolates listener errors so one failing listener does not prevent others from running', () => {
+    const internal = createEmptySessionState('s', () => 0);
+    internal.currentView = makeView();
+    internal.currentData = makeData();
+    const failingListener = vi.fn(() => { throw new Error('boom'); });
+    const successListener = vi.fn();
+    internal.snapshotListeners.add(failingListener);
+    internal.snapshotListeners.add(successListener);
+
+    // It should log the error internally but keep executing
+    notifySnapshotListeners(internal);
+
+    expect(failingListener).toHaveBeenCalledOnce();
+    expect(successListener).toHaveBeenCalledOnce();
+  });
+
+  it('stops calling a listener after it has been removed', () => {
+    const internal = createEmptySessionState('s', () => 0);
+    internal.currentView = makeView();
+    internal.currentData = makeData();
+    const listener = vi.fn();
+    
+    internal.snapshotListeners.add(listener);
+    notifySnapshotListeners(internal);
+    expect(listener).toHaveBeenCalledTimes(1);
+    
+    internal.snapshotListeners.delete(listener);
+    notifySnapshotListeners(internal);
+    expect(listener).toHaveBeenCalledTimes(1); // Still 1
+  });
+
   it('calls listener with null when snapshot is null', () => {
     const internal = createEmptySessionState('s', () => 0);
     const listener = vi.fn();
@@ -69,7 +101,7 @@ describe('notifySnapshotListeners', () => {
 describe('notifyIssueListeners', () => {
   it('calls all registered issue listeners with a copy of issues', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.issues = [{ severity: 'info', message: 'test', code: 'TEST' }];
+    internal.issues = [{ severity: 'info', message: 'test', code: ISSUE_CODES.UNKNOWN_NODE }];
     const listener = vi.fn();
     internal.issueListeners.add(listener);
 

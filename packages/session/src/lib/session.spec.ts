@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ViewDefinition, ViewNode } from '@continuum/contract';
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
@@ -469,7 +469,7 @@ describe('Session Ledger', () => {
 
       session.acceptProposal('a');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next' });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next', isDirty: true });
       expect(session.getPendingProposals()).toEqual({});
     });
 
@@ -1087,6 +1087,72 @@ describe('Session Ledger', () => {
       expect(() =>
         session.recordIntent({ nodeId: 'a', type: 'value-change', payload: { value: 'nope' } })
       ).toThrow('Session has been destroyed');
+    });
+  });
+
+  describe('viewport state', () => {
+    it('updates viewport state and linearly increments timestamp', () => {
+      const clock = vi.fn().mockReturnValue(1000);
+      const session = createSession({ clock });
+      session.pushView(makeView([makeNode({ id: 'a' })]));
+
+      clock.mockReturnValue(2000);
+      session.updateViewportState('a', { scrollY: 100 });
+
+      const snapshot = session.getSnapshot()!;
+      expect(snapshot.data.viewContext?.['a']).toEqual({ scrollY: 100 });
+      expect(snapshot.data.lineage.timestamp).toBe(2000);
+    });
+  });
+
+  describe('reset', () => {
+    it('clears all session state and notifies listeners', () => {
+      const session = createSession();
+      session.pushView(makeView([makeNode({ id: 'a' })]));
+      session.updateState('a', { value: 'test' });
+      
+      const listener = vi.fn();
+      session.onSnapshot(listener);
+
+      session.reset();
+
+      expect(session.getSnapshot()).toBeNull();
+      expect(session.getEventLog()).toHaveLength(0);
+      expect(session.getCheckpoints()).toHaveLength(0);
+      expect(listener).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe('event log capping', () => {
+    it('limits event log size based on options', () => {
+      const session = createSession({ maxEventLogSize: 5 });
+      session.pushView(makeView([makeNode({ id: 'a' })]));
+
+      for (let i = 0; i < 10; i++) {
+        session.updateState('a', { value: `val-${i}` });
+      }
+
+      const log = session.getEventLog();
+      expect(log).toHaveLength(5);
+      expect(log[log.length - 1].payload).toEqual({ value: 'val-9' });
+    });
+  });
+
+  describe('onIssues listener', () => {
+    it('fires when a view push results in issues', () => {
+      const session = createSession();
+      const listener = vi.fn();
+      session.onIssues(listener);
+      // Push valid view
+      session.pushView(makeView([makeNode({ id: 'a', type: 'field' })]));
+      expect(listener).toHaveBeenCalledWith([
+        expect.objectContaining({ code: 'NO_PRIOR_DATA' })
+      ]);
+
+      // Push view with type mismatch
+      session.pushView(makeView([makeNode({ id: 'a', type: 'action' })]));
+      expect(listener).toHaveBeenCalledTimes(2);
+      expect(listener.mock.calls[1][0][0].code).toBe('TYPE_MISMATCH');
     });
   });
 });
