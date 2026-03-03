@@ -106,6 +106,7 @@ function assembleSessionFromInternalState(
           proposedAt: internal.clock(),
           source,
         };
+        notifySnapshotListeners(internal);
       } else {
         recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload: value });
         delete internal.pendingProposals[nodeId];
@@ -120,7 +121,11 @@ function assembleSessionFromInternalState(
     },
     rejectProposal(nodeId: string) {
       assertNotDestroyed(internal);
+      if (!internal.pendingProposals[nodeId]) {
+        return;
+      }
       delete internal.pendingProposals[nodeId];
+      notifySnapshotListeners(internal);
     },
     getPendingProposals() {
       assertNotDestroyed(internal);
@@ -153,6 +158,7 @@ function assembleSessionFromInternalState(
     reset() {
       assertNotDestroyed(internal);
       resetSessionState(internal);
+      notifySnapshotListeners(internal);
     },
 
     onSnapshot(listener) { assertNotDestroyed(internal); return subscribeSnapshot(internal, listener); },

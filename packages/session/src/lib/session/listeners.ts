@@ -9,10 +9,9 @@ export function buildSnapshotFromCurrentState(internal: SessionState): Continuit
 
 export function notifySnapshotListeners(internal: SessionState): void {
   const snapshot = buildSnapshotFromCurrentState(internal);
-  if (!snapshot) return;
   for (const listener of internal.snapshotListeners) {
     try {
-      listener(snapshot);
+      (listener as (s: ContinuitySnapshot | null) => void)(snapshot);
     } catch {
       continue;
     }
@@ -36,7 +35,7 @@ export function notifySnapshotAndIssueListeners(internal: SessionState): void {
 
 export function subscribeSnapshot(
   internal: SessionState,
-  listener: (snapshot: ContinuitySnapshot) => void
+  listener: (snapshot: ContinuitySnapshot | null) => void
 ): () => void {
   internal.snapshotListeners.add(listener);
   return () => { internal.snapshotListeners.delete(listener); };

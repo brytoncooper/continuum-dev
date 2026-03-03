@@ -430,6 +430,60 @@ describe('Session Ledger', () => {
     });
   });
 
+  describe('pending proposals', () => {
+    let session: Session;
+    const view = makeView(
+      [makeNode({ id: 'a' })],
+      'view-1',
+      '1.0'
+    );
+
+    beforeEach(() => {
+      session = createSession();
+      session.pushView(view);
+    });
+
+    it('proposeValue applies immediately when existing value is not dirty', () => {
+      session.proposeValue('a', { value: 'ai-next' }, 'ai');
+
+      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next' });
+      expect(session.getPendingProposals()).toEqual({});
+    });
+
+    it('proposeValue creates a pending proposal when existing value is dirty', () => {
+      session.updateState('a', { value: 'typed', isDirty: true });
+
+      session.proposeValue('a', { value: 'ai-next' }, 'ai');
+
+      const proposal = session.getPendingProposals()['a'];
+      expect(proposal).toBeDefined();
+      expect(proposal?.proposedValue).toEqual({ value: 'ai-next' });
+      expect(proposal?.currentValue).toEqual({ value: 'typed', isDirty: true });
+      expect(proposal?.source).toBe('ai');
+      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'typed', isDirty: true });
+    });
+
+    it('acceptProposal applies proposed value and clears proposal', () => {
+      session.updateState('a', { value: 'typed', isDirty: true });
+      session.proposeValue('a', { value: 'ai-next' }, 'ai');
+
+      session.acceptProposal('a');
+
+      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next' });
+      expect(session.getPendingProposals()).toEqual({});
+    });
+
+    it('rejectProposal keeps existing value and clears proposal', () => {
+      session.updateState('a', { value: 'typed', isDirty: true });
+      session.proposeValue('a', { value: 'ai-next' }, 'ai');
+
+      session.rejectProposal('a');
+
+      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'typed', isDirty: true });
+      expect(session.getPendingProposals()).toEqual({});
+    });
+  });
+
   describe('checkpointing', () => {
     let session: Session;
     const view = makeView([makeNode({ id: 'a' })]);

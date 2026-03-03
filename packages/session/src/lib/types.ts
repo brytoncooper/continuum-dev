@@ -78,7 +78,7 @@ export interface Session {
   getCheckpoints(): Checkpoint[];
   rewind(checkpointId: string): void;
   reset(): void;
-  onSnapshot(listener: (snapshot: ContinuitySnapshot) => void): () => void;
+  onSnapshot(listener: (snapshot: ContinuitySnapshot | null) => void): () => void;
   onIssues(listener: (issues: ReconciliationIssue[]) => void): () => void;
   serialize(): unknown;
   destroy(): { issues: ReconciliationIssue[] };

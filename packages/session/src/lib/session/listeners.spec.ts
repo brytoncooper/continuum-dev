@@ -55,14 +55,14 @@ describe('notifySnapshotListeners', () => {
     expect(listener2).toHaveBeenCalledOnce();
   });
 
-  it('does not call listeners when snapshot is null', () => {
+  it('calls listener with null when snapshot is null', () => {
     const internal = createEmptySessionState('s', () => 0);
     const listener = vi.fn();
     internal.snapshotListeners.add(listener);
 
     notifySnapshotListeners(internal);
 
-    expect(listener).not.toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledWith(null);
   });
 });
 
