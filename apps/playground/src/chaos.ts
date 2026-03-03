@@ -27,7 +27,20 @@ const renameRandomId: Mutation = (view) => {
   const cloned = deepClone(view);
   if (cloned.nodes.length === 0) return cloned;
   const target = pick(cloned.nodes);
+  if (!target.key) {
+    target.key = target.id;
+  }
   target.id = randomId();
+  cloned.version = `${view.version}-chaos-${Date.now()}`;
+  return cloned;
+};
+
+const renameRandomIdAndKey: Mutation = (view) => {
+  const cloned = deepClone(view);
+  if (cloned.nodes.length === 0) return cloned;
+  const target = pick(cloned.nodes);
+  target.id = randomId();
+  target.key = randomId();
   cloned.version = `${view.version}-chaos-${Date.now()}`;
   return cloned;
 };
@@ -69,6 +82,7 @@ const wrapInGroup: Mutation = (view) => {
 
 const mutations: Mutation[] = [
   renameRandomId,
+  renameRandomIdAndKey,
   changeRandomType,
   removeRandomNode,
   wrapInGroup,
