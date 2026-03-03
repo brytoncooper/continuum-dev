@@ -6,6 +6,7 @@ export interface ContinuumNodeProps<T = NodeValue> {
   value: T | undefined;
   onChange: (value: T) => void;
   definition: ViewNode;
+  nodeId?: string;
   children?: React.ReactNode;
   [prop: string]: unknown;
 }

@@ -5,7 +5,7 @@ import { createSession } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumProvider } from './context.js';
-import { useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState, useContinuumViewport } from './hooks.js';
+import { useContinuumConflict, useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState, useContinuumViewport } from './hooks.js';
 import { ContinuumRenderer } from './renderer.js';
 
 const viewDef: ViewDefinition = {
@@ -635,6 +635,118 @@ describe('react integration', () => {
     expect(
       (activeSession.getSnapshot()?.data.values['addresses'] as any).value.items
     ).toHaveLength(1);
+    rendered.unmount();
+  });
+
+  it('passes canonical nodeId to rendered components', () => {
+    const nestedView: ViewDefinition = {
+      viewId: 'nested-node-id',
+      version: '1',
+      nodes: [
+        {
+          id: 'group',
+          type: 'group',
+          children: [{ id: 'field', type: 'field', dataType: 'string' }],
+        },
+      ],
+    };
+    const nodeIds: string[] = [];
+    const map = {
+      group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+      field: ({ nodeId }: { nodeId?: string }) => {
+        if (nodeId) {
+          nodeIds.push(nodeId);
+        }
+        return <div data-testid="nested-node-id-field" />;
+      },
+    };
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <ContinuumRenderer view={nestedView} />
+      </ContinuumProvider>
+    );
+
+    expect(nodeIds).toContain('group/field');
+    rendered.unmount();
+  });
+
+  it('supports accept and reject conflict actions through canonical nodeId', () => {
+    let capturedSession: Session | null = null;
+    const conflictMap = {
+      field: ({
+        value,
+        onChange,
+        nodeId,
+      }: {
+        value: { value?: string } | undefined;
+        onChange: (next: { value: string; isDirty: boolean }) => void;
+        nodeId?: string;
+      }) => {
+        const conflict = useContinuumConflict(nodeId ?? '');
+        return (
+          <div>
+            <button data-testid="mark-dirty" onClick={() => onChange({ value: 'typed', isDirty: true })}>
+              dirty
+            </button>
+            <span data-testid="current-value">{value?.value ?? ''}</span>
+            {conflict.hasConflict ? (
+              <div>
+                <button data-testid="accept" onClick={conflict.accept}>Accept</button>
+                <button data-testid="reject" onClick={conflict.reject}>Reject</button>
+              </div>
+            ) : null}
+          </div>
+        );
+      },
+    };
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      return <ContinuumRenderer view={viewDef} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={conflictMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    const dirtyButton = rendered.container.querySelector('[data-testid="mark-dirty"]') as HTMLButtonElement;
+    act(() => {
+      dirtyButton.click();
+    });
+
+    const activeSession = requireSession(capturedSession);
+    act(() => {
+      activeSession.proposeValue('field', { value: 'ai-suggested' }, 'ai');
+    });
+
+    const acceptButton = rendered.container.querySelector('[data-testid="accept"]') as HTMLButtonElement;
+    expect(acceptButton).toBeTruthy();
+    act(() => {
+      acceptButton.click();
+    });
+    const valueAfterAccept = rendered.container.querySelector('[data-testid="current-value"]') as HTMLSpanElement;
+    expect(valueAfterAccept.textContent).toBe('ai-suggested');
+    expect(rendered.container.querySelector('[data-testid="accept"]')).toBeNull();
+
+    act(() => {
+      activeSession.updateState('field', { value: 'typed-again', isDirty: true });
+      activeSession.proposeValue('field', { value: 'ai-new' }, 'ai');
+    });
+    const rejectButton = rendered.container.querySelector('[data-testid="reject"]') as HTMLButtonElement;
+    expect(rejectButton).toBeTruthy();
+    act(() => {
+      rejectButton.click();
+    });
+
+    const valueAfterReject = rendered.container.querySelector('[data-testid="current-value"]') as HTMLSpanElement;
+    expect(valueAfterReject.textContent).toBe('typed-again');
+    expect(rendered.container.querySelector('[data-testid="reject"]')).toBeNull();
     rendered.unmount();
   });
 });

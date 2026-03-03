@@ -135,6 +135,7 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({ definition, pa
           value={value}
           onChange={setValue}
           definition={definition}
+          nodeId={canonicalId}
         />
       </NodeErrorBoundary>
     </div>
@@ -160,6 +161,7 @@ const ContainerNodeRenderer = memo(function ContainerNodeRenderer({ definition, 
           value={undefined}
           onChange={noopOnChange}
           definition={definition}
+          nodeId={canonicalId}
         >
           {childNodes}
         </Component>
@@ -333,6 +335,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
           value={collectionValue}
           onChange={setCollectionValue}
           definition={definition}
+          nodeId={canonicalId}
         >
           {renderedItems}
           <button

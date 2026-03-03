@@ -30,7 +30,8 @@ function shallowNodeValueEqual(
   return (
     left.value === right.value &&
     left.isDirty === right.isDirty &&
-    left.isValid === right.isValid
+    left.isValid === right.isValid &&
+    left.suggestion === right.suggestion
   );
 }
 
@@ -286,9 +287,22 @@ export function useContinuumConflict(nodeId: string): {
       'useContinuumConflict must be used within a <ContinuumProvider>'
     );
   }
-  const { session } = ctx;
-
-  const proposal = session.getPendingProposals()[nodeId] ?? null;
+  const { session, store } = ctx;
+  const proposalCacheRef = useRef<ProposedValue | null>(null);
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
+    [store]
+  );
+  const getSnapshot = useCallback(() => {
+    const nextProposal = session.getPendingProposals()[nodeId] ?? null;
+    const cachedProposal = proposalCacheRef.current;
+    if (cachedProposal === nextProposal) {
+      return cachedProposal;
+    }
+    proposalCacheRef.current = nextProposal;
+    return nextProposal;
+  }, [session, nodeId]);
+  const proposal = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const accept = useCallback(() => {
     session.acceptProposal(nodeId);
@@ -303,5 +317,75 @@ export function useContinuumConflict(nodeId: string): {
     proposal,
     accept,
     reject,
+  };
+}
+
+export function useContinuumSuggestions(): {
+  hasSuggestions: boolean;
+  acceptAll: () => void;
+  rejectAll: () => void;
+} {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumSuggestions must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session, store } = ctx;
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
+    [store]
+  );
+
+  const getSnapshot = useCallback(() => {
+    const snap = store.getSnapshot();
+    if (!snap || !snap.data) return false;
+    let found = false;
+    for (const key of Object.keys(snap.data.values)) {
+      if (snap.data.values[key]?.suggestion !== undefined) {
+        found = true;
+        break;
+      }
+    }
+    return found;
+  }, [store]);
+
+  const hasSuggestions = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const acceptAll = useCallback(() => {
+    const snap = store.getSnapshot();
+    if (!snap || !snap.data) return;
+    for (const key of Object.keys(snap.data.values)) {
+      const nodeVal = snap.data.values[key];
+      if (nodeVal?.suggestion !== undefined) {
+        session.updateState(key, {
+          ...nodeVal,
+          value: nodeVal.suggestion,
+          suggestion: undefined,
+          isDirty: true
+        } as NodeValue);
+      }
+    }
+  }, [session, store]);
+
+  const rejectAll = useCallback(() => {
+    const snap = store.getSnapshot();
+    if (!snap || !snap.data) return;
+    for (const key of Object.keys(snap.data.values)) {
+      const nodeVal = snap.data.values[key];
+      if (nodeVal?.suggestion !== undefined) {
+        session.updateState(key, {
+          ...nodeVal,
+          suggestion: undefined
+        } as NodeValue);
+      }
+    }
+  }, [session, store]);
+
+  return {
+    hasSuggestions,
+    acceptAll,
+    rejectAll,
   };
 }

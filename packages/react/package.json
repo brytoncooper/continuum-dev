@@ -9,7 +9,16 @@
     "directory": "packages/react"
   },
   "author": "CooperContinuum",
-  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "react", "hooks", "provider"],
+  "keywords": [
+    "continuum",
+    "ai",
+    "ui",
+    "continuity",
+    "reconciliation",
+    "react",
+    "hooks",
+    "provider"
+  ],
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -24,6 +33,7 @@
     "@continuum/session": "*"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.0"
   },
   "nx": {
