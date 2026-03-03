@@ -1,5 +1,5 @@
 import { INTERACTION_TYPES } from '@continuum/contract';
-import type { ViewportState } from '@continuum/contract';
+import type { ViewportState, DetachedValue, NodeValue, ActionRegistration, ActionHandler } from '@continuum/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
 import { createEmptySessionState, generateId, resetSessionState } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
@@ -72,6 +72,60 @@ function assembleSessionFromInternalState(
       assertNotDestroyed(internal);
       return { ...(internal.currentData?.detachedValues ?? {}) };
     },
+    purgeDetachedValues(filter?: (key: string, value: DetachedValue) => boolean) {
+      assertNotDestroyed(internal);
+      if (!internal.currentData?.detachedValues) return;
+      if (!filter) {
+        const { detachedValues: _, ...rest } = internal.currentData;
+        internal.currentData = rest;
+      } else {
+        const remaining: Record<string, DetachedValue> = {};
+        for (const [key, value] of Object.entries(internal.currentData.detachedValues)) {
+          if (!filter(key, value)) {
+            remaining[key] = value;
+          }
+        }
+        if (Object.keys(remaining).length === 0) {
+          const { detachedValues: _, ...rest } = internal.currentData;
+          internal.currentData = rest;
+        } else {
+          internal.currentData = { ...internal.currentData, detachedValues: remaining };
+        }
+      }
+      notifySnapshotListeners(internal);
+    },
+    proposeValue(nodeId: string, value: NodeValue, source?: string) {
+      assertNotDestroyed(internal);
+      if (!internal.currentData) return;
+      const existing = internal.currentData.values[nodeId] as NodeValue | undefined;
+      if (existing && existing.isDirty) {
+        internal.pendingProposals[nodeId] = {
+          nodeId,
+          proposedValue: value,
+          currentValue: existing,
+          proposedAt: internal.clock(),
+          source,
+        };
+      } else {
+        recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload: value });
+        delete internal.pendingProposals[nodeId];
+      }
+    },
+    acceptProposal(nodeId: string) {
+      assertNotDestroyed(internal);
+      const proposal = internal.pendingProposals[nodeId];
+      if (!proposal) return;
+      recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload: proposal.proposedValue });
+      delete internal.pendingProposals[nodeId];
+    },
+    rejectProposal(nodeId: string) {
+      assertNotDestroyed(internal);
+      delete internal.pendingProposals[nodeId];
+    },
+    getPendingProposals() {
+      assertNotDestroyed(internal);
+      return { ...internal.pendingProposals };
+    },
     getCheckpoints() { assertNotDestroyed(internal); return [...internal.checkpoints]; },
 
     pushView(view) { assertNotDestroyed(internal); pushView(internal, view); },
@@ -110,6 +164,30 @@ function assembleSessionFromInternalState(
       cleanupPersistence?.();
       return teardownSessionAndClearState(internal);
     },
+    registerAction(intentId: string, registration: ActionRegistration, handler: ActionHandler) {
+      assertNotDestroyed(internal);
+      internal.actionRegistry.set(intentId, { registration, handler });
+    },
+    unregisterAction(intentId: string) {
+      assertNotDestroyed(internal);
+      internal.actionRegistry.delete(intentId);
+    },
+    getRegisteredActions() {
+      assertNotDestroyed(internal);
+      const result: Record<string, ActionRegistration> = {};
+      for (const [id, entry] of internal.actionRegistry) {
+        result[id] = entry.registration;
+      }
+      return result;
+    },
+    dispatchAction(intentId: string, nodeId: string) {
+      assertNotDestroyed(internal);
+      const entry = internal.actionRegistry.get(intentId);
+      if (!entry) return;
+      const snapshot = buildSnapshotFromCurrentState(internal);
+      if (!snapshot) return;
+      return entry.handler({ intentId, snapshot: snapshot.data, nodeId });
+    },
   };
 
   return session;
@@ -123,6 +201,12 @@ export function createSession(options?: SessionOptions): Session {
   internal.maxCheckpoints = options?.maxCheckpoints ?? internal.maxCheckpoints;
   internal.reconciliationOptions = options?.reconciliation;
   internal.validateOnUpdate = options?.validateOnUpdate ?? internal.validateOnUpdate;
+  internal.detachedValuePolicy = options?.detachedValuePolicy;
+  if (options?.actions) {
+    for (const [id, entry] of Object.entries(options.actions)) {
+      internal.actionRegistry.set(id, entry);
+    }
+  }
   const cleanupPersistence = options?.persistence
     ? attachPersistence(internal, {
       ...options.persistence,
