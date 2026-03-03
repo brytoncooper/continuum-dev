@@ -1,6 +1,6 @@
-import { useContext, useCallback, useRef, useSyncExternalStore } from 'react';
+import { createContext, useContext, useCallback, useRef, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/contract';
+import type { ContinuitySnapshot, NodeValue, ViewportState, ProposedValue } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
@@ -55,6 +55,14 @@ function shallowViewportEqual(
   );
 }
 
+interface NodeStateScope {
+  subscribeNode: (nodeId: string, listener: () => void) => () => void;
+  getNodeValue: (nodeId: string) => NodeValue | undefined;
+  setNodeValue: (nodeId: string, value: NodeValue) => void;
+}
+
+export const NodeStateScopeContext = createContext<NodeStateScope | null>(null);
+
 export function useContinuumSession(): Session {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -69,6 +77,7 @@ export function useContinuumState(
   nodeId: string
 ): [NodeValue | undefined, (value: NodeValue) => void] {
   const ctx = useContext(ContinuumContext);
+  const scope = useContext(NodeStateScopeContext);
   if (!ctx) {
     throw new Error(
       'useContinuumState must be used within a <ContinuumProvider>'
@@ -78,12 +87,19 @@ export function useContinuumState(
   const valueCacheRef = useRef<NodeValue | undefined>(undefined);
 
   const subscribe = useCallback(
-    (onStoreChange: () => void) => store.subscribeNode(nodeId, onStoreChange),
-    [store, nodeId]
+    (onStoreChange: () => void) => {
+      if (scope) {
+        return scope.subscribeNode(nodeId, onStoreChange);
+      }
+      return store.subscribeNode(nodeId, onStoreChange);
+    },
+    [scope, store, nodeId]
   );
 
   const getSnapshot = useCallback(() => {
-    const nextValue = store.getNodeValue(nodeId);
+    const nextValue = scope
+      ? scope.getNodeValue(nodeId)
+      : store.getNodeValue(nodeId);
     const cachedValue = valueCacheRef.current;
 
     if (shallowNodeValueEqual(cachedValue, nextValue)) {
@@ -98,9 +114,13 @@ export function useContinuumState(
 
   const setValue = useCallback(
     (next: NodeValue) => {
+      if (scope) {
+        scope.setNodeValue(nodeId, next);
+        return;
+      }
       session.updateState(nodeId, next);
     },
-    [session, nodeId]
+    [scope, session, nodeId]
   );
 
   return [value, setValue];
@@ -252,4 +272,36 @@ export function useContinuumHydrated(): boolean {
     );
   }
   return ctx.wasHydrated;
+}
+
+export function useContinuumConflict(nodeId: string): {
+  hasConflict: boolean;
+  proposal: ProposedValue | null;
+  accept: () => void;
+  reject: () => void;
+} {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumConflict must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session } = ctx;
+
+  const proposal = session.getPendingProposals()[nodeId] ?? null;
+
+  const accept = useCallback(() => {
+    session.acceptProposal(nodeId);
+  }, [session, nodeId]);
+
+  const reject = useCallback(() => {
+    session.rejectProposal(nodeId);
+  }, [session, nodeId]);
+
+  return {
+    hasConflict: proposal !== null,
+    proposal,
+    accept,
+    reject,
+  };
 }
