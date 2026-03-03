@@ -69,7 +69,7 @@ export function resolveAllNodes(
         now,
         options
       );
-    } else if (priorNode.type !== newNode.type) {
+    } else if (priorNode.type !== newNode.type && !areCompatibleContainerTypes(priorNode.type, newNode.type)) {
       resolveTypeMismatchedNode(
         acc,
         newId,
@@ -216,6 +216,17 @@ function resolveTypeMismatchedNode(
       reason: 'type-mismatch',
     };
   }
+}
+
+/**
+ * Container types (row, grid, group) are semantically equivalent — they all
+ * hold children. The AI may swap between them for styling reasons. Treating
+ * these as type mismatches would destroy all child values unnecessarily.
+ */
+const CONTAINER_TYPES = new Set(['row', 'grid', 'group']);
+
+function areCompatibleContainerTypes(a: string, b: string): boolean {
+  return CONTAINER_TYPES.has(a) && CONTAINER_TYPES.has(b);
 }
 
 function hasNodeHashChanged(
