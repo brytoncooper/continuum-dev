@@ -7,23 +7,29 @@ type ProtocolMode = 'native' | 'a2ui';
 interface StoryHeaderProps {
   onBackToIntro: () => void;
   scenarios: Scenario[];
+  showScenarioTabs?: boolean;
+  isAiMode?: boolean;
   activeScenarioId: string;
   activeScenarioTitle: string;
   activeScenarioSubtitle: string;
   protocolMode: ProtocolMode;
   onScenarioSelect: (scenarioId: string) => void;
   onProtocolChange: (mode: ProtocolMode) => void;
+  onAiModeSelect?: () => void;
 }
 
 export function StoryHeader({
   onBackToIntro,
   scenarios,
+  showScenarioTabs = true,
+  isAiMode = false,
   activeScenarioId,
   activeScenarioTitle,
   activeScenarioSubtitle,
   protocolMode,
   onScenarioSelect,
   onProtocolChange,
+  onAiModeSelect,
 }: StoryHeaderProps) {
   return (
     <div style={{ display: 'grid', gap: space.md }}>
@@ -96,32 +102,32 @@ export function StoryHeader({
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: space.sm, flexWrap: 'wrap' }}>
-        {scenarios.map((scenario) => {
-          const isActive = scenario.id === activeScenarioId;
-          return (
+      {showScenarioTabs ? (
+        <div style={{ display: 'flex', gap: space.sm, flexWrap: 'wrap' }}>
+          {onAiModeSelect ? (
             <button
-              key={scenario.id}
-              data-testid={`scenario-${scenario.id}`}
-              onClick={() => onScenarioSelect(scenario.id)}
-              style={{
-                border: `1px solid ${isActive ? playgroundTheme.color.accent : playgroundTheme.color.border}`,
-                background: isActive ? playgroundTheme.gradient.accent : playgroundTheme.color.surface,
-                color: isActive ? playgroundTheme.color.white : playgroundTheme.color.text,
-                fontWeight: 600,
-                borderRadius: radius.pill,
-                padding: `${space.sm}px ${space.md}px`,
-                cursor: 'pointer',
-                letterSpacing: '0.02em',
-                textTransform: 'uppercase',
-                ...typeScale.caption,
-              }}
+              data-testid="scenario-ai-mode"
+              onClick={onAiModeSelect}
+              style={chipStyle(isAiMode)}
             >
-              {scenario.title}
+              AI Mode
             </button>
-          );
-        })}
-      </div>
+          ) : null}
+          {scenarios.map((scenario) => {
+            const isActive = !isAiMode && scenario.id === activeScenarioId;
+            return (
+              <button
+                key={scenario.id}
+                data-testid={`scenario-${scenario.id}`}
+                onClick={() => onScenarioSelect(scenario.id)}
+                style={chipStyle(isActive)}
+              >
+                {scenario.title}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -135,6 +141,20 @@ function toggleStyle(active: boolean) {
     cursor: 'pointer',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
+    ...typeScale.caption,
+  };
+}
+
+function chipStyle(active: boolean) {
+  return {
+    border: `1px solid ${active ? playgroundTheme.color.accent : playgroundTheme.color.border}`,
+    background: active ? playgroundTheme.gradient.accent : playgroundTheme.color.surface,
+    color: active ? playgroundTheme.color.white : playgroundTheme.color.text,
+    borderRadius: radius.pill,
+    padding: `${space.sm}px ${space.md}px`,
+    cursor: 'pointer',
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
     ...typeScale.caption,
   };
 }
