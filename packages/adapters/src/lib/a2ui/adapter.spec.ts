@@ -344,8 +344,46 @@ describe('a2uiAdapter', () => {
         { id: 'ca', label: 'Canada' },
       ]);
     });
-  });
+    it('maps collection node to Section', () => {
+      const result = a2uiAdapter.fromView!({
+        viewId: 's',
+        version: '1',
+        nodes: [
+          {
+            id: 'items',
+            type: 'collection',
+            label: 'My Items',
+            template: { id: 'tpl', type: 'field', dataType: 'string' }
+          } as any,
+        ],
+      });
 
+      expect(result.fields[0].type).toBe('Section');
+      expect(result.fields[0].name).toBe('items');
+      expect(result.fields[0].label).toBe('My Items');
+      expect(result.fields[0].fields).toHaveLength(1);
+      expect(result.fields[0].fields![0].name).toBe('tpl');
+    });
+
+    it('maps action node to TextInput', () => {
+      const result = a2uiAdapter.fromView!({
+        viewId: 's',
+        version: '1',
+        nodes: [
+          {
+            id: 'submit',
+            type: 'action',
+            intentId: 'run',
+            label: 'Submit Button',
+          } as any,
+        ],
+      });
+
+      expect(result.fields[0].type).toBe('TextInput');
+      expect(result.fields[0].name).toBe('submit');
+      expect(result.fields[0].label).toBe('Submit Button');
+    });
+  });
   describe('toState', () => {
     it('converts string values to NodeValue', () => {
       const result = a2uiAdapter.toState!({ email: 'test@example.com' });
