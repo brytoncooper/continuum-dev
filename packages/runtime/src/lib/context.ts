@@ -115,13 +115,46 @@ export function findPriorNode(
   ctx: ReconciliationContext,
   newNode: ViewNode
 ): ViewNode | null {
+  // 1. Exact Full Path ID
   const newNodeId = ctx.newNodeIds.get(newNode) ?? newNode.id;
   const byId = ctx.priorById.get(newNodeId) ?? ctx.priorById.get(newNode.id);
   if (byId) return byId;
 
+  // 2. Exact Key
   if (newNode.key) {
     const byKey = findByKey(ctx.priorByKey, newNode.key, newNodeId);
     if (byKey) return byKey;
+    
+    // 3. Dot-Notation Suffix Key
+    if (newNode.key.includes('.')) {
+      const parts = newNode.key.split('.');
+      const suffix = parts[parts.length - 1];
+      if (suffix) {
+        const bySuffixKey = findByKey(ctx.priorByKey, suffix, newNodeId);
+        if (bySuffixKey) return bySuffixKey;
+      }
+    }
+  }
+
+  // 4. Unique Raw ID Mapping
+  const candidates = ctx.priorIdsByRawId.get(newNode.id);
+  if (candidates && candidates.length === 1) {
+    const uniquePriorId = candidates[0];
+    const uniqueNode = ctx.priorById.get(uniquePriorId);
+    if (uniqueNode) return uniqueNode;
+  }
+
+  // 5. Dot-Notation Suffix ID Match (Match newly dot-notated key to old unique raw ID)
+  if (newNode.key && newNode.key.includes('.')) {
+    const parts = newNode.key.split('.');
+    const suffix = parts[parts.length - 1];
+    if (suffix) {
+      const keyCandidates = ctx.priorIdsByRawId.get(suffix);
+      if (keyCandidates && keyCandidates.length === 1) {
+        const uniqueNode = ctx.priorById.get(keyCandidates[0]);
+        if (uniqueNode) return uniqueNode;
+      }
+    }
   }
 
   return null;
@@ -161,7 +194,25 @@ export function determineNodeMatchStrategy(
 ): 'id' | 'key' | null {
   if (!priorNode) return null;
   const newNodeId = ctx.newNodeIds.get(newNode) ?? newNode.id;
-  return ctx.priorById.has(newNodeId) || ctx.priorById.has(newNode.id) ? 'id' : 'key';
+  if (ctx.priorById.has(newNodeId) || ctx.priorById.has(newNode.id)) return 'id';
+  
+  if (newNode.key && (ctx.priorByKey.has(newNode.key) || findByKey(ctx.priorByKey, newNode.key, newNodeId) === priorNode)) return 'key';
+
+  if (newNode.key && newNode.key.includes('.')) {
+    const parts = newNode.key.split('.');
+    const suffix = parts[parts.length - 1];
+    if (suffix && findByKey(ctx.priorByKey, suffix, newNodeId) === priorNode) return 'key';
+  }
+
+  if (priorNode.id === newNode.id) return 'id';
+
+  if (newNode.key && newNode.key.includes('.')) {
+    const parts = newNode.key.split('.');
+    const suffix = parts[parts.length - 1];
+    if (suffix && priorNode.id === suffix) return 'id';
+  }
+
+  return 'id'; // fallback to id for other fuzzy matches
 }
 
 export function resolvePriorSnapshotId(

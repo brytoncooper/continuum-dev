@@ -16,7 +16,41 @@ interface CollectionResolutionResult {
   didMigrateItems: boolean;
 }
 
+export function resolveCollectionDefaultValues(node: CollectionNode): NodeValue<CollectionNodeState> {
+  if (!node.defaultValues || !Array.isArray(node.defaultValues)) {
+    return createInitialCollectionValue(node);
+  }
+
+  const { keyToPath } = buildTemplatePathMap(node.template);
+  
+  const items = node.defaultValues.map((defaultItem) => {
+    const itemValues: Record<string, NodeValue> = {};
+    
+    // Fill in default values based on semantic keys provided in `defaultValues`
+    for (const [key, value] of Object.entries(defaultItem)) {
+      const path = keyToPath.get(key) || key; // If path not mapped, use key as path
+      itemValues[path] = { value };
+    }
+    
+    // Fill in missing fields with template defaults
+    const templateDefaults = collectTemplateDefaults(node.template);
+    for (const [path, defaultValue] of Object.entries(templateDefaults)) {
+      if (!(path in itemValues)) {
+        itemValues[path] = defaultValue;
+      }
+    }
+    
+    return { values: itemValues };
+  });
+
+  return { value: { items } };
+}
+
 export function createInitialCollectionValue(node: CollectionNode): NodeValue<CollectionNodeState> {
+  if (node.defaultValues && Array.isArray(node.defaultValues)) {
+    return resolveCollectionDefaultValues(node);
+  }
+
   const minItems = normalizeMinItems(node.minItems);
   const items = Array.from({ length: minItems }, () => ({
     values: collectTemplateDefaults(node.template),
@@ -136,6 +170,56 @@ export function reconcileCollectionValue(
   const priorPathMap = buildTemplatePathMap(priorTemplate);
   const newPathMap = buildTemplatePathMap(newTemplate);
   const shouldRemap = needsPathRemapping(priorPathMap, newPathMap);
+
+  // Check if AI pushed new defaultValues that differ from the prior ones
+  let receivedNewDefaults = false;
+  let hasDirtyItems = false;
+
+  if (newNode.defaultValues !== undefined) {
+    if (!priorNode.defaultValues || JSON.stringify(priorNode.defaultValues) !== JSON.stringify(newNode.defaultValues)) {
+      receivedNewDefaults = true;
+    }
+  }
+
+  // Determine if any prior item has dirty fields
+  if (receivedNewDefaults && priorValue !== undefined) {
+    const state = (priorValue as NodeValue<CollectionNodeState>).value;
+    if (state && Array.isArray(state.items)) {
+      hasDirtyItems = state.items.some(item => 
+        item.values && Object.values(item.values).some(v => v.isDirty)
+      );
+    }
+  }
+
+  // If AI provided new defaultValues, populate those instead
+  if (receivedNewDefaults) {
+    const defaultCollection = resolveCollectionDefaultValues(newNode);
+    const constrained = applyItemConstraints(defaultCollection.value.items, newNode.minItems, newNode.maxItems, issues, newNode.id);
+
+    // If there were dirty items, return the new defaults as a `suggestion` for the whole collection
+    if (hasDirtyItems) {
+      const suggestedValue: NodeValue<CollectionNodeState> = {
+        value: normalized.value, // keep prior as current
+        suggestion: { items: constrained } // new items as suggestion
+      };
+      // Keep isDirty flag from prior NodeValue if it exists
+      if ((normalized as any).isDirty) {
+        suggestedValue.isDirty = true;
+      }
+      return {
+        value: suggestedValue,
+        issues,
+        didMigrateItems: true, // Treat as migration to force UI update
+      };
+    }
+
+    // If no dirty items, immediately overwrite
+    return {
+      value: { value: { items: constrained } },
+      issues,
+      didMigrateItems: true,
+    };
+  }
 
   const migratedItems = normalized.value.items.map((item) => {
     // Step 1: Remap value paths from old template structure to new

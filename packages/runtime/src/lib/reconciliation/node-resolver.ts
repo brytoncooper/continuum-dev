@@ -100,6 +100,7 @@ export function resolveAllNodes(
         newId,
         priorNode,
         priorNodeId!,
+        newNode,
         matchedBy as 'id' | 'key',
         priorValue,
         priorData,
@@ -284,6 +285,7 @@ function resolveHashChangedNode(
     newId,
     priorNode,
     priorNodeId,
+    newNode,
     matchedBy as 'id' | 'key',
     priorValue,
     priorData,
@@ -296,13 +298,36 @@ function resolveUnchangedNode(
   newId: string,
   priorNode: ViewNode,
   priorNodeId: string,
+  newNode: ViewNode,
   matchedBy: 'id' | 'key',
   priorValue: unknown,
   priorData: DataSnapshot,
   now: number
 ): void {
   if (priorValue !== undefined) {
-    acc.values[newId] = priorValue as NodeValue;
+    const priorNodeValue = priorValue as NodeValue;
+    const resolvedValue = { ...priorNodeValue };
+    
+    // Check if AI provided a new defaultValue that differs from prior
+    if ('defaultValue' in newNode && newNode.defaultValue !== undefined) {
+      if ('defaultValue' in priorNode) {
+        if (JSON.stringify(priorNode.defaultValue) !== JSON.stringify(newNode.defaultValue)) {
+          if (priorNodeValue.isDirty) {
+            resolvedValue.suggestion = newNode.defaultValue;
+          } else {
+            resolvedValue.value = newNode.defaultValue;
+          }
+        }
+      } else {
+        if (priorNodeValue.isDirty) {
+          resolvedValue.suggestion = newNode.defaultValue;
+        } else {
+          resolvedValue.value = newNode.defaultValue;
+        }
+      }
+    }
+
+    acc.values[newId] = resolvedValue;
     carryValuesMeta(acc.valueLineage, newId, priorNodeId, priorData, now, false);
   }
 
