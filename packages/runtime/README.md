@@ -1,6 +1,6 @@
 # @continuum/runtime
 
-The stateless reconciliation engine for the Continuum SDK.
+Pure stateless orchestration and reconciliation engine for the Continuum SDK.
 
 Given a new view, a prior view, and prior data, the `reconcile()` function produces a reconciled state along with diffs, resolutions, and issues. It is a pure function with no side effects.
 
@@ -27,17 +27,17 @@ function reconcile(
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `newView` | `ViewDefinition` | The new view to reconcile |
-| `priorView` | `ViewDefinition \| null` | The prior view (`null` when no prior view is available) |
-| `priorData` | `DataSnapshot \| null` | The prior persisted data (`null` when no prior data is available) |
-| `options` | `ReconciliationOptions` | Optional configuration |
+| Parameter   | Type                     | Description                                                       |
+| ----------- | ------------------------ | ----------------------------------------------------------------- |
+| `newView`   | `ViewDefinition`         | The new view to reconcile                                         |
+| `priorView` | `ViewDefinition \| null` | The prior view (`null` when no prior view is available)           |
+| `priorData` | `DataSnapshot \| null`   | The prior persisted data (`null` when no prior data is available) |
+| `options`   | `ReconciliationOptions`  | Optional configuration                                            |
 
 **Behavior by scenario:**
 
 - **No prior data** (`priorData === null`): returns fresh reconciled state for all nodes (all marked `added`)
-- **No prior view** (`priorView === null`): attempts blind carry by node ID when allowed, otherwise starts from empty values
+- **No prior view** (`priorView === null`): attempts blind carry by node ID with key-based fallback when allowed, otherwise starts from empty values
 - **Both exist**: runs full reconciliation (context indexing, id/key matching, migration, carry, and removals)
 
 ### Usage
@@ -51,10 +51,10 @@ const result = reconcile(newView, priorView, priorData, {
   },
 });
 
-console.log(result.reconciledState);  // DataSnapshot
-console.log(result.diffs);      // what changed
+console.log(result.reconciledState); // DataSnapshot
+console.log(result.diffs); // what changed
 console.log(result.resolutions); // per-node resolution records
-console.log(result.issues);     // warnings and errors
+console.log(result.issues); // warnings and errors
 ```
 
 ## Types
@@ -63,9 +63,9 @@ console.log(result.issues);     // warnings and errors
 
 ```typescript
 interface ReconciliationResult {
-  reconciledState: DataSnapshot;        // the merged state ready for rendering
-  diffs: StateDiff[];                  // what changed during reconciliation
-  issues: ReconciliationIssue[];       // warnings, errors, and info
+  reconciledState: DataSnapshot; // the merged state ready for rendering
+  diffs: StateDiff[]; // what changed during reconciliation
+  issues: ReconciliationIssue[]; // warnings, errors, and info
   resolutions: ReconciliationResolution[]; // per-node resolution log
 }
 ```
@@ -74,11 +74,11 @@ interface ReconciliationResult {
 
 ```typescript
 interface ReconciliationOptions {
-  allowPartialRestore?: boolean;     // allow partial state restoration when detached values apply (default: false)
-  allowBlindCarry?: boolean;         // carry state by ID when no prior view exists (default: false)
-  migrationStrategies?: Record<string, MigrationStrategy>;  // per-node migration overrides
-  strategyRegistry?: Record<string, MigrationStrategy>;     // named strategies for schema migration rules
-  clock?: () => number;              // custom clock for timestamps (default: Date.now)
+  allowPartialRestore?: boolean; // allow partial state restoration when detached values apply (default: false)
+  allowBlindCarry?: boolean; // carry state by ID when no prior view exists (default: false)
+  migrationStrategies?: Record<string, MigrationStrategy>; // per-node migration overrides
+  strategyRegistry?: Record<string, MigrationStrategy>; // named strategies for schema migration rules
+  clock?: () => number; // custom clock for timestamps (default: Date.now)
 }
 ```
 
@@ -100,14 +100,14 @@ Per-node record of what happened during reconciliation.
 
 ```typescript
 interface ReconciliationResolution {
-  nodeId: string;                                // node in the new view
-  priorId: string | null;                        // matched node from prior view
-  matchedBy: 'id' | 'key' | null;               // how the match was found
-  priorType: string | null;                      // type in prior view
-  newType: string;                               // type in new view
+  nodeId: string; // node in the new view
+  priorId: string | null; // matched node from prior view
+  matchedBy: 'id' | 'key' | null; // how the match was found
+  priorType: string | null; // type in prior view
+  newType: string; // type in new view
   resolution: 'added' | 'carried' | 'migrated' | 'detached' | 'restored';
-  priorValue: unknown;                           // state before reconciliation
-  reconciledValue: unknown;                      // state after reconciliation
+  priorValue: unknown; // state before reconciliation
+  reconciledValue: unknown; // state after reconciliation
 }
 ```
 
@@ -118,7 +118,7 @@ interface ReconciliationIssue {
   severity: 'error' | 'warning' | 'info';
   nodeId?: string;
   message: string;
-  code: string;    // one of ISSUE_CODES values
+  code: string; // one of ISSUE_CODES values
 }
 ```
 
@@ -139,7 +139,7 @@ Lower-level functions used internally but exported for advanced use cases.
 
 ### `buildReconciliationContext()`
 
-Indexes both schemas into lookup maps for efficient matching.
+Indexes both views into lookup maps for efficient matching.
 
 ```typescript
 function buildReconciliationContext(

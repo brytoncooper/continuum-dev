@@ -37,20 +37,23 @@ Package contains:
 - `src/lib/session-hardening.spec.ts`
 - `src/lib/session.spec.ts`
 - `src/lib/session/README.md`
-- `src/lib/session/intent-manager.ts`
-- `src/lib/session/intent-manager.spec.ts`
+- `src/lib/session/action-manager.spec.ts`
 - `src/lib/session/checkpoint-manager.ts`
 - `src/lib/session/checkpoint-manager.spec.ts`
 - `src/lib/session/destroyer.ts`
 - `src/lib/session/event-log.ts`
 - `src/lib/session/event-log.spec.ts`
+- `src/lib/session/intent-manager.ts`
 - `src/lib/session/listeners.ts`
 - `src/lib/session/listeners.spec.ts`
-- `src/lib/session/view-pusher.ts`
+- `src/lib/session/persistence.ts`
+- `src/lib/session/persistence.spec.ts`
+- `src/lib/session/proposals.spec.ts`
 - `src/lib/session/serializer.ts`
 - `src/lib/session/serializer.spec.ts`
 - `src/lib/session/session-state.ts`
 - `src/lib/session/session-state.spec.ts`
+- `src/lib/session/view-pusher.ts`
 
 ## 3) Public API Summary
 
@@ -63,9 +66,9 @@ Public entrypoints:
 
 Public `Session` methods:
 
-- readers: `sessionId`, `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getPendingIntents`, `getDetachedValues`, `getCheckpoints`
-- view/data/intents: `pushView`, `recordIntent`, `updateState`
-- intents: `submitIntent`, `validateIntent`, `cancelIntent`
+- readers: `sessionId`, `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getPendingIntents`, `getDetachedValues`, `getCheckpoints`, `getViewportState`, `getPendingProposals`, `getRegisteredActions`
+- view/data: `pushView`, `recordIntent`, `updateState`, `updateViewportState`, `proposeValue`, `acceptProposal`, `rejectProposal`, `purgeDetachedValues`
+- intents/actions: `submitIntent`, `validateIntent`, `cancelIntent`, `registerAction`, `unregisterAction`, `dispatchAction`
 - checkpointing: `checkpoint`, `restoreFromCheckpoint`, `rewind`
 - lifecycle/subscriptions: `reset`, `onSnapshot`, `onIssues`, `serialize`, `destroy`
 
@@ -205,6 +208,9 @@ Fields:
 - `maxCheckpoints?: number`
 - `reconciliation?: Omit<ReconciliationOptions, 'clock'>`
 - `validateOnUpdate?: boolean`
+- `persistence?: SessionPersistenceOptions`
+- `detachedValuePolicy?: DetachedValuePolicy`
+- `actions?: Record<string, { registration: ActionRegistration; handler: ActionHandler }>`
 
 ### Interface: `Session`
 
@@ -237,12 +243,12 @@ Purpose:
 Public method wiring inside returned object:
 
 - `sessionId` getter: returns `internal.sessionId`
-- `getSnapshot`: returns null if destroyed, else snapshot from listeners helper
-- `getIssues`/`getDiffs`/`getResolutions`/`getEventLog`/`getPendingIntents`/`getCheckpoints`: return copies or empty when destroyed
-- `getDetachedValues`: returns shallow copy of `currentData.detachedValues` or empty object when unavailable/destroyed
+- `getSnapshot`: returns current snapshot; throws after destroy
+- `getIssues`/`getDiffs`/`getResolutions`/`getEventLog`/`getPendingIntents`/`getCheckpoints`: return defensive copies; throw after destroy
+- `getDetachedValues`: returns shallow copy of `currentData.detachedValues`; throws after destroy
 - `pushView`: delegates to `view-pusher.pushView`
 - `recordIntent`: delegates to `event-log.recordIntent`
-- `updateState`: converts to `recordIntent` with `INTERACTION_TYPES.STATE_UPDATE`
+- `updateState`: converts to `recordIntent` with `INTERACTION_TYPES.DATA_UPDATE`
 - `submitIntent`/`validateIntent`/`cancelIntent`: delegate to intent manager
 - `checkpoint`/`restoreFromCheckpoint`/`rewind`: delegate to checkpoint manager
 - `reset`: uses `resetSessionState` if not destroyed
@@ -352,7 +358,7 @@ Format:
 
 Note:
 
-- contains timestamp and random component, not guaranteed cryptographic uniqueness
+- contains timestamp and crypto-random component via `crypto.randomUUID()`
 
 ---
 
@@ -518,7 +524,7 @@ Role:
 
 Behavior:
 
-- deep clone via JSON stringify/parse
+- deep clone via `structuredClone(...)`
 
 Implications:
 
@@ -644,7 +650,7 @@ Constants:
 
 ### Function: `deepClone(value): T`
 
-- JSON deep-clone helper used by serializer
+- `structuredClone(...)` helper used by serializer
 
 ### Function: `serializeSession(internal): unknown`
 
@@ -734,8 +740,8 @@ Behavior:
 
 Post-condition:
 
-- public getters in orchestrator report empty/null values
-- future operations generally no-op due to destroyed checks
+- public API calls throw `Session has been destroyed`
+- internal module guards prevent further state mutation
 
 ---
 
@@ -972,13 +978,14 @@ Key assertions:
 
 ### `session.getSnapshot()`
 
-- returns `null` before first view push or after destroy
+- returns `null` before first view push
 - otherwise current `{ view, data }`
+- throws `Session has been destroyed` after destroy
 
 ### `session.getIssues()`, `session.getDiffs()`, `session.getResolutions()`
 
 - return arrays from latest reconciliation context
-- empty after destroy
+- throw `Session has been destroyed` after destroy
 
 ### `session.pushView(view)`
 
@@ -994,7 +1001,7 @@ Key assertions:
 
 ### `session.updateState(nodeId, payload)`
 
-- shorthand for `recordIntent` with `STATE_UPDATE` interaction type
+- shorthand for `recordIntent` with `DATA_UPDATE` interaction type
 
 ### `session.getEventLog()`
 
@@ -1064,13 +1071,12 @@ Limits:
 
 Destroyed behavior:
 
-- most mutating methods no-op after destroy
-- getters return null/empty values after destroy
+- public accessors and mutators throw `Session has been destroyed` after destroy
 
 Reset vs destroy:
 
 - `reset`: reusable session, same ID/options/listeners preserved
-- `destroy`: terminal state, listeners cleared, methods mostly inert
+- `destroy`: terminal state, listeners cleared, later calls throw
 
 ## 8) Data Compatibility and Format Notes
 

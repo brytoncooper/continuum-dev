@@ -7,22 +7,22 @@ These modules are internal to `@continuum/runtime`. They are imported only by th
 ```
 reconcile.ts (orchestrator)
   ├─ state-builder.buildFreshSessionResult     when no prior state
-  ├─ state-builder.buildBlindCarryResult       when no prior schema
+  ├─ state-builder.buildBlindCarryResult       when no prior view
   └─ full reconciliation path:
-       context.buildReconciliationContext  →  index components by id and key
+       context.buildReconciliationContext  →  index nodes by id and key
        context.buildPriorValueLookupByIdAndKey  →  map prior values to new IDs via key matching
-       component-resolver.resolveAllComponents  →  per-component decisions
-         ├─ differ.*  →  create diff and trace entries
+       node-resolver.resolveAllNodes  →  per-node decisions
+         ├─ differ.*  →  create diff and resolution entries
          └─ migrator.attemptMigration  →  resolve migration strategies
-       component-resolver.detectRemovedComponents  →  find orphaned state
+       node-resolver.detectRemovedNodes  →  find orphaned state
        state-builder.assembleReconciliationResult  →  pack final output
 ```
 
 ## Modules
 
-| File | Responsibility |
-|---|---|
-| `differ.ts` | Pure factory functions that build `StateDiff` and `ReconciliationTrace` objects. No logic, just construction. |
-| `migrator.ts` | Resolves which migration strategy to use (explicit, schema-declared, or same-type passthrough) and applies it. |
-| `component-resolver.ts` | Iterates every component in the new schema and decides its fate: added, type-changed (dropped), migrated, or carried. Also detects removed components. |
-| `state-builder.ts` | Builds the final `ReconciliationResult` for all three code paths. Owns utility functions for session IDs, schema hashing, and value meta propagation. |
+| File               | Responsibility                                                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `differ.ts`        | Pure factory functions that build `StateDiff` and `ReconciliationResolution` objects. No logic, just construction.                                  |
+| `migrator.ts`      | Resolves which migration strategy to use (explicit, view-declared, or same-type passthrough) and applies it.                                        |
+| `node-resolver.ts` | Iterates every node in the new view and decides its fate: added, type-changed (dropped), migrated, or carried. Also detects removed nodes.          |
+| `state-builder.ts` | Builds the final `ReconciliationResult` for all three code paths. Owns utility functions for session IDs, view hashing, and value meta propagation. |

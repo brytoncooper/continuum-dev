@@ -76,7 +76,14 @@ Usage notes:
 Defined in `view-definition.ts`.
 
 ```ts
-type ViewNode = FieldNode | GroupNode | CollectionNode | ActionNode | PresentationNode;
+type ViewNode =
+  | FieldNode
+  | GroupNode
+  | CollectionNode
+  | ActionNode
+  | PresentationNode
+  | RowNode
+  | GridNode;
 ```
 
 All five node types extend `BaseNode`:
@@ -95,7 +102,7 @@ interface BaseNode {
 `BaseNode` field semantics:
 
 - `id`: required per-version node identifier; used as data key
-- `type`: discriminant tag (`'field'` | `'group'` | `'collection'` | `'action'` | `'presentation'`)
+- `type`: discriminant tag (`'field'` | `'group'` | `'collection'` | `'action'` | `'presentation'` | `'row'` | `'grid'`)
 - `key`: optional semantic identity across versions; used for matching during migration
 - `hidden`: visibility flag
 - `hash`: structural fingerprint for compatibility/migration decisions
@@ -113,6 +120,7 @@ interface FieldNode extends BaseNode {
   readOnly?: boolean;
   defaultValue?: unknown;
   constraints?: FieldConstraints;
+  options?: FieldOption[];
 }
 ```
 
@@ -129,6 +137,8 @@ Purpose:
 interface GroupNode extends BaseNode {
   type: 'group';
   label?: string;
+  layout?: 'vertical' | 'horizontal' | 'grid';
+  columns?: number;
   children: ViewNode[];
 }
 ```
@@ -147,6 +157,7 @@ interface CollectionNode extends BaseNode {
   template: ViewNode;
   minItems?: number;
   maxItems?: number;
+  defaultValues?: Array<Record<string, unknown>>;
 }
 ```
 
@@ -190,7 +201,39 @@ Purpose:
 - `contentType` signals rendering mode
 - carries no user data
 
-### 3.8 `FieldConstraints`
+### 3.8 `RowNode`
+
+```ts
+interface RowNode extends BaseNode {
+  type: 'row';
+  children: ViewNode[];
+}
+```
+
+Purpose:
+
+- structural container that arranges child nodes horizontally
+- `children` is the recursion point
+- carries no user data
+
+### 3.9 `GridNode`
+
+```ts
+interface GridNode extends BaseNode {
+  type: 'grid';
+  columns?: number;
+  children: ViewNode[];
+}
+```
+
+Purpose:
+
+- structural container that arranges child nodes in a grid format
+- `columns` specifies the explicit column count (optional)
+- `children` is the recursion point
+- carries no user data
+
+### 3.10 `FieldConstraints`
 
 Defined in `view-definition.ts`.
 
@@ -211,7 +254,7 @@ Purpose:
 - supports both numeric (`min`/`max`) and string (`minLength`/`maxLength`) constraints
 - `pattern` encodes regex as string for portability/serialization
 
-### 3.9 `MigrationRule`
+### 3.11 `MigrationRule`
 
 Defined in `view-definition.ts`.
 
@@ -233,20 +276,20 @@ Field semantics:
 - `toHash`: new node hash
 - `strategyId`: optional migration strategy selector in consumer code
 
-### 3.10 `getChildNodes`
+### 3.12 `getChildNodes`
 
 Defined in `view-definition.ts`.
 
 ```ts
-function getChildNodes(node: ViewNode): ViewNode[]
+function getChildNodes(node: ViewNode): ViewNode[];
 ```
 
 Purpose:
 
 - pure utility for traversing the node tree
-- returns `children` for `GroupNode`, `[template]` for `CollectionNode`, `[]` for all others
+- returns `children` for `GroupNode`, `RowNode`, and `GridNode`, `[template]` for `CollectionNode`, `[]` for all others
 
-### 3.11 `DataSnapshot`
+### 3.13 `DataSnapshot`
 
 Defined in `data-snapshot.ts`.
 
@@ -273,13 +316,14 @@ Why `detachedValues` matters:
 - protects user data during view evolution when nodes are removed or incompatible
 - allows delayed reconciliation, inspection, rollback, or manual resolution
 
-### 3.12 `NodeValue`
+### 3.14 `NodeValue`
 
 Defined in `data-snapshot.ts`.
 
 ```ts
 interface NodeValue<T = unknown> {
   value: T;
+  suggestion?: T;
   isDirty?: boolean;
   isValid?: boolean;
 }
@@ -290,7 +334,7 @@ Purpose:
 - wraps any node's data payload with modification and validity tracking
 - generic `T` defaults to `unknown` for maximum flexibility
 
-### 3.13 `ViewContext`
+### 3.15 `ViewContext`
 
 Defined in `data-snapshot.ts`.
 
@@ -308,7 +352,7 @@ Purpose:
 - per-node UI interaction state (position, expansion, focus)
 - separated from data values to keep user data clean
 
-### 3.14 `SnapshotLineage`
+### 3.16 `SnapshotLineage`
 
 Defined in `data-snapshot.ts`.
 
@@ -334,7 +378,7 @@ Field semantics:
 - `viewId` / `viewVersion` / `viewHash`: view provenance used for compatibility checks
 - `lastInteractionId`: event linkage for traceability
 
-### 3.15 `ValueLineage`
+### 3.17 `ValueLineage`
 
 Defined in `data-snapshot.ts`.
 
@@ -349,7 +393,7 @@ Purpose:
 
 - per-key observability and lineage metadata
 
-### 3.16 `DetachedValue`
+### 3.18 `DetachedValue`
 
 Defined in `data-snapshot.ts`.
 
@@ -377,7 +421,7 @@ Field semantics:
 - `viewVersion`: view version at time of detachment
 - `reason`: bounded reason taxonomy for downstream handling/reporting
 
-### 3.17 `ContinuitySnapshot`
+### 3.19 `ContinuitySnapshot`
 
 Defined in `continuity-snapshot.ts`.
 
@@ -393,7 +437,7 @@ Role:
 - root aggregate type representing one coherent point-in-time continuity state
 - combines structure (`view`) with data (`data`) atomically
 
-### 3.18 `Interaction`
+### 3.20 `Interaction`
 
 Defined in `interactions.ts`.
 
@@ -402,7 +446,7 @@ interface Interaction {
   interactionId: string;
   sessionId: string;
   nodeId: string;
-  type: string;
+  type: InteractionType;
   payload: unknown;
   timestamp: number;
   viewVersion: string;
@@ -423,7 +467,7 @@ Field semantics:
 - `timestamp`: event time
 - `viewVersion`: view version observed at event time
 
-### 3.19 `PendingIntent`
+### 3.21 `PendingIntent`
 
 Defined in `interactions.ts`.
 
@@ -453,7 +497,7 @@ Field semantics:
 - `viewVersion`: view version at queue time
 - `status`: must be one of the `INTENT_STATUS` values via `IntentStatus` union
 
-### 3.20 `Checkpoint`
+### 3.22 `Checkpoint`
 
 Defined in `interactions.ts`.
 
@@ -504,6 +548,8 @@ Values:
 - `UNKNOWN_NODE`
 - `DUPLICATE_NODE_ID`
 - `DUPLICATE_NODE_KEY`
+- `VIEW_CHILD_CYCLE_DETECTED`
+- `VIEW_MAX_DEPTH_EXCEEDED`
 - `COLLECTION_CONSTRAINT_VIOLATED`
 - `SCOPE_COLLISION`
 
@@ -559,8 +605,8 @@ Values:
 
 Note:
 
-- `Interaction.type` is currently `string`, not `InteractionType`
-- consumers can still choose to constrain to `InteractionType` for stricter behavior
+- `Interaction.type` is `InteractionType`
+- producers should use `INTERACTION_TYPES` constants to avoid string drift
 - `view-context-change` covers updates to `ViewContext` entries
 
 ### 4.6 `INTENT_STATUS` and `IntentStatus`
@@ -588,7 +634,9 @@ ContinuitySnapshot
 │       ├── GroupNode ─── children: ViewNode[]  (recursion)
 │       ├── CollectionNode ─── template: ViewNode  (recursion)
 │       ├── ActionNode
-│       └── PresentationNode
+│       ├── PresentationNode
+│       ├── RowNode ─── children: ViewNode[]  (recursion)
+│       └── GridNode ─── children: ViewNode[]  (recursion)
 │       (all extend BaseNode ─── migrations?: MigrationRule[])
 └── data: DataSnapshot
     ├── values: Record<string, NodeValue>
@@ -607,11 +655,13 @@ Flat reference list:
 - `ContinuitySnapshot -> ViewDefinition`
 - `ContinuitySnapshot -> DataSnapshot`
 - `ViewDefinition -> ViewNode[]`
-- `ViewNode = FieldNode | GroupNode | CollectionNode | ActionNode | PresentationNode`
+- `ViewNode = FieldNode | GroupNode | CollectionNode | ActionNode | PresentationNode | RowNode | GridNode`
 - `BaseNode -> MigrationRule[]`
 - `FieldNode -> FieldConstraints`
 - `GroupNode -> ViewNode[] (children recursion)`
 - `CollectionNode -> ViewNode (template recursion)`
+- `RowNode -> ViewNode[] (children recursion)`
+- `GridNode -> ViewNode[] (children recursion)`
 - `DataSnapshot -> Record<string, NodeValue>`
 - `DataSnapshot -> SnapshotLineage`
 - `DataSnapshot -> Record<string, ValueLineage>`
@@ -657,7 +707,7 @@ When evolving view or data contracts:
 - use `hash` + `migrations` metadata on `BaseNode` to keep transitions explicit
 - use `detachedValues` as a safety net instead of destructive data drops
 - keep constant vocabularies append-only when possible; renaming literals is high-risk
-- if narrowing `Interaction.type` to `InteractionType` in future, evaluate all producers first
+- keep producers aligned with `INTERACTION_TYPES` values when evolving interaction handling
 - new node types should extend `BaseNode` and be added to the `ViewNode` union
 
 ## 9) Practical Usage Patterns
@@ -693,35 +743,37 @@ If an AI agent is generating or transforming contract objects:
 
 ## 11) Quick Cross-Reference Table
 
-| Type / Constant | File | Core Purpose | Key Connections |
-| --- | --- | --- | --- |
-| `ViewDefinition` | `view-definition.ts` | Root view definition | Contains `ViewNode[]` |
-| `ViewNode` | `view-definition.ts` | Discriminated union of all node types | `FieldNode \| GroupNode \| CollectionNode \| ActionNode \| PresentationNode` |
-| `BaseNode` | `view-definition.ts` | Shared node fields | Extended by all five node types; holds `MigrationRule[]` |
-| `FieldNode` | `view-definition.ts` | Data-bearing input node | Uses `FieldConstraints`; has `dataType` |
-| `GroupNode` | `view-definition.ts` | Structural container | Recursive `children: ViewNode[]` |
-| `CollectionNode` | `view-definition.ts` | Repeatable item pattern | Recursive `template: ViewNode` |
-| `ActionNode` | `view-definition.ts` | Triggerable action | `intentId` links to `PendingIntent` |
-| `PresentationNode` | `view-definition.ts` | Read-only content | `contentType` + `content` |
-| `FieldConstraints` | `view-definition.ts` | Validation metadata | Attached to `FieldNode` |
-| `MigrationRule` | `view-definition.ts` | Hash transition descriptor | Attached to any `BaseNode` |
-| `getChildNodes` | `view-definition.ts` | Tree traversal utility | Returns child `ViewNode[]` for group/collection |
-| `DataSnapshot` | `data-snapshot.ts` | Runtime data container | Holds `values`, `lineage`, optional metadata/detached values/view context |
-| `NodeValue<T>` | `data-snapshot.ts` | Node data wrapper | Used by `DataSnapshot.values` |
-| `ViewContext` | `data-snapshot.ts` | Per-node UI state | Optional map on `DataSnapshot` |
-| `SnapshotLineage` | `data-snapshot.ts` | Snapshot provenance | Aligns with view and interaction ids |
-| `ValueLineage` | `data-snapshot.ts` | Per-value provenance | Optional map on `DataSnapshot` |
-| `DetachedValue` | `data-snapshot.ts` | Retained incompatible value | Keeps reasoned detachment context |
-| `ContinuitySnapshot` | `continuity-snapshot.ts` | Atomic view+data | Used in checkpoints and transport |
-| `Interaction` | `interactions.ts` | Event record | Links session/node/viewVersion |
-| `PendingIntent` | `interactions.ts` | Queued intent | `status: IntentStatus`; `intentId` links to `ActionNode` |
-| `Checkpoint` | `interactions.ts` | Restore point | Embeds `ContinuitySnapshot` |
-| `ISSUE_CODES` / `IssueCode` | `constants.ts` | Issue taxonomy | Used by validation/migration systems |
-| `DATA_RESOLUTIONS` / `DataResolution` | `constants.ts` | Data reconciliation taxonomy | Used in carry/migrate/detach reporting |
-| `VIEW_DIFFS` / `ViewDiff` | `constants.ts` | View diff taxonomy | Used in change summaries |
-| `ISSUE_SEVERITY` / `IssueSeverity` | `constants.ts` | Severity taxonomy | Used in issue reporting |
-| `INTERACTION_TYPES` / `InteractionType` | `constants.ts` | Interaction taxonomy | Suggested for `Interaction.type` values |
-| `INTENT_STATUS` / `IntentStatus` | `constants.ts` | Pending intent status taxonomy | Bound to `PendingIntent.status` |
+| Type / Constant                         | File                     | Core Purpose                          | Key Connections                                                              |
+| --------------------------------------- | ------------------------ | ------------------------------------- | ---------------------------------------------------------------------------- |
+| `ViewDefinition`                        | `view-definition.ts`     | Root view definition                  | Contains `ViewNode[]`                                                        |
+| `ViewNode`                              | `view-definition.ts`     | Discriminated union of all node types | `FieldNode \| GroupNode \| CollectionNode \| ActionNode \| PresentationNode` |
+| `BaseNode`                              | `view-definition.ts`     | Shared node fields                    | Extended by all node types; holds `MigrationRule[]`                          |
+| `FieldNode`                             | `view-definition.ts`     | Data-bearing input node               | Uses `FieldConstraints`; has `dataType`                                      |
+| `GroupNode`                             | `view-definition.ts`     | Structural container                  | Recursive `children: ViewNode[]`                                             |
+| `CollectionNode`                        | `view-definition.ts`     | Repeatable item pattern               | Recursive `template: ViewNode`                                               |
+| `ActionNode`                            | `view-definition.ts`     | Triggerable action                    | `intentId` links to `PendingIntent`                                          |
+| `PresentationNode`                      | `view-definition.ts`     | Read-only content                     | `contentType` + `content`                                                    |
+| `RowNode`                               | `view-definition.ts`     | Horizontal container                  | Recursive `children: ViewNode[]`                                             |
+| `GridNode`                              | `view-definition.ts`     | Grid container                        | Recursive `children: ViewNode[]`                                             |
+| `FieldConstraints`                      | `view-definition.ts`     | Validation metadata                   | Attached to `FieldNode`                                                      |
+| `MigrationRule`                         | `view-definition.ts`     | Hash transition descriptor            | Attached to any `BaseNode`                                                   |
+| `getChildNodes`                         | `view-definition.ts`     | Tree traversal utility                | Returns child `ViewNode[]` for group/collection                              |
+| `DataSnapshot`                          | `data-snapshot.ts`       | Runtime data container                | Holds `values`, `lineage`, optional metadata/detached values/view context    |
+| `NodeValue<T>`                          | `data-snapshot.ts`       | Node data wrapper                     | Used by `DataSnapshot.values`                                                |
+| `ViewContext`                           | `data-snapshot.ts`       | Per-node UI state                     | Optional map on `DataSnapshot`                                               |
+| `SnapshotLineage`                       | `data-snapshot.ts`       | Snapshot provenance                   | Aligns with view and interaction ids                                         |
+| `ValueLineage`                          | `data-snapshot.ts`       | Per-value provenance                  | Optional map on `DataSnapshot`                                               |
+| `DetachedValue`                         | `data-snapshot.ts`       | Retained incompatible value           | Keeps reasoned detachment context                                            |
+| `ContinuitySnapshot`                    | `continuity-snapshot.ts` | Atomic view+data                      | Used in checkpoints and transport                                            |
+| `Interaction`                           | `interactions.ts`        | Event record                          | Links session/node/viewVersion                                               |
+| `PendingIntent`                         | `interactions.ts`        | Queued intent                         | `status: IntentStatus`; `intentId` links to `ActionNode`                     |
+| `Checkpoint`                            | `interactions.ts`        | Restore point                         | Embeds `ContinuitySnapshot`                                                  |
+| `ISSUE_CODES` / `IssueCode`             | `constants.ts`           | Issue taxonomy                        | Used by validation/migration systems                                         |
+| `DATA_RESOLUTIONS` / `DataResolution`   | `constants.ts`           | Data reconciliation taxonomy          | Used in carry/migrate/detach reporting                                       |
+| `VIEW_DIFFS` / `ViewDiff`               | `constants.ts`           | View diff taxonomy                    | Used in change summaries                                                     |
+| `ISSUE_SEVERITY` / `IssueSeverity`      | `constants.ts`           | Severity taxonomy                     | Used in issue reporting                                                      |
+| `INTERACTION_TYPES` / `InteractionType` | `constants.ts`           | Interaction taxonomy                  | Required vocabulary for `Interaction.type`                                    |
+| `INTENT_STATUS` / `IntentStatus`        | `constants.ts`           | Pending intent status taxonomy        | Bound to `PendingIntent.status`                                              |
 
 ## 12) Example Composite Object
 
@@ -762,7 +814,7 @@ const example: ContinuitySnapshot = {
         id: 'terms',
         type: 'presentation',
         contentType: 'markdown',
-        content: '**Please review** the [terms of service](/terms).',
+        content: '**Please review** the terms of service before continuing.',
       },
       {
         id: 'submit',

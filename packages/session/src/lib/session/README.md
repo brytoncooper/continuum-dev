@@ -10,17 +10,17 @@ session.ts (orchestrator)
   deserialize    -->  serializer.deserializeToState + assembleSessionFromInternalState
 
   assembleSessionFromInternalState wires the Session interface:
-    pushSchema:
-      schema-pusher.pushSchema
+    pushView:
+      view-pusher.pushView
         reconcile(...)                      @continuum/runtime
-        action-manager.markAllPendingActionsAsStale  mark stale on version change
+        intent-manager.markAllPendingIntentsAsStale  mark stale on version change
         checkpoint-manager.autoCheckpoint   snapshot after each push
         listeners.notifySnapshotAndIssueListeners        broadcast to subscribers
     recordIntent / updateState:
       event-log.recordIntent              update state + event log
       listeners.notifySnapshotListeners   broadcast state change
-    submitAction / validateAction / cancelAction:
-      action-manager.*
+    submitIntent / validateIntent / cancelIntent:
+      intent-manager.*
     checkpoint / rewind / restoreFromCheckpoint:
       checkpoint-manager.*
       listeners.notifySnapshotAndIssueListeners
@@ -34,13 +34,13 @@ session.ts (orchestrator)
 
 ## Modules
 
-| File | Responsibility |
-|---|---|
-| `session-state.ts` | `SessionState` interface, `createEmptySessionState` factory, `generateId` utility. |
-| `listeners.ts` | Snapshot and issue listener notification, subscription helpers. `buildSnapshotFromCurrentState` builds the current `ContinuitySnapshot`. |
-| `schema-pusher.ts` | `pushSchema` -- runs reconciliation, stales actions, auto-checkpoints, and notifies listeners. |
-| `checkpoint-manager.ts` | Auto-checkpoint on schema push, manual checkpoint, restore, and rewind with stack trimming. |
-| `action-manager.ts` | Pending action lifecycle: submit, validate, cancel, and stale-on-version-change. |
-| `event-log.ts` | `recordIntent` -- logs interactions and updates component state + valuesMeta. |
-| `serializer.ts` | `serializeSession` and `deserializeToState` with format version validation. |
-| `destroyer.ts` | `teardownSessionAndClearState` -- tears down internal state and clears listeners. |
+| File                    | Responsibility                                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `session-state.ts`      | `SessionState` interface, `createEmptySessionState` factory, `generateId` utility.                                                       |
+| `listeners.ts`          | Snapshot and issue listener notification, subscription helpers. `buildSnapshotFromCurrentState` builds the current `ContinuitySnapshot`. |
+| `view-pusher.ts`        | `pushView` -- runs reconciliation, stales intents, auto-checkpoints, and notifies listeners.                                             |
+| `checkpoint-manager.ts` | Auto-checkpoint on view push, manual checkpoint, restore, and rewind with stack trimming.                                                |
+| `intent-manager.ts`     | Pending intent lifecycle: submit, validate, cancel, and stale-on-version-change.                                                         |
+| `event-log.ts`          | `recordIntent` -- logs interactions and updates component state + valuesMeta.                                                            |
+| `serializer.ts`         | `serializeSession` and `deserializeToState` with format version validation.                                                              |
+| `destroyer.ts`          | `teardownSessionAndClearState` -- tears down internal state and clears listeners.                                                        |
