@@ -2,10 +2,15 @@ import type {
   ContinuitySnapshot,
   Interaction,
   DetachedValue,
+  DetachedValuePolicy,
+  ProposedValue,
   ViewportState,
   PendingIntent,
   Checkpoint,
   ViewDefinition,
+  NodeValue,
+  ActionRegistration,
+  ActionHandler,
 } from '@continuum/contract';
 import type {
   ReconciliationIssue,
@@ -41,6 +46,8 @@ export interface SessionOptions {
   reconciliation?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate?: boolean;
   persistence?: SessionPersistenceOptions;
+  detachedValuePolicy?: DetachedValuePolicy;
+  actions?: Record<string, { registration: ActionRegistration; handler: ActionHandler }>;
 }
 
 export interface Session {
@@ -59,6 +66,11 @@ export interface Session {
   submitIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): void;
   getPendingIntents(): PendingIntent[];
   getDetachedValues(): Record<string, DetachedValue>;
+  purgeDetachedValues(filter?: (key: string, value: DetachedValue) => boolean): void;
+  proposeValue(nodeId: string, value: NodeValue, source?: string): void;
+  acceptProposal(nodeId: string): void;
+  rejectProposal(nodeId: string): void;
+  getPendingProposals(): Record<string, ProposedValue>;
   validateIntent(intentId: string): boolean;
   cancelIntent(intentId: string): boolean;
   checkpoint(): Checkpoint;
@@ -70,6 +82,10 @@ export interface Session {
   onIssues(listener: (issues: ReconciliationIssue[]) => void): () => void;
   serialize(): unknown;
   destroy(): { issues: ReconciliationIssue[] };
+  registerAction(intentId: string, registration: ActionRegistration, handler: ActionHandler): void;
+  unregisterAction(intentId: string): void;
+  getRegisteredActions(): Record<string, ActionRegistration>;
+  dispatchAction(intentId: string, nodeId: string): void | Promise<void>;
 }
 
 export interface SessionFactory {

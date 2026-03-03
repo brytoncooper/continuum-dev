@@ -157,6 +157,8 @@ export function deserializeToState(
     checkpoints: raw.checkpoints ?? [],
     snapshotListeners: new Set(),
     issueListeners: new Set(),
+    pendingProposals: {},
+    actionRegistry: new Map(),
     destroyed: false,
   };
 }
