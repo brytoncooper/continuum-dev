@@ -398,5 +398,43 @@ describe('collection reconciliation', () => {
     const result = reconcile(newView, priorView, priorData);
     expect(result.issues.some(i => i.code === 'TYPE_MISMATCH')).toBe(true);
   });
+
+  it('populates initial items from defaultValues array on fresh session', () => {
+    const view = makeView([
+      collectionNode('addresses', {
+        template: makeNode({ id: 'val', type: 'field' }),
+        defaultValues: [
+          { val: 'first' },
+          { val: 'second' }
+        ]
+      })
+    ]);
+    const result = reconcile(view, null, null);
+    
+    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    expect(items).toHaveLength(2);
+    expect(items[0].values['val']).toEqual({ value: 'first' });
+    expect(items[1].values['val']).toEqual({ value: 'second' });
+  });
+
+  it('retains dirty state on existing collection items during carry', () => {
+    const priorView = makeView([collectionNode('addresses')]);
+    const newView = makeView([collectionNode('addresses')]);
+    
+    // Simulate user editing an item
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'dirty-value', isDirty: true } } }],
+        },
+      },
+    });
+    
+    const result = reconcile(newView, priorView, priorData);
+    
+    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    expect(items).toHaveLength(1);
+    expect(items[0].values['addresses-item-value']).toEqual({ value: 'dirty-value', isDirty: true });
+  });
 });
 

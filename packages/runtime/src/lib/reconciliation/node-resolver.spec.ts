@@ -16,7 +16,6 @@ function makeNode(
 ): ViewNode {
   const type = overrides.type ?? 'field';
   return {
-    id: overrides.id,
     key: overrides.key,
     hash: overrides.hash,
     hidden: overrides.hidden,
@@ -113,6 +112,85 @@ describe('resolveAllNodes', () => {
     expect(result.values['a']).toEqual({ value: 'hello' });
     expect(result.diffs[0].type).toBe('migrated');
     expect(result.resolutions[0].resolution).toBe('migrated');
+  });
+
+  it('routes AI default values to suggestion when field is dirty', () => {
+    const priorView = makeView([makeNode({ id: 'a', defaultValue: 'old' })]);
+    const newView = makeView([makeNode({ id: 'a', defaultValue: 'new' })]);
+    const priorData = makeData({ a: { value: 'user-edit', isDirty: true } });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({ value: 'user-edit', isDirty: true, suggestion: 'new' });
+  });
+
+  it('overwrites value with AI default when field is clean', () => {
+    const priorView = makeView([makeNode({ id: 'a', defaultValue: 'old' })]);
+    const newView = makeView([makeNode({ id: 'a', defaultValue: 'new' })]);
+    const priorData = makeData({ a: { value: 'old', isDirty: false } });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({ value: 'new', isDirty: false });
+  });
+
+  it('carries state between compatible container types (row -> group)', () => {
+    const priorView = makeView([makeNode({ id: 'a', type: 'row', children: [] } as any)]);
+    const newView = makeView([makeNode({ id: 'a', type: 'group', children: [] } as any)]);
+    const priorData = makeData({ a: { value: 'container-state' } });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({ value: 'container-state' });
+    expect(result.resolutions[0].resolution).toBe('carried');
+  });
+
+  it('restores detached values when a node is re-added with the same key and type', () => {
+    const priorView = makeView([]);
+    const newView = makeView([makeNode({ id: 'a', key: 'email', type: 'field' })]);
+    
+    // Simulate a snapshot that has a detached value for 'email'
+    const priorData = makeData({});
+    priorData.detachedValues = {
+      email: {
+        value: { value: 'test@detached.com' },
+        previousNodeType: 'field',
+        key: 'email',
+        detachedAt: 1000,
+        viewVersion: '1.0',
+        reason: 'node-removed',
+      }
+    };
+
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({ value: 'test@detached.com' });
+    expect(result.diffs[0].type).toBe('restored');
+    expect(result.resolutions[0].resolution).toBe('restored');
+  });
+
+  it('creates a detached value when a type mismatch occurs', () => {
+    const priorView = makeView([makeNode({ id: 'a', type: 'field', key: 'email' })]);
+    const newView = makeView([makeNode({ id: 'a', type: 'action', key: 'email' })]);
+    const priorData = makeData({ a: { value: 'hello' } });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toBeUndefined();
+    expect(result.detachedValues['email']).toBeDefined();
+    expect(result.detachedValues['email'].value).toEqual({ value: 'hello' });
+    expect(result.detachedValues['email'].reason).toBe('type-mismatch');
   });
 });
 
