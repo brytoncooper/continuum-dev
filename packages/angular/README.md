@@ -2,7 +2,7 @@
 
 Angular bindings for the Continuum SDK.
 
-Provides environment providers, signal-based inject APIs, a schema-driven standalone renderer, and Reactive Forms / Signal Forms adapters. Handles persistence to localStorage/sessionStorage automatically.
+Provides environment providers, signal-based inject APIs, a view-driven standalone renderer, and Reactive Forms / Signal Forms adapters. Handles persistence to localStorage/sessionStorage automatically.
 
 ## Installation
 

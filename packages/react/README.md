@@ -15,13 +15,17 @@ Peer dependency: `react` >= 18.
 ## Quick Start
 
 ```tsx
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/react';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+} from '@continuum/react';
 
 const componentMap = {
-  input: MyInput,
-  select: MySelect,
-  toggle: MyToggle,
-  default: MyFallback,
+  field: MyFieldComponent,
+  group: MyGroupComponent,
+  action: MyActionComponent,
+  presentation: MyPresentationComponent,
 };
 
 function App() {
@@ -45,9 +49,7 @@ function Page() {
     session.pushView(view);
   }, []);
 
-  return snapshot?.view
-    ? <ContinuumRenderer view={snapshot.view} />
-    : null;
+  return snapshot?.view ? <ContinuumRenderer view={snapshot.view} /> : null;
 }
 ```
 
@@ -59,14 +61,14 @@ Wraps your application and manages the Continuum session.
 
 **Props** (`ContinuumProviderProps`):
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `components` | `ContinuumComponentMap` | required | Map of component type strings to React components |
-| `persist` | `'localStorage' \| 'sessionStorage' \| false` | `false` | Where to persist session data |
-| `storageKey` | `string` | `'continuum_session'` | Key used in storage |
-| `maxPersistBytes` | `number` | — | Optional max serialized payload size in bytes before writes are skipped |
-| `onPersistError` | `(error: ContinuumPersistError) => void` | — | Called for skipped writes (`size_limit`) and storage failures (`storage_error`) |
-| `children` | `React.ReactNode` | required | Child elements |
+| Prop              | Type                                          | Default               | Description                                                                     |
+| ----------------- | --------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `components`      | `ContinuumComponentMap`                       | required              | Map of component type strings to React components                               |
+| `persist`         | `'localStorage' \| 'sessionStorage' \| false` | `false`               | Where to persist session data                                                   |
+| `storageKey`      | `string`                                      | `'continuum_session'` | Key used in storage                                                             |
+| `maxPersistBytes` | `number`                                      | —                     | Optional max serialized payload size in bytes before writes are skipped         |
+| `onPersistError`  | `(error: ContinuumPersistError) => void`      | —                     | Called for skipped writes (`size_limit`) and storage failures (`storage_error`) |
+| `children`        | `React.ReactNode`                             | required              | Child elements                                                                  |
 
 On mount, the provider attempts to rehydrate from storage. If rehydration succeeds, `useContinuumHydrated()` returns `true`. On every snapshot change, the session is automatically serialized back to storage. When `maxPersistBytes` is set and the payload exceeds the limit, the write is skipped and `onPersistError` is notified (or a warning is logged if no callback is provided).
 
@@ -80,8 +82,8 @@ Renders a view by mapping each `ViewNode` to a React component from the componen
 
 **Props:**
 
-| Prop | Type | Description |
-|---|---|---|
+| Prop   | Type             | Description        |
+| ------ | ---------------- | ------------------ |
 | `view` | `ViewDefinition` | The view to render |
 
 Each component is wrapped in a `<div data-continuum-id={definition.id}>` for identification. Children are rendered recursively. If a component type isn't in the map, falls back to `componentMap['default']`, then to the built-in `FallbackComponent`.
@@ -159,10 +161,10 @@ Every component in the map receives `ContinuumComponentProps`:
 
 ```typescript
 interface ContinuumComponentProps<T = NodeValue> {
-  value: T | undefined;             // current state for this component
-  onChange: (value: T) => void;     // update state
-  definition: ViewNode;  // view definition
-  children?: React.ReactNode;       // rendered children (for containers)
+  value: T | undefined; // current state for this component
+  onChange: (value: T) => void; // update state
+  definition: ViewNode; // view definition
+  children?: React.ReactNode; // rendered children (for containers)
 }
 
 type ContinuumComponentMap = Record<
@@ -185,27 +187,6 @@ function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
       placeholder={definition.key ?? definition.id}
     />
   );
-}
-```
-
-## Internal Exports
-
-### `usePersistence(session, storage, key, maxPersistBytes?, onPersistError?)`
-
-Hook that subscribes to snapshot changes and persists to the given `Storage` object.
-
-### `ContinuumContext`
-
-The React context. Exported for advanced use cases but not typically used directly.
-
-### `ContinuumContextValue`
-
-```typescript
-interface ContinuumContextValue {
-  session: Session;
-  store: ContinuumStore;
-  componentMap: ContinuumComponentMap;
-  wasHydrated: boolean;
 }
 ```
 

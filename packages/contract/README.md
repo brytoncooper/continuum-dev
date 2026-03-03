@@ -40,7 +40,9 @@ type ViewNode =
   | GroupNode
   | CollectionNode
   | ActionNode
-  | PresentationNode;
+  | PresentationNode
+  | RowNode
+  | GridNode;
 ```
 
 All node types extend `BaseNode`.
@@ -80,6 +82,8 @@ interface FieldNode extends BaseNode {
 interface GroupNode extends BaseNode {
   type: 'group';
   label?: string;
+  layout?: 'vertical' | 'horizontal' | 'grid';
+  columns?: number;
   children: ViewNode[];
 }
 ```
@@ -93,6 +97,7 @@ interface CollectionNode extends BaseNode {
   template: ViewNode;
   minItems?: number;
   maxItems?: number;
+  defaultValues?: Array<Record<string, unknown>>;
 }
 ```
 
@@ -114,6 +119,25 @@ interface PresentationNode extends BaseNode {
   type: 'presentation';
   contentType: 'text' | 'markdown';
   content: string;
+}
+```
+
+#### RowNode
+
+```ts
+interface RowNode extends BaseNode {
+  type: 'row';
+  children: ViewNode[];
+}
+```
+
+#### GridNode
+
+```ts
+interface GridNode extends BaseNode {
+  type: 'grid';
+  columns?: number;
+  children: ViewNode[];
 }
 ```
 
@@ -158,6 +182,8 @@ function getChildNodes(node: ViewNode): ViewNode[];
 Returns child nodes for recursion:
 
 - `GroupNode.children`
+- `RowNode.children`
+- `GridNode.children`
 - `[template]` for `CollectionNode`
 - `[]` for other node types
 
@@ -180,6 +206,7 @@ interface DataSnapshot {
 ```ts
 interface NodeValue<T = unknown> {
   value: T;
+  suggestion?: T;
   isDirty?: boolean;
   isValid?: boolean;
 }
@@ -261,7 +288,7 @@ interface Interaction {
   interactionId: string;
   sessionId: string;
   nodeId: string;
-  type: string;
+  type: InteractionType;
   payload: unknown;
   timestamp: number;
   viewVersion: string;
@@ -302,18 +329,20 @@ All constants are `as const` objects with derived union types.
 ### ISSUE_CODES
 
 ```ts
-NO_PRIOR_DATA
-NO_PRIOR_VIEW
-TYPE_MISMATCH
-NODE_REMOVED
-MIGRATION_FAILED
-UNVALIDATED_CARRY
-VALIDATION_FAILED
-UNKNOWN_NODE
-DUPLICATE_NODE_ID
-DUPLICATE_NODE_KEY
-COLLECTION_CONSTRAINT_VIOLATED
-SCOPE_COLLISION
+NO_PRIOR_DATA;
+NO_PRIOR_VIEW;
+TYPE_MISMATCH;
+NODE_REMOVED;
+MIGRATION_FAILED;
+UNVALIDATED_CARRY;
+VALIDATION_FAILED;
+UNKNOWN_NODE;
+DUPLICATE_NODE_ID;
+DUPLICATE_NODE_KEY;
+VIEW_CHILD_CYCLE_DETECTED;
+VIEW_MAX_DEPTH_EXCEEDED;
+COLLECTION_CONSTRAINT_VIOLATED;
+SCOPE_COLLISION;
 ```
 
 Type: `IssueCode`
@@ -321,11 +350,11 @@ Type: `IssueCode`
 ### DATA_RESOLUTIONS
 
 ```ts
-carried
-migrated
-detached
-added
-restored
+carried;
+migrated;
+detached;
+added;
+restored;
 ```
 
 Type: `DataResolution`
@@ -333,11 +362,11 @@ Type: `DataResolution`
 ### VIEW_DIFFS
 
 ```ts
-added
-removed
-migrated
-type-changed
-restored
+added;
+removed;
+migrated;
+type - changed;
+restored;
 ```
 
 Type: `ViewDiff`
@@ -345,9 +374,9 @@ Type: `ViewDiff`
 ### ISSUE_SEVERITY
 
 ```ts
-error
-warning
-info
+error;
+warning;
+info;
 ```
 
 Type: `IssueSeverity`
@@ -355,9 +384,9 @@ Type: `IssueSeverity`
 ### INTERACTION_TYPES
 
 ```ts
-data-update
-value-change
-view-context-change
+data - update;
+value - change;
+view - context - change;
 ```
 
 Type: `InteractionType`
@@ -365,24 +394,29 @@ Type: `InteractionType`
 ### INTENT_STATUS
 
 ```ts
-pending
-validated
-stale
-cancelled
+pending;
+validated;
+stale;
+cancelled;
 ```
 
 Type: `IntentStatus`
 
 ## Notes
 
-- `Interaction.type` is typed as `string` for backward-compatible extensibility while `InteractionType` provides the canonical vocabulary.
+- `Interaction.type` is typed as `InteractionType` and validated via shared interaction constants.
 - `DataResolution` uses `detached` rather than the old `dropped` wording.
 - Prefer additive changes when evolving contracts.
 
 ## Minimal Example
 
 ```ts
-import { ViewDefinition, DataSnapshot, ContinuitySnapshot, ISSUE_CODES } from '@continuum/contract';
+import {
+  ViewDefinition,
+  DataSnapshot,
+  ContinuitySnapshot,
+  ISSUE_CODES,
+} from '@continuum/contract';
 
 const view: ViewDefinition = {
   viewId: 'loan-application',
@@ -421,4 +455,4 @@ const issue = ISSUE_CODES.NO_PRIOR_DATA;
 
 ## Link
 
-- [Schema Contract](../../docs/SCHEMA_CONTRACT.md)
+- [View Contract Reference](../../docs/SCHEMA_CONTRACT.md)

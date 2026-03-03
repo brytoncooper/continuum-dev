@@ -3,6 +3,7 @@
 This document is a deep technical guide to everything currently inside `packages/runtime`.
 
 It is written for both:
+
 - humans onboarding to the runtime package, and
 - AI agents that need precise, implementation-level context.
 
@@ -11,6 +12,7 @@ It is written for both:
 ## 1) Package Purpose
 
 `@continuum/runtime` is a pure reconciliation engine:
+
 - Input: `newView`, `priorView`, `priorData`, and optional reconciliation options.
 - Output: a deterministic `ReconciliationResult` containing:
   - `reconciledState`
@@ -86,6 +88,7 @@ Top-level flow:
 ## 4) Public API Surface
 
 From `src/index.ts`, the package exports:
+
 - everything in `src/lib/reconcile.ts`
 - everything in `src/lib/types.ts`
 - everything in `src/lib/context.ts`
@@ -100,15 +103,18 @@ Notably, the internal reconciliation modules (`differ`, `migrator`, `node-resolv
 ## `package.json`
 
 Purpose:
+
 - package metadata and entry wiring.
 
 Important fields:
+
 - `name: "@continuum/runtime"`
 - `type: "module"` (ESM semantics)
 - `main` and `types` both point to `./src/index.ts` in-repo
 - dependency on `@continuum/contract`
 
 Methods/functions:
+
 - none
 
 ---
@@ -116,15 +122,18 @@ Methods/functions:
 ## `project.json`
 
 Purpose:
+
 - Nx project registration.
 
 Important fields:
+
 - `name: "runtime"`
 - `sourceRoot: "packages/runtime/src"`
 - `projectType: "library"`
 - tag `scope:shared`
 
 Methods/functions:
+
 - none
 
 ---
@@ -132,9 +141,11 @@ Methods/functions:
 ## `tsconfig.json`
 
 Purpose:
+
 - local TypeScript project config entry extending `tsconfig.lib.json`.
 
 Methods/functions:
+
 - none
 
 ---
@@ -142,14 +153,17 @@ Methods/functions:
 ## `tsconfig.lib.json`
 
 Purpose:
+
 - compile-time settings for library builds.
 
 Notable behavior:
+
 - compiles `src/**/*.ts`
 - excludes spec/test files
 - references `../contract/tsconfig.lib.json`
 
 Methods/functions:
+
 - none
 
 ---
@@ -157,9 +171,11 @@ Methods/functions:
 ## `vitest.config.ts`
 
 Purpose:
+
 - test runner configuration.
 
 Function inventory:
+
 - `defineConfig(() => ({ ... }))`
   - sets package-local Vite cache dir
   - configures Vitest name, environment (`node`), include globs, reporters, and coverage output
@@ -169,9 +185,11 @@ Function inventory:
 ## `README.md`
 
 Purpose:
+
 - user-facing package overview and API quickstart.
 
 Methods/functions:
+
 - none (documentation only)
 
 ---
@@ -179,9 +197,11 @@ Methods/functions:
 ## `src/index.ts`
 
 Purpose:
+
 - public export barrel.
 
 Function inventory:
+
 - none (exports only)
 
 ---
@@ -189,9 +209,11 @@ Function inventory:
 ## `src/lib/types.ts`
 
 Purpose:
+
 - typed contracts for reconcile outputs, options, and internal accumulators.
 
 Defined types/interfaces:
+
 - `ReconciliationResult`
 - `StateDiff`
 - `ReconciliationResolution`
@@ -201,6 +223,7 @@ Defined types/interfaces:
 - `NodeResolutionAccumulator` (internal shape used by resolver pipeline)
 
 Methods/functions:
+
 - none
 
 ---
@@ -208,17 +231,20 @@ Methods/functions:
 ## `src/lib/context.ts`
 
 Purpose:
+
 - build view indexing maps, duplicate detection, and match helpers used by reconciliation.
 
 ### `buildReconciliationContext(newView, priorView): ReconciliationContext`
 
 Behavior:
+
 - recursively indexes both views (new and prior) into:
   - `newById`, `newByKey`
   - `priorById`, `priorByKey`
 - supports nested `children` traversal.
 
 Internal helper:
+
 - `indexNodesByIdAndKey(nodes, byId, byKey)`
   - walks node trees recursively.
   - map storage resolves last-write-wins for indexing while duplicate diagnostics are collected as issues.
@@ -226,6 +252,7 @@ Internal helper:
 ### `findPriorNode(ctx, newNode): ViewNode | null`
 
 Behavior:
+
 - match order:
   1. `priorById` lookup by `newNode.id`
   2. if no id match and `newNode.key` exists: `priorByKey` lookup
@@ -234,29 +261,34 @@ Behavior:
 ### `buildPriorValueLookupByIdAndKey(priorData, ctx): Map<string, unknown>`
 
 Behavior:
+
 - starts from prior data `values` object.
 - maps direct prior IDs to values.
 - also maps values forward to new node IDs when a prior node key maps to a new node key.
 
 Why this matters:
+
 - enables carrying data across ID changes where stable `key` is preserved.
 
 ### `determineNodeMatchStrategy(ctx, newNode, priorNode): 'id' | 'key' | null`
 
 Behavior:
+
 - returns:
   - `null` if `priorNode` is null
   - `'id'` if `ctx.priorById.has(newNodeId)` or equivalent indexed match exists
   - `'key'` otherwise
 
-### `collectDuplicateIssues(nodes)` 
+### `collectDuplicateIssues(nodes)`
 
 Behavior:
+
 - recursively scans a view for duplicate IDs and keys.
 - emits `DUPLICATE_NODE_ID` errors for ID collisions.
 - emits `DUPLICATE_NODE_KEY` warnings for key collisions.
 
 Notes:
+
 - assumes caller already provided a valid `priorNode` from match logic.
 
 ---
@@ -264,22 +296,26 @@ Notes:
 ## `src/lib/reconcile.ts`
 
 Purpose:
+
 - public orchestration layer.
 
 ### `reconcile(newView, priorView, priorData, options?): ReconciliationResult`
 
 Branching behavior:
+
 - if no `priorData`: calls `buildFreshSessionResult`
 - else if no `priorView`: calls `buildBlindCarryResult`
 - else: calls `reconcileViewTransition`
 
 Clock handling:
+
 - timestamp source is `options.clock ?? Date.now`
 - one timestamp per invocation, used throughout the selected path
 
 ### `reconcileViewTransition(newView, priorView, priorData, now, options)`
 
 Behavior:
+
 1. build context maps
 2. build prior value lookup by ID+key
 3. resolve all new-view nodes
@@ -287,6 +323,7 @@ Behavior:
 5. assemble final result
 
 Methods exported:
+
 - only `reconcile`
 
 ---
@@ -294,9 +331,11 @@ Methods exported:
 ## `src/lib/reconciliation/README.md`
 
 Purpose:
+
 - internal module map for the reconciliation subsystem.
 
 Methods/functions:
+
 - none
 
 ---
@@ -304,6 +343,7 @@ Methods/functions:
 ## `src/lib/reconciliation/differ.ts`
 
 Purpose:
+
 - pure constructors for normalized diff and resolution objects.
 
 No branching orchestration, no state mutation outside return values.
@@ -311,18 +351,22 @@ No branching orchestration, no state mutation outside return values.
 ### Diff builders
 
 1. `addedDiff(nodeId)`
+
    - type: `added`
    - reason: node added to view
 
 2. `removedDiff(nodeId, oldValue)`
+
    - type: `removed`
    - captures prior value
 
 3. `typeChangedDiff(nodeId, oldValue, priorType, newType)`
+
    - type: `type-changed`
    - reason includes old/new type names
 
 4. `migratedDiff(nodeId, oldValue, newValue)`
+
    - type: `migrated`
    - includes both values
 
@@ -334,11 +378,12 @@ No branching orchestration, no state mutation outside return values.
 
 6. `addedResolution(nodeId, newType)`
 7. `carriedResolution(nodeId, priorId, matchedBy, nodeType, priorValue, reconciledValue)`
-8. `droppedResolution(nodeId, priorId, matchedBy, priorType, newType, priorValue)`
+8. `detachedResolution(nodeId, priorId, matchedBy, priorType, newType, priorValue)`
 9. `migratedResolution(nodeId, priorId, matchedBy, priorType, newType, priorValue, reconciledValue)`
 10. `restoredResolution(nodeId, priorType, reconciledValue)`
 
 Resolution semantics:
+
 - each function emits one well-formed data resolution aligned with `DATA_RESOLUTIONS`.
 
 ---
@@ -346,22 +391,26 @@ Resolution semantics:
 ## `src/lib/reconciliation/migrator.ts`
 
 Purpose:
+
 - encapsulates migration strategy resolution and execution.
 
 ### `attemptMigration(nodeId, priorDefinition, newDefinition, priorValue, options): MigrationAttemptResult`
 
 Result union:
+
 - `{ kind: 'migrated', value }`
 - `{ kind: 'none' }`
 - `{ kind: 'error', error }`
 
 Resolution priority:
+
 1. explicit per-node override in `options.migrationStrategies[nodeId]`
 2. view-declared migration rule (`newDefinition.migrations`) + `options.strategyRegistry`
 3. fallback passthrough when types match (`value = priorValue`)
 4. no migration (`kind: 'none'`) when types differ and no strategy exists
 
 Error model:
+
 - any thrown strategy error is caught and returned as `{ kind: 'error' }`
 
 ---
@@ -369,11 +418,13 @@ Error model:
 ## `src/lib/reconciliation/node-resolver.ts`
 
 Purpose:
+
 - core per-node reconciliation engine and removal detection.
 
 ### `resolveAllNodes(ctx, priorValues, priorData, now, options): NodeResolutionAccumulator`
 
 Behavior:
+
 - iterates every node in `ctx.newById`.
 - per node:
   1. find prior match
@@ -387,6 +438,7 @@ Behavior:
   5. run `validateNodeValue` on resolved value
 
 Accumulator fields populated:
+
 - `values`
 - `valueLineage`
 - `detachedValues`
@@ -398,6 +450,7 @@ Accumulator fields populated:
 ### `resolveNewNode(acc, newId, newNode, priorData, now)` (internal)
 
 Behavior:
+
 - if matching detached value exists by key/id and type matches:
   - restore detached value
   - emit `restored` diff/resolution
@@ -409,19 +462,22 @@ Behavior:
 ### `resolveTypeMismatchedNode(...)` (internal)
 
 Behavior:
+
 - emits `TYPE_MISMATCH` error issue
 - emits `type-changed` diff
-- emits `dropped` resolution
+- emits `detached` resolution
 - saves prior value into `detachedValues` with reason `type-mismatch`
 
 ### `hasNodeHashChanged(priorNode, newNode)` (internal)
 
 Behavior:
+
 - returns true only when both hashes exist and differ.
 
 ### `resolveHashChangedNode(...)` (internal)
 
 Behavior:
+
 - calls `attemptMigration`
 - on migrated:
   - write migrated value
@@ -434,6 +490,7 @@ Behavior:
 ### `resolveUnchangedNode(...)` (internal)
 
 Behavior:
+
 - carries prior value if present
 - carries valueLineage unchanged
 - emits `carried` resolution
@@ -441,9 +498,11 @@ Behavior:
 ### `detectRemovedNodes(ctx, priorData, options, now)`
 
 Return shape:
+
 - `{ diffs, issues, detachedValues }`
 
 Behavior:
+
 - scans prior data values and flags entries whose node no longer exists by ID or key in new view.
 - for removed entries:
   - emits `removed` diff
@@ -455,16 +514,19 @@ Behavior:
 ## `src/lib/reconciliation/collection-resolver.ts`
 
 Purpose:
+
 - collection-specific state building and migration paths.
 
 ### `createInitialCollectionValue(node)`
 
 Behavior:
+
 - creates a baseline collection value honoring `minItems`.
 
 ### `reconcileCollectionValue(priorNode, newNode, priorValue, options)`
 
 Behavior:
+
 - normalizes prior collection values before reconciliation.
 - enforces collection constraints (`minItems`, `maxItems`).
 - performs template migration when template hash changes.
@@ -474,29 +536,34 @@ Behavior:
 ## `src/lib/reconciliation/state-builder.ts`
 
 Purpose:
+
 - construct final `ReconciliationResult` objects and metadata propagation utilities.
 
 ### `buildFreshSessionResult(newView, now): ReconciliationResult`
 
 Behavior:
+
 - builds empty/seeded values from node defaults
 - marks all nodes as added (including nested)
 - creates new `sessionId`
 - emits `NO_PRIOR_DATA` info issue
 
 Internal helper:
+
 - `collectNodesAsFreshlyAdded(nodes, values, diffs, resolutions)`
   - recursive traversal to initialize defaults and add entries for each node.
 
 ### `collectNodeIds(nodes)` (internal)
 
 Behavior:
+
 - recursively collects all node IDs in a view tree.
 - used in blind carry mode.
 
 ### `buildBlindCarryResult(newView, priorData, now, options): ReconciliationResult`
 
 Behavior:
+
 - always emits `NO_PRIOR_VIEW` warning.
 - if `allowBlindCarry` true:
   - carries values only for IDs that still exist in new view
@@ -507,6 +574,7 @@ Behavior:
 ### `assembleReconciliationResult(resolved, removals, priorData, newView, now): ReconciliationResult`
 
 Behavior:
+
 - computes optional view hash
 - merges:
   - resolved values
@@ -515,25 +583,30 @@ Behavior:
 - deletes detached keys that were restored in the current pass
 - includes `valueLineage` and `detachedValues` only when non-empty
 
-### `carryValueLineage(target, newId, priorId, priorData, now, isMigrated): void`
+### `carryValuesMeta(target, newId, priorId, priorData, now, isMigrated): void`
 
 Behavior:
+
 - copies prior `valueLineage[priorId]` to `target[newId]` if it exists.
 - when migrated, updates `lastUpdated` to `now`.
 
 ### `computeViewHash(view): string | undefined`
 
 Behavior:
-- recursively collects node hashes
-- returns `undefined` if none found
-- otherwise returns `JSON.stringify(hashes.sort())`
+
+- traverses nodes and builds structural descriptors (`positionPath`, `nodeId`, `type`, `hash`)
+- returns `undefined` if no node hash is present
+- sorts descriptors by `positionPath`
+- returns `JSON.stringify(descriptors)`
 
 Property:
-- order-independent due to sorting
+
+- deterministic for a given tree structure and order; reordering nodes changes the hash
 
 ### `generateSessionId(now): string`
 
 Behavior:
+
 - format: `session_${now}_${random}`
 - randomness comes from `Math.random()`
 
@@ -542,11 +615,13 @@ Behavior:
 ## `src/lib/reconciliation/validator.ts`
 
 Purpose:
+
 - lightweight node-value validation against view constraints.
 
 ### `readStateValue(state)` (internal)
 
 Behavior:
+
 - extracts candidate value from `NodeValue<T>`:
   - `value`
 - returns `undefined` when `state` is `null` or `undefined`.
@@ -554,6 +629,7 @@ Behavior:
 ### `isEmptyValue(value)` (internal)
 
 Behavior:
+
 - empty if:
   - `null`/`undefined`
   - blank string after trim
@@ -562,6 +638,7 @@ Behavior:
 ### `validateNodeValue(definition, state): ReconciliationIssue[]`
 
 Behavior:
+
 - no constraints -> empty array
 - required validation -> warning on empty value
 - numeric validations: `min` and `max`
@@ -569,6 +646,7 @@ Behavior:
 - invalid regex pattern safely handled as warning
 
 Issue code emitted:
+
 - `VALIDATION_FAILED`
 
 ---
@@ -578,10 +656,12 @@ Issue code emitted:
 ## `src/lib/context.spec.ts`
 
 Helper methods:
+
 - `makeView(nodes, id?, version?)`
 - `makeNode(overrides)`
 
 Coverage:
+
 - flat ID indexing
 - key indexing
 - recursive child indexing
@@ -594,17 +674,19 @@ Coverage:
 ## `src/lib/reconcile.spec.ts`
 
 Helper methods:
+
 - `makeView(...)`
 - `makeNode(...)`
 - `makeData(values, lineage?, valueLineage?)`
 
 Coverage domains:
+
 - fresh-data behavior (`NO_PRIOR_DATA`)
 - blind carry/no-prior-view behavior
 - nested blind carry
 - matching by id and key
 - added/removed/type-changed/migrated diffs
-- type mismatch behavior and dropped values
+- type mismatch behavior and detached values
 - migration strategy priority (explicit > registry)
 - migration error/non-applicability behavior
 - valueLineage carry/drop/remap and migrated timestamp updates
@@ -623,6 +705,7 @@ Coverage domains:
 ## `src/lib/reconciliation/collection-resolver.spec.ts`
 
 Coverage:
+
 - collection initialization behavior
 - template migration success/failure behavior
 - template-type mismatch behavior
@@ -633,6 +716,7 @@ Coverage:
 ## `src/lib/reconciliation/scoped-matching.spec.ts`
 
 Coverage:
+
 - scoped matching and nested path behavior for ids and keys
 - duplicate matching behavior under nested scopes
 
@@ -641,6 +725,7 @@ Coverage:
 ## `src/lib/reconciliation/migration-chain.spec.ts`
 
 Coverage:
+
 - ordered migration handler behavior
 - migration fallback behavior when handlers return pass-through/none
 
@@ -649,6 +734,7 @@ Coverage:
 ## `src/lib/reconcile-hardening.spec.ts`
 
 Coverage:
+
 - migration to `null` is treated as valid migrated value
 - thrown migration strategy -> `MIGRATION_FAILED` warning + carry fallback
 - view hash separator-collision hardening test
@@ -660,6 +746,7 @@ Coverage:
 ## `src/lib/reconciliation/differ.spec.ts`
 
 Coverage:
+
 - diff factories produce expected fields and types
 - resolution factories produce expected resolution-specific shapes
 
@@ -668,6 +755,7 @@ Coverage:
 ## `src/lib/reconciliation/migrator.spec.ts`
 
 Coverage:
+
 - explicit strategy execution
 - view-rule + strategyRegistry execution
 - same-type passthrough fallback
@@ -678,11 +766,13 @@ Coverage:
 ## `src/lib/reconciliation/node-resolver.spec.ts`
 
 Helper methods:
+
 - `makeView(...)`
 - `makeNode(...)`
 - `makeData(...)`
 
 Coverage:
+
 - new node added
 - id match carry
 - key match carry
@@ -696,11 +786,13 @@ Coverage:
 ## `src/lib/reconciliation/state-builder.spec.ts`
 
 Helper methods:
+
 - `makeView(...)`
 - `makeNode(...)`
 - `makeData(...)`
 
 Coverage:
+
 - fresh session defaults and metadata
 - recursive added diffs
 - blind carry on/off behavior
@@ -714,6 +806,7 @@ Coverage:
 ## 7) Method Inventory by File (Quick Scan)
 
 ## `src/lib/context.ts`
+
 - `buildReconciliationContext` (exported)
 - `findPriorNode` (exported)
 - `buildPriorValueLookupByIdAndKey` (exported)
@@ -722,10 +815,12 @@ Coverage:
 - `indexNodesByIdAndKey` (internal)
 
 ## `src/lib/reconcile.ts`
+
 - `reconcile` (exported)
 - `reconcileViewTransition` (internal)
 
 ## `src/lib/reconciliation/differ.ts`
+
 - `addedDiff` (exported)
 - `removedDiff` (exported)
 - `typeChangedDiff` (exported)
@@ -733,14 +828,16 @@ Coverage:
 - `restoredDiff` (exported)
 - `addedResolution` (exported)
 - `carriedResolution` (exported)
-- `droppedResolution` (exported)
+- `detachedResolution` (exported)
 - `migratedResolution` (exported)
 - `restoredResolution` (exported)
 
 ## `src/lib/reconciliation/migrator.ts`
+
 - `attemptMigration` (exported)
 
 ## `src/lib/reconciliation/node-resolver.ts`
+
 - `resolveAllNodes` (exported)
 - `detectRemovedNodes` (exported)
 - `resolveNewNode` (internal)
@@ -751,25 +848,29 @@ Coverage:
 - `resolveUnchangedNode` (internal)
 
 ## `src/lib/reconciliation/collection-resolver.ts`
+
 - `createInitialCollectionValue` (exported)
 - `reconcileCollectionValue` (exported)
 
 ## `src/lib/reconciliation/state-builder.ts`
+
 - `buildFreshSessionResult` (exported)
 - `buildBlindCarryResult` (exported)
 - `assembleReconciliationResult` (exported)
-- `carryValueLineage` (exported)
+- `carryValuesMeta` (exported)
 - `computeViewHash` (exported)
 - `generateSessionId` (exported)
 - `collectNodesAsFreshlyAdded` (internal)
 - `collectNodeIds` (internal)
 
 ## `src/lib/reconciliation/validator.ts`
+
 - `validateNodeValue` (exported)
 - `readStateValue` (internal)
 - `isEmptyValue` (internal)
 
 ## Test helper methods across specs
+
 - `makeView` (multiple spec files)
 - `makeNode` (multiple spec files)
 - `makeData` (multiple spec files)
@@ -779,24 +880,30 @@ Coverage:
 ## 8) Behavioral Contracts and Invariants
 
 1. ID match precedence:
+
    - if both ID and key could match different prior nodes, ID is chosen.
 
 2. Type safety over carry:
+
    - type mismatch never carries prior value into new node value.
    - collection template-type mismatches emit `TYPE_MISMATCH` and avoid preserving incompatible template payloads.
 
 3. Migration fallback policy:
+
    - migration failure does not hard fail reconciliation; it warns and falls back to carry path for same-type transitions.
 
 4. Detached value retention model:
+
    - removed/type-mismatched values are preserved in `detachedValues` with metadata.
    - later reintroduction by key+type can restore these values.
 
 5. Optional metadata enrichment:
+
    - `valueLineage` and `detachedValues` omitted from result unless non-empty.
 
 6. View hash determinism:
-   - computed from sorted hash array, so node order does not change result.
+
+   - computed from sorted structural descriptors by position path, so equivalent structures hash the same while reordered structures hash differently.
 
 7. Timestamp injection:
    - custom `clock` enables deterministic testing and replay scenarios.
@@ -806,13 +913,16 @@ Coverage:
 ## 9) Known Design Tradeoffs
 
 1. Duplicate ID/key handling:
+
    - duplicate IDs/keys are detected and surfaced as issues.
    - map indexing still selects a single effective match per index key.
 
 2. Session ID generation:
+
    - uses `Math.random()`, which is nondeterministic by design.
 
 3. Validation extraction heuristic:
+
    - validator reads the `value` field from `NodeValue<T>`, which is pragmatic but shape dependent.
 
 4. Blind carry mode:
@@ -823,6 +933,7 @@ Coverage:
 ## 10) Practical Read Order for New Maintainers
 
 Recommended sequence:
+
 1. `README.md`
 2. `src/lib/types.ts`
 3. `src/lib/reconcile.ts`
@@ -839,6 +950,7 @@ Recommended sequence:
 ## 11) How to Extend Safely
 
 When adding new reconciliation behavior:
+
 1. Add or update issue/diff/resolution shape in a consistent way.
 2. Keep resolver decisions mutually exclusive and explicit.
 3. Add tests in the nearest module spec and in `reconcile.spec.ts` integration flow.
@@ -850,9 +962,11 @@ When adding new reconciliation behavior:
 ## 12) Summary
 
 `@continuum/runtime` is organized around a clear pipeline:
+
 - context indexing -> node resolution -> removal detection -> final assembly.
 
 The package already has broad tests for:
+
 - edge paths,
 - migration behavior,
 - metadata propagation,
