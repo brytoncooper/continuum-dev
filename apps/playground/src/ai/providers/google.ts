@@ -1,5 +1,6 @@
 import type { AIProvider, GenerateResult } from '../types';
 import type { ViewDefinition } from '@continuum/contract';
+import { VIEW_SCHEMA } from '../schema/view-json-schema';
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -56,6 +57,7 @@ export const googleProvider: AIProvider = {
           }),
           generationConfig: {
             responseMimeType: 'application/json',
+            responseSchema: VIEW_SCHEMA,
           },
         }),
       }
