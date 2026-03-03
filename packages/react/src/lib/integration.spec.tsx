@@ -45,6 +45,13 @@ function renderIntoDom(element: ReactElement) {
   };
 }
 
+function requireSession(session: Session | null): Session {
+  if (!session) {
+    throw new Error('Expected session to be captured');
+  }
+  return session;
+}
+
 describe('react integration', () => {
   it('throws when session hook is used outside provider', () => {
     function Outside() {
@@ -388,11 +395,9 @@ describe('react integration', () => {
     expect(renderCounts.group).toBe(1);
     expect(renderCounts.other).toBe(1);
     expect(capturedSession).toBeTruthy();
-    if (!capturedSession) {
-      throw new Error('Expected session to be captured');
-    }
+    const activeSession = requireSession(capturedSession);
     act(() => {
-      capturedSession.updateState('other', { value: 'next' });
+      activeSession.updateState('other', { value: 'next' });
     });
     expect(renderCounts.group).toBe(1);
     expect(renderCounts.other).toBe(2);
@@ -526,6 +531,110 @@ describe('react integration', () => {
       button.click();
     });
     expect(renderCounts.field).toBe(1);
+    rendered.unmount();
+  });
+
+  it('supports collection add/remove and item-scoped state updates', () => {
+    const collectionView: ViewDefinition = {
+      viewId: 'collection-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'addresses',
+          type: 'collection',
+          minItems: 1,
+          maxItems: 3,
+          template: {
+            id: 'address-item',
+            type: 'group',
+            children: [
+              {
+                id: 'city',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'Paris',
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const collectionMap = {
+      collection: ({ children }: { children?: ReactNode }) => (
+        <div data-testid="collection-root">{children}</div>
+      ),
+      group: ({ children }: { children?: ReactNode }) => (
+        <div data-testid="item-group">{children}</div>
+      ),
+      field: ({ value, onChange }: { value: any; onChange: (next: any) => void }) => (
+        <button
+          data-testid="collection-field"
+          onClick={() => onChange({ value: 'Tokyo' })}
+        >
+          {typeof value?.value === 'string' ? value.value : ''}
+        </button>
+      ),
+    };
+    let capturedSession: Session | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(collectionView);
+      }
+      return <ContinuumRenderer view={collectionView} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={collectionMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    const initialInputs = rendered.container.querySelectorAll('[data-testid="collection-field"]');
+    expect(initialInputs).toHaveLength(1);
+    expect((initialInputs[0] as HTMLButtonElement).textContent).toBe('Paris');
+
+    const addButton = rendered.container.querySelector(
+      '[data-continuum-collection-add="addresses"]'
+    ) as HTMLButtonElement | null;
+    expect(addButton).toBeTruthy();
+    if (!addButton) {
+      throw new Error('Expected add button to exist');
+    }
+    act(() => {
+      addButton.click();
+    });
+
+    const twoInputs = rendered.container.querySelectorAll('[data-testid="collection-field"]');
+    expect(twoInputs).toHaveLength(2);
+    act(() => {
+      (twoInputs[1] as HTMLButtonElement).click();
+    });
+
+    expect(capturedSession).toBeTruthy();
+    const activeSession = requireSession(capturedSession);
+    const snapshot = activeSession.getSnapshot();
+    const collectionNode = snapshot?.data.values['addresses'] as any;
+    expect(collectionNode.value.items).toHaveLength(2);
+    expect(collectionNode.value.items[1].values['address-item/city']).toEqual({
+      value: 'Tokyo',
+    });
+
+    const removeButton = rendered.container.querySelector(
+      '[data-continuum-collection-remove="addresses:1"]'
+    ) as HTMLButtonElement | null;
+    expect(removeButton).toBeTruthy();
+    if (!removeButton) {
+      throw new Error('Expected remove button to exist');
+    }
+    act(() => {
+      removeButton.click();
+    });
+    expect(
+      (activeSession.getSnapshot()?.data.values['addresses'] as any).value.items
+    ).toHaveLength(1);
     rendered.unmount();
   });
 });
