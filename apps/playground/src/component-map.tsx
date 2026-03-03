@@ -1,6 +1,10 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ComponentType } from 'react';
 import type { ViewNode, NodeValue } from '@continuum/contract';
-import { useContinuumSession, type ContinuumNodeMap, type ContinuumNodeProps } from '@continuum/react';
+import {
+  useContinuumSession,
+  type ContinuumNodeMap,
+  type ContinuumNodeProps,
+} from '@continuum/react';
 import { color, radius, shadow, space, transition, typeScale } from './ui/tokens';
 
 type Option = { value: string; label: string };
@@ -151,12 +155,117 @@ const ERROR_TEXT: CSSProperties = {
   paddingLeft: 2,
 };
 
+const CONFLICT_WRAP: CSSProperties = {
+  display: 'grid',
+  gap: space.sm,
+};
+
+const CONFLICT_BOX: CSSProperties = {
+  display: 'grid',
+  gap: space.sm,
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.md,
+  border: `1px solid ${color.warning}`,
+  background: `${color.warning}10`,
+};
+
+const CONFLICT_TEXT: CSSProperties = {
+  ...typeScale.caption,
+  color: color.text,
+};
+
+const CONFLICT_ACTIONS: CSSProperties = {
+  display: 'flex',
+  gap: space.sm,
+};
+
+const ACCEPT_BUTTON: CSSProperties = {
+  height: 30,
+  padding: `0 ${space.md}px`,
+  borderRadius: radius.sm,
+  border: `1px solid ${color.success}`,
+  background: color.success,
+  color: color.white,
+  cursor: 'pointer',
+  ...typeScale.caption,
+  fontWeight: 600,
+};
+
+const REJECT_BUTTON: CSSProperties = {
+  height: 30,
+  padding: `0 ${space.md}px`,
+  borderRadius: radius.sm,
+  border: `1px solid ${color.border}`,
+  background: color.surface,
+  color: color.text,
+  cursor: 'pointer',
+  ...typeScale.caption,
+  fontWeight: 600,
+};
+
 function inputWithValidation(style: CSSProperties, error: string | null): CSSProperties {
   if (!error) return style;
   return {
     ...style,
     border: `1px solid ${color.danger}`,
     boxShadow: `0 0 0 2px ${color.danger}22`,
+  };
+}
+
+function formatProposalValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value === null || value === undefined) return 'empty';
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function withSuggestionResolution(
+  Component: ComponentType<ContinuumNodeProps>
+): ComponentType<ContinuumNodeProps> {
+  return function SuggestionAwareComponent(props: ContinuumNodeProps) {
+    const valueObj = props.value as NodeValue | undefined;
+    const hasSuggestion = valueObj && 'suggestion' in valueObj && valueObj.suggestion !== undefined;
+    
+    const accept = () => {
+      if (!valueObj || !hasSuggestion) return;
+      props.onChange({
+        ...valueObj,
+        value: valueObj.suggestion,
+        suggestion: undefined,
+        isDirty: true
+      });
+    };
+
+    const reject = () => {
+      if (!valueObj || !hasSuggestion) return;
+      props.onChange({
+        ...valueObj,
+        suggestion: undefined
+      });
+    };
+
+    return (
+      <div style={CONFLICT_WRAP}>
+        <Component {...props} />
+        {hasSuggestion ? (
+          <div style={CONFLICT_BOX}>
+            <div style={CONFLICT_TEXT}>Suggested value: {formatProposalValue(valueObj.suggestion)}</div>
+            <div style={CONFLICT_ACTIONS}>
+              <button type="button" style={ACCEPT_BUTTON} onClick={accept}>
+                Accept
+              </button>
+              <button type="button" style={REJECT_BUTTON} onClick={reject}>
+                Reject
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
   };
 }
 
@@ -690,4 +799,16 @@ export const componentMap: ContinuumNodeMap = {
   grid: GridSection,
   collection: CollectionSection,
   default: GroupFallback,
+};
+
+export const liveAiComponentMap: ContinuumNodeMap = {
+  ...componentMap,
+  field: withSuggestionResolution(TextInput),
+  select: withSuggestionResolution(Select),
+  toggle: withSuggestionResolution(Toggle),
+  date: withSuggestionResolution(DateInput),
+  textarea: withSuggestionResolution(TextArea),
+  'radio-group': withSuggestionResolution(RadioGroup),
+  slider: withSuggestionResolution(Slider),
+  collection: withSuggestionResolution(CollectionSection),
 };

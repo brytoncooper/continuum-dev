@@ -8,12 +8,16 @@ import {
   useContinuumHydrated,
   useContinuumSession,
   useContinuumSnapshot,
+  useContinuumSuggestions,
 } from '@continuum/react';
 import type { SessionOptions } from '@continuum/session';
-import { generateView } from './ai/client';
+import { generateView, generateViewPipeline, type PipelineStage } from './ai/client';
+import { applyPatch } from './ai/patch/apply-patch';
+import { getPatchSystemPrompt } from './ai/patch/patch-system-prompt';
 import {
   buildCorrectionMessages,
   buildEvolutionMessages,
+  buildPatchMessages,
   buildInitialMessages,
   getSystemPrompt,
 } from './ai/prompt-builder';
@@ -21,7 +25,7 @@ import { aiProviders } from './ai/registry';
 import type { AIConversationEntry, AIAttachment, ProviderId } from './ai/types';
 import { validateView } from './ai/validate-view';
 import { hallucinate } from './chaos';
-import { componentMap } from './component-map';
+import { componentMap, liveAiComponentMap } from './component-map';
 import { scenarios } from './scenarios/registry';
 import type { ScenarioStep } from './scenarios/types';
 import { AIControlCard } from './ui/controls/AIControlCard';
@@ -401,11 +405,23 @@ function applyViewDefaults(session: ReturnType<typeof useContinuumSession>, view
       // Brand-new node with no value — apply default immediately
       session.updateState(nodeId, { value: defaultValue } as NodeValue);
     } else if (reconciledNodeIds.has(nodeId)) {
-      // Carried/migrated node — use proposeValue so isDirty fields get conflict UI
-      session.proposeValue(nodeId, { value: defaultValue } as NodeValue, 'ai');
+      // Carried/migrated node — if the user has edited it, show as a suggestion;
+      // otherwise apply the AI value directly.
+      const existing = existingValues[nodeId] as NodeValue | undefined;
+      if (existing?.isDirty) {
+        // Field has been touched by the user — store AI value as a suggestion
+        session.updateState(nodeId, {
+          ...existing,
+          suggestion: defaultValue,
+        } as NodeValue);
+      } else {
+        // Field is clean — apply AI value directly without interrupting the user
+        session.updateState(nodeId, { value: defaultValue } as NodeValue);
+      }
     }
   }
 }
+
 
 
 function applyCollectionOptionSeeds(
@@ -679,6 +695,7 @@ interface AIPlaygroundContentProps {
 function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygroundContentProps) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
+  const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
   const { issues, diffs, resolutions } = useContinuumDiagnostics();
   const [protocolMode, setProtocolMode] = useState<ProtocolMode>('native');
   const [entries, setEntries] = useState<AIConversationEntry[]>([]);
@@ -688,6 +705,9 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
   const [apiKeys, setApiKeys] = useState<Record<ProviderId, string>>(() => loadApiKeys());
   const [isLoading, setIsLoading] = useState(false);
   const [autoFeedback, setAutoFeedback] = useState(true);
+  const [pipelineMode, setPipelineMode] = useState(false);
+  const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
+  const [patchMode, setPatchMode] = useState(false);
   const [attachments, setAttachments] = useState<AIAttachment[]>([]);
 
   const checkpoints = session.getCheckpoints();
@@ -698,6 +718,14 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
     },
     [session]
   );
+  
+  const handleClearSession = useCallback(() => {
+    session.reset();
+    setEntries([]);
+    setPrompt('Create a travel planning form with destination, dates, budget, and submit.');
+    setAttachments([]);
+    setPipelineStage(null);
+  }, [session]);
 
   useEffect(() => {
     const provider = aiProviders.find((entry) => entry.id === selectedProvider);
@@ -731,19 +759,42 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
             resolutions: session.getResolutions(),
             attachments,
           })
-        : currentView
-          ? buildEvolutionMessages(requestPrompt, currentView, attachments)
-          : buildInitialMessages(requestPrompt, attachments);
+        : currentView && patchMode
+          ? buildPatchMessages(requestPrompt, currentView, attachments)
+          : currentView
+            ? buildEvolutionMessages(requestPrompt, currentView, attachments)
+            : buildInitialMessages(requestPrompt, attachments);
 
-      let response = await generateView({
-        provider: selectedProvider,
-        model: selectedModel,
-        apiKey: key,
-        systemPrompt: getSystemPrompt(),
-        messages,
-        currentView,
-        attachments,
-      });
+      let response;
+      if (pipelineMode && !correction) {
+        response = await generateViewPipeline(
+          {
+            provider: selectedProvider,
+            model: selectedModel,
+            apiKey: key,
+            systemPrompt: getSystemPrompt(),
+            messages,
+            currentView,
+            attachments,
+          },
+          setPipelineStage
+        );
+        setPipelineStage(null);
+      } else {
+        response = await generateView({
+          provider: selectedProvider,
+          model: selectedModel,
+          apiKey: key,
+          systemPrompt: patchMode && currentView ? getPatchSystemPrompt() : getSystemPrompt(),
+          messages,
+          currentView,
+          attachments,
+        });
+      }
+
+      if ((response.view as any).mode === 'patch') {
+        response.view = applyPatch(currentView!, response.view as any);
+      }
 
       setAttachments([]); // Clear after submission
 
@@ -948,12 +999,22 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
                 }}
                 onPromptChange={setPrompt}
                 onAutoFeedbackChange={setAutoFeedback}
+                pipelineMode={pipelineMode}
+                pipelineStage={pipelineStage}
+                onPipelineModeChange={setPipelineMode}
+                patchMode={patchMode}
+                onPatchModeChange={setPatchMode}
+                hasCurrentView={!!snapshot?.view}
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 onSubmit={handleSubmit}
+                onClearSession={handleClearSession}
                 onExportDebugLog={buildDebugLog}
                 checkpoints={checkpoints}
                 onRewind={handleRewind}
+                hasSuggestions={hasSuggestions}
+                onAcceptAll={acceptAll}
+                onRejectAll={rejectAll}
               />
             }
             valueCallout={<ValueCallout resolutions={resolutions} diffs={diffs} />}
@@ -1045,7 +1106,7 @@ function PlaygroundAIRoute() {
 
   return (
     <ContinuumProvider
-      components={componentMap}
+      components={liveAiComponentMap}
       persist="localStorage"
       sessionOptions={sessionOptions}
     >

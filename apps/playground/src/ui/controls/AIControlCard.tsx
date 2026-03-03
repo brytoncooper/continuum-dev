@@ -17,6 +17,10 @@ interface AIControlCardProps {
   apiKey: string;
   prompt: string;
   autoFeedback: boolean;
+  pipelineMode?: boolean;
+  pipelineStage?: string | null;
+  patchMode?: boolean;
+  hasCurrentView?: boolean;
   entries: AIConversationEntry[];
   isLoading: boolean;
   attachments?: AIAttachment[];
@@ -25,11 +29,17 @@ interface AIControlCardProps {
   onApiKeyChange: (apiKey: string) => void;
   onPromptChange: (prompt: string) => void;
   onAutoFeedbackChange: (enabled: boolean) => void;
+  onPipelineModeChange?: (enabled: boolean) => void;
+  onPatchModeChange?: (enabled: boolean) => void;
   onAttachmentsChange?: (attachments: AIAttachment[]) => void;
   onSubmit: () => void;
+  onClearSession?: () => void;
   onExportDebugLog?: () => string;
   checkpoints?: Checkpoint[];
   onRewind?: (checkpointId: string) => void;
+  hasSuggestions?: boolean;
+  onAcceptAll?: () => void;
+  onRejectAll?: () => void;
 }
 
 export function AIControlCard({
@@ -39,6 +49,10 @@ export function AIControlCard({
   apiKey,
   prompt,
   autoFeedback,
+  pipelineMode,
+  pipelineStage,
+  patchMode,
+  hasCurrentView,
   entries,
   isLoading,
   attachments = [],
@@ -47,11 +61,17 @@ export function AIControlCard({
   onApiKeyChange,
   onPromptChange,
   onAutoFeedbackChange,
+  onPipelineModeChange,
+  onPatchModeChange,
   onAttachmentsChange,
   onSubmit,
+  onClearSession,
   onExportDebugLog,
   checkpoints,
   onRewind,
+  hasSuggestions,
+  onAcceptAll,
+  onRejectAll,
 }: AIControlCardProps) {
   const [copied, setCopied] = useLocalState(false);
   const activeProvider =
@@ -233,9 +253,70 @@ export function AIControlCard({
           />
           Auto-feedback loop
         </label>
+        {onPipelineModeChange && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: space.xs, ...typeScale.caption }}>
+            <input
+              type="checkbox"
+              checked={pipelineMode ?? false}
+              onChange={(event) => onPipelineModeChange(event.target.checked)}
+            />
+            Pipeline Mode
+          </label>
+        )}
+        {onPatchModeChange && hasCurrentView && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: space.xs, ...typeScale.caption }}>
+            <input
+              type="checkbox"
+              checked={patchMode ?? false}
+              onChange={(event) => onPatchModeChange(event.target.checked)}
+            />
+            Patch Mode
+          </label>
+        )}
         <button onClick={onSubmit} disabled={isLoading || !apiKey.trim() || !prompt.trim()} style={buttonStyle}>
-          {isLoading ? 'Generating...' : 'Generate View'}
+          {isLoading ? (pipelineStage ? `Stage: ${pipelineStage}...` : 'Generating...') : 'Generate View'}
         </button>
+        {onClearSession && (
+          <button
+            onClick={onClearSession}
+            disabled={isLoading}
+            style={{
+              ...buttonStyle,
+              background: 'transparent',
+              color: playgroundTheme.color.danger,
+              border: `1px solid ${playgroundTheme.color.danger}`,
+            }}
+          >
+            Clear Session
+          </button>
+        )}
+        {hasSuggestions && (
+          <>
+            <button
+              onClick={onAcceptAll}
+              disabled={isLoading}
+              style={{
+                ...buttonStyle,
+                background: playgroundTheme.color.success,
+                borderColor: playgroundTheme.color.success,
+              }}
+            >
+              Accept All
+            </button>
+            <button
+              onClick={onRejectAll}
+              disabled={isLoading}
+              style={{
+                ...buttonStyle,
+                background: 'transparent',
+                color: playgroundTheme.color.text,
+                borderColor: playgroundTheme.color.border,
+              }}
+            >
+              Reject All
+            </button>
+          </>
+        )}
         {onExportDebugLog ? (
           <button
             onClick={() => {
