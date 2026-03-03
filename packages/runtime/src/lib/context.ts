@@ -134,7 +134,7 @@ export function buildPriorValueLookupByIdAndKey(
   const map = new Map<string, unknown>();
   for (const [priorId, priorValue] of Object.entries(priorData.values)) {
     map.set(priorId, priorValue);
-    const resolvedPriorId = resolveIdFromSnapshot(ctx.priorById, priorId);
+    const resolvedPriorId = resolveIdFromSnapshot(ctx.priorById, ctx.priorIdsByRawId, priorId);
     if (resolvedPriorId && resolvedPriorId !== priorId) {
       map.set(resolvedPriorId, priorValue);
     }
@@ -168,7 +168,7 @@ export function resolvePriorSnapshotId(
   ctx: ReconciliationContext,
   priorId: string
 ): string | null {
-  return resolveIdFromSnapshot(ctx.priorById, priorId);
+  return resolveIdFromSnapshot(ctx.priorById, ctx.priorIdsByRawId, priorId);
 }
 
 export function findNewNodeByPriorNode(
@@ -246,10 +246,15 @@ function toIndexedKey(key: string, parentPath: string): string {
 
 function resolveIdFromSnapshot(
   byId: Map<string, ViewNode>,
+  idsByRawId: Map<string, string[]>,
   id: string
 ): string | null {
   if (byId.has(id)) {
     return id;
+  }
+  const candidates = idsByRawId.get(id) ?? [];
+  if (candidates.length === 1) {
+    return candidates[0];
   }
   return null;
 }

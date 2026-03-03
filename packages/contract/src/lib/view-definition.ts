@@ -9,7 +9,9 @@ export type ViewNode =
   | GroupNode
   | CollectionNode
   | ActionNode
-  | PresentationNode;
+  | PresentationNode
+  | RowNode
+  | GridNode;
 
 export interface BaseNode {
   id: string;
@@ -40,6 +42,8 @@ export interface FieldNode extends BaseNode {
 export interface GroupNode extends BaseNode {
   type: 'group';
   label?: string;
+  layout?: 'vertical' | 'horizontal' | 'grid';
+  columns?: number;
   children: ViewNode[];
 }
 
@@ -64,6 +68,17 @@ export interface PresentationNode extends BaseNode {
   content: string;
 }
 
+export interface RowNode extends BaseNode {
+  type: 'row';
+  children: ViewNode[];
+}
+
+export interface GridNode extends BaseNode {
+  type: 'grid';
+  columns?: number;
+  children: ViewNode[];
+}
+
 export interface FieldConstraints {
   required?: boolean;
   min?: number;
@@ -80,8 +95,8 @@ export interface MigrationRule {
 }
 
 export function getChildNodes(node: ViewNode): ViewNode[] {
-  if (node.type === 'group') {
-    return node.children;
+  if (node.type === 'group' || node.type === 'row' || node.type === 'grid') {
+    return (node as any).children;
   }
   if (node.type === 'collection') {
     return [node.template];
