@@ -53,4 +53,37 @@ export interface DetachedValue {
   detachedAt: number;
   viewVersion: string;
   reason: 'node-removed' | 'type-mismatch' | 'migration-failed';
+  pushesSinceDetach?: number;
 }
+
+export interface DetachedValuePolicy {
+  /** Purge detached values older than this many milliseconds */
+  maxAge?: number;
+  /** Keep at most this many detached values (oldest purged first) */
+  maxCount?: number;
+  /** Purge after this many pushView calls since detachment */
+  pushCount?: number;
+}
+
+export interface ProposedValue {
+  nodeId: string;
+  proposedValue: NodeValue;
+  currentValue: NodeValue;
+  proposedAt: number;
+  source?: string;
+}
+
+export interface ActionRegistration {
+  label: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface ActionContext {
+  intentId: string;
+  snapshot: DataSnapshot;
+  nodeId: string;
+}
+
+export type ActionHandler = (context: ActionContext) => void | Promise<void>;
+

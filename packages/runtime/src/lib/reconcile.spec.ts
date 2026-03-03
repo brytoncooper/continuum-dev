@@ -926,6 +926,35 @@ describe('reconcile', () => {
       expect(restoredResult.resolutions.some((entry) => entry.resolution === 'restored')).toBe(true);
       expect(restoredResult.diffs.some((diff) => diff.type === 'restored')).toBe(true);
     });
+
+    it('accumulates detached values from multiple pushes and restores them when key returns', () => {
+      const viewA = makeView([makeNode({ id: 'a', key: 'email' })]);
+      const viewEmpty = makeView([]);
+      const viewB = makeView([makeNode({ id: 'b', key: 'phone' })]);
+      const viewRestore = makeView([
+        makeNode({ id: 'c', key: 'email' }),
+        makeNode({ id: 'd', key: 'phone' }),
+      ]);
+      const dataA = makeData({ a: { value: 'a@example.com' } });
+
+      const r1 = reconcile(viewEmpty, viewA, dataA);
+      expect(r1.reconciledState.detachedValues?.['email']).toBeDefined();
+
+      const r2Data: DataSnapshot = {
+        ...r1.reconciledState,
+        values: { b: { value: '555-1234' } },
+      };
+      const r2 = reconcile(viewEmpty, viewB, r2Data);
+      expect(r2.reconciledState.detachedValues?.['email']).toBeDefined();
+      expect(r2.reconciledState.detachedValues?.['phone']).toBeDefined();
+
+      const r3 = reconcile(viewRestore, viewEmpty, r2.reconciledState);
+
+      expect(r3.reconciledState.values['c']).toEqual({ value: 'a@example.com' });
+      expect(r3.reconciledState.values['d']).toEqual({ value: '555-1234' });
+      expect(r3.reconciledState.detachedValues?.['email']).toBeUndefined();
+      expect(r3.reconciledState.detachedValues?.['phone']).toBeUndefined();
+    });
   });
 
   describe('duplicate detection', () => {
