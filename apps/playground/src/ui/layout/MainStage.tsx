@@ -20,31 +20,38 @@ export function MainStage({
   return (
     <div
       style={{
-        minHeight: '100%',
-        color: playgroundTheme.color.text,
+        display: 'flex',
+        gap: space.xxxl,
         padding: space.xl,
+        height: '100%',
+        boxSizing: 'border-box',
+        color: playgroundTheme.color.text,
       }}
     >
+      {/* Left Pane: Generated UI (Takes remaining space) */}
       <div
         style={{
-          maxWidth: 760,
-          margin: '0 auto',
-          display: 'grid',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
           gap: space.xl,
+          minWidth: 0,
         }}
       >
         {banner}
-        {controls}
         <div
           data-testid="generated-ui"
           style={{
-            background: playgroundTheme.gradient.panel,
+            flex: 1,
+            background: playgroundTheme.color.panel,
             borderRadius: radius.lg,
             border: `1px solid ${playgroundTheme.color.panelBorder}`,
             boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
-            padding: space.xl,
-            display: 'grid',
+            padding: space.xxl,
+            display: 'flex',
+            flexDirection: 'column',
             gap: space.lg,
+            overflowY: 'auto',
           }}
         >
           <div
@@ -53,16 +60,33 @@ export function MainStage({
               color: playgroundTheme.color.text,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
+              flexShrink: 0,
             }}
           >
             Generated UI
           </div>
           {valueCallout}
-          <div style={{ display: 'grid', gap: space.lg }}>
+          <div style={{ display: 'grid', gap: space.xl }}>
             {renderedUi}
           </div>
         </div>
-        <div>
+      </div>
+
+      {/* Right Pane: Controls & Devtools (Fixed width, independent scroll) */}
+      <div
+        style={{
+          width: 440,
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: space.xl,
+          overflowY: 'auto',
+          paddingRight: space.sm, // space for scrollbar
+        }}
+      >
+        {controls}
+        
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           <div
             style={{
               ...typeScale.label,

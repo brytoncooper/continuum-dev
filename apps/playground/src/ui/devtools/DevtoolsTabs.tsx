@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from '@continuum/runtime';
 import type { DetachedValue, ContinuitySnapshot } from '@continuum/contract';
+import type { AIConversationEntry } from '../../ai/types';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
+import { NarrativeSummary } from './NarrativeSummary';
 import { ResolutionList } from './ResolutionList';
 import { DiffList } from './DiffList';
 import { DetachedList } from './DetachedList';
 import { IssuesList } from './IssuesList';
 import { SnapshotViewer } from './SnapshotViewer';
 
-type TabId = 'what-changed' | 'state-diffs' | 'saved-values' | 'validation' | 'raw-snapshot';
+type TabId = 'narrative' | 'what-changed' | 'state-diffs' | 'saved-values' | 'validation' | 'raw-snapshot';
 
 interface DevtoolsTabsProps {
   resolutions: ReconciliationResolution[];
@@ -17,9 +19,11 @@ interface DevtoolsTabsProps {
   detachedValues: Record<string, DetachedValue>;
   issues: ReconciliationIssue[];
   snapshot: ContinuitySnapshot | null;
+  entries: AIConversationEntry[];
 }
 
 const TABS: { id: TabId; label: string; getCount: (p: DevtoolsTabsProps) => number }[] = [
+  { id: 'narrative', label: '📖 Narrative', getCount: () => 0 },
   { id: 'what-changed', label: 'What Changed', getCount: (p) => p.resolutions.length },
   { id: 'state-diffs', label: 'Data Diffs', getCount: (p) => p.diffs.length },
   { id: 'saved-values', label: 'Detached Values', getCount: (p) => Object.keys(p.detachedValues).length },
@@ -33,14 +37,15 @@ export function DevtoolsTabs({
   detachedValues,
   issues,
   snapshot,
+  entries,
 }: DevtoolsTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('what-changed');
+  const [activeTab, setActiveTab] = useState<TabId>('narrative');
 
   return (
     <div
       data-testid="devtools"
       style={{
-        background: playgroundTheme.gradient.panel,
+        background: playgroundTheme.color.panel,
         borderRadius: radius.lg,
         border: `1px solid ${playgroundTheme.color.panelBorder}`,
         boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
@@ -58,7 +63,7 @@ export function DevtoolsTabs({
         }}
       >
         {TABS.map((tab) => {
-          const count = tab.getCount({ resolutions, diffs, detachedValues, issues, snapshot });
+          const count = tab.getCount({ resolutions, diffs, detachedValues, issues, snapshot, entries });
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -84,7 +89,7 @@ export function DevtoolsTabs({
               }}
             >
               {tab.label}
-              {count > 0 && tab.id !== 'raw-snapshot' && (
+              {count > 0 && tab.id !== 'raw-snapshot' && tab.id !== 'narrative' && (
                 <span
                   style={{
                     background: isActive ? playgroundTheme.color.accent : playgroundTheme.color.border,
@@ -104,11 +109,22 @@ export function DevtoolsTabs({
       <div
         style={{
           padding: space.lg,
-          maxHeight: 320,
+          maxHeight: 480,
           background: playgroundTheme.color.surface,
           overflow: 'auto',
         }}
       >
+        {activeTab === 'narrative' && (
+          <div data-testid="panel-narrative">
+            <NarrativeSummary
+              resolutions={resolutions}
+              diffs={diffs}
+              issues={issues}
+              snapshot={snapshot}
+              entries={entries}
+            />
+          </div>
+        )}
         {activeTab === 'what-changed' && (
           <div data-testid="panel-resolutions">
             <ResolutionList resolutions={resolutions} />
