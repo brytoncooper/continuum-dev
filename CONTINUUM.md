@@ -25,7 +25,9 @@ type ViewNode =
   | GroupNode
   | CollectionNode
   | ActionNode
-  | PresentationNode;
+  | PresentationNode
+  | RowNode
+  | GridNode;
 
 interface BaseNode {
   id: string;
@@ -45,11 +47,19 @@ interface FieldNode extends BaseNode {
   readOnly?: boolean;
   defaultValue?: unknown;
   constraints?: FieldConstraints;
+  options?: FieldOption[];
+}
+
+interface FieldOption {
+  value: string;
+  label: string;
 }
 
 interface GroupNode extends BaseNode {
   type: 'group';
   label?: string;
+  layout?: 'vertical' | 'horizontal' | 'grid';
+  columns?: number;
   children: ViewNode[];
 }
 
@@ -59,6 +69,7 @@ interface CollectionNode extends BaseNode {
   template: ViewNode;
   minItems?: number;
   maxItems?: number;
+  defaultValues?: Array<Record<string, unknown>>;
 }
 
 interface ActionNode extends BaseNode {
@@ -74,8 +85,20 @@ interface PresentationNode extends BaseNode {
   content: string;
 }
 
+interface RowNode extends BaseNode {
+  type: 'row';
+  children: ViewNode[];
+}
+
+interface GridNode extends BaseNode {
+  type: 'grid';
+  columns?: number;
+  children: ViewNode[];
+}
+
 interface NodeValue<T = unknown> {
   value: T;
+  suggestion?: T;
   isDirty?: boolean;
   isValid?: boolean;
 }
@@ -97,7 +120,7 @@ interface Interaction {
   interactionId: string;
   sessionId: string;
   nodeId: string;
-  type: string;
+  type: InteractionType;
   payload: unknown;
   timestamp: number;
   viewVersion: string;
@@ -128,48 +151,52 @@ interface Checkpoint {
 ```typescript
 import { createSession, deserialize } from '@continuum/session';
 
-const session = createSession();                   // or createSession({ clock: Date.now })
-const restored = deserialize(blob);                // reconstruct from session.serialize() output
+const session = createSession(); // or createSession({ clock: Date.now })
+const restored = deserialize(blob); // reconstruct from session.serialize() output
 
 // Push a new view definition -- triggers reconciliation, auto-checkpoints
 session.pushView(view);
 
 // Read current state
-session.getSnapshot();        // ContinuitySnapshot | null
-session.getIssues();          // ReconciliationIssue[]
-session.getDiffs();           // StateDiff[]
-session.getResolutions();     // ReconciliationResolution[]
-session.getEventLog();        // Interaction[]
-session.getDetachedValues();  // Record<string, DetachedValue>
+session.getSnapshot(); // ContinuitySnapshot | null
+session.getIssues(); // ReconciliationIssue[]
+session.getDiffs(); // StateDiff[]
+session.getResolutions(); // ReconciliationResolution[]
+session.getEventLog(); // Interaction[]
+session.getDetachedValues(); // Record<string, DetachedValue>
 
 // Update node state (user interaction)
 session.updateState('nodeId', { value: 'hello' });
 
 // Record a custom interaction event
-session.recordIntent({ nodeId: 'name', type: 'value-change', payload: { value: 'Alice' } });
+session.recordIntent({
+  nodeId: 'name',
+  type: 'value-change',
+  payload: { value: 'Alice' },
+});
 
 // Pending intents
 session.submitIntent({ nodeId: 'form', intentName: 'submit', payload: {} });
-session.getPendingIntents();         // PendingIntent[]
-session.validateIntent(intentId);    // boolean
-session.cancelIntent(intentId);      // boolean
+session.getPendingIntents(); // PendingIntent[]
+session.validateIntent(intentId); // boolean
+session.cancelIntent(intentId); // boolean
 
 // Checkpoint & Rewind
-session.checkpoint();                // manually create a checkpoint (trigger: "manual")
-session.restoreFromCheckpoint(cp);   // restore from a checkpoint object
-session.getCheckpoints();            // Checkpoint[]
-session.rewind(checkpointId);        // restores to that checkpoint, trims stack
-session.reset();                     // reset to empty session state
+session.checkpoint(); // manually create a checkpoint (trigger: "manual")
+session.restoreFromCheckpoint(cp); // restore from a checkpoint object
+session.getCheckpoints(); // Checkpoint[]
+session.rewind(checkpointId); // restores to that checkpoint, trims stack
+session.reset(); // reset to empty session state
 
 // Persistence
-const blob = session.serialize();    // { formatVersion: 1, ...full state }
+const blob = session.serialize(); // { formatVersion: 1, ...full state }
 
 // Listeners (return unsubscribe functions)
-const unsub1 = session.onSnapshot((snapshot) => {});  // receives ContinuitySnapshot
-const unsub2 = session.onIssues(callback);    // fires after pushView, rewind
+const unsub1 = session.onSnapshot((snapshot) => {}); // receives ContinuitySnapshot | null
+const unsub2 = session.onIssues(callback); // fires after pushView, rewind
 
 // Lifecycle
-session.destroy();  // teardown, returns { issues }
+session.destroy(); // teardown, returns { issues }
 ```
 
 ## React Integration (`@continuum/react`)
@@ -187,30 +214,30 @@ import {
 
 // Provider wraps your app, handles persistence
 <ContinuumProvider
-  components={nodeMap}            // Record<string, React.ComponentType>
-  persist="localStorage"          // "localStorage" | "sessionStorage" | false
-  storageKey="continuum_session"  // optional custom key
+  components={nodeMap} // Record<string, React.ComponentType>
+  persist="localStorage" // "localStorage" | "sessionStorage" | false
+  storageKey="continuum_session" // optional custom key
 >
   <App />
-</ContinuumProvider>
+</ContinuumProvider>;
 
 // Access the session inside the provider
 const session = useContinuumSession();
 
 // Render a view definition
-<ContinuumRenderer view={snapshot.view} />
+<ContinuumRenderer view={snapshot.view} />;
 
 // Read/write a single node's state (uses useSyncExternalStore)
 const [value, setValue] = useContinuumState('nodeId');
 
 // Subscribe to the full snapshot (re-renders on every change)
-const snapshot = useContinuumSnapshot();   // ContinuitySnapshot | null
+const snapshot = useContinuumSnapshot(); // ContinuitySnapshot | null
 
 // Subscribe to diagnostics (re-renders on view push or issue change)
 const { issues, diffs, resolutions, checkpoints } = useContinuumDiagnostics();
 
 // Check if the session was rehydrated from storage
-const wasHydrated = useContinuumHydrated();  // boolean
+const wasHydrated = useContinuumHydrated(); // boolean
 ```
 
 ## Angular Integration (`@continuum/angular`)
@@ -227,7 +254,7 @@ import type { ContinuumNodeProps, ContinuumNodeMap } from '@continuum/angular';
 bootstrapApplication(AppComponent, {
   providers: [
     provideContinuum({
-      components: nodeMap,          // ContinuumNodeMap
+      components: nodeMap, // ContinuumNodeMap
       persist: 'localStorage',
     }),
   ],
@@ -316,33 +343,45 @@ When `pushView(newView)` is called with existing data:
 ## Constants (`@continuum/contract`)
 
 ```typescript
-import { ISSUE_CODES, DATA_RESOLUTIONS, VIEW_DIFFS, ISSUE_SEVERITY, INTENT_STATUS } from '@continuum/contract';
+import {
+  ISSUE_CODES,
+  DATA_RESOLUTIONS,
+  VIEW_DIFFS,
+  ISSUE_SEVERITY,
+  INTENT_STATUS,
+} from '@continuum/contract';
 
-ISSUE_CODES.TYPE_MISMATCH       // 'TYPE_MISMATCH'
-ISSUE_CODES.NODE_REMOVED        // 'NODE_REMOVED'
-ISSUE_CODES.UNKNOWN_NODE        // 'UNKNOWN_NODE'
-ISSUE_CODES.NO_PRIOR_DATA       // 'NO_PRIOR_DATA'
-ISSUE_CODES.NO_PRIOR_VIEW       // 'NO_PRIOR_VIEW'
-ISSUE_CODES.UNVALIDATED_CARRY   // 'UNVALIDATED_CARRY'
-ISSUE_CODES.MIGRATION_FAILED    // 'MIGRATION_FAILED'
-ISSUE_CODES.VALIDATION_FAILED   // 'VALIDATION_FAILED'
+ISSUE_CODES.NO_PRIOR_DATA;
+ISSUE_CODES.NO_PRIOR_VIEW;
+ISSUE_CODES.TYPE_MISMATCH;
+ISSUE_CODES.NODE_REMOVED;
+ISSUE_CODES.MIGRATION_FAILED;
+ISSUE_CODES.UNVALIDATED_CARRY;
+ISSUE_CODES.VALIDATION_FAILED;
+ISSUE_CODES.UNKNOWN_NODE;
+ISSUE_CODES.DUPLICATE_NODE_ID;
+ISSUE_CODES.DUPLICATE_NODE_KEY;
+ISSUE_CODES.VIEW_CHILD_CYCLE_DETECTED;
+ISSUE_CODES.VIEW_MAX_DEPTH_EXCEEDED;
+ISSUE_CODES.COLLECTION_CONSTRAINT_VIOLATED;
+ISSUE_CODES.SCOPE_COLLISION;
 
-DATA_RESOLUTIONS.CARRIED        // 'carried'
-DATA_RESOLUTIONS.DETACHED       // 'detached'
-DATA_RESOLUTIONS.MIGRATED       // 'migrated'
-DATA_RESOLUTIONS.ADDED          // 'added'
-DATA_RESOLUTIONS.RESTORED       // 'restored'
+DATA_RESOLUTIONS.CARRIED; // 'carried'
+DATA_RESOLUTIONS.DETACHED; // 'detached'
+DATA_RESOLUTIONS.MIGRATED; // 'migrated'
+DATA_RESOLUTIONS.ADDED; // 'added'
+DATA_RESOLUTIONS.RESTORED; // 'restored'
 
-VIEW_DIFFS.ADDED                // 'added'
-VIEW_DIFFS.REMOVED              // 'removed'
-VIEW_DIFFS.MIGRATED             // 'migrated'
-VIEW_DIFFS.TYPE_CHANGED         // 'type-changed'
-VIEW_DIFFS.RESTORED             // 'restored'
+VIEW_DIFFS.ADDED; // 'added'
+VIEW_DIFFS.REMOVED; // 'removed'
+VIEW_DIFFS.MIGRATED; // 'migrated'
+VIEW_DIFFS.TYPE_CHANGED; // 'type-changed'
+VIEW_DIFFS.RESTORED; // 'restored'
 
-INTENT_STATUS.PENDING           // 'pending'
-INTENT_STATUS.VALIDATED         // 'validated'
-INTENT_STATUS.STALE             // 'stale'
-INTENT_STATUS.CANCELLED         // 'cancelled'
+INTENT_STATUS.PENDING; // 'pending'
+INTENT_STATUS.VALIDATED; // 'validated'
+INTENT_STATUS.STALE; // 'stale'
+INTENT_STATUS.CANCELLED; // 'cancelled'
 ```
 
 ## Key Constraints
@@ -353,7 +392,7 @@ INTENT_STATUS.CANCELLED         // 'cancelled'
 - `pushView` auto-creates a checkpoint after reconciliation
 - `rewind(checkpointId)` trims the checkpoint stack to the rewound point (cannot rewind past it)
 - The session is stateful and single-threaded -- do not call methods concurrently
-- Node state shape is `NodeValue<T>` (`{ value: T, isDirty?, isValid? }`); updates are not validated by default, but validation can be enabled with `SessionOptions.validateOnUpdate`
+- Node state shape is `NodeValue<T>` (`{ value: T, suggestion?, isDirty?, isValid? }`); updates are not validated by default, but validation can be enabled with `SessionOptions.validateOnUpdate`
 
 ## Project Structure
 
@@ -370,6 +409,7 @@ apps/playground/     - Demo application (protocol toggle, hallucination animatio
 ## Testing
 
 All code uses Vitest. Tests are co-located (`*.spec.ts`). Run with:
+
 ```bash
 npx nx run @continuum/adapters:test
 npx nx run @continuum/session:test
