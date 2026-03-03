@@ -1,9 +1,4 @@
-import type {
-  ViewNode,
-  Interaction,
-  NodeValue,
-  ValueLineage,
-} from '@continuum/contract';
+import type { ViewNode, Interaction, NodeValue, ValueLineage } from '@continuum/contract';
 import { getChildNodes, ISSUE_CODES, ISSUE_SEVERITY, isInteractionType } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
@@ -11,7 +6,12 @@ import { buildSnapshotFromCurrentState, notifySnapshotAndIssueListeners } from '
 import { cloneCheckpointSnapshot } from './checkpoint-manager.js';
 import { validateNodeValue } from '@continuum/runtime';
 
-function collectNodesById(nodes: ViewNode[]): Map<string, ViewNode> {
+interface NodeLookupEntry {
+  canonicalId: string;
+  node: ViewNode;
+}
+
+function collectNodesByCanonicalId(nodes: ViewNode[]): Map<string, ViewNode> {
   const byId = new Map<string, ViewNode>();
   const walk = (items: ViewNode[], parentPath: string) => {
     for (const node of items) {
@@ -25,6 +25,33 @@ function collectNodesById(nodes: ViewNode[]): Map<string, ViewNode> {
   };
   walk(nodes, '');
   return byId;
+}
+
+function resolveNodeLookupEntry(nodes: ViewNode[], requestedId: string): NodeLookupEntry | null {
+  const canonicalMap = collectNodesByCanonicalId(nodes);
+  const direct = canonicalMap.get(requestedId);
+  if (direct) {
+    return { canonicalId: requestedId, node: direct };
+  }
+
+  const matches: NodeLookupEntry[] = [];
+  const walk = (items: ViewNode[], parentPath: string) => {
+    for (const node of items) {
+      const canonicalId = parentPath.length > 0 ? `${parentPath}/${node.id}` : node.id;
+      if (node.id === requestedId) {
+        matches.push({ canonicalId, node });
+      }
+      const children = getChildNodes(node);
+      if (children.length > 0) {
+        walk(children, canonicalId);
+      }
+    }
+  };
+  walk(nodes, '');
+  if (matches.length === 1) {
+    return matches[0];
+  }
+  return null;
 }
 
 export function recordIntent(
@@ -54,9 +81,8 @@ export function recordIntent(
     internal.eventLog.splice(0, internal.eventLog.length - internal.maxEventLogSize);
   }
 
-  const nodeMap = collectNodesById(internal.currentView.nodes);
-  const nodeDefinition = nodeMap.get(partial.nodeId);
-  if (!nodeDefinition) {
+  const resolvedEntry = resolveNodeLookupEntry(internal.currentView.nodes, partial.nodeId);
+  if (!resolvedEntry) {
     internal.issues = [
       ...internal.issues,
       {
@@ -69,12 +95,13 @@ export function recordIntent(
     notifySnapshotAndIssueListeners(internal);
     return;
   }
+  const { canonicalId, node } = resolvedEntry;
 
   internal.currentData = {
     ...internal.currentData,
     values: {
       ...internal.currentData.values,
-      [partial.nodeId]: partial.payload as NodeValue,
+      [canonicalId]: partial.payload as NodeValue,
     },
     lineage: {
       ...internal.currentData.lineage,
@@ -83,7 +110,7 @@ export function recordIntent(
     },
     valueLineage: {
       ...internal.currentData.valueLineage,
-      [partial.nodeId]: {
+      [canonicalId]: {
         lastUpdated: now,
         lastInteractionId: id,
       } as ValueLineage,
@@ -92,7 +119,7 @@ export function recordIntent(
 
   if (internal.validateOnUpdate) {
     const validationIssues = validateNodeValue(
-      nodeDefinition,
+      node,
       partial.payload as NodeValue
     );
     if (validationIssues.length > 0) {

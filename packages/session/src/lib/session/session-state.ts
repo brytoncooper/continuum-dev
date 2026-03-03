@@ -5,6 +5,10 @@ import type {
   Checkpoint,
   ViewDefinition,
   DataSnapshot,
+  DetachedValuePolicy,
+  ProposedValue,
+  ActionRegistration,
+  ActionHandler,
 } from '@continuum/contract';
 import type {
   ReconciliationIssue,
@@ -21,6 +25,7 @@ export interface SessionState {
   maxCheckpoints: number;
   reconciliationOptions?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate: boolean;
+  detachedValuePolicy?: DetachedValuePolicy;
   currentView: ViewDefinition | null;
   currentData: DataSnapshot | null;
   priorView: ViewDefinition | null;
@@ -32,6 +37,8 @@ export interface SessionState {
   checkpoints: Checkpoint[];
   snapshotListeners: Set<(snapshot: ContinuitySnapshot) => void>;
   issueListeners: Set<(issues: ReconciliationIssue[]) => void>;
+  pendingProposals: Record<string, ProposedValue>;
+  actionRegistry: Map<string, { registration: ActionRegistration; handler: ActionHandler }>;
   destroyed: boolean;
 }
 
@@ -55,6 +62,8 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
     checkpoints: [],
     snapshotListeners: new Set(),
     issueListeners: new Set(),
+    pendingProposals: {},
+    actionRegistry: new Map(),
     destroyed: false,
   };
 }
@@ -69,6 +78,7 @@ export function resetSessionState(internal: SessionState): void {
   internal.eventLog = [];
   internal.pendingIntents = [];
   internal.checkpoints = [];
+  internal.pendingProposals = {};
 }
 
 export function replaceInternalState(
