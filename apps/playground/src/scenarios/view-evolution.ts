@@ -35,6 +35,7 @@ export const viewEvolutionScenario: Scenario = {
             hash: 'input:v1',
             label: 'Destination',
             placeholder: 'e.g. Tokyo, Japan',
+            constraints: { required: true, minLength: 3 },
           },
           {
             id: 'travel_date',
@@ -87,6 +88,7 @@ export const viewEvolutionScenario: Scenario = {
             hash: 'input:v1',
             label: 'Primary Destination',
             placeholder: 'e.g. Tokyo, Japan',
+            constraints: { required: true, minLength: 3 },
           },
           {
             id: 'travel_date',
@@ -102,6 +104,15 @@ export const viewEvolutionScenario: Scenario = {
             hash: 'slider:v1',
             label: 'How many travelers?',
             props: { min: 1, max: 20 },
+          },
+          {
+            id: 'contact_email',
+            key: 'contact_email',
+            type: 'field',
+            hash: 'input:v1',
+            label: 'Contact Email',
+            placeholder: 'you@example.com',
+            constraints: { required: true, pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' },
           },
           {
             id: 'budget',
@@ -132,7 +143,7 @@ export const viewEvolutionScenario: Scenario = {
       },
       outcomeHint: {
         severity: 'success',
-        summary: 'Your destination carried over even after the AI renamed the node id.',
+        summary: 'Try invalid email text to see constraint-based validation states.',
       },
     },
     {
@@ -267,6 +278,7 @@ export const viewEvolutionScenario: Scenario = {
       outcomeHint: {
         severity: 'warning',
         summary: 'The AI removed non-essential preferences, but your final booking details were preserved.',
+        detail: 'Refresh your browser now and confirm your values rehydrate from localStorage.',
       },
     },
   ],
