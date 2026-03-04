@@ -315,15 +315,12 @@ function findByKey(
   rawKey: string,
   scopedNodeId: string
 ): ViewNode | undefined {
-  const direct = byKey.get(rawKey);
-  if (direct) {
-    return direct;
-  }
   const parentPath = parentOf(scopedNodeId);
   if (parentPath) {
-    return byKey.get(`${parentPath}/${rawKey}`);
+    const scoped = byKey.get(`${parentPath}/${rawKey}`);
+    if (scoped) return scoped;
   }
-  return undefined;
+  return byKey.get(rawKey);
 }
 
 function parentOf(path: string): string {
