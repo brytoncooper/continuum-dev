@@ -29,18 +29,6 @@
       "@continuum/runtime": [
         "./packages/runtime/src/index.ts"
       ],
-      "@continuum/utils": [
-        "./packages/utils/src/index.ts"
-      ],
-      "@continuum/strings": [
-        "./packages/strings/src/index.ts"
-      ],
-      "@continuum/colors": [
-        "./packages/colors/src/index.ts"
-      ],
-      "@continuum/async": [
-        "./packages/async/src/index.ts"
-      ],
       "@continuum/session": [
         "./packages/session/src/index.ts"
       ],
