@@ -17,10 +17,6 @@ interface AIControlCardProps {
   apiKey: string;
   prompt: string;
   autoFeedback: boolean;
-  pipelineMode?: boolean;
-  pipelineStage?: string | null;
-  patchMode?: boolean;
-  hasCurrentView?: boolean;
   entries: AIConversationEntry[];
   isLoading: boolean;
   attachments?: AIAttachment[];
@@ -29,14 +25,13 @@ interface AIControlCardProps {
   onApiKeyChange: (apiKey: string) => void;
   onPromptChange: (prompt: string) => void;
   onAutoFeedbackChange: (enabled: boolean) => void;
-  onPipelineModeChange?: (enabled: boolean) => void;
-  onPatchModeChange?: (enabled: boolean) => void;
   onAttachmentsChange?: (attachments: AIAttachment[]) => void;
   onSubmit: () => void;
   onClearSession?: () => void;
   onExportDebugLog?: () => string;
   checkpoints?: Checkpoint[];
   onRewind?: (checkpointId: string) => void;
+  onCreateCheckpoint?: () => void;
   hasSuggestions?: boolean;
   onAcceptAll?: () => void;
   onRejectAll?: () => void;
@@ -49,10 +44,6 @@ export function AIControlCard({
   apiKey,
   prompt,
   autoFeedback,
-  pipelineMode,
-  pipelineStage,
-  patchMode,
-  hasCurrentView,
   entries,
   isLoading,
   attachments = [],
@@ -61,14 +52,13 @@ export function AIControlCard({
   onApiKeyChange,
   onPromptChange,
   onAutoFeedbackChange,
-  onPipelineModeChange,
-  onPatchModeChange,
   onAttachmentsChange,
   onSubmit,
   onClearSession,
   onExportDebugLog,
   checkpoints,
   onRewind,
+  onCreateCheckpoint,
   hasSuggestions,
   onAcceptAll,
   onRejectAll,
@@ -76,6 +66,9 @@ export function AIControlCard({
   const [copied, setCopied] = useLocalState(false);
   const activeProvider =
     providers.find((provider) => provider.id === selectedProvider) ?? providers[0] ?? null;
+  const latestCheckpoint = checkpoints && checkpoints.length > 0
+    ? checkpoints[checkpoints.length - 1]
+    : null;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -88,7 +81,7 @@ export function AIControlCard({
       const base64Promise = new Promise<string>((resolve) => {
         reader.onload = () => {
           const result = reader.result as string;
-          resolve(result.split(',')[1]); // Strip data: prefix
+          resolve(result.split(',')[1]);
         };
       });
       reader.readAsDataURL(file);
@@ -102,7 +95,7 @@ export function AIControlCard({
     }
 
     onAttachmentsChange(nextAttachments);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   const removeAttachment = (index: number) => {
@@ -121,14 +114,14 @@ export function AIControlCard({
         border: `1px solid ${playgroundTheme.color.panelBorder}`,
         boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
         display: 'grid',
-        gap: space.lg,
+        gap: space.sectionGap,
       }}
     >
-      <div style={{ ...typeScale.label, color: playgroundTheme.color.soft, textTransform: 'uppercase' }}>
-        Live AI Session
+      <div style={{ ...typeScale.overline, color: playgroundTheme.color.soft, textTransform: 'uppercase' }}>
+        AI Playground
       </div>
 
-      <div style={{ display: 'grid', gap: space.md }}>
+      <div style={{ display: 'grid', gap: space.stackGap }}>
         <label style={{ display: 'grid', gap: space.xs }}>
           <span style={{ ...typeScale.caption, color: playgroundTheme.color.muted }}>Provider</span>
           <select
@@ -244,7 +237,7 @@ export function AIControlCard({
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: space.md, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: space.inlineGap, flexWrap: 'wrap' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: space.xs, ...typeScale.caption }}>
           <input
             type="checkbox"
@@ -253,101 +246,205 @@ export function AIControlCard({
           />
           Auto-feedback loop
         </label>
-        {onPipelineModeChange && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: space.xs, ...typeScale.caption }}>
-            <input
-              type="checkbox"
-              checked={pipelineMode ?? false}
-              onChange={(event) => onPipelineModeChange(event.target.checked)}
-            />
-            Pipeline Mode
-          </label>
-        )}
-        {onPatchModeChange && hasCurrentView && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: space.xs, ...typeScale.caption }}>
-            <input
-              type="checkbox"
-              checked={patchMode ?? false}
-              onChange={(event) => onPatchModeChange(event.target.checked)}
-            />
-            Patch Mode
-          </label>
-        )}
-        <button onClick={onSubmit} disabled={isLoading || !apiKey.trim() || !prompt.trim()} style={buttonStyle}>
-          {isLoading ? (pipelineStage ? `Stage: ${pipelineStage}...` : 'Generating...') : 'Generate View'}
-        </button>
-        {onClearSession && (
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: space.inlineGap, flexWrap: 'wrap' }}>
           <button
-            onClick={onClearSession}
-            disabled={isLoading}
-            style={{
-              ...buttonStyle,
-              background: 'transparent',
-              color: playgroundTheme.color.danger,
-              border: `1px solid ${playgroundTheme.color.danger}`,
-            }}
+            onClick={onSubmit}
+            disabled={isLoading || !apiKey.trim() || !prompt.trim()}
+            style={actionButtonStyle('primary', isLoading || !apiKey.trim() || !prompt.trim())}
           >
-            Clear Session
+            {isLoading ? 'Generating...' : 'Generate'}
           </button>
-        )}
-        {hasSuggestions && (
-          <>
+          {onClearSession && (
             <button
-              onClick={onAcceptAll}
+              onClick={onClearSession}
               disabled={isLoading}
-              style={{
-                ...buttonStyle,
-                background: playgroundTheme.color.success,
-                borderColor: playgroundTheme.color.success,
-              }}
+              style={actionButtonStyle('dangerGhost', isLoading)}
             >
-              Accept All
+              Reset session
             </button>
+          )}
+          {hasSuggestions && (
+            <>
+              <button
+                onClick={onAcceptAll}
+                disabled={isLoading}
+                style={actionButtonStyle('success', isLoading)}
+              >
+                Accept All
+              </button>
+              <button
+                onClick={onRejectAll}
+                disabled={isLoading}
+                style={actionButtonStyle('secondary', isLoading)}
+              >
+                Reject All
+              </button>
+            </>
+          )}
+          {onExportDebugLog ? (
             <button
-              onClick={onRejectAll}
-              disabled={isLoading}
-              style={{
-                ...buttonStyle,
-                background: 'transparent',
-                color: playgroundTheme.color.text,
-                borderColor: playgroundTheme.color.border,
+              onClick={() => {
+                const json = onExportDebugLog();
+                navigator.clipboard.writeText(json).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                });
               }}
+              style={actionButtonStyle('secondary', false)}
             >
-              Reject All
+              {copied ? 'Copied' : 'Export debug log'}
             </button>
-          </>
-        )}
-        {onExportDebugLog ? (
-          <button
-            onClick={() => {
-              const json = onExportDebugLog();
-              navigator.clipboard.writeText(json).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              });
-            }}
-            style={{
-              ...buttonStyle,
-              background: 'transparent',
-              color: playgroundTheme.color.soft,
-              border: `1px solid ${playgroundTheme.color.border}`,
-            }}
-          >
-            {copied ? '✓ Copied!' : 'Copy Debug Log'}
-          </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gap: space.sm }}>
-        <div style={{ ...typeScale.caption, color: playgroundTheme.color.muted, textTransform: 'uppercase' }}>
-          Conversation
+      {checkpoints && onRewind ? (
+        <div
+          style={{
+            display: 'grid',
+            gap: space.stackGap,
+            padding: space.md,
+            borderRadius: radius.md,
+            border: `1px solid ${playgroundTheme.color.border}`,
+            background: playgroundTheme.color.surfaceAlt,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+            <div style={{ display: 'grid', gap: 2 }}>
+              <div style={{ ...typeScale.caption, color: playgroundTheme.color.muted, textTransform: 'uppercase' }}>
+                Checkpoint Timeline
+              </div>
+              <div style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
+                {checkpoints.length} checkpoint{checkpoints.length === 1 ? '' : 's'}
+              </div>
+            </div>
+            {onCreateCheckpoint ? (
+              <button
+                onClick={onCreateCheckpoint}
+                style={{
+                  ...typeScale.caption,
+                  borderRadius: radius.sm,
+                  border: `1px solid ${playgroundTheme.color.accent}`,
+                  background: playgroundTheme.color.accent,
+                  color: playgroundTheme.color.white,
+                  padding: `6px ${space.sm}px`,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Create checkpoint
+              </button>
+            ) : null}
+          </div>
+          {latestCheckpoint ? (
+            <div
+              style={{
+                display: 'grid',
+                gap: 2,
+                padding: `${space.xs}px ${space.sm}px`,
+                borderRadius: radius.sm,
+                border: `1px solid ${playgroundTheme.color.borderStrong}`,
+                background: playgroundTheme.color.surface,
+              }}
+            >
+              <div style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
+                Latest: v{latestCheckpoint.snapshot.view.version}
+              </div>
+              <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft, fontSize: 11 }}>
+                {new Date(latestCheckpoint.timestamp).toLocaleString()} | {latestCheckpoint.trigger}
+              </div>
+            </div>
+          ) : (
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>
+              No checkpoints yet
+            </div>
+          )}
+          {latestCheckpoint ? (
+            <button
+              onClick={() => onRewind(latestCheckpoint.checkpointId)}
+              style={actionButtonStyle('secondary', false)}
+            >
+              Rewind to latest
+            </button>
+          ) : null}
+          <details>
+            <summary
+              style={{
+                ...typeScale.caption,
+                color: playgroundTheme.color.soft,
+                cursor: 'pointer',
+              }}
+            >
+              Open timeline
+            </summary>
+            <div
+              style={{
+                marginTop: space.sm,
+                maxHeight: 180,
+                overflow: 'auto',
+                display: 'grid',
+                gap: space.xs,
+                padding: space.xs,
+                border: `1px solid ${playgroundTheme.color.border}`,
+                borderRadius: radius.sm,
+                background: playgroundTheme.color.surface,
+              }}
+            >
+              {[...checkpoints].reverse().map((cp) => (
+                <div
+                  key={cp.checkpointId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: space.sm,
+                    padding: `${space.sm}px ${space.sm}px`,
+                    border: `1px solid ${playgroundTheme.color.border}`,
+                    borderRadius: radius.sm,
+                    background: playgroundTheme.color.surfaceAlt,
+                  }}
+                >
+                  <div style={{ display: 'grid', gap: 2 }}>
+                    <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
+                      v{cp.snapshot.view.version}
+                    </span>
+                    <span style={{ ...typeScale.caption, color: playgroundTheme.color.soft, fontSize: 10 }}>
+                      {new Date(cp.timestamp).toLocaleTimeString()} | {cp.trigger}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onRewind(cp.checkpointId)}
+                    style={{
+                      ...typeScale.caption,
+                      borderRadius: radius.sm,
+                      border: `1px solid ${playgroundTheme.color.accent}`,
+                      background: 'transparent',
+                      color: playgroundTheme.color.accent,
+                      padding: `4px ${space.sm}px`,
+                      cursor: 'pointer',
+                      fontSize: 10,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Rewind
+                  </button>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      ) : null}
+
+      <div style={{ display: 'grid', gap: space.stackGap }}>
+        <div style={{ ...typeScale.overline, color: playgroundTheme.color.muted, textTransform: 'uppercase' }}>
+          Run History
         </div>
         <div
           style={{
             maxHeight: 260,
             overflow: 'auto',
             display: 'grid',
-            gap: space.sm,
+            gap: space.xs,
             padding: space.sm,
             border: `1px solid ${playgroundTheme.color.border}`,
             borderRadius: radius.md,
@@ -356,14 +453,14 @@ export function AIControlCard({
         >
           {entries.length === 0 ? (
             <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>
-              No prompts yet. Send your first request.
+              No runs yet. Generate your first view.
             </div>
           ) : (
             entries.map((entry) => {
               const hasError = Boolean(entry.requestError);
               const hasValidationErrors = Boolean(entry.validationErrors?.length);
               const isSuccess = !hasError && !hasValidationErrors && Boolean(entry.viewVersion);
-              const statusIcon = hasError ? '❌' : hasValidationErrors ? '⚠️' : isSuccess ? '✅' : '⏳';
+              const statusLabel = hasError ? 'Failed' : hasValidationErrors ? 'Validation' : isSuccess ? 'Applied' : 'Pending';
               const statusColor = hasError
                 ? playgroundTheme.color.danger
                 : hasValidationErrors
@@ -379,39 +476,38 @@ export function AIControlCard({
                     border: `1px solid ${statusColor}22`,
                     borderLeft: `3px solid ${statusColor}`,
                     borderRadius: radius.sm,
-                    padding: space.sm,
+                    padding: `${space.xs}px ${space.sm}px`,
                     background: playgroundTheme.color.surface,
                   }}
                 >
                   <summary style={{ cursor: 'pointer', ...typeScale.caption, color: playgroundTheme.color.text, display: 'flex', alignItems: 'center', gap: space.xs }}>
-                    <span>{statusIcon}</span>
                     <span style={{ flex: 1 }}>
-                      {new Date(entry.createdAt).toLocaleTimeString()} — {entry.provider}/{entry.model}
+                      {new Date(entry.createdAt).toLocaleTimeString()} | {entry.provider}/{entry.model}
                     </span>
-                    <span style={{ ...typeScale.caption, fontSize: 11, color: statusColor }}>
-                      {hasError
-                        ? 'Failed'
-                        : hasValidationErrors
-                          ? `${entry.validationErrors!.length} error${entry.validationErrors!.length > 1 ? 's' : ''}`
-                          : isSuccess
-                            ? `v${entry.viewVersion}`
-                            : 'Pending'}
+                    <span
+                      style={{
+                        ...typeScale.caption,
+                        fontSize: 10,
+                        color: statusColor,
+                        border: `1px solid ${statusColor}55`,
+                        borderRadius: radius.pill,
+                        padding: '1px 6px',
+                      }}
+                    >
+                      {statusLabel}
                     </span>
                   </summary>
                   <div style={{ marginTop: space.sm, display: 'grid', gap: space.xs }}>
-                    {/* Prompt */}
                     <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft, fontStyle: 'italic' }}>
                       "{entry.prompt}"
                     </div>
 
-                    {/* Attachments */}
                     {entry.attachments && entry.attachments.length > 0 ? (
                       <div style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
                         📎 {entry.attachments.map(a => a.name).join(', ')}
                       </div>
                     ) : null}
 
-                    {/* Verdict line */}
                     {isSuccess ? (
                       <div style={{ ...typeScale.caption, color: playgroundTheme.color.success, padding: `${space.xs}px ${space.sm}px`, background: playgroundTheme.color.successBg, borderRadius: radius.sm }}>
                         ✅ Applied view version {entry.viewVersion}
@@ -419,14 +515,12 @@ export function AIControlCard({
                       </div>
                     ) : null}
 
-                    {/* Request error */}
                     {entry.requestError ? (
                       <div style={{ ...typeScale.caption, color: playgroundTheme.color.danger, padding: `${space.xs}px ${space.sm}px`, background: playgroundTheme.color.dangerBg, borderRadius: radius.sm }}>
                         ❌ {entry.requestError}
                       </div>
                     ) : null}
 
-                    {/* Validation errors — structured */}
                     {hasValidationErrors ? (
                       <div style={{ display: 'grid', gap: 2, padding: `${space.xs}px ${space.sm}px`, background: playgroundTheme.color.warningBg, borderRadius: radius.sm }}>
                         <div style={{ ...typeScale.caption, color: playgroundTheme.color.warning, fontWeight: 600 }}>
@@ -440,7 +534,6 @@ export function AIControlCard({
                       </div>
                     ) : null}
 
-                    {/* Raw response (collapsible) */}
                     {entry.rawResponse ? (
                       <details style={{ marginTop: space.xs }}>
                         <summary style={{ ...typeScale.caption, color: playgroundTheme.color.soft, cursor: 'pointer', fontSize: 11 }}>
@@ -474,66 +567,6 @@ export function AIControlCard({
         </div>
       </div>
 
-      {checkpoints && checkpoints.length > 0 && onRewind ? (
-        <div style={{ display: 'grid', gap: space.sm }}>
-          <div style={{ ...typeScale.caption, color: playgroundTheme.color.muted, textTransform: 'uppercase' }}>
-            Checkpoints ({checkpoints.length})
-          </div>
-          <div
-            style={{
-              maxHeight: 180,
-              overflow: 'auto',
-              display: 'grid',
-              gap: space.xs,
-              padding: space.sm,
-              border: `1px solid ${playgroundTheme.color.border}`,
-              borderRadius: radius.md,
-              background: playgroundTheme.color.surfaceAlt,
-            }}
-          >
-            {[...checkpoints].reverse().map((cp) => (
-              <div
-                key={cp.checkpointId}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: space.sm,
-                  padding: `${space.xs}px ${space.sm}px`,
-                  border: `1px solid ${playgroundTheme.color.border}`,
-                  borderRadius: radius.sm,
-                  background: playgroundTheme.color.surface,
-                }}
-              >
-                <div style={{ display: 'grid', gap: 2 }}>
-                  <span style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
-                    {new Date(cp.timestamp).toLocaleTimeString()}
-                  </span>
-                  <span style={{ ...typeScale.caption, color: playgroundTheme.color.soft, fontSize: 10 }}>
-                    v{cp.snapshot.view.version} — {cp.trigger}
-                  </span>
-                </div>
-                <button
-                  onClick={() => onRewind(cp.checkpointId)}
-                  style={{
-                    ...typeScale.caption,
-                    borderRadius: radius.sm,
-                    border: `1px solid ${playgroundTheme.color.accent}`,
-                    background: 'transparent',
-                    color: playgroundTheme.color.accent,
-                    padding: `2px ${space.sm}px`,
-                    cursor: 'pointer',
-                    fontSize: 10,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Restore
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -558,3 +591,38 @@ const buttonStyle = {
   ...typeScale.caption,
   textTransform: 'uppercase',
 } as const;
+
+function actionButtonStyle(
+  variant: 'primary' | 'secondary' | 'success' | 'dangerGhost',
+  disabled: boolean
+) {
+  const shared = {
+    ...buttonStyle,
+    opacity: disabled ? 0.65 : 1,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  };
+  if (variant === 'primary') {
+    return shared;
+  }
+  if (variant === 'success') {
+    return {
+      ...shared,
+      background: playgroundTheme.color.success,
+      borderColor: playgroundTheme.color.success,
+    };
+  }
+  if (variant === 'dangerGhost') {
+    return {
+      ...shared,
+      background: disabled ? playgroundTheme.color.disabledBg : 'transparent',
+      color: disabled ? playgroundTheme.color.disabledText : playgroundTheme.color.danger,
+      borderColor: playgroundTheme.color.danger,
+    };
+  }
+  return {
+    ...shared,
+    background: disabled ? playgroundTheme.color.disabledBg : 'transparent',
+    color: disabled ? playgroundTheme.color.disabledText : playgroundTheme.color.text,
+    borderColor: playgroundTheme.color.borderStrong,
+  };
+}
