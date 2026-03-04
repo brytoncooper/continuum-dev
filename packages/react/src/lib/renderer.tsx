@@ -13,6 +13,54 @@ import { FallbackComponent } from './fallback.js';
 import { NodeErrorBoundary } from './error-boundary.js';
 
 const noopOnChange = () => undefined;
+const collectionItemWrapStyle = {
+  position: 'relative' as const,
+  padding: '14px 16px',
+  borderRadius: 8,
+  background: '#fafafa',
+  border: '1px solid #e4e4e7',
+};
+const collectionItemActionsStyle = {
+  position: 'absolute' as const,
+  top: 10,
+  right: 10,
+};
+const collectionActionStyle = {
+  display: 'inline-flex' as const,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  width: 24,
+  height: 24,
+  borderRadius: '50%' as const,
+  border: '1px solid #e5e7eb' as const,
+  background: '#ffffff' as const,
+  color: '#64748b',
+  cursor: 'pointer' as const,
+  fontSize: 14,
+  lineHeight: '1' as const,
+  padding: 0,
+  outline: 'none' as const,
+  transition: 'border-color 0.15s, background 0.15s, color 0.15s' as const,
+};
+const collectionAddActionStyle = {
+  display: 'inline-flex' as const,
+  alignItems: 'center' as const,
+  justifySelf: 'end' as const,
+  gap: 4,
+  padding: '10px 16px 10px 0',
+  border: 'none' as const,
+  borderRadius: 0,
+  background: 'none' as const,
+  color: '#3f3f46',
+  cursor: 'pointer' as const,
+  fontSize: 13,
+  fontWeight: 600 as const,
+  outline: 'none' as const,
+};
+const collectionAddActionContainerStyle = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+};
 
 function toCanonicalId(id: string, parentPath: string): string {
   return parentPath.length > 0 ? `${parentPath}/${id}` : id;
@@ -242,16 +290,22 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
 
   return (
     <NodeStateScopeContext.Provider value={scope}>
-      <div data-continuum-collection-item={`${collectionCanonicalId}:${itemIndex}`}>
+      <div
+        data-continuum-collection-item={`${collectionCanonicalId}:${itemIndex}`}
+        style={collectionItemWrapStyle}
+      >
         <NodeRenderer definition={template} parentPath={collectionCanonicalId} />
         {canRemove ? (
-          <button
-            type="button"
-            data-continuum-collection-remove={`${collectionCanonicalId}:${itemIndex}`}
-            onClick={() => onRemove(itemIndex)}
-          >
-            Remove
-          </button>
+          <div style={collectionItemActionsStyle}>
+            <button
+              type="button"
+              data-continuum-collection-remove={`${collectionCanonicalId}:${itemIndex}`}
+              onClick={() => onRemove(itemIndex)}
+              style={collectionActionStyle}
+            >
+              ×
+            </button>
+          </div>
         ) : null}
       </div>
     </NodeStateScopeContext.Provider>
@@ -338,14 +392,21 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
           nodeId={canonicalId}
         >
           {renderedItems}
-          <button
-            type="button"
-            data-continuum-collection-add={canonicalId}
-            onClick={addItem}
-            disabled={!canAdd}
-          >
-            Add Item
-          </button>
+          <div style={collectionAddActionContainerStyle}>
+            <button
+              type="button"
+              data-continuum-collection-add={canonicalId}
+              onClick={addItem}
+              disabled={!canAdd}
+              style={{
+                ...collectionAddActionStyle,
+                opacity: canAdd ? 1 : 0.5,
+                cursor: canAdd ? 'pointer' : 'not-allowed',
+              }}
+            >
+              + Add item
+            </button>
+          </div>
         </Component>
       </NodeErrorBoundary>
     </div>
