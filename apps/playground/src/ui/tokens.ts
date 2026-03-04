@@ -39,6 +39,10 @@ export const space = {
   xl2: 28,
   xxxl: 32,
   xl3: 36,
+  sectionGap: 20,
+  panelGap: 16,
+  inlineGap: 8,
+  stackGap: 12,
 } as const;
 
 export const radius = {
@@ -66,6 +70,7 @@ export const typeScale = {
   h3: { fontSize: 14, fontWeight: 600 },
   body: { fontSize: 14, fontWeight: 400 },
   caption: { fontSize: 13, fontWeight: 500 },
+  overline: { fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' },
   label: {
     fontSize: 12,
     fontWeight: 600,
