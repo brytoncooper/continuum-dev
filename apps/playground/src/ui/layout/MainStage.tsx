@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
 
@@ -17,25 +17,36 @@ export function MainStage({
   renderedUi,
   devtools,
 }: MainStageProps) {
+  const [isCompact, setIsCompact] = useState(() => window.innerWidth < 1360);
+
+  useEffect(() => {
+    const onResize = () => {
+      setIsCompact(window.innerWidth < 1360);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: isCompact ? 'column' : 'row',
         gap: space.xxxl,
-        padding: space.xl,
+        padding: space.sectionGap,
         height: '100%',
         boxSizing: 'border-box',
         color: playgroundTheme.color.text,
       }}
     >
-      {/* Left Pane: Generated UI (Takes remaining space) */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: space.xl,
+          gap: space.panelGap,
           minWidth: 0,
+          minHeight: isCompact ? 480 : undefined,
         }}
       >
         {banner}
@@ -50,7 +61,7 @@ export function MainStage({
             padding: space.xxl,
             display: 'flex',
             flexDirection: 'column',
-            gap: space.lg,
+            gap: space.panelGap,
             overflowY: 'auto',
           }}
         >
@@ -72,34 +83,44 @@ export function MainStage({
         </div>
       </div>
 
-      {/* Right Pane: Controls & Devtools (Fixed width, independent scroll) */}
       <div
         style={{
-          width: 440,
+          width: isCompact ? '100%' : 420,
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: space.xl,
-          overflowY: 'auto',
-          paddingRight: space.sm, // space for scrollbar
+          gap: space.panelGap,
+          overflowY: isCompact ? 'visible' : 'auto',
+          paddingRight: space.sm,
         }}
       >
+        <div
+          style={{
+            ...typeScale.overline,
+            color: playgroundTheme.color.muted,
+            marginBottom: space.xs,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Controls
+        </div>
         {controls}
-        
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <div
+
+        <details style={{ display: 'grid', gap: space.sm }}>
+          <summary
             style={{
-              ...typeScale.label,
-              color: playgroundTheme.color.muted,
-              marginBottom: space.sm,
+              ...typeScale.overline,
+              color: playgroundTheme.color.soft,
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.04em',
+              cursor: 'pointer',
             }}
           >
-            Devtools
-          </div>
+            Diagnostics
+          </summary>
           {devtools}
-        </div>
+        </details>
       </div>
     </div>
   );
