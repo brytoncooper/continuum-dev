@@ -1,11 +1,25 @@
 import type { CSSProperties, ComponentType } from 'react';
-import type { ViewNode, NodeValue } from '@continuum/contract';
+import { getChildNodes, type ViewNode, type NodeValue } from '@continuum/contract';
 import {
   useContinuumSession,
   type ContinuumNodeMap,
   type ContinuumNodeProps,
 } from '@continuum/react';
-import { color, radius, shadow, space, transition, typeScale } from './ui/tokens';
+import { color, radius, space, transition, typeScale } from './ui/tokens';
+
+const fc = {
+  text: '#09090b',
+  label: '#3f3f46',
+  muted: '#71717a',
+  border: '#d4d4d8',
+  borderSubtle: '#e4e4e7',
+  surface: '#ffffff',
+  surfaceMuted: '#fafafa',
+  hover: '#f4f4f5',
+  primary: '#18181b',
+  primaryHover: '#27272a',
+  arrow: '#71717a',
+} as const;
 
 type Option = { value: string; label: string };
 
@@ -130,7 +144,7 @@ const LABEL: CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
   letterSpacing: '0.01em',
-  color: color.textSecondary,
+  color: fc.label,
   lineHeight: 1.4,
 };
 
@@ -139,9 +153,9 @@ const INPUT: CSSProperties = {
   height: 42,
   padding: '10px 14px',
   borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
+  border: `1px solid ${fc.border}`,
+  background: fc.surface,
+  color: fc.text,
   outline: 'none',
   boxSizing: 'border-box',
   transition: `border-color ${transition.normal}, box-shadow ${transition.normal}, background ${transition.normal}`,
@@ -202,6 +216,27 @@ const REJECT_BUTTON: CSSProperties = {
   ...typeScale.caption,
   fontWeight: 600,
 };
+
+function layerDepth(nodeId?: string): number {
+  if (!nodeId) return 0;
+  return nodeId.split('/').length - 1;
+}
+
+function layerStyle(nodeId?: string): CSSProperties {
+  const depth = layerDepth(nodeId);
+
+  if (depth === 0) {
+    return {
+      padding: space.xxl,
+      borderRadius: radius.lg,
+      background: fc.surface,
+      border: `1px solid ${fc.border}`,
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+    };
+  }
+
+  return {};
+}
 
 function inputWithValidation(style: CSSProperties, error: string | null): CSSProperties {
   if (!error) return style;
@@ -292,7 +327,7 @@ function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
               cursor: 'pointer',
               appearance: 'none',
               backgroundImage:
-                'linear-gradient(45deg, transparent 50%, #8b97a8 50%), linear-gradient(135deg, #8b97a8 50%, transparent 50%)',
+                `linear-gradient(45deg, transparent 50%, ${fc.arrow} 50%), linear-gradient(135deg, ${fc.arrow} 50%, transparent 50%)`,
               backgroundPosition:
                 'calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px)',
               backgroundSize: '6px 6px, 6px 6px',
@@ -413,7 +448,7 @@ function Select({ value, onChange, definition }: ContinuumNodeProps) {
           cursor: 'pointer',
           appearance: 'none',
           backgroundImage:
-            'linear-gradient(45deg, transparent 50%, #8b97a8 50%), linear-gradient(135deg, #8b97a8 50%, transparent 50%)',
+            `linear-gradient(45deg, transparent 50%, ${fc.arrow} 50%), linear-gradient(135deg, ${fc.arrow} 50%, transparent 50%)`,
           backgroundPosition:
             'calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px)',
           backgroundSize: '6px 6px, 6px 6px',
@@ -451,8 +486,8 @@ function Toggle({ value, onChange, definition }: ContinuumNodeProps) {
           width: 48,
           height: 26,
           borderRadius: radius.pill,
-          background: checked ? color.success : color.surfaceHover,
-          border: `1px solid ${checked ? color.success : color.border}`,
+          background: checked ? fc.primary : fc.hover,
+          border: `1px solid ${checked ? fc.primary : fc.border}`,
           position: 'relative',
           transition: `background ${transition.normal}, border-color ${transition.normal}`,
           flexShrink: 0,
@@ -482,7 +517,7 @@ function Toggle({ value, onChange, definition }: ContinuumNodeProps) {
           style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }}
         />
       </span>
-      <span style={{ ...typeScale.body, color: color.text }}>
+      <span style={{ ...typeScale.body, color: fc.text }}>
         {nodeLabel(definition)}
       </span>
     </label>
@@ -575,9 +610,9 @@ function RadioGroup({ value, onChange, definition }: ContinuumNodeProps) {
               borderRadius: radius.sm,
               transition: `background ${transition.fast}`,
               ...typeScale.body,
-              color: color.text,
+              color: fc.text,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = color.surfaceAlt; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = fc.hover; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
           >
             <input
@@ -589,7 +624,7 @@ function RadioGroup({ value, onChange, definition }: ContinuumNodeProps) {
                 if (attr(definition, 'readOnly')) return;
                 onChange({ value: opt.value, isDirty: true } as NodeValue);
               }}
-              style={{ accentColor: color.accent, width: 18, height: 18, cursor: 'pointer', flexShrink: 0 }}
+              style={{ accentColor: fc.primary, width: 18, height: 18, cursor: 'pointer', flexShrink: 0 }}
             />
             {opt.label}
           </label>
@@ -619,7 +654,7 @@ function Slider({ value, onChange, definition }: ContinuumNodeProps) {
           {lbl}
           {required ? ' *' : ''}
         </span>
-        <span style={{ color: color.text }}>{numericValue}</span>
+        <span style={{ color: fc.text }}>{numericValue}</span>
       </div>
       <input
         type="range"
@@ -631,13 +666,30 @@ function Slider({ value, onChange, definition }: ContinuumNodeProps) {
           if (attr(definition, 'readOnly')) return;
           onChange({ value: Number(e.target.value), isDirty: true } as NodeValue);
         }}
-        style={{ width: '100%', accentColor: color.accent, cursor: 'pointer', height: 6 }}
+        style={{ width: '100%', accentColor: fc.primary, cursor: 'pointer', height: 6 }}
       />
-      <div style={{ ...typeScale.caption, color: color.textMuted }}>
+      <div style={{ ...typeScale.caption, color: fc.muted }}>
         {min} &ndash; {max}
       </div>
       {error ? <div style={ERROR_TEXT}>{error}</div> : null}
     </label>
+  );
+}
+
+function Presentation({ definition }: ContinuumNodeProps) {
+  const content = attr<string>(definition, 'content') ?? '';
+  if (!content) return null;
+  return (
+    <div
+      style={{
+        ...typeScale.body,
+      color: fc.label,
+      lineHeight: 1.6,
+      padding: `${space.xs}px 0`,
+      }}
+    >
+      {content}
+    </div>
   );
 }
 
@@ -648,37 +700,48 @@ function ActionButton({ onChange, definition }: ContinuumNodeProps) {
   const session = useContinuumSession();
 
   return (
-    <button
-      className="continuum-field"
-      disabled={disabled}
-      onClick={() => {
-        onChange({ value: true, isDirty: true } as NodeValue);
-        if (intentId) {
-          void session.dispatchAction(intentId, definition.id);
-        }
-      }}
+    <div
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: space.sm,
-        height: 42,
-        padding: '10px 22px',
-        borderRadius: radius.md,
-        border: `1px solid ${color.accent}`,
-        background: color.accent,
-        color: color.white,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        transition: `background ${transition.normal}, transform ${transition.fast}, box-shadow ${transition.normal}`,
-        ...typeScale.body,
-        fontWeight: 600,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        width: '100%',
+        marginLeft: 'auto',
+        flex: '1 0 100%',
       }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
     >
-      {lbl}
-    </button>
+      <button
+        className="continuum-field"
+        disabled={disabled}
+        onClick={() => {
+          onChange({ value: true, isDirty: true } as NodeValue);
+          if (intentId) {
+            void session.dispatchAction(intentId, definition.id);
+          }
+        }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: space.sm,
+          height: 42,
+          padding: '10px 24px',
+          borderRadius: radius.md,
+          border: `1px solid ${fc.primary}`,
+          background: fc.primary,
+          color: fc.surface,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+          transition: `background ${transition.normal}, border-color ${transition.normal}, transform ${transition.fast}`,
+          ...typeScale.body,
+          fontWeight: 600,
+          outline: 'none',
+        }}
+        onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.background = fc.primaryHover; e.currentTarget.style.borderColor = fc.primaryHover; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = fc.primary; e.currentTarget.style.borderColor = fc.primary; e.currentTarget.style.transform = 'translateY(0)'; }}
+      >
+        {lbl}
+      </button>
+    </div>
   );
 }
 
@@ -694,24 +757,22 @@ function layoutStyles(definition: ViewNode): CSSProperties {
   return { display: 'grid', gap: space.xl };
 }
 
-function Section({ definition, children }: ContinuumNodeProps) {
+function Section({ definition, children, nodeId }: ContinuumNodeProps) {
+  const depth = layerDepth(nodeId);
   return (
     <div
       style={{
-        padding: space.xxl,
-        borderRadius: radius.lg,
-        background: color.surface,
-        border: `1px solid ${color.border}`,
-        boxShadow: shadow.card,
+        ...layerStyle(nodeId),
+        display: 'grid',
+        gap: depth === 0 ? space.lg : space.md,
       }}
     >
       <div
         style={{
-          ...typeScale.h3,
-          color: color.text,
-          paddingBottom: space.md,
-          marginBottom: space.xl,
-          borderBottom: `1px solid ${color.border}`,
+          ...(depth === 0 ? typeScale.h2 : depth === 1 ? typeScale.h3 : { ...typeScale.caption, fontWeight: 600 }),
+          color: depth < 2 ? fc.text : fc.label,
+          paddingBottom: depth === 0 ? space.sm : space.xs,
+          borderBottom: `1px solid ${fc.borderSubtle}`,
         }}
       >
         {nodeLabel(definition)}
@@ -721,64 +782,66 @@ function Section({ definition, children }: ContinuumNodeProps) {
   );
 }
 
-function RowSection({ definition, children }: ContinuumNodeProps) {
-  return (
-    <div style={{ display: 'flex', gap: space.lg, alignItems: 'center', flexWrap: 'wrap' }}>
-      {children}
-    </div>
-  );
-}
-
-function GridSection({ definition, children }: ContinuumNodeProps) {
-  const cols = attr<number>(definition, 'columns') ?? 2;
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: space.lg, alignItems: 'start' }}>
-      {children}
-    </div>
-  );
-}
-
-function CollectionSection({ definition, children }: ContinuumNodeProps) {
+function RowSection({ definition, children, nodeId }: ContinuumNodeProps) {
+  const style = layerStyle(nodeId);
+  const childDefs = getChildNodes(definition);
+  const hasAction = childDefs.some((child) => child.type === 'action');
   return (
     <div
       style={{
-        padding: space.xxl,
-        borderRadius: radius.lg,
-        background: color.surface,
-        border: `1px dashed ${color.border}`,
-        boxShadow: shadow.card,
+        ...style,
+        display: 'flex',
+        gap: space.lg,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        width: '100%',
+        justifyContent: hasAction ? 'flex-end' : 'flex-start',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function GridSection({ definition, children, nodeId }: ContinuumNodeProps) {
+  const cols = attr<number>(definition, 'columns') ?? 2;
+  const style = layerStyle(nodeId);
+  return (
+    <div style={{ ...style, display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: space.lg, alignItems: 'start' }}>
+      {children}
+    </div>
+  );
+}
+
+function CollectionSection({ definition, children, nodeId }: ContinuumNodeProps) {
+  const depth = layerDepth(nodeId);
+  return (
+    <div
+      style={{
+        ...layerStyle(nodeId),
         display: 'grid',
-        gap: space.xl,
+        gap: depth === 0 ? space.lg : space.md,
       }}
     >
       <div
         style={{
-          ...typeScale.h3,
-          color: color.text,
-          paddingBottom: space.md,
-          marginBottom: space.lg,
-          borderBottom: `1px solid ${color.border}`,
+          ...(depth === 0 ? typeScale.h2 : depth === 1 ? typeScale.h3 : { ...typeScale.caption, fontWeight: 600 }),
+          color: depth < 2 ? fc.text : fc.label,
+          paddingBottom: depth === 0 ? space.sm : space.xs,
+          borderBottom: `1px solid ${fc.borderSubtle}`,
         }}
       >
         {nodeLabel(definition)}
       </div>
-      <div style={{ display: 'grid', gap: space.lg }}>{children}</div>
+      <div style={{ display: 'grid', gap: space.md }}>{children}</div>
     </div>
   );
 }
 
-function GroupFallback({ definition, children }: ContinuumNodeProps) {
+function GroupFallback({ definition, children, nodeId }: ContinuumNodeProps) {
+  const style = layerStyle(nodeId);
   return (
-    <div
-      style={{
-        padding: space.xl,
-        border: `1px solid ${color.border}`,
-        borderRadius: radius.lg,
-        background: color.surfaceAlt,
-        display: 'grid',
-        gap: space.lg,
-      }}
-    >
+    <div style={{ ...style, display: 'grid', gap: space.md }}>
       <div style={LABEL}>{nodeLabel(definition)}</div>
       <div style={layoutStyles(definition)}>{children}</div>
     </div>
@@ -794,6 +857,7 @@ export const componentMap: ContinuumNodeMap = {
   textarea: TextArea,
   'radio-group': RadioGroup,
   slider: Slider,
+  presentation: Presentation,
   group: Section,
   row: RowSection,
   grid: GridSection,
