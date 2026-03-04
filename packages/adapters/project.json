@@ -1,15 +1,15 @@
 {
-  "name": "contract",
+  "name": "@continuum/adapters",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/contract/src",
+  "sourceRoot": "packages/adapters/src",
   "projectType": "library",
-  "tags": ["scope:shared"],
+  "tags": ["scope:adapters"],
   "targets": {
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
       "dependsOn": ["^nx-release-publish"],
       "options": {
-        "packageRoot": "dist/packages/contract"
+        "packageRoot": "dist/packages/adapters"
       }
     }
   }
