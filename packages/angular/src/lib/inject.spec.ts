@@ -8,7 +8,7 @@ import {
   injectContinuumState,
   injectContinuumDiagnostics,
 } from './inject.js';
-import { CONTIUUM_SESSION } from './tokens.js';
+import { CONTINUUM_SESSION } from './tokens.js';
 
 const view: ViewDefinition = {
   viewId: 'test',
@@ -44,7 +44,7 @@ describe('injectContinuumSnapshot', () => {
     const snapshot = injector.runInContext(() => injectContinuumSnapshot());
     expect(snapshot()).toBeNull();
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     session.pushView(view);
     expect(snapshot()).not.toBeNull();
     expect(snapshot()?.view.viewId).toBe('test');
@@ -57,7 +57,7 @@ describe('injectContinuumState', () => {
       providers: provideContinuum({ components: {}, persist: false }),
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     session.pushView(view);
 
     const [state, setState] = injector.runInContext(() =>

@@ -11,13 +11,13 @@ import type {
   ReconciliationResolution,
 } from '@continuum/runtime';
 import {
-  CONTIUUM_SESSION,
-  CONTIUUM_SNAPSHOT,
-  CONTIUUM_WAS_HYDRATED,
+  CONTINUUM_SESSION,
+  CONTINUUM_SNAPSHOT,
+  CONTINUUM_WAS_HYDRATED,
 } from './tokens.js';
 
 export function injectContinuumSession(): Session {
-  const session = inject(CONTIUUM_SESSION);
+  const session = inject(CONTINUUM_SESSION);
   if (!session) {
     throw new Error(
       'injectContinuumSession must be used within a provider configured by provideContinuum()'
@@ -27,19 +27,19 @@ export function injectContinuumSession(): Session {
 }
 
 export function injectContinuumHydrated(): boolean {
-  const wasHydrated = inject(CONTIUUM_WAS_HYDRATED);
+  const wasHydrated = inject(CONTINUUM_WAS_HYDRATED);
   return wasHydrated ?? false;
 }
 
 export function injectContinuumSnapshot(): Signal<ContinuitySnapshot | null> {
-  return inject(CONTIUUM_SNAPSHOT);
+  return inject(CONTINUUM_SNAPSHOT);
 }
 
 export function injectContinuumState(
   nodeId: string
 ): [Signal<NodeValue | undefined>, (value: NodeValue) => void] {
   const session = injectContinuumSession();
-  const snapshot = inject(CONTIUUM_SNAPSHOT);
+  const snapshot = inject(CONTINUUM_SNAPSHOT);
   const state = computed(() => {
     const snap = snapshot();
     return snap?.data.values?.[nodeId] as NodeValue | undefined;
@@ -57,7 +57,7 @@ export function injectContinuumDiagnostics(): Signal<{
   checkpoints: Checkpoint[];
 }> {
   const session = injectContinuumSession();
-  const snapshot = inject(CONTIUUM_SNAPSHOT);
+  const snapshot = inject(CONTINUUM_SNAPSHOT);
   return computed(() => {
     snapshot();
     return {

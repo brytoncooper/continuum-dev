@@ -11,7 +11,7 @@ import type {
   NodeValue,
   ViewDefinition,
 } from '@continuum/contract';
-import { CONTIUUM_NODE_MAP, CONTIUUM_SNAPSHOT } from './tokens.js';
+import { CONTINUUM_NODE_MAP, CONTINUUM_SNAPSHOT } from './tokens.js';
 import { ContinuumFallbackComponent } from './fallback.js';
 import { injectContinuumSession } from './inject.js';
 
@@ -42,8 +42,8 @@ export class ContinuumViewNodeComponent {
   definition = input.required<ViewNode>();
 
   private session = injectContinuumSession();
-  private snapshot = inject(CONTIUUM_SNAPSHOT);
-  private nodeMap = inject(CONTIUUM_NODE_MAP);
+  private snapshot = inject(CONTINUUM_SNAPSHOT);
+  private nodeMap = inject(CONTINUUM_NODE_MAP);
 
   protected state = computed(() => {
     const def = this.definition();
