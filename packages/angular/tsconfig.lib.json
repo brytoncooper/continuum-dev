@@ -5,9 +5,15 @@
     "outDir": "../../dist/packages/angular",
     "tsBuildInfoFile": "../../dist/packages/angular/tsconfig.lib.tsbuildinfo",
     "types": ["node"],
-    "lib": ["es2022", "dom"]
+    "lib": ["es2022", "dom"],
+    "emitDeclarationOnly": false
   },
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../contract/tsconfig.lib.json" },
