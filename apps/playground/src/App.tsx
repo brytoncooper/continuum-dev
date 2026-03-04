@@ -11,13 +11,10 @@ import {
   useContinuumSuggestions,
 } from '@continuum/react';
 import type { SessionOptions } from '@continuum/session';
-import { generateView, generateViewPipeline, type PipelineStage } from './ai/client';
-import { applyPatch } from './ai/patch/apply-patch';
-import { getPatchSystemPrompt } from './ai/patch/patch-system-prompt';
+import { generateView } from './ai/client';
 import {
   buildCorrectionMessages,
   buildEvolutionMessages,
-  buildPatchMessages,
   buildInitialMessages,
   getSystemPrompt,
 } from './ai/prompt-builder';
@@ -584,6 +581,12 @@ function PlaygroundContent({
     },
     [activeSteps, session]
   );
+  const handleCreateCheckpoint = useCallback(() => {
+    if (!session.getSnapshot()) {
+      return;
+    }
+    session.checkpoint();
+  }, [session]);
 
   const handleHallucinate = useCallback(() => {
     const activeView = session.getSnapshot()?.view;
@@ -619,6 +622,7 @@ function PlaygroundContent({
               protocolMode === 'a2ui' ? 'Adapter-generated view walkthrough' : selectedScenario.subtitle
             }
             protocolMode={protocolMode}
+            checkpointCount={checkpoints.length}
             onScenarioSelect={handleScenarioSelect}
             onProtocolChange={setProtocolMode}
             onAiModeSelect={onAiModeRouteChange}
@@ -648,6 +652,7 @@ function PlaygroundContent({
                 onPrev={() => pushStep(stepIndex - 1)}
                 onNext={() => pushStep(stepIndex + 1)}
                 onRewind={handleRewind}
+                onCreateCheckpoint={handleCreateCheckpoint}
                 onHallucinate={handleHallucinate}
               />
             }
@@ -705,9 +710,6 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
   const [apiKeys, setApiKeys] = useState<Record<ProviderId, string>>(() => loadApiKeys());
   const [isLoading, setIsLoading] = useState(false);
   const [autoFeedback, setAutoFeedback] = useState(true);
-  const [pipelineMode, setPipelineMode] = useState(false);
-  const [pipelineStage, setPipelineStage] = useState<PipelineStage | null>(null);
-  const [patchMode, setPatchMode] = useState(false);
   const [attachments, setAttachments] = useState<AIAttachment[]>([]);
 
   const checkpoints = session.getCheckpoints();
@@ -718,13 +720,18 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
     },
     [session]
   );
+  const handleCreateCheckpoint = useCallback(() => {
+    if (!session.getSnapshot()) {
+      return;
+    }
+    session.checkpoint();
+  }, [session]);
   
   const handleClearSession = useCallback(() => {
     session.reset();
     setEntries([]);
     setPrompt('Create a travel planning form with destination, dates, budget, and submit.');
     setAttachments([]);
-    setPipelineStage(null);
   }, [session]);
 
   useEffect(() => {
@@ -759,42 +766,19 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
             resolutions: session.getResolutions(),
             attachments,
           })
-        : currentView && patchMode
-          ? buildPatchMessages(requestPrompt, currentView, attachments)
-          : currentView
+        : currentView
             ? buildEvolutionMessages(requestPrompt, currentView, attachments)
             : buildInitialMessages(requestPrompt, attachments);
 
-      let response;
-      if (pipelineMode && !correction) {
-        response = await generateViewPipeline(
-          {
-            provider: selectedProvider,
-            model: selectedModel,
-            apiKey: key,
-            systemPrompt: getSystemPrompt(),
-            messages,
-            currentView,
-            attachments,
-          },
-          setPipelineStage
-        );
-        setPipelineStage(null);
-      } else {
-        response = await generateView({
-          provider: selectedProvider,
-          model: selectedModel,
-          apiKey: key,
-          systemPrompt: patchMode && currentView ? getPatchSystemPrompt() : getSystemPrompt(),
-          messages,
-          currentView,
-          attachments,
-        });
-      }
-
-      if ((response.view as any).mode === 'patch') {
-        response.view = applyPatch(currentView!, response.view as any);
-      }
+      let response = await generateView({
+        provider: selectedProvider,
+        model: selectedModel,
+        apiKey: key,
+        systemPrompt: getSystemPrompt(),
+        messages,
+        currentView,
+        attachments,
+      });
 
       setAttachments([]); // Clear after submission
 
@@ -968,6 +952,7 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
             activeScenarioTitle="Live AI Mode"
             activeScenarioSubtitle="Generate views with real providers and inspect reconciliation in real time"
             protocolMode={protocolMode}
+            checkpointCount={checkpoints.length}
             onScenarioSelect={onScenarioRouteChange}
             onProtocolChange={setProtocolMode}
           />
@@ -999,12 +984,6 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
                 }}
                 onPromptChange={setPrompt}
                 onAutoFeedbackChange={setAutoFeedback}
-                pipelineMode={pipelineMode}
-                pipelineStage={pipelineStage}
-                onPipelineModeChange={setPipelineMode}
-                patchMode={patchMode}
-                onPatchModeChange={setPatchMode}
-                hasCurrentView={!!snapshot?.view}
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 onSubmit={handleSubmit}
@@ -1012,6 +991,7 @@ function AIPlaygroundContent({ onBackToIntro, onScenarioRouteChange }: AIPlaygro
                 onExportDebugLog={buildDebugLog}
                 checkpoints={checkpoints}
                 onRewind={handleRewind}
+                onCreateCheckpoint={handleCreateCheckpoint}
                 hasSuggestions={hasSuggestions}
                 onAcceptAll={acceptAll}
                 onRejectAll={rejectAll}
