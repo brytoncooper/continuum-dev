@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { useMemo, useState } from 'react';
 import type { Checkpoint } from '@continuum/contract';
 import { radius, space, typeScale } from '../tokens';
 import { playgroundTheme } from '../playground-theme';
@@ -13,6 +14,7 @@ interface ScenarioContextCardProps {
   onPrev: () => void;
   onNext: () => void;
   onRewind: (id: string) => void;
+  onCreateCheckpoint: () => void;
   onHallucinate: () => void;
 }
 
@@ -26,10 +28,13 @@ export function ScenarioContextCard({
   onPrev,
   onNext,
   onRewind,
+  onCreateCheckpoint,
   onHallucinate,
 }: ScenarioContextCardProps) {
   const prevDisabled = stepIndex <= 0;
   const nextDisabled = stepIndex >= totalSteps - 1;
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const latestCheckpoint = useMemo(() => checkpoints[checkpoints.length - 1] ?? null, [checkpoints]);
 
   return (
     <div
@@ -40,12 +45,12 @@ export function ScenarioContextCard({
         border: `1px solid ${playgroundTheme.color.panelBorder}`,
         boxShadow: `${playgroundTheme.shadow.card}, inset 0 0 0 1px ${playgroundTheme.color.borderGlow}`,
         display: 'grid',
-        gap: space.lg,
+        gap: space.sectionGap,
       }}
     >
       <div
         style={{
-          ...typeScale.label,
+          ...typeScale.overline,
           color: playgroundTheme.color.soft,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
@@ -83,6 +88,121 @@ export function ScenarioContextCard({
           );
         })}
       </div>
+      <div
+        style={{
+          display: 'grid',
+          gap: space.stackGap,
+          padding: space.md,
+          borderRadius: radius.md,
+          border: `1px solid ${playgroundTheme.color.border}`,
+          background: playgroundTheme.color.surfaceAlt,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: space.sm }}>
+          <div style={{ display: 'grid', gap: 2 }}>
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.muted, textTransform: 'uppercase' }}>
+              Checkpoint Timeline
+            </div>
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
+              {checkpoints.length} checkpoint{checkpoints.length === 1 ? '' : 's'}
+            </div>
+          </div>
+          <button
+            onClick={onCreateCheckpoint}
+            style={{
+              ...typeScale.caption,
+              borderRadius: radius.sm,
+              border: `1px solid ${playgroundTheme.color.accent}`,
+              background: playgroundTheme.color.accent,
+              color: playgroundTheme.color.white,
+              padding: `6px ${space.sm}px`,
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+            }}
+          >
+            Create checkpoint
+          </button>
+        </div>
+        {latestCheckpoint ? (
+          <div
+            style={{
+              display: 'grid',
+              gap: 2,
+              padding: `${space.xs}px ${space.sm}px`,
+              borderRadius: radius.sm,
+              border: `1px solid ${playgroundTheme.color.borderStrong}`,
+              background: playgroundTheme.color.surface,
+            }}
+          >
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.text }}>
+              Latest: v{latestCheckpoint.snapshot.view.version}
+            </div>
+            <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft, fontSize: 11 }}>
+              {new Date(latestCheckpoint.timestamp).toLocaleString()} | {latestCheckpoint.trigger}
+            </div>
+          </div>
+        ) : (
+          <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>No checkpoints yet</div>
+        )}
+        <div style={{ display: 'flex', gap: space.inlineGap, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => latestCheckpoint && onRewind(latestCheckpoint.checkpointId)}
+            disabled={!latestCheckpoint}
+            style={btnStyle(!latestCheckpoint)}
+          >
+            Rewind to latest
+          </button>
+          <button
+            onClick={() => setTimelineExpanded((value) => !value)}
+            style={{
+              ...ghostBtnStyle,
+              marginLeft: 0,
+              textTransform: 'none',
+              letterSpacing: 'normal',
+            }}
+          >
+            {timelineExpanded ? 'Hide timeline' : 'Open timeline'}
+          </button>
+        </div>
+        {timelineExpanded ? (
+          <div
+            style={{
+              maxHeight: 180,
+              overflow: 'auto',
+              display: 'grid',
+              gap: space.xs,
+              padding: space.xs,
+              border: `1px solid ${playgroundTheme.color.border}`,
+              borderRadius: radius.sm,
+              background: playgroundTheme.color.surface,
+            }}
+          >
+            {[...checkpoints].reverse().map((checkpoint) => (
+              <button
+                key={checkpoint.checkpointId}
+                onClick={() => onRewind(checkpoint.checkpointId)}
+                style={{
+                  borderRadius: radius.sm,
+                  border: `1px solid ${playgroundTheme.color.border}`,
+                  background: 'transparent',
+                  color: playgroundTheme.color.text,
+                  padding: `${space.sm}px ${space.sm}px`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  ...typeScale.caption,
+                }}
+              >
+                <span>v{checkpoint.snapshot.view.version}</span>
+                <span style={{ color: playgroundTheme.color.soft, fontSize: 11 }}>
+                  {new Date(checkpoint.timestamp).toLocaleTimeString()}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <div>
         <div
           data-testid="step-label"
@@ -112,14 +232,13 @@ export function ScenarioContextCard({
           style={{
             ...typeScale.caption,
             color: playgroundTheme.color.soft,
-            letterSpacing: '0.04em',
             fontWeight: 600,
           }}
         >
           {stepIndex + 1} of {totalSteps}
         </span>
         <button data-testid="btn-hallucinate" onClick={onHallucinate} style={ghostBtnStyle}>
-          Chaos Jump
+          Chaos test
         </button>
       </div>
     </div>
@@ -129,11 +248,11 @@ export function ScenarioContextCard({
 function btnStyle(disabled: boolean): CSSProperties {
   return {
     borderRadius: radius.sm,
-    border: `1px solid ${playgroundTheme.color.border}`,
-    background: disabled ? playgroundTheme.color.surfaceMuted : playgroundTheme.color.surface,
-    color: disabled ? playgroundTheme.color.soft : playgroundTheme.color.text,
+    border: `1px solid ${playgroundTheme.color.borderStrong}`,
+    background: disabled ? playgroundTheme.color.disabledBg : playgroundTheme.color.surface,
+    color: disabled ? playgroundTheme.color.disabledText : playgroundTheme.color.text,
     cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
+    opacity: disabled ? 0.7 : 1,
     padding: `${space.sm}px ${space.lg}px`,
     transition: playgroundTheme.transition.normal,
     ...typeScale.caption,
@@ -142,11 +261,9 @@ function btnStyle(disabled: boolean): CSSProperties {
 
 const ghostBtnStyle: CSSProperties = {
   borderRadius: radius.sm,
-  border: `1px solid ${playgroundTheme.color.border}`,
+  border: `1px solid ${playgroundTheme.color.borderStrong}`,
   background: 'transparent',
   color: playgroundTheme.color.muted,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
   cursor: 'pointer',
   padding: `${space.sm}px ${space.lg}px`,
   marginLeft: 'auto',

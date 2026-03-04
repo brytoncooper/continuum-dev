@@ -13,6 +13,7 @@ interface StoryHeaderProps {
   activeScenarioTitle: string;
   activeScenarioSubtitle: string;
   protocolMode: ProtocolMode;
+  checkpointCount?: number;
   onScenarioSelect: (scenarioId: string) => void;
   onProtocolChange: (mode: ProtocolMode) => void;
   onAiModeSelect?: () => void;
@@ -27,13 +28,22 @@ export function StoryHeader({
   activeScenarioTitle,
   activeScenarioSubtitle,
   protocolMode,
+  checkpointCount = 0,
   onScenarioSelect,
   onProtocolChange,
   onAiModeSelect,
 }: StoryHeaderProps) {
   return (
-    <div style={{ display: 'grid', gap: space.md }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.lg, alignItems: 'center' }}>
+    <div style={{ display: 'grid', gap: space.stackGap }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: space.lg,
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+        }}
+      >
         <div style={{ display: 'grid', gap: space.xs }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: space.md }}>
             <h1
@@ -56,8 +66,6 @@ export function StoryHeader({
                 color: playgroundTheme.color.soft,
                 cursor: 'pointer',
                 ...typeScale.caption,
-                letterSpacing: '0.02em',
-                textTransform: 'uppercase',
                 padding: 0,
               }}
             >
@@ -69,14 +77,21 @@ export function StoryHeader({
               ...typeScale.caption,
               color: playgroundTheme.color.muted,
               fontWeight: 600,
-              letterSpacing: '0.02em',
             }}
           >
             {activeScenarioTitle}
           </div>
           <div style={{ ...typeScale.caption, color: playgroundTheme.color.soft }}>{activeScenarioSubtitle}</div>
         </div>
-        <div style={{ display: 'grid', gap: space.xs, justifyItems: 'end' }}>
+        <div style={{ display: 'grid', gap: space.xs, justifyItems: 'end', paddingTop: 2 }}>
+          <div style={{ display: 'flex', gap: space.xs, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={statusChipStyle(true)}>
+              {isAiMode ? 'AI Mode' : 'Scenario Mode'}
+            </span>
+            <span style={statusChipStyle(false)}>
+              {checkpointCount} checkpoint{checkpointCount === 1 ? '' : 's'}
+            </span>
+          </div>
           <div
             style={{
               display: 'flex',
@@ -139,8 +154,8 @@ function toggleStyle(active: boolean) {
     color: active ? playgroundTheme.color.white : playgroundTheme.color.text,
     padding: `${space.xs}px ${space.md}px`,
     cursor: 'pointer',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    textTransform: 'none',
+    letterSpacing: 'normal',
     ...typeScale.caption,
   };
 }
@@ -153,9 +168,23 @@ function chipStyle(active: boolean) {
     borderRadius: radius.pill,
     padding: `${space.sm}px ${space.md}px`,
     cursor: 'pointer',
-    letterSpacing: '0.02em',
-    textTransform: 'uppercase',
+    letterSpacing: 'normal',
+    textTransform: 'none',
     ...typeScale.caption,
+  };
+}
+
+function statusChipStyle(primary: boolean) {
+  return {
+    border: `1px solid ${primary ? playgroundTheme.color.accent : playgroundTheme.color.border}`,
+    background: primary ? playgroundTheme.gradient.accent : playgroundTheme.color.surface,
+    color: primary ? playgroundTheme.color.white : playgroundTheme.color.text,
+    borderRadius: radius.pill,
+    padding: `2px ${space.sm}px`,
+    letterSpacing: 'normal',
+    textTransform: 'none',
+    ...typeScale.caption,
+    fontSize: 10,
   };
 }
 
