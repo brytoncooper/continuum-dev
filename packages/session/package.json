@@ -1,6 +1,6 @@
 {
   "name": "@continuum/session",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Session lifecycle manager for the Continuum continuity runtime",
   "license": "MIT",
   "repository": {

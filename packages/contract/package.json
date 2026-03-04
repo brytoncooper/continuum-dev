@@ -1,6 +1,6 @@
 {
   "name": "@continuum/contract",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Type definitions and constants for the Continuum continuity runtime",
   "license": "MIT",
   "repository": {
