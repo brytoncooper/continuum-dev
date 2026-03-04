@@ -42,7 +42,16 @@
   ],
   "release": {
     "projects": ["!utils", "!@continuum/source"],
-    "version": { "preVersionCommand": "npx nx run-many -t build" }
+    "version": {
+      "preVersionCommand": "npx nx run-many -t build && npm run prepare:dist-packages && npm run verify:release-packages",
+      "manifestRootsToUpdate": [
+        "{projectRoot}",
+        {
+          "path": "dist/{projectRoot}",
+          "preserveLocalDependencyProtocols": false
+        }
+      ]
+    }
   },
   "targetDefaults": { "test": { "dependsOn": ["^build"] } },
   "nxCloudId": "69a58e584bf16f3ed545eca2"

@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "demo": "nx run playground:serve"
+    "demo": "nx run playground:serve",
+    "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
+    "verify:release-packages": "node scripts/verify-release-packages.mjs"
   },
   "private": true,
   "devDependencies": {
