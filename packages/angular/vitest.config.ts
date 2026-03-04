@@ -3,6 +3,14 @@ import { defineConfig } from 'vite';
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/angular',
+  resolve: {
+    conditions: ['@continuum/source'],
+  },
+  ssr: {
+    resolve: {
+      conditions: ['@continuum/source'],
+    },
+  },
   plugins: [],
   test: {
     name: '@continuum/angular',
