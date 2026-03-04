@@ -1,15 +1,15 @@
 {
-  "name": "contract",
+  "name": "@continuum/react",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/contract/src",
+  "sourceRoot": "packages/react/src",
   "projectType": "library",
-  "tags": ["scope:shared"],
+  "tags": ["scope:react"],
   "targets": {
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
       "dependsOn": ["^nx-release-publish"],
       "options": {
-        "packageRoot": "dist/packages/contract"
+        "packageRoot": "dist/packages/react"
       }
     }
   }
