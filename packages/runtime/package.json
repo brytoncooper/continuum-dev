@@ -1,6 +1,6 @@
 {
   "name": "@continuum/runtime",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Reconciliation engine for AI-generated view continuity",
   "license": "MIT",
   "repository": {
