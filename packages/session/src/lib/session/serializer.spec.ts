@@ -194,4 +194,25 @@ describe('deserializeToState', () => {
 
     expect(() => deserializeToState(bad, () => 0)).toThrow('eventLog[0].type');
   });
+
+  it('trims arrays exceeding configured size limits', () => {
+    const events = Array.from({ length: 10 }, (_, i) => ({
+      interactionId: `i${i}`, sessionId: 's', nodeId: 'a',
+      type: 'value-change', payload: {}, timestamp: i, viewVersion: '1.0',
+    }));
+    const data = {
+      sessionId: 's', currentView: null, currentData: null, priorView: null,
+      eventLog: events, pendingIntents: [], checkpoints: [],
+      issues: [], diffs: [], resolutions: [],
+    };
+
+    const restored = deserializeToState(data, () => 0, {
+      maxEventLogSize: 3, maxPendingIntents: 2, maxCheckpoints: 1,
+    });
+
+    expect(restored.eventLog.length).toBe(3);
+    // Should keep the most recent (tail) entries
+    expect(restored.eventLog[0].interactionId).toBe('i7');
+    expect(restored.eventLog[2].interactionId).toBe('i9');
+  });
 });
