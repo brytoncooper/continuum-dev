@@ -3,10 +3,10 @@ import { hydrateOrCreate } from '@continuum/session';
 import type { ContinuitySnapshot } from '@continuum/contract';
 import type { ContinuumPersistError, ContinuumProviderOptions } from './types.js';
 import {
-  CONTIUUM_NODE_MAP,
-  CONTIUUM_SESSION,
-  CONTIUUM_SNAPSHOT,
-  CONTIUUM_WAS_HYDRATED,
+  CONTINUUM_NODE_MAP,
+  CONTINUUM_SESSION,
+  CONTINUUM_SNAPSHOT,
+  CONTINUUM_WAS_HYDRATED,
 } from './tokens.js';
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
@@ -54,9 +54,9 @@ export function provideContinuum(options: ContinuumProviderOptions): Provider[] 
   });
 
   return [
-    { provide: CONTIUUM_SESSION, useValue: session },
-    { provide: CONTIUUM_SNAPSHOT, useValue: snapshotSignal },
-    { provide: CONTIUUM_NODE_MAP, useValue: options.components },
-    { provide: CONTIUUM_WAS_HYDRATED, useValue: wasHydrated },
+    { provide: CONTINUUM_SESSION, useValue: session },
+    { provide: CONTINUUM_SNAPSHOT, useValue: snapshotSignal },
+    { provide: CONTINUUM_NODE_MAP, useValue: options.components },
+    { provide: CONTINUUM_WAS_HYDRATED, useValue: wasHydrated },
   ];
 }
