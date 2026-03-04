@@ -3,7 +3,7 @@ import { Injector } from '@angular/core';
 import { createSession } from '@continuum/session';
 import type { ViewDefinition } from '@continuum/contract';
 import { provideContinuum } from './provider.js';
-import { CONTIUUM_SESSION } from './tokens.js';
+import { CONTINUUM_SESSION } from './tokens.js';
 
 const view: ViewDefinition = {
   viewId: 'test',
@@ -32,7 +32,7 @@ describe('provideContinuum', () => {
       }),
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     expect(session).toBeDefined();
     expect(session.getSnapshot()).toBeNull();
 
@@ -56,7 +56,7 @@ describe('provideContinuum', () => {
       ],
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     const snap = session.getSnapshot();
     expect(snap).not.toBeNull();
     expect(snap?.data.values['field']).toEqual({ value: 'from-storage' });
@@ -72,7 +72,7 @@ describe('provideContinuum', () => {
       }),
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     session.pushView(view);
     session.updateState('field', { value: 'persisted' });
     vi.runAllTimers();
@@ -98,7 +98,7 @@ describe('provideContinuum', () => {
       }),
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     session.pushView(view);
     session.updateState('field', { value: 'too-large' });
     vi.runAllTimers();
@@ -128,7 +128,7 @@ describe('provideContinuum', () => {
       }),
     });
 
-    const session = injector.get(CONTIUUM_SESSION);
+    const session = injector.get(CONTINUUM_SESSION);
     session.pushView(view);
     session.updateState('field', { value: 'persisted' });
     vi.runAllTimers();
