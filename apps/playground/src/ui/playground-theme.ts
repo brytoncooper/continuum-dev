@@ -17,6 +17,7 @@ export const playgroundTheme = {
     accentAlt: '#0d9488',
     accentAlt2: '#f59e0b',
     border: 'rgba(100, 116, 139, 0.24)',
+    borderStrong: 'rgba(100, 116, 139, 0.4)',
     success: '#16a34a',
     successBg: 'rgba(22, 163, 74, 0.1)',
     warning: '#d97706',
@@ -25,6 +26,8 @@ export const playgroundTheme = {
     dangerBg: 'rgba(225, 29, 72, 0.12)',
     infoBg: 'rgba(79, 70, 229, 0.12)',
     white: '#ffffff',
+    disabledText: 'rgba(51, 65, 85, 0.6)',
+    disabledBg: 'rgba(226, 232, 240, 0.6)',
   },
   shadow: {
     card: '0 10px 24px rgba(15, 23, 42, 0.10)',
