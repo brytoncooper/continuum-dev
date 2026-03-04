@@ -95,8 +95,7 @@ export const globalStyles = `
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
 
-  [data-continuum-collection-add],
-  [data-continuum-collection-remove] {
+  [data-continuum-collection-add] {
     height: 38px;
     border-radius: 10px;
     border: 1px solid ${color.border};
@@ -109,10 +108,15 @@ export const globalStyles = `
     transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
   }
 
-  [data-continuum-collection-add]:hover:not(:disabled),
-  [data-continuum-collection-remove]:hover:not(:disabled) {
+  [data-continuum-collection-add]:hover:not(:disabled) {
     border-color: ${color.textMuted};
     background: ${color.surfaceAlt};
+  }
+
+  [data-continuum-collection-remove]:hover:not(:disabled) {
+    border-color: ${color.danger} !important;
+    background: ${color.dangerBg} !important;
+    color: ${color.danger} !important;
   }
 
   @keyframes reconciliation-toast-enter {
