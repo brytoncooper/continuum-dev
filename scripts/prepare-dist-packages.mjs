@@ -31,6 +31,8 @@ function main() {
     const distPackageJsonPath = resolve(distRoot, 'package.json');
     const sourceReadmePath = resolve(sourceRoot, 'README.md');
     const distReadmePath = resolve(distRoot, 'README.md');
+    const sourceContractReferencePath = resolve(sourceRoot, 'CONTRACT_REFERENCE.md');
+    const distContractReferencePath = resolve(distRoot, 'CONTRACT_REFERENCE.md');
     const sourceLicensePath = resolve(sourceRoot, 'LICENSE');
     const distLicensePath = resolve(distRoot, 'LICENSE');
 
@@ -50,6 +52,9 @@ function main() {
 
     if (existsSync(sourceReadmePath)) {
       copyFileSync(sourceReadmePath, distReadmePath);
+    }
+    if (existsSync(sourceContractReferencePath)) {
+      copyFileSync(sourceContractReferencePath, distContractReferencePath);
     }
     if (existsSync(sourceLicensePath)) {
       copyFileSync(sourceLicensePath, distLicensePath);
