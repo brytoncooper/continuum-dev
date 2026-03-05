@@ -72,7 +72,7 @@ function assertNodeImportSmoke(tarballs) {
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
     run(
-      'node --input-type=module -e "await import(\'@continuum/contract\'); await import(\'@continuum/react\');"',
+      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/react\');"',
       tempRoot
     );
   } finally {

@@ -11,6 +11,18 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+function stripSourceExportCondition(packageJson) {
+  const exportsField = packageJson.exports;
+  if (!exportsField || typeof exportsField !== 'object') {
+    return;
+  }
+  for (const exportValue of Object.values(exportsField)) {
+    if (exportValue && typeof exportValue === 'object' && !Array.isArray(exportValue)) {
+      delete exportValue['@continuum/source'];
+    }
+  }
+}
+
 function main() {
   for (const packageName of packageNames) {
     const sourceRoot = resolve(process.cwd(), 'packages', packageName);
@@ -30,6 +42,7 @@ function main() {
     delete packageJson.nx;
     delete packageJson.devDependencies;
     delete packageJson.scripts;
+    stripSourceExportCondition(packageJson);
 
     writeJson(distPackageJsonPath, packageJson);
 
