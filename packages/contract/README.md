@@ -1,207 +1,37 @@
-# @continuum/contract
+# @continuum-dev/contract
 
-Pure type definitions and constants for Continuum. This package has no runtime behavior and is shared by all packages in the monorepo.
+**The foundational type system for AI-generated UI continuity.**
+
+When building agentic UIs, teams eventually hit the re-render problem: when an AI agent streams a new schema or layout, the frontend remounts and local user input gets lost.
+
+`@continuum-dev/contract` defines a strict boundary between **View** (AI-owned structure) and **Data** (user-owned state). This package is zero-dependency and contains the shared TypeScript contracts used across the Continuum ecosystem.
 
 ## Installation
 
 ```bash
-npm install @continuum/contract
+npm install @continuum-dev/contract
 ```
 
-## Public Surface
+## The Mental Model
 
-Exports from `packages/contract/src/index.ts`:
+Continuum uses three core contracts:
 
-- `./lib/continuity-snapshot.js`
-- `./lib/view-definition.js`
-- `./lib/data-snapshot.js`
-- `./lib/interactions.js`
-- `./lib/constants.js`
+- `ViewDefinition` (AI-owned): a versioned tree describing UI structure.
+- `DataSnapshot` (user-owned): a flat dictionary of user state keyed by node id.
+- `ContinuitySnapshot`: the atomic pairing of `view` and `data`.
 
-## Core Contracts
+Because data is flat and separate from the tree, views can be restructured without losing user input.
 
-### ViewDefinition
+## Node Identity Guidance (`id` and `key`)
 
-`ViewDefinition` defines the current UI view shape.
+- `id` is required and is the primary lookup key for `DataSnapshot.values`.
+- `key` is optional in the type system, but should be adopted in production for stable semantic identity across view versions.
+- If AI-generated views can rename or regenerate node ids, `key` is what allows reliable matching and data carry/migration.
+- Recommended practice: include `key` on all data-bearing nodes (`FieldNode`) and on structural nodes that need continuity-aware matching.
 
-```ts
-interface ViewDefinition {
-  viewId: string;
-  version: string;
-  nodes: ViewNode[];
-}
-```
+## The Secret Sauce: `NodeValue`
 
-### ViewNode
-
-```ts
-type ViewNode =
-  | FieldNode
-  | GroupNode
-  | CollectionNode
-  | ActionNode
-  | PresentationNode
-  | RowNode
-  | GridNode;
-```
-
-All node types extend `BaseNode`.
-
-```ts
-interface BaseNode {
-  id: string;
-  type: string;
-  key?: string;
-  hidden?: boolean;
-  hash?: string;
-  migrations?: MigrationRule[];
-}
-```
-
-### Node Types
-
-#### FieldNode
-
-```ts
-interface FieldNode extends BaseNode {
-  type: 'field';
-  dataType: 'string' | 'number' | 'boolean';
-  label?: string;
-  placeholder?: string;
-  description?: string;
-  readOnly?: boolean;
-  defaultValue?: unknown;
-  constraints?: FieldConstraints;
-  options?: FieldOption[];
-}
-```
-
-#### GroupNode
-
-```ts
-interface GroupNode extends BaseNode {
-  type: 'group';
-  label?: string;
-  layout?: 'vertical' | 'horizontal' | 'grid';
-  columns?: number;
-  children: ViewNode[];
-}
-```
-
-#### CollectionNode
-
-```ts
-interface CollectionNode extends BaseNode {
-  type: 'collection';
-  label?: string;
-  template: ViewNode;
-  minItems?: number;
-  maxItems?: number;
-  defaultValues?: Array<Record<string, unknown>>;
-}
-```
-
-#### ActionNode
-
-```ts
-interface ActionNode extends BaseNode {
-  type: 'action';
-  intentId: string;
-  label: string;
-  disabled?: boolean;
-}
-```
-
-#### PresentationNode
-
-```ts
-interface PresentationNode extends BaseNode {
-  type: 'presentation';
-  contentType: 'text' | 'markdown';
-  content: string;
-}
-```
-
-#### RowNode
-
-```ts
-interface RowNode extends BaseNode {
-  type: 'row';
-  children: ViewNode[];
-}
-```
-
-#### GridNode
-
-```ts
-interface GridNode extends BaseNode {
-  type: 'grid';
-  columns?: number;
-  children: ViewNode[];
-}
-```
-
-### FieldConstraints
-
-```ts
-interface FieldConstraints {
-  required?: boolean;
-  min?: number;
-  max?: number;
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-}
-```
-
-### FieldOption
-
-```ts
-interface FieldOption {
-  value: string;
-  label: string;
-}
-```
-
-### MigrationRule
-
-```ts
-interface MigrationRule {
-  fromHash: string;
-  toHash: string;
-  strategyId?: string;
-}
-```
-
-### getChildNodes
-
-```ts
-function getChildNodes(node: ViewNode): ViewNode[];
-```
-
-Returns child nodes for recursion:
-
-- `GroupNode.children`
-- `RowNode.children`
-- `GridNode.children`
-- `[template]` for `CollectionNode`
-- `[]` for other node types
-
-## Runtime Data Contracts
-
-### DataSnapshot
-
-```ts
-interface DataSnapshot {
-  values: Record<string, NodeValue>;
-  viewContext?: Record<string, ViewContext>;
-  lineage: SnapshotLineage;
-  valueLineage?: Record<string, ValueLineage>;
-  detachedValues?: Record<string, DetachedValue>;
-}
-```
-
-### NodeValue
+In Continuum, values are collaborative, not raw primitives:
 
 ```ts
 interface NodeValue<T = unknown> {
@@ -212,201 +42,23 @@ interface NodeValue<T = unknown> {
 }
 ```
 
-### CollectionState
+- `suggestion` lets AI propose alternatives.
+- `isDirty` protects user-edited values from accidental overwrite.
+- `isValid` tracks compatibility with current constraints.
 
-```ts
-interface CollectionItemState {
-  values: Record<string, NodeValue>;
-}
+## No Data Left Behind: `DetachedValue`
 
-interface CollectionNodeState {
-  items: CollectionItemState[];
-}
-```
-
-### ViewContext
-
-```ts
-interface ViewContext {
-  scrollX?: number;
-  scrollY?: number;
-  isExpanded?: boolean;
-  isFocused?: boolean;
-}
-```
-
-### SnapshotLineage
-
-```ts
-interface SnapshotLineage {
-  timestamp: number;
-  sessionId: string;
-  viewId?: string;
-  viewVersion?: string;
-  viewHash?: string;
-  lastInteractionId?: string;
-}
-```
-
-### ValueLineage
-
-```ts
-interface ValueLineage {
-  lastUpdated?: number;
-  lastInteractionId?: string;
-}
-```
-
-### DetachedValue
+If a view update removes or changes a node incompatibly, data is preserved in `detachedValues`:
 
 ```ts
 interface DetachedValue {
   value: unknown;
   previousNodeType: string;
-  key?: string;
-  detachedAt: number;
-  viewVersion: string;
   reason: 'node-removed' | 'type-mismatch' | 'migration-failed';
 }
 ```
 
-### ContinuitySnapshot
-
-```ts
-interface ContinuitySnapshot {
-  view: ViewDefinition;
-  data: DataSnapshot;
-}
-```
-
-## Interaction Contracts
-
-### Interaction
-
-```ts
-interface Interaction {
-  interactionId: string;
-  sessionId: string;
-  nodeId: string;
-  type: InteractionType;
-  payload: unknown;
-  timestamp: number;
-  viewVersion: string;
-}
-```
-
-### PendingIntent
-
-```ts
-interface PendingIntent {
-  intentId: string;
-  nodeId: string;
-  intentName: string;
-  payload: unknown;
-  queuedAt: number;
-  viewVersion: string;
-  status: IntentStatus;
-}
-```
-
-### Checkpoint
-
-```ts
-interface Checkpoint {
-  checkpointId: string;
-  sessionId: string;
-  snapshot: ContinuitySnapshot;
-  eventIndex: number;
-  timestamp: number;
-  trigger: 'auto' | 'manual';
-}
-```
-
-## Constants
-
-All constants are `as const` objects with derived union types.
-
-### ISSUE_CODES
-
-```ts
-NO_PRIOR_DATA;
-NO_PRIOR_VIEW;
-TYPE_MISMATCH;
-NODE_REMOVED;
-MIGRATION_FAILED;
-UNVALIDATED_CARRY;
-VALIDATION_FAILED;
-UNKNOWN_NODE;
-DUPLICATE_NODE_ID;
-DUPLICATE_NODE_KEY;
-VIEW_CHILD_CYCLE_DETECTED;
-VIEW_MAX_DEPTH_EXCEEDED;
-COLLECTION_CONSTRAINT_VIOLATED;
-SCOPE_COLLISION;
-```
-
-Type: `IssueCode`
-
-### DATA_RESOLUTIONS
-
-```ts
-carried;
-migrated;
-detached;
-added;
-restored;
-```
-
-Type: `DataResolution`
-
-### VIEW_DIFFS
-
-```ts
-added;
-removed;
-migrated;
-type - changed;
-restored;
-```
-
-Type: `ViewDiff`
-
-### ISSUE_SEVERITY
-
-```ts
-error;
-warning;
-info;
-```
-
-Type: `IssueSeverity`
-
-### INTERACTION_TYPES
-
-```ts
-data - update;
-value - change;
-view - context - change;
-```
-
-Type: `InteractionType`
-
-### INTENT_STATUS
-
-```ts
-pending;
-validated;
-stale;
-cancelled;
-```
-
-Type: `IntentStatus`
-
-## Notes
-
-- `Interaction.type` is typed as `InteractionType` and validated via shared interaction constants.
-- `DataResolution` uses `detached` rather than the old `dropped` wording.
-- Prefer additive changes when evolving contracts.
+If the node returns in a compatible form, data can be restored.
 
 ## Minimal Example
 
@@ -415,31 +67,34 @@ import {
   ViewDefinition,
   DataSnapshot,
   ContinuitySnapshot,
-  ISSUE_CODES,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 
 const view: ViewDefinition = {
   viewId: 'loan-application',
   version: '2.1.0',
   nodes: [
     {
-      id: 'name',
+      id: 'fullName',
       type: 'field',
       dataType: 'string',
       label: 'Full Name',
-      key: 'fullName',
-      hash: 'field:name:v1',
+      key: 'applicant.fullName',
+      constraints: { required: true, minLength: 2 },
     },
   ],
 };
 
 const data: DataSnapshot = {
   values: {
-    name: { value: 'Alex' },
+    fullName: {
+      value: 'Jordan Lee',
+      isDirty: true,
+      isValid: true,
+    },
   },
   lineage: {
-    timestamp: Date.now(),
-    sessionId: 'sess-1',
+    timestamp: 1740700800000,
+    sessionId: 'sess-123',
     viewId: view.viewId,
     viewVersion: view.version,
   },
@@ -449,10 +104,55 @@ const snapshot: ContinuitySnapshot = {
   view,
   data,
 };
-
-const issue = ISSUE_CODES.NO_PRIOR_DATA;
 ```
 
-## Link
+## API Quick Reference
 
-- [View Contract Reference](../../docs/SCHEMA_CONTRACT.md)
+Import everything from the package root:
+
+```ts
+import {
+  ViewDefinition,
+  ViewNode,
+  DataSnapshot,
+  ContinuitySnapshot,
+  NodeValue,
+  DetachedValue,
+  ViewportState,
+  ISSUE_CODES,
+  DATA_RESOLUTIONS,
+} from '@continuum-dev/contract';
+```
+
+Core types:
+
+- `ViewDefinition`: root AST for generated UI.
+- `ViewNode`: discriminated union of supported node types.
+- `DataSnapshot`: user-owned runtime state.
+- `ContinuitySnapshot`: atomic `ViewDefinition + DataSnapshot`.
+
+State primitives:
+
+- `NodeValue<T>`: value wrapper with collaboration metadata.
+- `DetachedValue`: preserved state for removed or incompatible nodes.
+- `ViewportState`: UI interaction state (scroll/focus/zoom/offset).
+
+Constants:
+
+- `ISSUE_CODES`: reconciliation issue taxonomy.
+- `DATA_RESOLUTIONS`: value reconciliation outcomes.
+- `VIEW_DIFFS`: structural diff labels.
+- `INTERACTION_TYPES`: canonical interaction event categories.
+- `INTENT_STATUS`: pending intent lifecycle states.
+
+## Deep Dive Reference
+
+For the complete breakdown of all node types, constraints, constants, and migration contracts, see [Comprehensive Contract Reference](./CONTRACT_REFERENCE.md).
+
+## Ecosystem
+
+This package defines the vocabulary. Other Continuum packages provide runtime behavior:
+
+- `@continuum-dev/runtime`: stateless reconciliation engine.
+- `@continuum-dev/session`: stateful session memory, history, and checkpoints.
+- `@continuum-dev/react`: headless React layer for UI binding.
