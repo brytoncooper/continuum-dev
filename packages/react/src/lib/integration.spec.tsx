@@ -1,6 +1,6 @@
 import { act, StrictMode, useState, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ContinuitySnapshot, ViewDefinition } from '@continuum/contract';
+import type { ContinuitySnapshot, NodeValue, ViewDefinition } from '@continuum/contract';
 import { createSession } from '@continuum/session';
 import type { Session } from '@continuum/session';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,11 +14,24 @@ const viewDef: ViewDefinition = {
   nodes: [{ id: 'field', type: 'field', dataType: 'string' }],
 };
 
+function readStringNodeValue(value: NodeValue | undefined): string {
+  if (typeof value?.value === 'string') {
+    return value.value;
+  }
+  return '';
+}
+
 const componentMap = {
-  field: ({ value, onChange }: { value: any; onChange: (next: any) => void }) => (
+  field: ({
+    value,
+    onChange,
+  }: {
+    value: NodeValue | undefined;
+    onChange: (next: NodeValue) => void;
+  }) => (
     <input
       data-testid="input"
-      value={typeof value?.value === 'string' ? value.value : ''}
+      value={readStringNodeValue(value)}
       onChange={(e) => onChange({ value: e.target.value })}
     />
   ),
@@ -99,7 +112,7 @@ describe('react integration', () => {
           data-testid="button"
           onClick={() => setValue({ value: 'next' })}
         >
-          {typeof (value as any)?.value === 'string' ? (value as any).value : ''}
+          {readStringNodeValue(value)}
         </button>
       );
     }
@@ -185,7 +198,7 @@ describe('react integration', () => {
   it('forwards definition properties to rendered component', () => {
     let receivedPlaceholder = '';
     const propsMap = {
-      field: ({ definition }: any) => {
+      field: ({ definition }: { definition: { id: string; placeholder?: string } }) => {
         receivedPlaceholder = definition.placeholder ?? '';
         return <div data-testid={`field-${definition.id}`} />;
       },
@@ -213,7 +226,7 @@ describe('react integration', () => {
 
   it('isolates node render errors with per-node boundary', () => {
     const errorMap = {
-      field: ({ definition }: any) => {
+      field: ({ definition }: { definition: { id: string } }) => {
         if (definition.id === 'boom') {
           throw new Error('boom');
         }
@@ -288,7 +301,7 @@ describe('react integration', () => {
           data-testid="strict-button"
           onClick={() => setValue({ value: 'strict-next' })}
         >
-          {typeof (value as any)?.value === 'string' ? (value as any).value : ''}
+          {readStringNodeValue(value)}
         </button>
       );
     }
@@ -566,12 +579,18 @@ describe('react integration', () => {
       group: ({ children }: { children?: ReactNode }) => (
         <div data-testid="item-group">{children}</div>
       ),
-      field: ({ value, onChange }: { value: any; onChange: (next: any) => void }) => (
+      field: ({
+        value,
+        onChange,
+      }: {
+        value: NodeValue | undefined;
+        onChange: (next: NodeValue) => void;
+      }) => (
         <button
           data-testid="collection-field"
           onClick={() => onChange({ value: 'Tokyo' })}
         >
-          {typeof value?.value === 'string' ? value.value : ''}
+          {readStringNodeValue(value)}
         </button>
       ),
     };
@@ -616,7 +635,12 @@ describe('react integration', () => {
     expect(capturedSession).toBeTruthy();
     const activeSession = requireSession(capturedSession);
     const snapshot = activeSession.getSnapshot();
-    const collectionNode = snapshot?.data.values['addresses'] as any;
+    const collectionNode = snapshot?.data.values['addresses'] as
+      | NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>
+      | undefined;
+    if (!collectionNode) {
+      throw new Error('Expected collection node to exist');
+    }
     expect(collectionNode.value.items).toHaveLength(2);
     expect(collectionNode.value.items[1].values['address-item/city']).toEqual({
       value: 'Tokyo',
@@ -632,8 +656,14 @@ describe('react integration', () => {
     act(() => {
       removeButton.click();
     });
+    const addressesNode = activeSession.getSnapshot()?.data.values['addresses'] as
+      | NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>
+      | undefined;
+    if (!addressesNode) {
+      throw new Error('Expected addresses node to exist');
+    }
     expect(
-      (activeSession.getSnapshot()?.data.values['addresses'] as any).value.items
+      addressesNode.value.items
     ).toHaveLength(1);
     rendered.unmount();
   });

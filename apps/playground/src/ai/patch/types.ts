@@ -1,7 +1,7 @@
 export interface PatchOperation {
   op: 'add' | 'remove' | 'replace';
   path: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ViewPatch {

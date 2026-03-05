@@ -261,9 +261,10 @@ function normalizeCollectionSeedItem(
     if (!target) {
       continue;
     }
-    if (target.collectionTemplate && Array.isArray(entryValue)) {
+    const collectionTemplate = target.collectionTemplate;
+    if (collectionTemplate && Array.isArray(entryValue)) {
       const nestedItems = entryValue.map((nestedRaw) => ({
-        values: normalizeCollectionSeedItem(nestedRaw, target.collectionTemplate!),
+        values: normalizeCollectionSeedItem(nestedRaw, collectionTemplate),
       }));
       values[target.path] = { value: { items: nestedItems } } as NodeValue;
     } else {

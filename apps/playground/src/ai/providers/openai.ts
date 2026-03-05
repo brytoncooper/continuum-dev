@@ -11,6 +11,16 @@ interface OpenAIResponse {
   };
 }
 
+type OpenAIContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+  | { type: 'file'; file: { file_id: string } };
+
+type OpenAIMessage = {
+  role: string;
+  content: string | OpenAIContentPart[];
+};
+
 async function uploadFileToOpenAI(base64: string, mimeType: string, filename: string, apiKey: string): Promise<string> {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -42,10 +52,10 @@ async function uploadFileToOpenAI(base64: string, mimeType: string, filename: st
 }
 
 async function toOpenAIMessages(systemPrompt: string, messages: ChatMessage[], apiKey: string) {
-  const openAIMessages: any[] = [{ role: 'system', content: systemPrompt }];
+  const openAIMessages: OpenAIMessage[] = [{ role: 'system', content: systemPrompt }];
 
   for (const message of messages) {
-    const content: any[] = [{ type: 'text', text: message.content }];
+    const content: OpenAIContentPart[] = [{ type: 'text', text: message.content }];
     
     if (message.attachments) {
       for (const attachment of message.attachments) {

@@ -33,11 +33,11 @@ Return strictly JSON.`;
 
   try {
     let raw = response.rawResponse.trim();
-    if (raw.startsWith('\`\`\`json')) {
-      raw = raw.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
+    if (raw.startsWith('```json')) {
+      raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
     }
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     throw new Error('Failed to parse Form Architect output');
   }
 }

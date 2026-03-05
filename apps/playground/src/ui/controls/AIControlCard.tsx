@@ -458,7 +458,8 @@ export function AIControlCard({
           ) : (
             entries.map((entry) => {
               const hasError = Boolean(entry.requestError);
-              const hasValidationErrors = Boolean(entry.validationErrors?.length);
+              const validationErrors = entry.validationErrors ?? [];
+              const hasValidationErrors = validationErrors.length > 0;
               const isSuccess = !hasError && !hasValidationErrors && Boolean(entry.viewVersion);
               const statusLabel = hasError ? 'Failed' : hasValidationErrors ? 'Validation' : isSuccess ? 'Applied' : 'Pending';
               const statusColor = hasError
@@ -524,9 +525,9 @@ export function AIControlCard({
                     {hasValidationErrors ? (
                       <div style={{ display: 'grid', gap: 2, padding: `${space.xs}px ${space.sm}px`, background: playgroundTheme.color.warningBg, borderRadius: radius.sm }}>
                         <div style={{ ...typeScale.caption, color: playgroundTheme.color.warning, fontWeight: 600 }}>
-                          ⚠️ {entry.validationErrors!.length} validation error{entry.validationErrors!.length > 1 ? 's' : ''} — view was NOT applied
+                          ⚠️ {validationErrors.length} validation error{validationErrors.length > 1 ? 's' : ''} — view was NOT applied
                         </div>
-                        {entry.validationErrors!.map((err, i) => (
+                        {validationErrors.map((err, i) => (
                           <div key={i} style={{ ...typeScale.caption, color: playgroundTheme.color.warning, fontSize: 11, paddingLeft: space.md }}>
                             • {err}
                           </div>

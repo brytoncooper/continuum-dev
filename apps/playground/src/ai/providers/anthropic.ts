@@ -9,6 +9,25 @@ interface AnthropicResponse {
   };
 }
 
+type AnthropicContentPart =
+  | { type: 'text'; text: string }
+  | {
+      type: 'image';
+      source: {
+        type: 'base64';
+        media_type: string;
+        data: string;
+      };
+    }
+  | {
+      type: 'document';
+      source: {
+        type: 'base64';
+        media_type: 'application/pdf';
+        data: string;
+      };
+    };
+
 function parseView(raw: string): ViewDefinition {
   return JSON.parse(raw) as ViewDefinition;
 }
@@ -32,7 +51,7 @@ export const anthropicProvider: AIProvider = {
         messages: request.messages
           .filter((message) => message.role !== 'system')
           .map((message) => {
-            const content: any[] = [{ type: 'text', text: message.content }];
+            const content: AnthropicContentPart[] = [{ type: 'text', text: message.content }];
 
             if (message.attachments) {
               for (const attachment of message.attachments) {

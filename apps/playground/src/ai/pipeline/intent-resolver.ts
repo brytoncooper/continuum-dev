@@ -27,15 +27,15 @@ Return a JSON array of strings containing ONLY the node type names required. Do 
 
   try {
     let raw = response.rawResponse.trim();
-    if (raw.startsWith('\`\`\`json')) {
-      raw = raw.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
+    if (raw.startsWith('```json')) {
+      raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
     }
     const result = JSON.parse(raw);
     if (Array.isArray(result)) {
       return result.filter(type => index.types.includes(type));
     }
     return [];
-  } catch (e) {
+  } catch {
     return [];
   }
 }

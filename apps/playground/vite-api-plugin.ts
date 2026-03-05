@@ -5,6 +5,7 @@ import { getSchemaIndex, getNodeSpec } from './src/ai/schema-api';
 import { resolveIntent } from './src/ai/pipeline/intent-resolver';
 import { collectData } from './src/ai/pipeline/data-collector';
 import { architectForm } from './src/ai/pipeline/form-architect';
+import type { FieldManifestEntry } from './src/ai/pipeline/data-collector';
 import type { ChatMessage, ProviderId, AIAttachment } from './src/ai/types';
 
 interface GenerateBody {
@@ -76,16 +77,42 @@ export function aiApiPlugin(): Plugin {
               return;
             }
             const body = await readJson(req);
-            const { provider, model, prompt, stage, nodeTypes, manifest } = body as any;
+            if (!body || typeof body !== 'object') {
+              sendJson(res, 400, { error: 'Invalid pipeline payload' });
+              return;
+            }
+
+            const record = body as Record<string, unknown>;
+            const provider = record.provider;
+            const model = record.model;
+            const prompt = record.prompt;
+            const stage = record.stage;
+
+            if (
+              typeof provider !== 'string' ||
+              typeof model !== 'string' ||
+              typeof prompt !== 'string' ||
+              typeof stage !== 'string'
+            ) {
+              sendJson(res, 400, { error: 'Invalid pipeline payload' });
+              return;
+            }
+
+            const nodeTypes = Array.isArray(record.nodeTypes)
+              ? record.nodeTypes.filter((value): value is string => typeof value === 'string')
+              : [];
+            const manifest = Array.isArray(record.manifest)
+              ? (record.manifest as FieldManifestEntry[])
+              : [];
 
             if (stage === 'intent') {
-              const result = await resolveIntent(provider, model, normalizedApiKey, prompt);
+              const result = await resolveIntent(provider as ProviderId, model, normalizedApiKey, prompt);
               sendJson(res, 200, result);
             } else if (stage === 'collect') {
-              const result = await collectData(provider, model, normalizedApiKey, prompt, nodeTypes);
+              const result = await collectData(provider as ProviderId, model, normalizedApiKey, prompt, nodeTypes);
               sendJson(res, 200, result);
             } else if (stage === 'architect') {
-              const result = await architectForm(provider, model, normalizedApiKey, prompt, manifest);
+              const result = await architectForm(provider as ProviderId, model, normalizedApiKey, prompt, manifest);
               sendJson(res, 200, result);
             } else {
               sendJson(res, 400, { error: 'Invalid stage' });
