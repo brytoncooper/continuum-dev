@@ -15,6 +15,12 @@ function deepClone<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * Serializes internal session state into a JSON-compatible payload.
+ *
+ * @param internal Mutable internal session state.
+ * @returns Deep-cloned serialized payload.
+ */
 export function serializeSession(internal: SessionState): unknown {
   return deepClone({
     formatVersion: CURRENT_FORMAT_VERSION,
@@ -121,6 +127,17 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
   assertValidEventLogTypes(data);
 }
 
+/**
+ * Deserializes a serialized session payload into internal session state.
+ *
+ * Accepts missing `formatVersion` for backward compatibility. When present,
+ * only version `1` is supported.
+ *
+ * @param data Serialized payload object.
+ * @param clock Clock source for resumed runtime operations.
+ * @param limits Optional caps for event log, pending intents, and checkpoints.
+ * @returns Reconstructed internal session state.
+ */
 export function deserializeToState(
   data: unknown,
   clock: () => number,
