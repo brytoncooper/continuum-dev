@@ -6,10 +6,23 @@ import {
   notifySnapshotAndIssueListeners,
 } from './listeners.js';
 
+/**
+ * Deep clones checkpoint payloads to prevent accidental shared mutations.
+ *
+ * @param value Snapshot value to clone.
+ * @returns Structured cloned value.
+ */
 export function cloneCheckpointSnapshot<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * Creates an automatic checkpoint from current snapshot state.
+ *
+ * Auto checkpoints are pruned first when exceeding `maxCheckpoints`.
+ *
+ * @param internal Mutable internal session state.
+ */
 export function autoCheckpoint(internal: SessionState): void {
   const snapshot = buildSnapshotFromCurrentState(internal);
   if (!snapshot) return;
@@ -33,6 +46,12 @@ export function autoCheckpoint(internal: SessionState): void {
   }
 }
 
+/**
+ * Creates a manual checkpoint and appends it to the checkpoint stack.
+ *
+ * @param internal Mutable internal session state.
+ * @returns The created checkpoint.
+ */
 export function createManualCheckpoint(internal: SessionState): Checkpoint {
   const snapshot = buildSnapshotFromCurrentState(internal);
   if (!snapshot) {
@@ -50,6 +69,12 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
   return checkpoint;
 }
 
+/**
+ * Restores state from a checkpoint without truncating checkpoint history.
+ *
+ * @param internal Mutable internal session state.
+ * @param cp Checkpoint to restore from.
+ */
 export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): void {
   if (internal.destroyed) return;
 
@@ -65,6 +90,12 @@ export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): v
   notifySnapshotAndIssueListeners(internal);
 }
 
+/**
+ * Rewinds state to a checkpoint id and truncates checkpoints after it.
+ *
+ * @param internal Mutable internal session state.
+ * @param checkpointId Target checkpoint id.
+ */
 export function rewind(internal: SessionState, checkpointId: string): void {
   if (internal.destroyed) return;
   const idx = internal.checkpoints.findIndex((cp) => cp.checkpointId === checkpointId);

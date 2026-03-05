@@ -1,166 +1,306 @@
-# @continuum/session
+# ♾️ @continuum-dev/session
 
-Session lifecycle manager for the Continuum SDK.
+**The Stateful Ledger for Generative UI.** Give your AI agents memory, conflict resolution, and time-travel capabilities.
 
-Orchestrates view pushes, state updates, checkpointing, rewind, serialization, and event logging. Built on top of `@continuum/runtime` for reconciliation.
+[![npm version](https://badge.fury.io/js/@continuum-dev%2Fsession.svg)](https://badge.fury.io/js/@continuum-dev%2Fsession)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Installation
+## The Problem: The User and the AI are Fighting
+
+Building a multi-turn Generative UI introduces a massive state management problem: **concurrency and conflict**.
+
+- **Data Clobbering:** The user is typing in a text field, but the AI suddenly pushes an updated view and tries to overwrite their in-progress input.
+- **Hallucinations:** The AI generates a broken layout or removes critical UI. You need deterministic undo.
+- **Persistence:** A user closes the tab and returns later. You need exact rehydration of generated view, user state, and timeline.
+
+Standard state managers are optimized for deterministic single-author UIs. They struggle when the UI schema itself mutates over time.
+
+## The Solution
+
+**Continuum Session** is a stateful lifecycle manager built on top of `@continuum-dev/runtime`. It converts a stream of AI view mutations and user interactions into a structured, event-sourced session ledger.
+
+It tracks event history, manages checkpoints, protects dirty user input with proposals, and serializes the entire session into a portable blob for resumable experiences.
 
 ```bash
-npm install @continuum/session
+npm install @continuum-dev/session
 ```
+
+## Core Capabilities
+
+- ⏱️ **Time-Travel (Undo/Rewind):** Auto-checkpoints on `pushView()`, plus manual checkpoints and rewind support.
+- 🛡️ **Conflict Resolution (Proposals):** Dirty values are protected from AI overwrites by staging proposed values.
+- 💾 **Portable Persistence:** `serialize()` and `deserialize()` capture and restore full session state.
+- ⚡ **Action Registry:** Register and dispatch typed action handlers by intent id.
+- 📖 **Event-Sourced Timeline:** Interactions, intents, checkpoint boundaries, and reconciliation diagnostics are preserved.
+
+---
 
 ## Quick Start
 
 ```typescript
-import { createSession, deserialize } from '@continuum/session';
-import type {
-  ViewDefinition,
-  Interaction,
-  ContinuitySnapshot,
-  PendingIntent,
-  Checkpoint,
-  DetachedValue,
-} from '@continuum/contract';
-import type {
-  ReconciliationOptions,
-  ReconciliationIssue,
-  StateDiff,
-  ReconciliationResolution,
-} from '@continuum/runtime';
+import { createSession } from '@continuum-dev/session';
 
 const session = createSession();
 
 session.pushView({
-  viewId: 'my-form',
+  viewId: 'agent-form',
   version: '1.0',
-  nodes: [
-    { id: 'name', type: 'field', dataType: 'string', key: 'name' },
-    { id: 'agree', type: 'field', dataType: 'boolean', key: 'agree' },
-  ],
+  nodes: [{ id: 'field_1', key: 'username', type: 'field' }]
 });
 
-session.updateState('name', { value: 'Alice' });
+session.updateState('field_1', { value: 'Alice' });
 
-const snapshot: ContinuitySnapshot | null = session.getSnapshot();
-
-const blob = session.serialize();
-
-const restored = deserialize(blob);
+const snapshot = session.getSnapshot();
+console.log(snapshot?.data.values['field_1'].value); // 'Alice'
 ```
 
-## Factory Functions
+---
 
-### `createSession(options?)`
+## Public API Reference
 
-Creates a new empty session.
+The package exports:
+
+- `./lib/session.js`
+- `./lib/types.js`
+
+### 1) Initialization and Lifecycle
+
+#### `createSession(options?)`
+
+Creates a fresh session ledger.
 
 ```typescript
 function createSession(options?: SessionOptions): Session;
 ```
 
-### `deserialize(data, options?)`
+#### `deserialize(data, options?)`
 
-Reconstructs a session from a serialized blob (produced by `session.serialize()`).
+Restores a previously serialized session blob.
 
 ```typescript
 function deserialize(data: unknown, options?: SessionOptions): Session;
 ```
 
-Throws if `data.formatVersion` is present and not supported.
+#### `hydrateOrCreate(options?)`
 
-### `sessionFactory`
+Creates from persisted storage when available, otherwise creates a new session.
 
-An object containing both factory functions, useful for dependency injection.
+```typescript
+function hydrateOrCreate(options?: SessionOptions): Session;
+```
+
+Persistence note:
+
+- When `options.persistence` is provided, snapshot writes are debounced by 200ms.
+- `SessionPersistenceOptions.maxBytes` enforces a payload size cap before writes.
+- `SessionPersistenceOptions.onError` receives `size_limit` and `storage_error` events.
+- Browser `storage` events are consumed for cross-tab session synchronization.
+
+#### `sessionFactory`
+
+DI-friendly factory object for session creation and deserialization.
 
 ```typescript
 const sessionFactory: SessionFactory = { createSession, deserialize };
 ```
 
-## SessionOptions
+#### Subscriptions
 
-```ts
-interface SessionOptions {
-  clock?: () => number; // custom clock for timestamps (default: Date.now)
-  maxEventLogSize?: number; // cap and trim oldest interactions
-  maxPendingIntents?: number; // cap and trim oldest pending intents
-  maxCheckpoints?: number; // cap checkpoints (auto checkpoints may be pruned first)
-  reconciliation?: Omit<ReconciliationOptions, 'clock'>;
-  validateOnUpdate?: boolean;
-  persistence?: SessionPersistenceOptions;
-  detachedValuePolicy?: DetachedValuePolicy;
-  actions?: Record<string, { registration: ActionRegistration; handler: ActionHandler }>;
-}
+Listen to state and issue updates.
+
+```typescript
+const stopSnapshot = session.onSnapshot((snapshot) => {
+  // update UI
+});
+
+const stopIssues = session.onIssues((issues) => {
+  // handle warnings/errors
+});
 ```
 
-## Session Interface
+### 2) View and State Updates
 
-### Reading State
+#### `session.pushView(view)`
 
-| Method             | Returns                         | Description                                   |
-| ------------------ | ------------------------------- | --------------------------------------------- |
-| `sessionId`        | `string`                        | Unique identifier for this session (readonly) |
-| `isDestroyed`      | `boolean`                       | Whether the session has been destroyed        |
-| `getSnapshot()`    | `ContinuitySnapshot \| null`    | Current combined view + data                  |
-| `getIssues()`      | `ReconciliationIssue[]`         | Issues from the last reconciliation           |
-| `getDiffs()`       | `StateDiff[]`                   | Diffs from the last reconciliation            |
-| `getResolutions()` | `ReconciliationResolution[]`    | Resolutions from the last reconciliation      |
-| `getEventLog()`    | `Interaction[]`                 | Full interaction history                      |
-| `getPendingIntents()` | `PendingIntent[]`            | Pending intent list                           |
-| `getDetachedValues()` | `Record<string, DetachedValue>` | Detached values from prior incompatible nodes |
-| `getCheckpoints()` | `Checkpoint[]`                  | Current checkpoint stack                      |
-| `getViewportState(nodeId)` | `ViewportState \| undefined` | Per-node viewport metadata                  |
-| `getPendingProposals()` | `Record<string, ProposedValue>` | Pending staged proposals keyed by node ID  |
+Pushes a new AI-generated view, runs reconciliation, updates detached values, marks stale pending intents on version change, and creates an auto-checkpoint.
 
-### View and State Management
+```typescript
+session.pushView({ viewId: 'form', version: '2.0', nodes: [] });
+```
 
-| Method                         | Signature                                                                                                  | Description                                                                                                                          |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `pushView(view)`               | `(view: ViewDefinition) => void`                                                                           | Push a new view version. Triggers reconciliation, auto-checkpoints, stale pending intents on version change, and notifies listeners. |
-| `recordIntent(interaction)`    | `(interaction: Omit<Interaction, 'interactionId' \| 'timestamp' \| 'sessionId' \| 'viewVersion'>) => void` | Record a raw interaction event.                                                                                                      |
-| `updateState(nodeId, payload)` | `(nodeId: string, payload: unknown) => void`                                                               | Update node value directly. Records an interaction and updates lineage.                                                              |
-| `updateViewportState(nodeId, state)` | `(nodeId: string, state: ViewportState) => void`                                                    | Update per-node viewport state in `data.viewContext`.                                                                                |
-| `purgeDetachedValues(filter?)` | `(filter?: (key: string, value: DetachedValue) => boolean) => void`                                        | Remove all detached values or selectively purge by predicate.                                                                         |
-| `proposeValue(nodeId, value, source?)` | `(nodeId: string, value: NodeValue, source?: string) => void`                                     | Stage a proposed value for a dirty node or apply immediately when not dirty.                                                         |
-| `acceptProposal(nodeId)`       | `(nodeId: string) => void`                                                                                 | Accept a staged proposal and apply as a data update.                                                                                 |
-| `rejectProposal(nodeId)`       | `(nodeId: string) => void`                                                                                 | Reject a staged proposal.                                                                                                            |
+#### `session.updateState(nodeId, payload)`
 
-### Pending Intents
+Records a data update interaction for a node.
 
-| Method                     | Signature                                                                                      | Description                                             |
-| -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `submitIntent(intent)`     | `(intent: Omit<PendingIntent, 'intentId' \| 'queuedAt' \| 'status' \| 'viewVersion'>) => void` | Submit a new pending intent                             |
-| `validateIntent(intentId)` | `(intentId: string) => boolean`                                                                | Mark an intent as validated, returns whether it existed |
-| `cancelIntent(intentId)`   | `(intentId: string) => boolean`                                                                | Mark an intent as cancelled, returns whether it existed |
+```typescript
+session.updateState('email', { value: 'test@example.com', isDirty: true });
+```
 
-### Checkpoints and Rewind
+#### `session.recordIntent(interaction)`
 
-| Method                              | Signature                          | Description                                               |
-| ----------------------------------- | ---------------------------------- | --------------------------------------------------------- |
-| `checkpoint()`                      | `() => Checkpoint`                 | Manually create a checkpoint                              |
-| `restoreFromCheckpoint(checkpoint)` | `(checkpoint: Checkpoint) => void` | Restore session to a specific checkpoint                  |
-| `rewind(checkpointId)`              | `(checkpointId: string) => void`   | Rewind to a checkpoint by ID and trim stack to that point |
+Records a raw interaction event.
 
-### Lifecycle
+```typescript
+session.recordIntent({
+  nodeId: 'email',
+  type: 'data-update',
+  payload: { value: 'test@example.com' }
+});
+```
 
-| Method                 | Signature                                                           | Description                                                                        |
-| ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `reset()`              | `() => void`                                                        | Clear active state while keeping session id and options                            |
-| `onSnapshot(listener)` | `(listener: (snapshot: ContinuitySnapshot \| null) => void) => () => void`  | Subscribe to snapshot changes. Returns an unsubscribe function.          |
-| `onIssues(listener)`   | `(listener: (issues: ReconciliationIssue[]) => void) => () => void` | Subscribe to issue changes. Returns an unsubscribe function.                       |
-| `serialize()`          | `() => unknown`                                                     | Serialize the full session to a JSON-compatible blob (`{ formatVersion: 1, ... }`) |
-| `destroy()`            | `() => { issues: ReconciliationIssue[] }`                           | Teardown the session and return the final issue snapshot.                          |
+#### Viewport APIs
 
-### Actions
+```typescript
+session.updateViewportState('table_1', { scrollY: 320, isFocused: true });
+const viewport = session.getViewportState('table_1');
+```
 
-| Method | Signature | Description |
-| ------ | --------- | ----------- |
-| `registerAction(intentId, registration, handler)` | `(intentId: string, registration: ActionRegistration, handler: ActionHandler) => void` | Register a dispatchable action handler for an intent ID. |
-| `unregisterAction(intentId)` | `(intentId: string) => void` | Remove a registered action handler. |
-| `getRegisteredActions()` | `() => Record<string, ActionRegistration>` | Return the current action registry metadata. |
-| `dispatchAction(intentId, nodeId)` | `(intentId: string, nodeId: string) => void \| Promise<void>` | Invoke the handler for a registered action with current snapshot context. |
+### 3) Anti-Clobbering with Proposals
 
-## Links
+When a node has dirty user state and AI proposes a new value, Continuum stages the proposal instead of overwriting immediately.
 
-- [Root README](../../README.md)
-- [Quick Start Guide](../../docs/QUICK_START.md)
+#### `session.proposeValue(nodeId, value, source?)`
+
+```typescript
+session.proposeValue('email', { value: 'ai_guess@example.com' }, 'ai-agent');
+```
+
+#### `session.getPendingProposals()`
+
+```typescript
+const proposals = session.getPendingProposals();
+```
+
+#### `session.acceptProposal(nodeId)` / `session.rejectProposal(nodeId)`
+
+```typescript
+session.acceptProposal('email');
+session.rejectProposal('email');
+```
+
+### 4) Time Travel with Checkpoints
+
+#### `session.checkpoint()`
+
+Manually captures a checkpoint snapshot.
+
+```typescript
+const cp = session.checkpoint();
+```
+
+#### `session.rewind(checkpointId)`
+
+Rewinds to a checkpoint id and truncates checkpoint history after that point.
+
+```typescript
+session.rewind(cp.checkpointId);
+```
+
+#### `session.restoreFromCheckpoint(checkpoint)`
+
+Restores to a checkpoint object without truncating the checkpoint stack.
+
+```typescript
+session.restoreFromCheckpoint(cp);
+```
+
+#### `session.getCheckpoints()`
+
+```typescript
+const checkpoints = session.getCheckpoints();
+```
+
+### 5) Intents and Event Sourcing
+
+#### `session.submitIntent(intent)`
+
+Queue a pending user intent for AI/backend processing.
+
+```typescript
+session.submitIntent({
+  nodeId: 'submit_btn',
+  intentName: 'execute_search',
+  payload: { term: 'Continuum' }
+});
+```
+
+#### `session.getPendingIntents()`, `session.validateIntent(intentId)`, `session.cancelIntent(intentId)`
+
+```typescript
+const intents = session.getPendingIntents();
+session.validateIntent(intents[0].intentId);
+session.cancelIntent(intents[0].intentId);
+```
+
+#### `session.getEventLog()`
+
+```typescript
+const log = session.getEventLog();
+```
+
+### 6) Actions Registry
+
+Register local handlers for semantic intent ids and dispatch them with current session snapshot data.
+
+```typescript
+session.registerAction('fetch_data', { label: 'Fetch Data' }, async ({ snapshot, nodeId }) => {
+  void snapshot;
+  void nodeId;
+});
+
+await session.dispatchAction('fetch_data', 'btn_1');
+```
+
+Also available:
+
+- `session.unregisterAction(intentId)`
+- `session.getRegisteredActions()`
+
+### 7) Teardown, Persistence, and Maintenance
+
+```typescript
+const blob = session.serialize();
+const detached = session.getDetachedValues();
+session.purgeDetachedValues();
+
+session.reset();
+const final = session.destroy();
+```
+
+Persistence behavior:
+
+- `serialize()` returns a JSON-safe payload with `formatVersion: 1`.
+- Automatic persistence writes are debounced (200ms) to reduce storage churn.
+- If `maxBytes` is exceeded, the write is skipped and `onError` is invoked.
+- Remote storage updates can rehydrate in-memory state for cross-tab continuity.
+
+`destroy()` returns:
+
+```typescript
+{ issues: ReconciliationIssue[] }
+```
+
+### 8) Core Types
+
+Primary exported types from `src/lib/types.ts`:
+
+- `Session`
+- `SessionOptions`
+- `SessionFactory`
+- `SessionPersistenceOptions`
+- `SessionPersistenceStorage`
+
+---
+
+## Architecture Context
+
+`@continuum-dev/session` handles stateful timeline management and lifecycle orchestration. It delegates structural data reconciliation to `@continuum-dev/runtime` whenever a new view is pushed.
+
+Framework bindings can wrap this package for UI-first usage:
+
+- `@continuum-dev/react`
+- `@continuum-dev/angular`
+
+## License
+
+MIT © CooperContinuum

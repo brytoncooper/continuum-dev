@@ -79,6 +79,15 @@ function runDetachedValueGC(internal: SessionState): void {
   }
 }
 
+/**
+ * Pushes a new view definition into the session and reconciles existing data.
+ *
+ * Updates reconciliation artifacts, marks stale pending intents when view version
+ * changes, creates an auto checkpoint, runs detached-value GC, and notifies listeners.
+ *
+ * @param internal Mutable internal session state.
+ * @param view Next view definition to apply.
+ */
 export function pushView(internal: SessionState, view: ViewDefinition): void {
   if (internal.destroyed) return;
   assertValidView(view);

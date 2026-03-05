@@ -3,6 +3,12 @@ import { INTENT_STATUS } from '@continuum/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 
+/**
+ * Queues a pending intent on the current view version.
+ *
+ * @param internal Mutable internal session state.
+ * @param partial Intent payload without generated metadata.
+ */
 export function submitIntent(
   internal: SessionState,
   partial: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>
@@ -25,6 +31,13 @@ export function submitIntent(
   }
 }
 
+/**
+ * Marks an intent as validated.
+ *
+ * @param internal Mutable internal session state.
+ * @param intentId Target intent id.
+ * @returns True when the intent exists.
+ */
 export function validateIntent(internal: SessionState, intentId: string): boolean {
   const intent = internal.pendingIntents.find((a) => a.intentId === intentId);
   if (!intent) return false;
@@ -32,6 +45,13 @@ export function validateIntent(internal: SessionState, intentId: string): boolea
   return true;
 }
 
+/**
+ * Marks an intent as cancelled.
+ *
+ * @param internal Mutable internal session state.
+ * @param intentId Target intent id.
+ * @returns True when the intent exists.
+ */
 export function cancelIntent(internal: SessionState, intentId: string): boolean {
   const intent = internal.pendingIntents.find((a) => a.intentId === intentId);
   if (!intent) return false;
@@ -39,6 +59,13 @@ export function cancelIntent(internal: SessionState, intentId: string): boolean 
   return true;
 }
 
+/**
+ * Marks all currently pending intents as stale.
+ *
+ * Used when view version changes invalidate unresolved intents.
+ *
+ * @param internal Mutable internal session state.
+ */
 export function markAllPendingIntentsAsStale(internal: SessionState): void {
   for (const intent of internal.pendingIntents) {
     if (intent.status === INTENT_STATUS.PENDING) {

@@ -203,6 +203,15 @@ function assembleSessionFromInternalState(
   return session;
 }
 
+/**
+ * Creates a new in-memory session ledger.
+ *
+ * Initializes event log limits, reconciliation behavior, optional persistence,
+ * and optional action handlers.
+ *
+ * @param options Optional session configuration.
+ * @returns A live session instance.
+ */
 export function createSession(options?: SessionOptions): Session {
   const clock = options?.clock ?? Date.now;
   const internal = createEmptySessionState(generateId('session', clock), clock);
@@ -226,6 +235,13 @@ export function createSession(options?: SessionOptions): Session {
   return assembleSessionFromInternalState(internal, cleanupPersistence);
 }
 
+/**
+ * Recreates a session from serialized data produced by `session.serialize()`.
+ *
+ * @param data Serialized session payload.
+ * @param options Optional runtime overrides (clock, limits, reconciliation, persistence).
+ * @returns A live session instance restored from the payload.
+ */
 export function deserialize(data: unknown, options?: SessionOptions): Session {
   const internal = deserializeToState(
     data,
@@ -251,6 +267,14 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
   return assembleSessionFromInternalState(internal, cleanupPersistence);
 }
 
+/**
+ * Hydrates a session from persistence storage when data exists, otherwise creates a new one.
+ *
+ * If stored data is invalid, it is removed and a fresh session is created.
+ *
+ * @param options Session options including required persistence config.
+ * @returns A hydrated or newly created session.
+ */
 export function hydrateOrCreate(options?: SessionOptions): Session {
   if (!options?.persistence) return createSession(options);
   const storageKey = options.persistence.key ?? DEFAULT_STORAGE_KEY;
@@ -264,4 +288,7 @@ export function hydrateOrCreate(options?: SessionOptions): Session {
   }
 }
 
+/**
+ * Dependency-injection friendly factory for session creation and deserialization.
+ */
 export const sessionFactory: SessionFactory = { createSession, deserialize };

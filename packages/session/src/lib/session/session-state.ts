@@ -17,6 +17,12 @@ import type {
   StateDiff,
 } from '@continuum/runtime';
 
+/**
+ * Internal mutable session backing state.
+ *
+ * This shape is not exported from the package barrel and is intended for
+ * internal orchestration modules only.
+ */
 export interface SessionState {
   sessionId: string;
   clock: () => number;
@@ -42,6 +48,13 @@ export interface SessionState {
   destroyed: boolean;
 }
 
+/**
+ * Creates default empty internal session state.
+ *
+ * @param sessionId Generated session id.
+ * @param clock Clock source used for ids/timestamps.
+ * @returns Initialized internal state object.
+ */
 export function createEmptySessionState(sessionId: string, clock: () => number): SessionState {
   return {
     sessionId,
@@ -68,6 +81,11 @@ export function createEmptySessionState(sessionId: string, clock: () => number):
   };
 }
 
+/**
+ * Resets active timeline data while preserving configuration and listeners.
+ *
+ * @param internal Mutable internal session state.
+ */
 export function resetSessionState(internal: SessionState): void {
   internal.currentView = null;
   internal.currentData = null;
@@ -81,6 +99,12 @@ export function resetSessionState(internal: SessionState): void {
   internal.pendingProposals = {};
 }
 
+/**
+ * Replaces runtime portions of internal state from another state object.
+ *
+ * @param internal Destination state object.
+ * @param next Source state values to apply.
+ */
 export function replaceInternalState(
   internal: SessionState,
   next: SessionState
@@ -98,6 +122,13 @@ export function replaceInternalState(
   internal.reconciliationOptions = next.reconciliationOptions;
 }
 
+/**
+ * Generates a unique id using prefix, timestamp, and random UUID bytes.
+ *
+ * @param prefix Id namespace prefix.
+ * @param clock Clock source used for timestamp component.
+ * @returns Stable unique id string.
+ */
 export function generateId(prefix: string, clock: () => number): string {
   const randomPart = globalThis.crypto.randomUUID().replace(/-/g, '');
   return `${prefix}_${clock()}_${randomPart}`;

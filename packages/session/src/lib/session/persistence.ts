@@ -20,6 +20,16 @@ function isMatchingStorageEvent(
   return true;
 }
 
+/**
+ * Attaches persistence synchronization to a session.
+ *
+ * Persists snapshots to storage with debounce and applies remote `storage` events
+ * (for example, cross-tab updates) back into the active session state.
+ *
+ * @param internal Mutable internal session state.
+ * @param options Persistence storage options.
+ * @returns Cleanup function that unsubscribes listeners and removes event handlers.
+ */
 export function attachPersistence(
   internal: SessionState,
   options: SessionPersistenceOptions

@@ -54,6 +54,15 @@ function resolveNodeLookupEntry(nodes: ViewNode[], requestedId: string): NodeLoo
   return null;
 }
 
+/**
+ * Records an interaction event and applies its payload to current data state.
+ *
+ * The function updates event log, value lineage, optional validation issues,
+ * and latest auto-checkpoint snapshot.
+ *
+ * @param internal Mutable internal session state.
+ * @param partial Interaction payload without generated metadata.
+ */
 export function recordIntent(
   internal: SessionState,
   partial: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>
