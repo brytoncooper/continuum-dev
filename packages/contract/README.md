@@ -117,33 +117,45 @@ import {
   DataSnapshot,
   ContinuitySnapshot,
   NodeValue,
+  ProposedValue,
   DetachedValue,
   ViewportState,
+  ActionHandler,
+  ActionContext,
   ISSUE_CODES,
   DATA_RESOLUTIONS,
+  VIEW_DIFFS,
+  INTERACTION_TYPES,
+  INTENT_STATUS,
 } from '@continuum-dev/contract';
 ```
 
-Core types:
+**Core types:**
 
-- `ViewDefinition`: root AST for generated UI.
-- `ViewNode`: discriminated union of supported node types.
-- `DataSnapshot`: user-owned runtime state.
-- `ContinuitySnapshot`: atomic `ViewDefinition + DataSnapshot`.
+* `ViewDefinition`: root AST for generated UI.
+* `ViewNode`: discriminated union of supported node types.
+* `DataSnapshot`: user-owned runtime state.
+* `ContinuitySnapshot`: atomic `ViewDefinition + DataSnapshot`.
 
-State primitives:
+**State primitives:**
 
-- `NodeValue<T>`: value wrapper with collaboration metadata.
-- `DetachedValue`: preserved state for removed or incompatible nodes.
-- `ViewportState`: UI interaction state (scroll/focus/zoom/offset).
+* `NodeValue<T>`: value wrapper with collaboration metadata.
+* `ProposedValue`: models AI suggestions alongside current user values for conflict resolution.
+* `DetachedValue`: preserved state for removed or incompatible nodes.
+* `ViewportState`: UI interaction state (scroll/focus/zoom/offset).
 
-Constants:
+**Actions:**
 
-- `ISSUE_CODES`: reconciliation issue taxonomy.
-- `DATA_RESOLUTIONS`: value reconciliation outcomes.
-- `VIEW_DIFFS`: structural diff labels.
-- `INTERACTION_TYPES`: canonical interaction event categories.
-- `INTENT_STATUS`: pending intent lifecycle states.
+* `ActionHandler`: execution contract for UI intents (`(context: ActionContext) => void | Promise<void>`).
+* `ActionContext`: runtime context passed to handlers containing the intent ID, node ID, and current snapshot.
+
+**Constants:**
+
+* `ISSUE_CODES`: reconciliation issue taxonomy.
+* `DATA_RESOLUTIONS`: value reconciliation outcomes.
+* `VIEW_DIFFS`: structural diff labels.
+* `INTERACTION_TYPES`: canonical interaction event categories.
+* `INTENT_STATUS`: pending intent lifecycle states.
 
 ## Deep Dive Reference
 
