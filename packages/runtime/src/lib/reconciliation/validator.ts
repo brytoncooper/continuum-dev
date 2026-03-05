@@ -16,6 +16,16 @@ function isEmptyValue(value: unknown): boolean {
   return false;
 }
 
+/**
+ * Validates a node value against contract constraints and emits runtime issues.
+ *
+ * This helper is exported so host applications can run the same validation
+ * semantics used during reconciliation for custom workflows.
+ *
+ * @param node View node containing optional constraint metadata.
+ * @param state Current node state value to validate.
+ * @returns Zero or more validation issues.
+ */
 export function validateNodeValue(
   node: ViewNode,
   state: NodeValue | undefined

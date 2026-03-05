@@ -2,6 +2,15 @@ import { type DataSnapshot, type ViewDefinition, type ViewNode, ISSUE_SEVERITY, 
 import type { ReconciliationIssue } from './types.js';
 import { type TraversedViewNode, traverseViewNodes } from './reconciliation/view-traversal.js';
 
+/**
+ * Scans a view tree for duplicate ids/keys and traversal-level issues.
+ *
+ * Useful for preflight checks when validating generated views before running
+ * full reconciliation.
+ *
+ * @param nodes Root nodes from a view definition.
+ * @returns Aggregated issues for duplicates and traversal anomalies.
+ */
 export function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[] {
   const issues: ReconciliationIssue[] = [];
   const byId = new Map<string, ViewNode>();
@@ -36,21 +45,70 @@ export function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[]
 }
 
 export interface ReconciliationContext {
+  /**
+   * New view currently being reconciled.
+   */
   newView: ViewDefinition;
+  /**
+   * Prior view used for matching, if available.
+   */
   priorView: ViewDefinition | null;
+  /**
+   * New-view node lookup keyed by scoped node id.
+   */
   newById: Map<string, ViewNode>;
+  /**
+   * New-view node lookup keyed by semantic key (scoped when needed).
+   */
   newByKey: Map<string, ViewNode>;
+  /**
+   * Prior-view node lookup keyed by scoped node id.
+   */
   priorById: Map<string, ViewNode>;
+  /**
+   * Prior-view node lookup keyed by semantic key (scoped when needed).
+   */
   priorByKey: Map<string, ViewNode>;
+  /**
+   * New-view indexed ids grouped by raw node id.
+   */
   newIdsByRawId: Map<string, string[]>;
+  /**
+   * Prior-view indexed ids grouped by raw node id.
+   */
   priorIdsByRawId: Map<string, string[]>;
+  /**
+   * Stable mapping from new node objects to scoped node ids.
+   */
   newNodeIds: WeakMap<ViewNode, string>;
+  /**
+   * Stable mapping from prior node objects to scoped node ids.
+   */
   priorNodeIds: WeakMap<ViewNode, string>;
+  /**
+   * Frequency table for keys in the new view.
+   */
   newKeyCounts: Map<string, number>;
+  /**
+   * Frequency table for keys in the prior view.
+   */
   priorKeyCounts: Map<string, number>;
+  /**
+   * Issues captured while indexing both view trees.
+   */
   issues: ReconciliationIssue[];
 }
 
+/**
+ * Builds lookup maps used by the reconciliation matching pipeline.
+ *
+ * Context indexes scoped ids and semantic keys so downstream logic can resolve
+ * carry/migrate/restore decisions in O(1) lookups.
+ *
+ * @param newView Target view for this reconciliation cycle.
+ * @param priorView Previous view to compare against, if available.
+ * @returns Indexed reconciliation context consumed by resolver stages.
+ */
 export function buildReconciliationContext(
   newView: ViewDefinition,
   priorView: ViewDefinition | null
@@ -111,6 +169,16 @@ export function buildReconciliationContext(
   };
 }
 
+/**
+ * Resolves the best prior-view match for a node in the new view.
+ *
+ * Matching is attempted in deterministic order: scoped id, semantic key,
+ * dot-suffix key fallback, and unique raw-id fallback.
+ *
+ * @param ctx Reconciliation context with prior/new indexes.
+ * @param newNode Node from the new view to resolve against prior view.
+ * @returns Matched prior node, or null when no candidate can be resolved.
+ */
 export function findPriorNode(
   ctx: ReconciliationContext,
   newNode: ViewNode
@@ -160,6 +228,16 @@ export function findPriorNode(
   return null;
 }
 
+/**
+ * Builds a value lookup that supports id-based and key-based carry.
+ *
+ * The returned map contains direct prior ids plus remapped ids when semantic
+ * key matches indicate the value should move to a different node id.
+ *
+ * @param priorData Previous data snapshot.
+ * @param ctx Reconciliation context built from prior/new views.
+ * @returns Value lookup used by node resolution.
+ */
 export function buildPriorValueLookupByIdAndKey(
   priorData: DataSnapshot,
   ctx: ReconciliationContext
@@ -187,6 +265,17 @@ export function buildPriorValueLookupByIdAndKey(
   return map;
 }
 
+/**
+ * Reports whether a match was resolved by id or by semantic key.
+ *
+ * This metadata is attached to reconciliation resolution records so consumers
+ * can explain why a value was carried/migrated/restored.
+ *
+ * @param ctx Reconciliation context with id/key indexes.
+ * @param newNode Node from the new view.
+ * @param priorNode Prior match candidate for the new node.
+ * @returns `id`, `key`, or null when no prior node exists.
+ */
 export function determineNodeMatchStrategy(
   ctx: ReconciliationContext,
   newNode: ViewNode,
@@ -215,6 +304,13 @@ export function determineNodeMatchStrategy(
   return 'id'; // fallback to id for other fuzzy matches
 }
 
+/**
+ * Resolves a snapshot value key to a unique scoped prior node id.
+ *
+ * @param ctx Reconciliation context with prior-view indexes.
+ * @param priorId Snapshot key from `priorData.values`.
+ * @returns Scoped prior id when uniquely resolvable; otherwise null.
+ */
 export function resolvePriorSnapshotId(
   ctx: ReconciliationContext,
   priorId: string
@@ -222,6 +318,13 @@ export function resolvePriorSnapshotId(
   return resolveIdFromSnapshot(ctx.priorById, ctx.priorIdsByRawId, priorId);
 }
 
+/**
+ * Finds the best new-view node candidate for a given prior node by key.
+ *
+ * @param ctx Reconciliation context with new-view key indexes.
+ * @param priorNode Prior-view node to map forward.
+ * @returns Matching new-view node, or null when no key-compatible node exists.
+ */
 export function findNewNodeByPriorNode(
   ctx: ReconciliationContext,
   priorNode: ViewNode
