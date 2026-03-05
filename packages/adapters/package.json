@@ -1,6 +1,9 @@
 {
-  "name": "@continuum/adapters",
+  "name": "@continuum-dev/adapters",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Protocol adapters for the Continuum continuity runtime",
   "license": "MIT",
   "repository": {
@@ -29,7 +32,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum/contract": "*"
+    "@continuum-dev/contract": "*"
   },
   "nx": {
     "tags": [

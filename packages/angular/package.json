@@ -1,6 +1,9 @@
 {
-  "name": "@continuum/angular",
+  "name": "@continuum-dev/angular",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Angular bindings for the Continuum continuity runtime",
   "license": "MIT",
   "repository": {
@@ -34,9 +37,9 @@
     "@angular/forms": ">=20.0.0"
   },
   "dependencies": {
-    "@continuum/contract": "*",
-    "@continuum/runtime": "*",
-    "@continuum/session": "*"
+    "@continuum-dev/contract": "*",
+    "@continuum-dev/runtime": "*",
+    "@continuum-dev/session": "*"
   },
   "nx": {
     "tags": ["scope:angular"]
