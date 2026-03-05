@@ -129,6 +129,275 @@ This package is the core engine, but the Continuum SDK provides dedicated framew
 * `@continuum-dev/react` - React bindings and component renderer.
 * `@continuum-dev/angular` - Angular bindings and directives.
 
+---
+
+## Public API Reference
+
+The runtime barrel file exports:
+
+- `./lib/reconcile.js`
+- `./lib/types.js`
+- `./lib/context.js`
+- `./lib/reconciliation/validator.js`
+
+Most integrations only need `reconcile()`, but advanced applications can use the lower-level APIs for debugging, preflight checks, and custom matching workflows.
+
+### 1) Core Orchestration
+
+#### `reconcile()`
+
+Primary runtime entrypoint. Compares a new view against prior view/data and returns reconciled state plus reconciliation metadata.
+
+```typescript
+function reconcile(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
+  options?: ReconciliationOptions
+): ReconciliationResult;
+```
+
+Use case:
+- Call this on every new AI-generated view push to preserve user state across structural mutations.
+- Use the returned `diffs`, `issues`, and `resolutions` to power devtools, telemetry, or UI diagnostics.
+
+### 2) Core Types and Interfaces
+
+Exported from `src/lib/types.ts`.
+
+#### `ReconciliationOptions`
+
+Controls runtime behavior and migration extension points.
+
+```typescript
+interface ReconciliationOptions {
+  allowPartialRestore?: boolean;
+  allowBlindCarry?: boolean;
+  migrationStrategies?: Record<string, MigrationStrategy>;
+  strategyRegistry?: Record<string, MigrationStrategy>;
+  clock?: () => number;
+}
+```
+
+Use case:
+- Enable `allowBlindCarry` when you have prior data but no prior view AST.
+- Provide `migrationStrategies` or `strategyRegistry` when node schemas evolve across view versions.
+- Provide `clock` in tests for deterministic lineage timestamps.
+
+#### `ReconciliationResult`
+
+Full output payload from `reconcile()`.
+
+```typescript
+interface ReconciliationResult {
+  reconciledState: DataSnapshot;
+  diffs: StateDiff[];
+  issues: ReconciliationIssue[];
+  resolutions: ReconciliationResolution[];
+}
+```
+
+Use case:
+- Persist `reconciledState` as your canonical session state.
+- Use `issues` as immediate feedback when AI-generated schemas introduce invalid data.
+
+#### `StateDiff`
+
+Represents a single change produced during reconciliation.
+
+```typescript
+interface StateDiff {
+  nodeId: string;
+  type: ViewDiff;
+  oldValue?: unknown;
+  newValue?: unknown;
+  reason?: string;
+}
+```
+
+Use case:
+- Render "what changed" timelines in developer tooling.
+- Trigger downstream automation only for specific diff types (for example, `migrated` or `removed`).
+
+#### `ReconciliationResolution`
+
+Per-node trace of how a value was resolved.
+
+```typescript
+interface ReconciliationResolution {
+  nodeId: string;
+  priorId: string | null;
+  matchedBy: 'id' | 'key' | null;
+  priorType: string | null;
+  newType: string;
+  resolution: DataResolution;
+  priorValue: unknown;
+  reconciledValue: unknown;
+}
+```
+
+Use case:
+- Explain why a node was carried, migrated, detached, added, or restored.
+- Audit matching reliability (`matchedBy: 'id' | 'key'`) over real AI traffic.
+
+#### `ReconciliationIssue`
+
+Structured issue emitted by reconciliation and validation.
+
+```typescript
+interface ReconciliationIssue {
+  severity: IssueSeverity;
+  nodeId?: string;
+  message: string;
+  code: IssueCode;
+}
+```
+
+Use case:
+- Surface warning/error banners in debugging UIs.
+- Build alerting and metrics keyed by `code` and `severity`.
+
+#### `MigrationStrategy`
+
+User-implemented function for transforming payloads when a node schema changes.
+
+```typescript
+type MigrationStrategy = (
+  nodeId: string,
+  priorNode: ViewNode,
+  newNode: ViewNode,
+  priorValue: unknown
+) => unknown;
+```
+
+Use case:
+- Convert old value shapes into new structures when AI changes a node contract.
+- Keep business-critical data continuity through deliberate, explicit transformations.
+
+Note:
+- `NodeResolutionAccumulator` is also exported but is primarily an internal accumulator used by the reconciliation loop.
+
+### 3) Context and Matching Utilities (Advanced)
+
+Exported from `src/lib/context.ts`.
+
+#### `buildReconciliationContext()`
+
+Indexes new and prior views into id/key lookup maps used by matching and resolution.
+
+```typescript
+function buildReconciliationContext(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null
+): ReconciliationContext;
+```
+
+Use case:
+- Build custom reconciliation inspectors or diagnostics outside the main pipeline.
+- Precompute matching context once when running specialized custom workflows.
+
+#### `findPriorNode()`
+
+Finds the best prior-view match for a new node using scoped id, key, and suffix fallback rules.
+
+```typescript
+function findPriorNode(
+  ctx: ReconciliationContext,
+  newNode: ViewNode
+): ViewNode | null;
+```
+
+Use case:
+- Debug matching behavior node-by-node.
+- Validate whether your semantic key strategy is stable across generated layouts.
+
+#### `buildPriorValueLookupByIdAndKey()`
+
+Creates a lookup map that carries prior values by id and semantic key remapping.
+
+```typescript
+function buildPriorValueLookupByIdAndKey(
+  priorData: DataSnapshot,
+  ctx: ReconciliationContext
+): Map<string, unknown>;
+```
+
+Use case:
+- Reuse runtime value remapping logic in custom reconciliation or simulation tooling.
+
+#### `determineNodeMatchStrategy()`
+
+Returns how a new node matched to prior state (`id`, `key`, or `null`).
+
+```typescript
+function determineNodeMatchStrategy(
+  ctx: ReconciliationContext,
+  newNode: ViewNode,
+  priorNode: ViewNode | null
+): 'id' | 'key' | null;
+```
+
+Use case:
+- Instrument matching quality and identify over-reliance on id-only carries.
+
+#### `resolvePriorSnapshotId()`
+
+Resolves a snapshot key to a unique scoped prior node id when possible.
+
+```typescript
+function resolvePriorSnapshotId(
+  ctx: ReconciliationContext,
+  priorId: string
+): string | null;
+```
+
+Use case:
+- Normalize snapshot keys before custom diffing, reconciliation, or migration passes.
+
+#### `findNewNodeByPriorNode()`
+
+Maps a prior node forward to its best new-view candidate by key.
+
+```typescript
+function findNewNodeByPriorNode(
+  ctx: ReconciliationContext,
+  priorNode: ViewNode
+): ViewNode | null;
+```
+
+Use case:
+- Build forward-mapping analyzers for node removals, moves, and restores.
+
+#### `collectDuplicateIssues()`
+
+Scans a view tree for duplicate ids/keys and returns structured issues.
+
+```typescript
+function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[];
+```
+
+Use case:
+- Run preflight validation on AI-generated views before invoking `reconcile()`.
+
+### 4) Validation
+
+Exported from `src/lib/reconciliation/validator.ts`.
+
+#### `validateNodeValue()`
+
+Validates a node value against view constraints (`required`, numeric bounds, length bounds, pattern).
+
+```typescript
+function validateNodeValue(
+  node: ViewNode,
+  state: NodeValue | undefined
+): ReconciliationIssue[];
+```
+
+Use case:
+- Reuse runtime-consistent validation semantics in custom form flows and pre-submit checks.
+- Re-validate values independently when users edit data outside the default reconciliation loop.
+
 ## License
 
 MIT © CooperContinuum
