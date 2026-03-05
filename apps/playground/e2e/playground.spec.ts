@@ -31,15 +31,15 @@ async function openTab(page: Page, tabId: string) {
   await page.locator(`[data-testid="tab-${tabId}"]`).click();
 }
 
+async function enterPlaygroundIfPresent(page: Page) {
+  await page.getByTestId('hero-enter-playground').click({ timeout: 1000 }).catch(() => undefined);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => ((globalThis as unknown) as { localStorage: { clear: () => void } }).localStorage.clear());
   await page.reload();
-  const landingEnter = page.getByTestId('hero-enter-playground');
-  if (await landingEnter.isVisible()) {
-    await landingEnter.click();
-    await page.waitForSelector('h1:has-text("Continuum Playground")', { timeout: 5000 });
-  }
+  await enterPlaygroundIfPresent(page);
   await expect(page.locator('h1')).toContainText('Continuum Playground');
 });
 
@@ -115,10 +115,7 @@ test.describe('Scenario 5: Refresh persistence', () => {
     await page.locator(`${component('trip_notes')} textarea`).fill('Quiet neighborhood and local food');
 
     await page.reload();
-    const landingEnter = page.getByTestId('hero-enter-playground');
-    if (await landingEnter.isVisible()) {
-      await landingEnter.click();
-    }
+    await enterPlaygroundIfPresent(page);
     await expect(page.locator(`${component('destination')} input`)).not.toHaveValue('');
   });
 
@@ -128,10 +125,7 @@ test.describe('Scenario 5: Refresh persistence', () => {
     await expect(page.locator(panel.stepLabel)).toContainText('Step 2');
 
     await page.reload();
-    const landingEnter = page.getByTestId('hero-enter-playground');
-    if (await landingEnter.isVisible()) {
-      await landingEnter.click();
-    }
+    await enterPlaygroundIfPresent(page);
     await expect(page.locator(panel.stepLabel)).toContainText('Step 1');
     await expect(page.locator(`${component('destination')} input`)).not.toHaveValue('');
   });

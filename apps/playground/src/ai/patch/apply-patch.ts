@@ -16,11 +16,14 @@ export function applyPatch(currentView: ViewDefinition, patch: ViewPatch): ViewD
   return nextView;
 }
 
-function applyOperation(view: any, op: PatchOperation) {
+type JsonObject = Record<string, unknown>;
+type JsonNode = JsonObject | unknown[];
+
+function applyOperation(view: JsonObject, op: PatchOperation) {
   const parts = op.path.split('/').filter(Boolean);
   if (parts.length === 0) return;
   
-  let current = view;
+  let current: JsonNode = view;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (Array.isArray(current)) {
@@ -28,7 +31,11 @@ function applyOperation(view: any, op: PatchOperation) {
     } else {
       current = current[part];
     }
-    if (current === undefined || current === null) return;
+    if (
+      current === undefined ||
+      current === null ||
+      (typeof current !== 'object' && !Array.isArray(current))
+    ) return;
   }
 
   const lastPart = parts[parts.length - 1];

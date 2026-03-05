@@ -10,7 +10,14 @@ import {
   useContinuumViewport
 } from './hooks.js';
 import { ContinuumProvider } from './context.js';
-import { ViewDefinition } from '@continuum/contract';
+import type { NodeValue, ViewDefinition, ViewportState } from '@continuum/contract';
+
+function requireSession<T>(value: T | null): T {
+  if (!value) {
+    throw new Error('Expected session to be captured');
+  }
+  return value;
+}
 
 describe('useContinuumSuggestions', () => {
   const componentMap = {
@@ -55,7 +62,7 @@ describe('useContinuumSuggestions', () => {
     const { getByTestId } = render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
     
     act(() => {
-      capturedSession!.updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
+      requireSession(capturedSession).updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
     });
 
     expect(getByTestId('has-suggestions').textContent).toBe('true');
@@ -63,7 +70,7 @@ describe('useContinuumSuggestions', () => {
 
   it('acceptAll updates values and clears suggestions and sets isDirty', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-    let suggestionsHook: any = null;
+    let suggestionsHook: ReturnType<typeof useContinuumSuggestions> | null = null;
 
     function App() {
       const suggestions = useContinuumSuggestions();
@@ -79,25 +86,26 @@ describe('useContinuumSuggestions', () => {
     const { getByTestId } = render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
     
     act(() => {
-      capturedSession!.updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
-      capturedSession!.updateState('f2', { value: 'Doe', suggestion: 'Doherty', isDirty: true });
+      const session = requireSession(capturedSession);
+      session.updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
+      session.updateState('f2', { value: 'Doe', suggestion: 'Doherty', isDirty: true });
     });
 
     expect(getByTestId('has-suggestions').textContent).toBe('true');
 
     act(() => {
-      suggestionsHook.acceptAll();
+      requireSession(suggestionsHook).acceptAll();
     });
 
     expect(getByTestId('has-suggestions').textContent).toBe('false');
-    const snapshot = capturedSession!.getSnapshot()!;
+    const snapshot = requireSession(requireSession(capturedSession).getSnapshot());
     expect(snapshot.data.values['f1']).toEqual({ value: 'Jonathan', isDirty: true });
     expect(snapshot.data.values['f2']).toEqual({ value: 'Doherty', isDirty: true });
   });
 
   it('rejectAll clears suggestions and leaves values intact', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-    let suggestionsHook: any = null;
+    let suggestionsHook: ReturnType<typeof useContinuumSuggestions> | null = null;
 
     function App() {
       const suggestions = useContinuumSuggestions();
@@ -113,18 +121,19 @@ describe('useContinuumSuggestions', () => {
     const { getByTestId } = render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
     
     act(() => {
-      capturedSession!.updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
-      capturedSession!.updateState('f2', { value: 'Doe', suggestion: 'Doherty', isDirty: true });
+      const session = requireSession(capturedSession);
+      session.updateState('f1', { value: 'John', suggestion: 'Jonathan', isDirty: true });
+      session.updateState('f2', { value: 'Doe', suggestion: 'Doherty', isDirty: true });
     });
 
     expect(getByTestId('has-suggestions').textContent).toBe('true');
 
     act(() => {
-      suggestionsHook.rejectAll();
+      requireSession(suggestionsHook).rejectAll();
     });
 
     expect(getByTestId('has-suggestions').textContent).toBe('false');
-    const snapshot = capturedSession!.getSnapshot()!;
+    const snapshot = requireSession(requireSession(capturedSession).getSnapshot());
     expect(snapshot.data.values['f1']).toEqual({ value: 'John', isDirty: true });
     expect(snapshot.data.values['f2']).toEqual({ value: 'Doe', isDirty: true });
   });
@@ -139,8 +148,8 @@ describe('useContinuumState', () => {
 
   it('reads state and triggers re-renders on update', () => {
     let renderCount = 0;
-    let hookState: any;
-    let hookSetState: any;
+    let hookState: NodeValue | undefined;
+    let hookSetState: ((value: NodeValue) => void) | null = null;
 
     function App() {
       const session = useContinuumSession();
@@ -157,7 +166,7 @@ describe('useContinuumState', () => {
     expect(getByTestId('val').textContent).toBe('undefined');
     
     act(() => {
-      hookSetState({ value: 'hello', isDirty: true });
+      requireSession(hookSetState)({ value: 'hello', isDirty: true });
     });
 
     expect(getByTestId('val').textContent).toBe('hello');
@@ -174,7 +183,7 @@ describe('useContinuumSnapshot', () => {
   };
 
   it('returns the current snapshot', () => {
-    let hookSnapshot: any;
+    let hookSnapshot: ReturnType<typeof useContinuumSnapshot> = null;
 
     function App() {
       const session = useContinuumSession();
@@ -198,8 +207,8 @@ describe('useContinuumViewport', () => {
   };
 
   it('reads and writes viewport state', () => {
-    let hookViewport: any;
-    let setHookViewport: any;
+    let hookViewport: ViewportState | undefined;
+    let setHookViewport: ((state: ViewportState) => void) | null = null;
 
     function App() {
       const session = useContinuumSession();
@@ -214,7 +223,7 @@ describe('useContinuumViewport', () => {
     render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
     expect(hookViewport).toBeUndefined();
 
-    act(() => setHookViewport({ isFocused: true }));
+    act(() => requireSession(setHookViewport)({ isFocused: true }));
     expect(hookViewport).toEqual({ isFocused: true });
   });
 });
@@ -223,7 +232,7 @@ describe('useContinuumDiagnostics', () => {
   const componentMap = { field: () => <div /> };
   
   it('returns diagnostic info like checkpoints and issues', () => {
-    let diags: any;
+    let diags: ReturnType<typeof useContinuumDiagnostics> | null = null;
     
     function App() {
       diags = useContinuumDiagnostics();
@@ -232,7 +241,7 @@ describe('useContinuumDiagnostics', () => {
 
     render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
     expect(diags).toBeDefined();
-    expect(diags.issues).toEqual([]);
-    expect(diags.checkpoints).toBeDefined();
+    expect(requireSession(diags).issues).toEqual([]);
+    expect(requireSession(diags).checkpoints).toBeDefined();
   });
 });

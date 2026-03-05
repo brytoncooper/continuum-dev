@@ -15,6 +15,15 @@ interface GeminiResponse {
   };
 }
 
+type GeminiPart =
+  | { text: string }
+  | {
+      inline_data: {
+        mime_type: string;
+        data: string;
+      };
+    };
+
 function parseView(raw: string): ViewDefinition {
   return JSON.parse(raw) as ViewDefinition;
 }
@@ -37,7 +46,7 @@ export const googleProvider: AIProvider = {
             parts: [{ text: request.systemPrompt }],
           },
           contents: request.messages.map((message) => {
-            const parts: any[] = [{ text: message.content }];
+            const parts: GeminiPart[] = [{ text: message.content }];
             
             if (message.attachments) {
               for (const attachment of message.attachments) {

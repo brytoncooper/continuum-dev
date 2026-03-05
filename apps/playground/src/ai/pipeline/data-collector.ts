@@ -7,8 +7,8 @@ export interface FieldManifestEntry {
   type: string;
   label?: string;
   placeholder?: string;
-  options?: any[];
-  [key: string]: any;
+  options?: unknown[];
+  [key: string]: unknown;
 }
 
 export async function collectData(
@@ -40,11 +40,11 @@ Return strictly a JSON array of these objects.`;
 
   try {
     let raw = response.rawResponse.trim();
-    if (raw.startsWith('\`\`\`json')) {
-      raw = raw.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
+    if (raw.startsWith('```json')) {
+      raw = raw.replace(/^```json/, '').replace(/```$/, '').trim();
     }
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
