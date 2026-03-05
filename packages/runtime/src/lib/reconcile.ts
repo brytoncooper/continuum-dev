@@ -7,6 +7,19 @@ import { buildFreshSessionResult, buildBlindCarryResult, assembleReconciliationR
 import { resolveAllNodes, detectRemovedNodes } from './reconciliation/node-resolver.js';
 import { restoredDiff, restoredResolution } from './reconciliation/differ.js';
 
+/**
+ * Reconciles user state across view mutations produced by AI or server-side layout changes.
+ *
+ * This is the main runtime entrypoint. Provide the new view plus optional prior view/data,
+ * and the runtime returns a deterministic result with merged state, diffs, issue diagnostics,
+ * and per-node resolutions.
+ *
+ * @param newView Current view definition to reconcile into.
+ * @param priorView Previous view definition. Pass null for first render or unknown history.
+ * @param priorData Previous data snapshot. Pass null for fresh sessions.
+ * @param options Optional reconciliation behavior flags and migration extension hooks.
+ * @returns The reconciled state and reconciliation metadata for this transition.
+ */
 export function reconcile(
   newView: ViewDefinition,
   priorView: ViewDefinition | null,
