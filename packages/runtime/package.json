@@ -8,12 +8,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CooperContinuum/continuum.git",
+    "url": "https://github.com/brytoncooper/cooper-continuum.git",
     "directory": "packages/runtime"
   },
   "author": "CooperContinuum",
   "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "engine"],
   "type": "module",
+  "sideEffects": false,
   "main": "./index.js",
   "types": "./index.d.ts",
   "exports": {
