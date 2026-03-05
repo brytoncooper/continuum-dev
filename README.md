@@ -18,17 +18,17 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 
 | Package               | Description                                                                          |
 | --------------------- | ------------------------------------------------------------------------------------ |
-| `@continuum/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint      |
-| `@continuum/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions                |
-| `@continuum/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
-| `@continuum/react`    | React bindings -- Provider, Renderer, hooks                                          |
-| `@continuum/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            |
-| `@continuum/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           |
+| `@continuum-dev/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint      |
+| `@continuum-dev/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions                |
+| `@continuum-dev/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
+| `@continuum-dev/react`    | React bindings -- Provider, Renderer, hooks                                          |
+| `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            |
+| `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           |
 
 ## Quick Start
 
 ```bash
-npm install @continuum/react @continuum/contract
+npm install @continuum-dev/react @continuum-dev/contract
 ```
 
 ```tsx
@@ -36,9 +36,9 @@ import {
   ContinuumProvider,
   ContinuumRenderer,
   useContinuumSession,
-} from '@continuum/react';
-import type { ContinuumNodeMap } from '@continuum/react';
-import type { ViewDefinition } from '@continuum/contract';
+} from '@continuum-dev/react';
+import type { ContinuumNodeMap } from '@continuum-dev/react';
+import type { ViewDefinition } from '@continuum-dev/contract';
 
 const nodeMap: ContinuumNodeMap = {
   field: MyFieldComponent,
@@ -84,7 +84,7 @@ State is automatically reconciled on each `pushView`. User input is preserved ac
 
 ## Session API Highlights
 
-The session surface in `@continuum/session` includes:
+The session surface in `@continuum-dev/session` includes:
 
 - Core reads: `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getDetachedValues`
 - Mutations: `pushView`, `updateState`, `recordIntent`
@@ -106,18 +106,18 @@ npx nx run playground:e2e      # Run e2e tests
 ## Architecture
 
 ```
-@continuum/contract    (types, constants)
+@continuum-dev/contract    (types, constants)
        ↓
-@continuum/runtime     (reconciliation engine)
+@continuum-dev/runtime     (reconciliation engine)
        ↓
-@continuum/session     (session lifecycle)
+@continuum-dev/session     (session lifecycle)
        ↓
-@continuum/react       (React bindings)
-@continuum/angular     (Angular bindings)
+@continuum-dev/react       (React bindings)
+@continuum-dev/angular     (Angular bindings)
        ↓
 apps/playground        (demo application)
 
-@continuum/adapters    (protocol adapters, depends on contract)
+@continuum-dev/adapters    (protocol adapters, depends on contract)
 ```
 
 ## Documentation
