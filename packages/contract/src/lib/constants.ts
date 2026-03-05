@@ -1,3 +1,6 @@
+/**
+ * Canonical issue taxonomy for reconciliation, validation, and view analysis.
+ */
 export const ISSUE_CODES = {
   NO_PRIOR_DATA: 'NO_PRIOR_DATA',
   NO_PRIOR_VIEW: 'NO_PRIOR_VIEW',
@@ -15,8 +18,14 @@ export const ISSUE_CODES = {
   SCOPE_COLLISION: 'SCOPE_COLLISION',
 } as const;
 
+/**
+ * Union of all supported issue code literals.
+ */
 export type IssueCode = (typeof ISSUE_CODES)[keyof typeof ISSUE_CODES];
 
+/**
+ * Outcomes for how a value was handled during reconciliation.
+ */
 export const DATA_RESOLUTIONS = {
   CARRIED: 'carried',
   MIGRATED: 'migrated',
@@ -25,8 +34,14 @@ export const DATA_RESOLUTIONS = {
   RESTORED: 'restored',
 } as const;
 
+/**
+ * Union of all supported data resolution literals.
+ */
 export type DataResolution = (typeof DATA_RESOLUTIONS)[keyof typeof DATA_RESOLUTIONS];
 
+/**
+ * Node-level structural change classifications between view revisions.
+ */
 export const VIEW_DIFFS = {
   ADDED: 'added',
   REMOVED: 'removed',
@@ -35,30 +50,51 @@ export const VIEW_DIFFS = {
   RESTORED: 'restored',
 } as const;
 
+/**
+ * Union of all supported view diff literals.
+ */
 export type ViewDiff = (typeof VIEW_DIFFS)[keyof typeof VIEW_DIFFS];
 
+/**
+ * Severity levels for reported issues.
+ */
 export const ISSUE_SEVERITY = {
   ERROR: 'error',
   WARNING: 'warning',
   INFO: 'info',
 } as const;
 
+/**
+ * Union of all supported issue severity literals.
+ */
 export type IssueSeverity = (typeof ISSUE_SEVERITY)[keyof typeof ISSUE_SEVERITY];
 
+/**
+ * Canonical interaction categories for event producers/consumers.
+ */
 export const INTERACTION_TYPES = {
   DATA_UPDATE: 'data-update',
   VALUE_CHANGE: 'value-change',
   VIEW_CONTEXT_CHANGE: 'view-context-change',
 } as const;
 
+/**
+ * Union of all supported interaction type literals.
+ */
 export type InteractionType = (typeof INTERACTION_TYPES)[keyof typeof INTERACTION_TYPES];
 
 const INTERACTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(INTERACTION_TYPES));
 
+/**
+ * Runtime type guard for {@link InteractionType}.
+ */
 export function isInteractionType(value: unknown): value is InteractionType {
   return typeof value === 'string' && INTERACTION_TYPE_VALUES.has(value);
 }
 
+/**
+ * Lifecycle states for queued intents.
+ */
 export const INTENT_STATUS = {
   PENDING: 'pending',
   VALIDATED: 'validated',
@@ -66,4 +102,7 @@ export const INTENT_STATUS = {
   CANCELLED: 'cancelled',
 } as const;
 
+/**
+ * Union of all supported intent status literals.
+ */
 export type IntentStatus = (typeof INTENT_STATUS)[keyof typeof INTENT_STATUS];
