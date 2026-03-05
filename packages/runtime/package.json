@@ -1,6 +1,9 @@
 {
-  "name": "@continuum/runtime",
+  "name": "@continuum-dev/runtime",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Reconciliation engine for AI-generated view continuity",
   "license": "MIT",
   "repository": {
@@ -29,7 +32,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum/contract": "*"
+    "@continuum-dev/contract": "*"
   },
   "nx": {
     "tags": [

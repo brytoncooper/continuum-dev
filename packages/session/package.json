@@ -1,6 +1,9 @@
 {
-  "name": "@continuum/session",
+  "name": "@continuum-dev/session",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Session lifecycle manager for the Continuum continuity runtime",
   "license": "MIT",
   "repository": {
@@ -29,8 +32,8 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum/contract": "*",
-    "@continuum/runtime": "*"
+    "@continuum-dev/contract": "*",
+    "@continuum-dev/runtime": "*"
   },
   "nx": {
     "tags": [
