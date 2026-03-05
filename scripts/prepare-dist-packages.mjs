@@ -31,6 +31,8 @@ function main() {
     const distPackageJsonPath = resolve(distRoot, 'package.json');
     const sourceReadmePath = resolve(sourceRoot, 'README.md');
     const distReadmePath = resolve(distRoot, 'README.md');
+    const sourceLicensePath = resolve(sourceRoot, 'LICENSE');
+    const distLicensePath = resolve(distRoot, 'LICENSE');
 
     if (!existsSync(distRoot)) {
       throw new Error(`Missing dist output for package "${packageName}": ${distRoot}`);
@@ -48,6 +50,9 @@ function main() {
 
     if (existsSync(sourceReadmePath)) {
       copyFileSync(sourceReadmePath, distReadmePath);
+    }
+    if (existsSync(sourceLicensePath)) {
+      copyFileSync(sourceLicensePath, distLicensePath);
     }
   }
 }
