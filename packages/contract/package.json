@@ -30,6 +30,7 @@
     "**/*.d.ts",
     "**/*.d.ts.map",
     "README.md",
+    "CONTRACT_REFERENCE.md",
     "LICENSE*"
   ],
   "nx": {
