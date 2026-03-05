@@ -90,7 +90,7 @@ Each component is wrapped in a `<div data-continuum-id={definition.id}>` for ide
 
 ### `<FallbackComponent>`
 
-A built-in component rendered when a type isn't found in the component map. Displays a red dashed border with the unknown type name and an expandable view definition viewer.
+A built-in unstyled component rendered when a type isn't found in the component map. It shows the unknown type name, an editable input, and an expandable view definition viewer. Style it in your host app if desired.
 
 ## Hooks
 
