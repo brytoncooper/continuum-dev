@@ -1,196 +1,137 @@
-# @continuum/react
+# @continuum-dev/react
 
-React bindings for the Continuum SDK.
+Build dynamic, AI-driven React UIs without losing user state.
 
-Provides a context provider, a view-driven renderer, and hooks for accessing session state. Handles persistence to localStorage/sessionStorage automatically.
+`@continuum-dev/react` gives you a headless renderer + session layer for view-defined interfaces. Your agent can evolve the UI structure while Continuum carries user input forward safely.
 
-## Installation
+## Why Teams Use It
+
+- Keep user input stable across AI-generated view updates.
+- Ship headless UI control: your components, your styling, your brand.
+- Get built-in persistence, checkpoints, rewind, and diagnostics.
+- Integrate quickly with plain React state patterns.
+
+## Install
 
 ```bash
-npm install @continuum/react @continuum/contract
+npm install @continuum-dev/react @continuum-dev/contract
 ```
 
-Peer dependency: `react` >= 18.
+Peer dependency: `react >= 18`.
 
-## Quick Start
+## 60-Second Setup
 
 ```tsx
+import { useEffect } from 'react';
+import type { NodeValue, ViewDefinition } from '@continuum-dev/contract';
 import {
   ContinuumProvider,
   ContinuumRenderer,
   useContinuumSession,
-} from '@continuum/react';
+  useContinuumSnapshot,
+  type ContinuumNodeMap,
+  type ContinuumNodeProps,
+} from '@continuum-dev/react';
 
-const componentMap = {
-  field: MyFieldComponent,
-  group: MyGroupComponent,
-  action: MyActionComponent,
-  presentation: MyPresentationComponent,
-};
+function Field({ value, onChange, definition }: ContinuumNodeProps) {
+  const text = typeof (value as NodeValue | undefined)?.value === 'string'
+    ? String((value as NodeValue).value)
+    : '';
 
-function App() {
   return (
-    <ContinuumProvider components={componentMap} persist="localStorage">
-      <Page />
-    </ContinuumProvider>
+    <label>
+      {definition.key ?? definition.id}
+      <input
+        value={text}
+        onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
+      />
+    </label>
   );
 }
 
-function Page() {
+const componentMap: ContinuumNodeMap = {
+  field: Field,
+};
+
+const initialView: ViewDefinition = {
+  viewId: 'demo',
+  version: '1',
+  nodes: [{ id: 'name', key: 'name', type: 'field', dataType: 'string' }],
+};
+
+function Screen() {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const view = {
-    viewId: 'view-1',
-    version: '1',
-    nodes: [{ id: 'field', type: 'field', dataType: 'string' }],
-  };
 
   useEffect(() => {
-    session.pushView(view);
-  }, []);
+    if (!session.getSnapshot()) {
+      session.pushView(initialView);
+    }
+  }, [session]);
 
-  return snapshot?.view ? <ContinuumRenderer view={snapshot.view} /> : null;
+  if (!snapshot?.view) return null;
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
+  return (
+    <ContinuumProvider components={componentMap} persist="localStorage">
+      <Screen />
+    </ContinuumProvider>
+  );
 }
 ```
 
-## Components
+## Headless by Design
 
-### `<ContinuumProvider>`
+Continuum does not impose a design system. You own all rendering and style decisions through your component map.
 
-Wraps your application and manages the Continuum session.
+- `ContinuumRenderer` handles structure and state wiring.
+- Your components handle UX, visual language, and accessibility.
+- The built-in fallback is intentionally unstyled.
 
-**Props** (`ContinuumProviderProps`):
+## Core API
 
-| Prop              | Type                                          | Default               | Description                                                                     |
-| ----------------- | --------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- |
-| `components`      | `ContinuumComponentMap`                       | required              | Map of component type strings to React components                               |
-| `persist`         | `'localStorage' \| 'sessionStorage' \| false` | `false`               | Where to persist session data                                                   |
-| `storageKey`      | `string`                                      | `'continuum_session'` | Key used in storage                                                             |
-| `maxPersistBytes` | `number`                                      | —                     | Optional max serialized payload size in bytes before writes are skipped         |
-| `onPersistError`  | `(error: ContinuumPersistError) => void`      | —                     | Called for skipped writes (`size_limit`) and storage failures (`storage_error`) |
-| `children`        | `React.ReactNode`                             | required              | Child elements                                                                  |
+### `ContinuumProvider`
 
-On mount, the provider attempts to rehydrate from storage. If rehydration succeeds, `useContinuumHydrated()` returns `true`. On every snapshot change, the session is automatically serialized back to storage. When `maxPersistBytes` is set and the payload exceeds the limit, the write is skipped and `onPersistError` is notified (or a warning is logged if no callback is provided).
+Owns session lifecycle and optional storage rehydration/persistence.
 
-### `<ContinuumRenderer>`
+| Prop | Type | Default |
+| --- | --- | --- |
+| `components` | `ContinuumComponentMap` | required |
+| `persist` | `'localStorage' \| 'sessionStorage' \| false` | `false` |
+| `storageKey` | `string` | `'continuum_session'` |
+| `maxPersistBytes` | `number` | — |
+| `onPersistError` | `(error: ContinuumPersistError) => void` | — |
+| `sessionOptions` | `SessionOptions` | — |
+| `children` | `React.ReactNode` | required |
 
-Renders a view by mapping each `ViewNode` to a React component from the component map.
+### `ContinuumRenderer`
+
+Renders `ViewDefinition` nodes through your component map:
 
 ```tsx
 <ContinuumRenderer view={snapshot.view} />
 ```
 
-**Props:**
+### Hooks
 
-| Prop   | Type             | Description        |
-| ------ | ---------------- | ------------------ |
-| `view` | `ViewDefinition` | The view to render |
+- `useContinuumSession()`: read/write session API
+- `useContinuumState(nodeId)`: node-level state subscribe/update
+- `useContinuumSnapshot()`: full snapshot subscribe
+- `useContinuumViewport(nodeId)`: viewport metadata read/write
+- `useContinuumDiagnostics()`: issues/diffs/resolutions/checkpoints
+- `useContinuumHydrated()`: whether initial state came from storage
 
-Each component is wrapped in a `<div data-continuum-id={definition.id}>` for identification. Children are rendered recursively. If a component type isn't in the map, falls back to `componentMap['default']`, then to the built-in `FallbackComponent`.
+## What Value Looks Like in Production
 
-### `<FallbackComponent>`
-
-A built-in unstyled component rendered when a type isn't found in the component map. It shows the unknown type name, an editable input, and an expandable view definition viewer. Style it in your host app if desired.
-
-## Hooks
-
-### `useContinuumSession()`
-
-Returns the `Session` object from the nearest `ContinuumProvider`.
-
-```typescript
-function useContinuumSession(): Session;
-```
-
-Throws if used outside a provider.
-
-### `useContinuumState(nodeId)`
-
-Reads and writes a single component's state. Uses `useSyncExternalStore` for tear-free reads.
-
-```typescript
-function useContinuumState(
-  nodeId: string
-): [NodeValue | undefined, (value: NodeValue) => void];
-```
-
-### `useContinuumSnapshot()`
-
-Subscribes to the full `ContinuitySnapshot`. Re-renders on every snapshot change.
-
-```typescript
-function useContinuumSnapshot(): ContinuitySnapshot | null;
-```
-
-### `useContinuumViewport(nodeId)`
-
-Reads and writes per-node viewport context (scroll/zoom/offset/focus metadata).
-
-```typescript
-function useContinuumViewport(
-  nodeId: string
-): [ViewportState | undefined, (state: ViewportState) => void];
-```
-
-### `useContinuumDiagnostics()`
-
-Subscribes to reconciliation diagnostics. Re-renders when issues, diffs, resolutions, or checkpoints change.
-
-```typescript
-function useContinuumDiagnostics(): {
-  issues: ReconciliationIssue[];
-  diffs: StateDiff[];
-  resolutions: ReconciliationResolution[];
-  checkpoints: Checkpoint[];
-};
-```
-
-### `useContinuumHydrated()`
-
-Returns whether the session was rehydrated from storage on mount.
-
-```typescript
-function useContinuumHydrated(): boolean;
-```
-
-Throws if used outside a provider.
-
-## Component Map Pattern
-
-Every component in the map receives `ContinuumComponentProps`:
-
-```typescript
-interface ContinuumComponentProps<T = NodeValue> {
-  value: T | undefined; // current state for this component
-  onChange: (value: T) => void; // update state
-  definition: ViewNode; // view definition
-  children?: React.ReactNode; // rendered children (for containers)
-}
-
-type ContinuumComponentMap = Record<
-  string,
-  ComponentType<ContinuumComponentProps<any>>
->;
-```
-
-Example component:
-
-```tsx
-function TextInput({ value, onChange, definition }: ContinuumComponentProps) {
-  const raw = value as Record<string, unknown> | undefined;
-  const textValue = typeof raw?.['value'] === 'string' ? raw['value'] : '';
-
-  return (
-    <input
-      value={textValue}
-      onChange={(e) => onChange({ value: e.target.value })}
-      placeholder={definition.key ?? definition.id}
-    />
-  );
-}
-```
+- **Agent-driven forms:** evolve schema versions while preserving edits.
+- **Multi-step workflows:** checkpoint every push and rewind instantly.
+- **Regulated surfaces:** inspect diffs/issues/resolutions for auditability.
+- **Performance-sensitive UIs:** subscribe at node granularity instead of rerendering the whole tree.
 
 ## Links
 
 - [Root README](../../README.md)
-- [Quick Start Guide](../../docs/QUICK_START.md)
+- [Quick Start](../../docs/QUICK_START.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)

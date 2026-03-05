@@ -13,7 +13,7 @@ export interface ContinuumNodeProps<T = NodeValue> {
 
 export type ContinuumNodeMap = Record<
   string,
-  ComponentType<ContinuumNodeProps<unknown>>
+  ComponentType<ContinuumNodeProps<any>>
 >;
 
 export type ContinuumComponentProps<T = NodeValue> = ContinuumNodeProps<T>;
