@@ -21,45 +21,21 @@ export function FallbackComponent({
     `Enter value for "${displayName}"`;
 
   return (
-    <div
-      style={{
-        border: '2px dashed #d1242f',
-        borderRadius: 6,
-        padding: 12,
-        background: '#fff8f8',
-      }}
-    >
-      <div style={{ fontSize: 11, color: '#d1242f', fontWeight: 600 }}>
+    <div data-continuum-fallback={definition.type} className="continuum-fallback">
+      <div className="continuum-fallback-title">
         Unknown type: {definition.type} ({displayName})
       </div>
       <input
         value={textValue}
         onChange={(e) => onChange({ value: e.target.value } as NodeValue)}
         placeholder={placeholder}
-        style={{
-          display: 'block',
-          width: '100%',
-          marginTop: 8,
-          padding: '4px 8px',
-          border: '1px solid #ccc',
-          borderRadius: 4,
-          boxSizing: 'border-box',
-        }}
+        className="continuum-fallback-input"
       />
-      <details style={{ marginTop: 8 }}>
-        <summary style={{ fontSize: 11, color: '#666', cursor: 'pointer' }}>
+      <details className="continuum-fallback-details">
+        <summary className="continuum-fallback-summary">
           Node definition
         </summary>
-        <pre
-          style={{
-            fontSize: 10,
-            overflow: 'auto',
-            background: '#f5f5f5',
-            padding: 8,
-            borderRadius: 4,
-            margin: '4px 0 0',
-          }}
-        >
+        <pre className="continuum-fallback-pre">
           {JSON.stringify(definition, null, 2)}
         </pre>
       </details>

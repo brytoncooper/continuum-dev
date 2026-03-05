@@ -80,22 +80,55 @@ export const globalStyles = `
     background: ${color.surfaceAlt};
   }
 
-  [data-continuum-collection-item] {
+  [data-continuum-collection-item],
+  .continuum-collection-item {
     border: 1px solid ${color.border};
     border-radius: 14px;
     background: ${color.surfaceAlt};
     padding: 20px;
     display: grid;
     gap: 16px;
+    position: relative;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  [data-continuum-collection-item]:hover {
+  [data-continuum-collection-item]:hover,
+  .continuum-collection-item:hover {
     border-color: ${color.textMuted};
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
 
-  [data-continuum-collection-add] {
+  .continuum-collection-item-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+
+  [data-continuum-collection-remove],
+  .continuum-collection-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid ${color.border};
+    background: ${color.surface};
+    color: ${color.textMuted};
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+  }
+
+  .continuum-collection-add-container {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  [data-continuum-collection-add],
+  .continuum-collection-add {
     height: 38px;
     border-radius: 10px;
     border: 1px solid ${color.border};
@@ -105,18 +138,74 @@ export const globalStyles = `
     font: inherit;
     font-weight: 500;
     font-size: 13px;
+    cursor: pointer;
+    opacity: 1;
     transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
   }
 
-  [data-continuum-collection-add]:hover:not(:disabled) {
+  [data-continuum-collection-add]:hover:not(:disabled),
+  .continuum-collection-add:hover:not(:disabled) {
     border-color: ${color.textMuted};
     background: ${color.surfaceAlt};
   }
 
-  [data-continuum-collection-remove]:hover:not(:disabled) {
+  [data-continuum-collection-add]:disabled,
+  .continuum-collection-add:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  [data-continuum-collection-remove]:hover:not(:disabled),
+  .continuum-collection-remove:hover:not(:disabled) {
     border-color: ${color.danger} !important;
     background: ${color.dangerBg} !important;
     color: ${color.danger} !important;
+  }
+
+  .continuum-fallback {
+    border: 2px dashed ${color.danger};
+    border-radius: 6px;
+    padding: 12px;
+    background: ${color.dangerBg};
+    display: grid;
+    gap: 8px;
+  }
+
+  .continuum-fallback-title {
+    font-size: 11px;
+    color: ${color.danger};
+    font-weight: 600;
+  }
+
+  .continuum-fallback-input {
+    display: block;
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid ${color.border};
+    border-radius: 4px;
+    box-sizing: border-box;
+    background: ${color.surface};
+    color: ${color.text};
+  }
+
+  .continuum-fallback-details {
+    margin-top: 4px;
+  }
+
+  .continuum-fallback-summary {
+    font-size: 11px;
+    color: ${color.textMuted};
+    cursor: pointer;
+  }
+
+  .continuum-fallback-pre {
+    margin: 4px 0 0;
+    font-size: 10px;
+    overflow: auto;
+    background: ${color.surface};
+    border: 1px solid ${color.border};
+    padding: 8px;
+    border-radius: 4px;
   }
 
   @keyframes reconciliation-toast-enter {
