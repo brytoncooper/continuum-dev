@@ -32,8 +32,8 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "*",
-    "@continuum-dev/runtime": "*"
+    "@continuum-dev/contract": "^0.1.0",
+    "@continuum-dev/runtime": "^0.1.0"
   },
   "nx": {
     "tags": [

@@ -32,7 +32,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "*"
+    "@continuum-dev/contract": "^0.1.0"
   },
   "nx": {
     "tags": [

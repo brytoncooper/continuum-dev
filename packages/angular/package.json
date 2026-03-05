@@ -37,9 +37,9 @@
     "@angular/forms": ">=20.0.0"
   },
   "dependencies": {
-    "@continuum-dev/contract": "*",
-    "@continuum-dev/runtime": "*",
-    "@continuum-dev/session": "*"
+    "@continuum-dev/contract": "^0.1.0",
+    "@continuum-dev/runtime": "^0.1.0",
+    "@continuum-dev/session": "^0.1.0"
   },
   "nx": {
     "tags": ["scope:angular"]
