@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import React from 'react';
 import { 
+  NodeStateScopeContext,
   useContinuumSuggestions,
   useContinuumSession,
   useContinuumState,
@@ -227,6 +228,29 @@ describe('useContinuumViewport', () => {
     act(() => requireSession(setHookViewport)({ isFocused: true }));
     expect(hookViewport).toEqual({ isFocused: true });
   });
+
+  it('warns when called inside node scope', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    function App() {
+      useContinuumViewport('f1');
+      return null;
+    }
+    render(
+      <ContinuumProvider components={componentMap}>
+        <NodeStateScopeContext.Provider
+          value={{
+            subscribeNode: () => () => undefined,
+            getNodeValue: () => undefined,
+            setNodeValue: () => undefined,
+          }}
+        >
+          <App />
+        </NodeStateScopeContext.Provider>
+      </ContinuumProvider>
+    );
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
 });
 
 describe('useContinuumDiagnostics', () => {
@@ -318,5 +342,58 @@ describe('useContinuumAction', () => {
       return null;
     }
     expect(() => render(<Orphan />)).toThrow('useContinuumAction must be used within a <ContinuumProvider>');
+  });
+
+  it('keeps dispatching true until latest dispatch settles', async () => {
+    let hookResult: ReturnType<typeof useContinuumAction> | null = null;
+    let firstResolve: ((value: { success: true; data: string }) => void) | null = null;
+    let secondResolve: ((value: { success: true; data: string }) => void) | null = null;
+    let callCount = 0;
+
+    function App() {
+      const session = useContinuumSession();
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      hookResult = useContinuumAction('do_it');
+      return (
+        <div data-testid="dispatching">
+          {hookResult.isDispatching ? 'true' : 'false'}
+        </div>
+      );
+    }
+
+    const { getByTestId } = render(
+      <ContinuumProvider components={componentMap} sessionOptions={{
+        actions: {
+          do_it: {
+            registration: { label: 'Go' },
+            handler: async () => {
+              callCount += 1;
+              if (callCount === 1) {
+                return new Promise((resolve) => {
+                  firstResolve = resolve;
+                });
+              }
+              return new Promise((resolve) => {
+                secondResolve = resolve;
+              });
+            },
+          },
+        },
+      }}><App /></ContinuumProvider>
+    );
+
+    await act(async () => {
+      const promiseOne = requireSession(hookResult).dispatch('btn');
+      const promiseTwo = requireSession(hookResult).dispatch('btn');
+      requireSession(firstResolve)({ success: true, data: 'first-done' });
+      await Promise.resolve();
+      requireSession(secondResolve)({ success: true, data: 'second-done' });
+      await Promise.all([promiseOne, promiseTwo]);
+    });
+
+    expect(getByTestId('dispatching').textContent).toBe('false');
+    expect(requireSession(hookResult).lastResult?.data).toBe('second-done');
   });
 });

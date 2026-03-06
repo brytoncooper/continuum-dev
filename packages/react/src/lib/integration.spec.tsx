@@ -176,7 +176,7 @@ describe('react integration', () => {
         <ContinuumRenderer view={badView} />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-continuum-view="s"]')).toBeTruthy();
+    expect(rendered.container.childElementCount).toBe(0);
     rendered.unmount();
   });
 
@@ -191,7 +191,7 @@ describe('react integration', () => {
         <ContinuumRenderer view={hiddenView} />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-continuum-id="hidden-field"]')).toBeNull();
+    expect(rendered.container.querySelector('[data-testid="input"]')).toBeNull();
     rendered.unmount();
   });
 
@@ -248,6 +248,49 @@ describe('react integration', () => {
     );
     expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
     expect(rendered.container.querySelector('[data-testid="ok-safe"]')).toBeTruthy();
+    rendered.unmount();
+  });
+
+  it('recovers node error boundary after rerender', () => {
+    let shouldThrow = true;
+    let capturedSession: Session | null = null;
+    const view: ViewDefinition = {
+      viewId: 'recover-view',
+      version: '1',
+      nodes: [{ id: 'field', type: 'field', dataType: 'string' }],
+    };
+    const map = {
+      field: () => {
+        if (shouldThrow) {
+          throw new Error('first');
+        }
+        return <div data-testid="recovered-node">ok</div>;
+      },
+    };
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(view);
+      }
+      return <ContinuumRenderer view={view} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(rendered.container.querySelector('[data-continuum-render-error="field"]')).toBeTruthy();
+
+    shouldThrow = false;
+    act(() => {
+      requireSession(capturedSession).updateState('field', { value: 'trigger' });
+    });
+
+    expect(rendered.container.querySelector('[data-continuum-render-error="field"]')).toBeNull();
+    expect(rendered.container.querySelector('[data-testid="recovered-node"]')).toBeTruthy();
     rendered.unmount();
   });
 
@@ -573,11 +616,39 @@ describe('react integration', () => {
       ],
     };
     const collectionMap = {
-      collection: ({ children }: { children?: ReactNode }) => (
-        <div data-testid="collection-root">{children}</div>
+      collection: ({
+        children,
+        onAdd,
+        canAdd,
+      }: {
+        children?: ReactNode;
+        onAdd?: () => void;
+        canAdd?: boolean;
+      }) => (
+        <div data-testid="collection-root">
+          {children}
+          <button data-testid="collection-add" onClick={onAdd} disabled={!canAdd}>
+            add
+          </button>
+        </div>
       ),
-      group: ({ children }: { children?: ReactNode }) => (
-        <div data-testid="item-group">{children}</div>
+      group: ({
+        children,
+        onRemove,
+        canRemove,
+      }: {
+        children?: ReactNode;
+        onRemove?: () => void;
+        canRemove?: boolean;
+      }) => (
+        <div data-testid="item-group">
+          {children}
+          {canRemove ? (
+            <button data-testid="collection-remove" onClick={onRemove}>
+              remove
+            </button>
+          ) : null}
+        </div>
       ),
       field: ({
         value,
@@ -616,7 +687,7 @@ describe('react integration', () => {
     expect((initialInputs[0] as HTMLButtonElement).textContent).toBe('Paris');
 
     const addButton = rendered.container.querySelector(
-      '[data-continuum-collection-add="addresses"]'
+      '[data-testid="collection-add"]'
     ) as HTMLButtonElement | null;
     expect(addButton).toBeTruthy();
     if (!addButton) {
@@ -624,12 +695,13 @@ describe('react integration', () => {
     }
     act(() => {
       addButton.click();
+      addButton.click();
     });
 
     const twoInputs = rendered.container.querySelectorAll('[data-testid="collection-field"]');
-    expect(twoInputs).toHaveLength(2);
+    expect(twoInputs).toHaveLength(3);
     act(() => {
-      (twoInputs[1] as HTMLButtonElement).click();
+      (twoInputs[2] as HTMLButtonElement).click();
     });
 
     expect(capturedSession).toBeTruthy();
@@ -641,13 +713,13 @@ describe('react integration', () => {
     if (!collectionNode) {
       throw new Error('Expected collection node to exist');
     }
-    expect(collectionNode.value.items).toHaveLength(2);
-    expect(collectionNode.value.items[1].values['address-item/city']).toEqual({
+    expect(collectionNode.value.items).toHaveLength(3);
+    expect(collectionNode.value.items[2].values['address-item/city']).toEqual({
       value: 'Tokyo',
     });
 
     const removeButton = rendered.container.querySelector(
-      '[data-continuum-collection-remove="addresses:1"]'
+      '[data-testid="collection-remove"]'
     ) as HTMLButtonElement | null;
     expect(removeButton).toBeTruthy();
     if (!removeButton) {
@@ -664,7 +736,7 @@ describe('react integration', () => {
     }
     expect(
       addressesNode.value.items
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
@@ -777,6 +849,138 @@ describe('react integration', () => {
     const valueAfterReject = rendered.container.querySelector('[data-testid="current-value"]') as HTMLSpanElement;
     expect(valueAfterReject.textContent).toBe('typed-again');
     expect(rendered.container.querySelector('[data-testid="reject"]')).toBeNull();
+    rendered.unmount();
+  });
+
+  it('isolates nested collection state between parent collection items', () => {
+    let clickCount = 0;
+    const nestedCollectionView: ViewDefinition = {
+      viewId: 'nested-collection-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'weeks',
+          type: 'collection',
+          minItems: 0,
+          template: {
+            id: 'week_item',
+            type: 'group',
+            children: [
+              {
+                id: 'days',
+                type: 'collection',
+                minItems: 1,
+                template: {
+                  id: 'day_item',
+                  type: 'group',
+                  children: [
+                    {
+                      id: 'day_name',
+                      type: 'field',
+                      dataType: 'string',
+                      defaultValue: 'Untitled',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const nestedMap = {
+      collection: ({
+        children,
+        onAdd,
+        canAdd,
+      }: {
+        children?: ReactNode;
+        onAdd?: () => void;
+        canAdd?: boolean;
+      }) => (
+        <div>
+          {children}
+          <button data-testid="nested-add" onClick={onAdd} disabled={!canAdd}>
+            add
+          </button>
+        </div>
+      ),
+      group: ({ children }: { children?: ReactNode }) => (
+        <div>{children}</div>
+      ),
+      field: ({
+        value,
+        onChange,
+      }: {
+        value: NodeValue | undefined;
+        onChange: (next: NodeValue) => void;
+      }) => (
+        <button
+          data-testid="nested-field"
+          onClick={() => {
+            clickCount += 1;
+            onChange({ value: `Edited-${clickCount}`, isDirty: true });
+          }}
+        >
+          {readStringNodeValue(value)}
+        </button>
+      ),
+    };
+    let capturedSession: Session | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(nestedCollectionView);
+      }
+      return <ContinuumRenderer view={nestedCollectionView} />;
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={nestedMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    const activeSession = requireSession(capturedSession);
+
+    const weeksAddButton = rendered.container.querySelector(
+      '[data-testid="nested-add"]'
+    ) as HTMLButtonElement;
+    expect(weeksAddButton).toBeTruthy();
+
+    act(() => { weeksAddButton.click(); });
+    act(() => { weeksAddButton.click(); });
+
+    const buttons = rendered.container.querySelectorAll('[data-testid="nested-field"]');
+    expect(buttons).toHaveLength(2);
+
+    const week1DayButton = buttons[0] as HTMLButtonElement;
+    const week2DayButton = buttons[1] as HTMLButtonElement;
+    expect(week1DayButton.textContent).toBe('Untitled');
+    expect(week2DayButton.textContent).toBe('Untitled');
+
+    act(() => { week1DayButton.click(); });
+
+    const buttonsAfterEdit = rendered.container.querySelectorAll('[data-testid="nested-field"]');
+    expect((buttonsAfterEdit[0] as HTMLButtonElement).textContent).toBe('Edited-1');
+    expect((buttonsAfterEdit[1] as HTMLButtonElement).textContent).toBe('Untitled');
+
+    act(() => { (buttonsAfterEdit[1] as HTMLButtonElement).click(); });
+
+    const buttonsAfterBothEdits = rendered.container.querySelectorAll('[data-testid="nested-field"]');
+    expect((buttonsAfterBothEdits[0] as HTMLButtonElement).textContent).toBe('Edited-1');
+    expect((buttonsAfterBothEdits[1] as HTMLButtonElement).textContent).toBe('Edited-2');
+
+    const snapshot = activeSession.getSnapshot();
+    const weeksNode = snapshot?.data.values['weeks'] as
+      | NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>
+      | undefined;
+    expect(weeksNode).toBeDefined();
+    if (!weeksNode) throw new Error('Expected weeks node');
+    expect(weeksNode.value.items).toHaveLength(2);
+
     rendered.unmount();
   });
 });
