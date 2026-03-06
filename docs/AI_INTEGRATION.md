@@ -219,24 +219,51 @@ Use `rejectProposal` for declines.
 
 ## Intents And Action Dispatch
 
-Track user or AI intents:
+Register handlers that can call APIs and update session state in response:
 
 ```typescript
-session.submitIntent({
-  nodeId: 'submit_btn',
-  intentName: 'execute_search',
-  payload: { term: 'Continuum' },
+session.registerAction('fetch_profile', { label: 'Fetch Profile' }, async (context) => {
+  const res = await fetch(`/api/profile?id=${context.snapshot.values['user_id']?.value}`);
+  const profile = await res.json();
+  context.session.updateState('profile_name', { value: profile.name });
+  return { success: true, data: profile };
 });
 ```
 
-Bind executable handlers:
+Dispatch returns a structured `ActionResult`:
 
 ```typescript
-session.registerAction('fetch_profile', { label: 'Fetch Profile' }, async () => {
-  return;
-});
+const result = await session.dispatchAction('fetch_profile', 'btn_fetch');
+if (!result.success) {
+  console.error('Action failed:', result.error);
+}
+```
 
-await session.dispatchAction('fetch_profile', 'btn_fetch');
+For an audited lifecycle (submit intent -> dispatch -> validate/cancel), use `executeIntent`:
+
+```typescript
+const result = await session.executeIntent({
+  nodeId: 'btn_fetch',
+  intentName: 'fetch_profile',
+  payload: { source: 'ai-agent' },
+});
+// Intent is now 'validated' on success or 'cancelled' on failure
+```
+
+In React, use `useContinuumAction` for dispatch with loading/error state:
+
+```tsx
+import { useContinuumAction } from '@continuum-dev/react';
+
+function FetchButton({ definition }: ContinuumNodeProps) {
+  const { dispatch, isDispatching, lastResult } = useContinuumAction(definition.intentId);
+
+  return (
+    <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
+      {isDispatching ? 'Loading...' : definition.label}
+    </button>
+  );
+}
 ```
 
 ---

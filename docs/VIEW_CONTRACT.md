@@ -150,6 +150,16 @@ interface ActionNode extends BaseNode {
 }
 ```
 
+When an `ActionNode` is activated, the runtime resolves the `intentId` against the
+session's action registry. If a handler is registered, `dispatchAction(intentId, nodeId)`
+is called and an `ActionResult` is returned. If no handler exists, a console warning
+is emitted and `{ success: false }` is returned. Handlers receive an `ActionContext`
+that includes a `session` reference (`ActionSessionRef`) for performing state mutations
+such as `pushView`, `updateState`, `getSnapshot`, and `proposeValue`.
+
+See the [Integration Guide](./INTEGRATION_GUIDE.md#6-action-execution) and
+[AI Integration](./AI_INTEGRATION.md) docs for full examples.
+
 ### PresentationNode
 
 For read-only display content.
