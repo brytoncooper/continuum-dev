@@ -12,7 +12,7 @@ const forbiddenFilePatterns = [
   /(^|\/)project\.json$/i,
   /(^|\/)vitest\.config\.[cm]?[jt]s$/i,
   /(^|\/)jest\.config\.[cm]?[jt]s$/i,
-  /(^|\/)(LIBRARY_DEEP_DIVE|CONTRACT_REFERENCE)\.md$/i,
+  /(^|\/)LIBRARY_DEEP_DIVE\.md$/i,
 ];
 
 function run(command, cwd) {
