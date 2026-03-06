@@ -400,4 +400,4 @@ Use case:
 
 ## License
 
-MIT © CooperContinuum
+MIT © Bryton Cooper

@@ -1,7 +1,11 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 const packageNames = ['contract', 'runtime', 'session', 'adapters', 'react', 'angular'];
+
+const INTERNAL_SCOPE = '@continuum/';
+const PUBLIC_SCOPE = '@continuum-dev/';
+const REWRITE_EXTENSIONS = new Set(['.js', '.d.ts', '.d.ts.map']);
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -9,6 +13,28 @@ function loadJson(path) {
 
 function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function shouldRewrite(filename) {
+  for (const ext of REWRITE_EXTENSIONS) {
+    if (filename.endsWith(ext)) return true;
+  }
+  return false;
+}
+
+function rewriteImportsInDir(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      rewriteImportsInDir(fullPath);
+    } else if (shouldRewrite(entry.name)) {
+      const content = readFileSync(fullPath, 'utf8');
+      const rewritten = content.replaceAll(INTERNAL_SCOPE, PUBLIC_SCOPE);
+      if (rewritten !== content) {
+        writeFileSync(fullPath, rewritten, 'utf8');
+      }
+    }
+  }
 }
 
 function stripSourceExportCondition(packageJson) {
@@ -49,6 +75,8 @@ function main() {
     stripSourceExportCondition(packageJson);
 
     writeJson(distPackageJsonPath, packageJson);
+
+    rewriteImportsInDir(distRoot);
 
     if (existsSync(sourceReadmePath)) {
       copyFileSync(sourceReadmePath, distReadmePath);
