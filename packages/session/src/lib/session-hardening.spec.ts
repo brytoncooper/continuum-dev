@@ -116,8 +116,8 @@ describe('session hardening', () => {
     expect(() => session.restoreFromCheckpoint(checkpoint)).toThrow('Session has been destroyed');
     expect(() => session.rewind('missing')).toThrow('Session has been destroyed');
     expect(() => session.reset()).toThrow('Session has been destroyed');
-    expect(() => session.onSnapshot(() => {})).toThrow('Session has been destroyed');
-    expect(() => session.onIssues(() => {})).toThrow('Session has been destroyed');
+    expect(() => session.onSnapshot(vi.fn())).toThrow('Session has been destroyed');
+    expect(() => session.onIssues(vi.fn())).toThrow('Session has been destroyed');
     expect(() => session.serialize()).toThrow('Session has been destroyed');
     expect(() => session.destroy()).toThrow('Session has been destroyed');
   });
