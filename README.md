@@ -12,18 +12,19 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 
 **For AI developers:** Your agent generates view definitions. Continuum handles the data lifecycle -- persistence, reconciliation, rewind, and audit trail -- so your agent can focus on generating, not bookkeeping.
 
-**For app developers:** Drop-in persistent, rewindable state for React and Angular apps. When you add AI later, your app is already wired for it.
+**For app developers:** Drop-in persistent, rewindable state for React apps. When you add AI later, your app is already wired for it.
 
 ## Packages
 
-| Package               | Description                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------ |
-| `@continuum-dev/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint      |
-| `@continuum-dev/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions                |
-| `@continuum-dev/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize |
-| `@continuum-dev/react`    | React bindings -- Provider, Renderer, hooks                                          |
-| `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            |
-| `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           |
+| Package                   | Description                                                                          | Status |
+| ------------------------- | ------------------------------------------------------------------------------------ | ------ |
+| `@continuum-dev/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint     | Published |
+| `@continuum-dev/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions               | Published |
+| `@continuum-dev/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize | Published |
+| `@continuum-dev/react`    | React bindings -- Provider, Renderer, hooks                                          | Published |
+| `@continuum-dev/prompts`  | Prompt templates and composition helpers for AI view generation                      | Ready to publish |
+| `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            | Not published (internal preview) |
+| `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           | Not published (internal preview) |
 
 ## Quick Start
 
@@ -99,7 +100,7 @@ Serialized payloads use `formatVersion: 1`; deserialization accepts `formatVersi
 ```bash
 npx nx run-many -t test        # Run all tests
 npx nx run-many -t build       # Build all packages
-npx nx run playground:dev      # Run the playground demo
+npx nx run playground:serve    # Run the playground demo
 npx nx run playground:e2e      # Run e2e tests
 ```
 
@@ -113,11 +114,11 @@ npx nx run playground:e2e      # Run e2e tests
 @continuum-dev/session     (session lifecycle)
        ↓
 @continuum-dev/react       (React bindings)
-@continuum-dev/angular     (Angular bindings)
-       ↓
+@continuum-dev/prompts     (AI prompt templates)
 apps/playground        (demo application)
 
-@continuum-dev/adapters    (protocol adapters, depends on contract)
+@continuum-dev/angular     (internal preview, not published)
+@continuum-dev/adapters    (internal preview, not published)
 ```
 
 ## Documentation
@@ -126,10 +127,8 @@ apps/playground        (demo application)
 | ---------------------------------------------- | ------------------------------------------------------------------------------- |
 | [Quick Start](docs/QUICK_START.md)             | 5-minute integration guide with copy-paste code                                 |
 | [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent views, custom migrations, protocol adapters, persistence, lifecycle |
-| [View Contract Reference](docs/SCHEMA_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules      |
+| [View Contract Reference](docs/VIEW_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules      |
 | [AI Integration](docs/AI_INTEGRATION.md)       | Connecting an AI agent to Continuum with prompt templates and examples          |
-
-See [docs/](docs/README.md) for the full documentation index -- product vision, architecture, current gaps, and the phase roadmap.
 
 ## License
 

@@ -40,7 +40,11 @@ error.log
 .DS_Store
 Thumbs.db
 
-docs/
+docs/*
+!docs/QUICK_START.md
+!docs/INTEGRATION_GUIDE.md
+!docs/AI_INTEGRATION.md
+!docs/VIEW_CONTRACT.md
 
 .nx/cache
 .nx/workspace-data
