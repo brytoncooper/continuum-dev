@@ -1,14 +1,16 @@
-# @continuum/adapters
+# @continuum-dev/adapters
+
+> ⚠️ Internal preview package.
+>
+> This package is not published for public use yet, APIs are unstable, and there are no compatibility guarantees. Do not use in production.
 
 Protocol adapter layer for the Continuum SDK.
 
 Transforms external UI schema formats into Continuum's `ViewDefinition` and `NodeValue` shapes. Ships with a built-in adapter for Google's A2UI (Agent-to-User Interface) protocol.
 
-## Installation
+## Availability
 
-```bash
-npm install @continuum/adapters
-```
+`@continuum-dev/adapters` is currently under active development and intentionally marked private in this repository.
 
 ## ProtocolAdapter Interface
 
@@ -35,7 +37,7 @@ interface ProtocolAdapter<TExternalView, TExternalData = unknown> {
 `a2uiAdapter` transforms Google A2UI JSON into Continuum nodes.
 
 ```typescript
-import { a2uiAdapter } from '@continuum/adapters';
+import { a2uiAdapter } from '@continuum-dev/adapters';
 
 const view = a2uiAdapter.toView({
   id: 'my-form',
@@ -136,8 +138,8 @@ const defaultValue = valueForDataType('number');
 ## Writing a Custom Adapter
 
 ```typescript
-import type { ProtocolAdapter } from '@continuum/adapters';
-import type { ViewDefinition, NodeValue } from '@continuum/contract';
+import type { ProtocolAdapter } from '@continuum-dev/adapters';
+import type { ViewDefinition, NodeValue } from '@continuum-dev/contract';
 
 interface MyFormat {
   widgets: { uid: string; kind: string }[];
