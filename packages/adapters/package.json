@@ -1,5 +1,6 @@
 {
   "name": "@continuum-dev/adapters",
+  "private": true,
   "version": "0.1.1",
   "publishConfig": {
     "access": "public"
