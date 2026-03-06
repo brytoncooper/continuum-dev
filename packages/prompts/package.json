@@ -1,0 +1,40 @@
+{
+  "name": "@continuum-dev/prompts",
+  "version": "0.1.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Prompt templates and helpers for Continuum AI view generation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/cooper-continuum.git",
+    "directory": "packages/prompts"
+  },
+  "author": "Bryton Cooper",
+  "keywords": ["continuum", "ai", "prompt", "viewdefinition", "reconciliation"],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "nx": {
+    "tags": [
+      "scope:prompts"
+    ]
+  }
+}
