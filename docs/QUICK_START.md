@@ -200,7 +200,36 @@ function Devtools() {
 }
 ```
 
-## 7) Optional: Use Prompt Helpers
+## 7) Wire Actions
+
+Register a handler and render an action button:
+
+```tsx
+// In your session setup
+const session = createSession({
+  actions: {
+    submit: {
+      registration: { label: 'Submit' },
+      handler: async (ctx) => {
+        await fetch('/api/submit', { method: 'POST', body: JSON.stringify(ctx.snapshot.values) });
+        return { success: true };
+      },
+    },
+  },
+});
+
+// In your component map
+import { useContinuumAction } from '@continuum-dev/react';
+
+const components = {
+  action: ({ definition }) => {
+    const { dispatch, isDispatching } = useContinuumAction(definition.intentId);
+    return <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>{definition.label}</button>;
+  },
+};
+```
+
+## 8) Optional: Use Prompt Helpers
 
 For AI-generated views, use `@continuum-dev/prompts` to keep system prompts and correction loops consistent.
 

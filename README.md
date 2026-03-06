@@ -83,6 +83,8 @@ State is automatically reconciled on each `pushView`. User input is preserved ac
 
 **Audit Trail** -- Every view push generates reconciliation resolutions (what was carried, migrated, detached, added) and diffs. Every user interaction is logged with timestamps.
 
+**Actions** -- Register handlers keyed by `intentId`. Each handler receives an `ActionContext` with the current snapshot and a session reference (`ActionSessionRef`) for performing mutations like `pushView` or `updateState` from inside the handler. `dispatchAction` returns a structured `ActionResult`. `executeIntent` bridges the intent queue and action dispatch into a single audited call.
+
 ## Session API Highlights
 
 The session surface in `@continuum-dev/session` includes:
@@ -90,8 +92,11 @@ The session surface in `@continuum-dev/session` includes:
 - Core reads: `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getDetachedValues`
 - Mutations: `pushView`, `updateState`, `recordIntent`
 - Intent lifecycle: `submitIntent`, `getPendingIntents`, `validateIntent`, `cancelIntent`
+- Actions: `registerAction`, `dispatchAction` (returns `Promise<ActionResult>`), `executeIntent`
 - Time travel: `checkpoint`, `restoreFromCheckpoint`, `getCheckpoints`, `rewind`, `reset`
 - Persistence and subscriptions: `serialize`, `onSnapshot`, `onIssues`, `destroy`
+
+The React package (`@continuum-dev/react`) provides a `useContinuumAction` hook that wraps `dispatchAction` with `isDispatching` and `lastResult` state for easy component integration.
 
 Serialized payloads use `formatVersion: 1`; deserialization accepts `formatVersion: 1` and also accepts blobs without `formatVersion` for compatibility.
 

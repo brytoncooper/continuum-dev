@@ -175,7 +175,54 @@ Resolution order:
 3. carry state as-is when type is unchanged
 4. detach and emit `MIGRATION_FAILED` when migration fails
 
-## 6) Conflict Handling in React
+## 6) Action Execution
+
+Register action handlers at session creation or at runtime. Handlers receive an `ActionContext` with a session reference for post-action mutations.
+
+```typescript
+import { createSession } from '@continuum-dev/session';
+
+const session = createSession({
+  actions: {
+    submit_form: {
+      registration: { label: 'Submit Form' },
+      handler: async (context) => {
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          body: JSON.stringify(context.snapshot.values),
+        });
+        const data = await res.json();
+        context.session.updateState('status', { value: 'submitted' });
+        return { success: true, data };
+      },
+    },
+  },
+});
+```
+
+`dispatchAction` returns a `Promise<ActionResult>` and catches handler errors:
+
+```typescript
+const result = await session.dispatchAction('submit_form', 'btn_submit');
+if (!result.success) {
+  console.error('Action failed:', result.error);
+}
+```
+
+For an audited lifecycle that bridges the intent queue and action dispatch:
+
+```typescript
+const result = await session.executeIntent({
+  nodeId: 'btn_submit',
+  intentName: 'submit_form',
+  payload: {},
+});
+```
+
+`executeIntent` submits a pending intent, dispatches the action, and marks the intent as `validated` on success or `cancelled` on failure.
+
+If no handler is registered for a dispatched `intentId`, a console warning is emitted and `{ success: false }` is returned.
+## 7) Conflict Handling in React
 
 When AI proposes values while users are editing, use proposals instead of direct overwrites.
 
@@ -204,7 +251,7 @@ function EmailConflictBanner() {
 }
 ```
 
-## 7) Diagnostics and Ops
+## 8) Diagnostics and Ops
 
 Use runtime diagnostics after each push and track core metrics.
 
@@ -237,7 +284,7 @@ Track at minimum:
 - correction retries before success
 - persistence errors (`size_limit`, `storage_error`)
 
-## 8) Lifecycle and Serialization
+## 9) Lifecycle and Serialization
 
 Use serialization for custom persistence backends, and call `destroy` when done.
 
