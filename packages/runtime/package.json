@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/runtime",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +33,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.1"
+    "@continuum-dev/contract": "^0.1.2"
   },
   "nx": {
     "tags": [
