@@ -194,7 +194,14 @@ export function reconcileCollectionValue(
   // If AI provided new defaultValues, populate those instead
   if (receivedNewDefaults) {
     const defaultCollection = resolveCollectionDefaultValues(newNode);
-    const constrained = applyItemConstraints(defaultCollection.value.items, newNode.minItems, newNode.maxItems, issues, newNode.id);
+    const constrained = applyItemConstraints(
+      defaultCollection.value.items,
+      newNode.minItems,
+      newNode.maxItems,
+      issues,
+      newNode.id,
+      newNode.template
+    );
 
     // If there were dirty items, return the new defaults as a `suggestion` for the whole collection
     if (hasDirtyItems) {
@@ -266,7 +273,14 @@ export function reconcileCollectionValue(
     return { values };
   });
 
-  const constrained = applyItemConstraints(migratedItems, newNode.minItems, newNode.maxItems, issues, newNode.id);
+  const constrained = applyItemConstraints(
+    migratedItems,
+    newNode.minItems,
+    newNode.maxItems,
+    issues,
+    newNode.id,
+    newNode.template
+  );
   return {
     value: { value: { items: constrained } },
     issues,
@@ -293,7 +307,8 @@ function applyItemConstraints(
   minItems: number | undefined,
   maxItems: number | undefined,
   issues: ReconciliationIssue[],
-  nodeId: string
+  nodeId: string,
+  template: ViewNode
 ): Array<{ values: Record<string, NodeValue> }> {
   let constrained = [...items];
   const min = normalizeMinItems(minItems);
@@ -308,7 +323,7 @@ function applyItemConstraints(
     });
   }
   while (constrained.length < min) {
-    constrained.push({ values: {} });
+    constrained.push({ values: collectTemplateDefaults(template) });
     issues.push({
       severity: ISSUE_SEVERITY.INFO,
       nodeId,

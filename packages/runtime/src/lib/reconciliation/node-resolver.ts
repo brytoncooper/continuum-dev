@@ -304,14 +304,16 @@ function resolveUnchangedNode(
   priorData: DataSnapshot,
   now: number
 ): void {
+  let reconciledValue: NodeValue | undefined = priorValue !== undefined ? (priorValue as NodeValue) : undefined;
+  let didApplyDefaultChange = false;
   if (priorValue !== undefined) {
     const priorNodeValue = priorValue as NodeValue;
     const resolvedValue = { ...priorNodeValue };
     
-    // Check if AI provided a new defaultValue that differs from prior
     if ('defaultValue' in newNode && newNode.defaultValue !== undefined) {
       if ('defaultValue' in priorNode) {
         if (JSON.stringify(priorNode.defaultValue) !== JSON.stringify(newNode.defaultValue)) {
+          didApplyDefaultChange = true;
           if (priorNodeValue.isDirty) {
             resolvedValue.suggestion = newNode.defaultValue;
           } else {
@@ -319,6 +321,7 @@ function resolveUnchangedNode(
           }
         }
       } else {
+        didApplyDefaultChange = true;
         if (priorNodeValue.isDirty) {
           resolvedValue.suggestion = newNode.defaultValue;
         } else {
@@ -328,7 +331,11 @@ function resolveUnchangedNode(
     }
 
     acc.values[newId] = resolvedValue;
+    reconciledValue = resolvedValue;
     carryValuesMeta(acc.valueLineage, newId, priorNodeId, priorData, now, false);
+    if (didApplyDefaultChange) {
+      acc.diffs.push(migratedDiff(newId, priorValue, resolvedValue));
+    }
   }
 
   acc.resolutions.push(carriedResolution(
@@ -337,7 +344,7 @@ function resolveUnchangedNode(
     matchedBy,
     priorNode.type,
     priorValue,
-    priorValue !== undefined ? priorValue : undefined
+    reconciledValue
   ));
 }
 

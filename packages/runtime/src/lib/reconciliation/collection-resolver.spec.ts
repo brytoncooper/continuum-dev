@@ -175,6 +175,60 @@ describe('collection reconciliation', () => {
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'a' });
   });
 
+  it('seeds minItems carry padding with template defaults', () => {
+    const priorView = makeView([
+      collectionNode('addresses', {
+        minItems: 3,
+        template: makeNode({
+          id: 'address-item',
+          type: 'group',
+          children: [
+            makeNode({
+              id: 'city',
+              type: 'field',
+              dataType: 'string',
+              defaultValue: 'Paris',
+            }),
+          ],
+        }),
+      }),
+    ], 'view-1', '1.0');
+    const newView = makeView([
+      collectionNode('addresses', {
+        minItems: 3,
+        template: makeNode({
+          id: 'address-item',
+          type: 'group',
+          children: [
+            makeNode({
+              id: 'city',
+              type: 'field',
+              dataType: 'string',
+              defaultValue: 'Paris',
+            }),
+          ],
+        }),
+      }),
+    ], 'view-1', '2.0');
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { 'address-item/city': { value: 'Rome' } } }],
+        },
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as {
+      items: Array<{ values: Record<string, NodeValue> }>;
+    }).items;
+
+    expect(items).toHaveLength(3);
+    expect(items[0].values['address-item/city']).toEqual({ value: 'Rome' });
+    expect(items[1].values['address-item/city']).toEqual({ value: 'Paris' });
+    expect(items[2].values['address-item/city']).toEqual({ value: 'Paris' });
+  });
+
   it('preserves collection by key when id changes', () => {
     const priorView = makeView([collectionNode('addresses-old', { key: 'addresses-key' })], 'view-1', '1.0');
     const newView = makeView([collectionNode('addresses-new', { key: 'addresses-key' })], 'view-1', '2.0');
