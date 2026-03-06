@@ -40,6 +40,9 @@
       ],
       "@continuum/angular": [
         "./packages/angular/src/index.ts"
+      ],
+      "@continuum/prompts": [
+        "./packages/prompts/src/index.ts"
       ]
     }
   }
