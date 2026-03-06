@@ -62,7 +62,20 @@ const sessionOptions: SessionOptions = {
         const data = Object.entries(values)
           .map(([k, v]) => `${k}: ${v.value}`)
           .join('\n');
-        alert(`Exporting PDF...\n\nForm Data:\n${data}`);
+        context.session.updateState('form.exportPdf', { value: `Exported at ${new Date().toISOString()}` });
+        return { success: true, data };
+      },
+    },
+    'form.submitDraft': {
+      registration: {
+        label: 'Submit Draft',
+        description: 'Simulates an async form submission',
+        icon: 'send',
+      },
+      handler: async (context) => {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const fieldCount = Object.keys(context.snapshot.values).length;
+        return { success: true, data: { fieldCount, submittedAt: new Date().toISOString() } };
       },
     },
   },
