@@ -1,6 +1,9 @@
 import type { NodeValue } from '@continuum/contract';
 import type { ContinuumNodeProps } from './types.js';
 
+/**
+ * Default renderer used when no component exists for a node type.
+ */
 export function FallbackComponent({
   value,
   onChange,

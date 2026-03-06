@@ -1,6 +1,6 @@
-import { createContext, useContext, useCallback, useRef, useSyncExternalStore } from 'react';
+import { createContext, useContext, useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, NodeValue, ViewportState, ProposedValue } from '@continuum/contract';
+import type { ContinuitySnapshot, NodeValue, ViewportState, ProposedValue, ActionResult } from '@continuum/contract';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
@@ -62,8 +62,15 @@ interface NodeStateScope {
   setNodeValue: (nodeId: string, value: NodeValue) => void;
 }
 
+/**
+ * Internal scope context used by collection item renderers to map local node ids
+ * onto collection-backed values.
+ */
 export const NodeStateScopeContext = createContext<NodeStateScope | null>(null);
 
+/**
+ * Returns the active Continuum session from provider context.
+ */
 export function useContinuumSession(): Session {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -74,6 +81,11 @@ export function useContinuumSession(): Session {
   return ctx.session;
 }
 
+/**
+ * Subscribes to and updates a specific node value by canonical node id.
+ *
+ * @param nodeId Canonical node id.
+ */
 export function useContinuumState(
   nodeId: string
 ): [NodeValue | undefined, (value: NodeValue) => void] {
@@ -127,6 +139,9 @@ export function useContinuumState(
   return [value, setValue];
 }
 
+/**
+ * Subscribes to the full continuity snapshot.
+ */
 export function useContinuumSnapshot(): ContinuitySnapshot | null {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -178,6 +193,11 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/**
+ * Subscribes to and updates viewport state for a specific node.
+ *
+ * @param nodeId Canonical node id.
+ */
 export function useContinuumViewport(
   nodeId: string
 ): [ViewportState | undefined, (state: ViewportState) => void] {
@@ -216,6 +236,9 @@ export function useContinuumViewport(
   return [viewport, setViewport];
 }
 
+/**
+ * Subscribes to session diagnostics (`issues`, `diffs`, `resolutions`, checkpoints).
+ */
 export function useContinuumDiagnostics() {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -265,6 +288,9 @@ export function useContinuumDiagnostics() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/**
+ * Indicates whether the provider session was restored from persistence.
+ */
 export function useContinuumHydrated(): boolean {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -275,6 +301,11 @@ export function useContinuumHydrated(): boolean {
   return ctx.wasHydrated;
 }
 
+/**
+ * Returns conflict state and resolution actions for one node.
+ *
+ * @param nodeId Canonical node id.
+ */
 export function useContinuumConflict(nodeId: string): {
   hasConflict: boolean;
   proposal: ProposedValue | null;
@@ -320,6 +351,9 @@ export function useContinuumConflict(nodeId: string): {
   };
 }
 
+/**
+ * Aggregates suggestion state and exposes bulk accept/reject operations.
+ */
 export function useContinuumSuggestions(): {
   hasSuggestions: boolean;
   acceptAll: () => void;
@@ -388,4 +422,41 @@ export function useContinuumSuggestions(): {
     acceptAll,
     rejectAll,
   };
+}
+
+/**
+ * Returns an action dispatcher bound to an intent id with dispatch state.
+ *
+ * @param intentId Registered action intent id to dispatch.
+ */
+export function useContinuumAction(intentId: string): {
+  dispatch: (nodeId: string) => Promise<ActionResult>;
+  isDispatching: boolean;
+  lastResult: ActionResult | null;
+} {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumAction must be used within a <ContinuumProvider>'
+    );
+  }
+  const { session } = ctx;
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [lastResult, setLastResult] = useState<ActionResult | null>(null);
+
+  const dispatch = useCallback(
+    async (nodeId: string) => {
+      setIsDispatching(true);
+      try {
+        const result = await session.dispatchAction(intentId, nodeId);
+        setLastResult(result);
+        return result;
+      } finally {
+        setIsDispatching(false);
+      }
+    },
+    [session, intentId]
+  );
+
+  return { dispatch, isDispatching, lastResult };
 }

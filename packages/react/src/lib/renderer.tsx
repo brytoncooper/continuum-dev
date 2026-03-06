@@ -372,6 +372,9 @@ const NodeRenderer = memo(function NodeRenderer({ definition, parentPath }: Node
   return <StatefulNodeRenderer definition={definition} parentPath={parentPath} />;
 });
 
+/**
+ * Renders a `ViewDefinition` tree using components registered in `ContinuumProvider`.
+ */
 export function ContinuumRenderer({ view }: { view: ViewDefinition }) {
   return (
     <div data-continuum-view={view.viewId}>
