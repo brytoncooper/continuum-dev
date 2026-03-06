@@ -121,7 +121,7 @@ export function useContinuumState(
 
     valueCacheRef.current = nextValue;
     return nextValue;
-  }, [store, nodeId]);
+  }, [scope, store, nodeId]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
@@ -202,9 +202,19 @@ export function useContinuumViewport(
   nodeId: string
 ): [ViewportState | undefined, (state: ViewportState) => void] {
   const ctx = useContext(ContinuumContext);
+  const scope = useContext(NodeStateScopeContext);
   if (!ctx) {
     throw new Error(
       'useContinuumViewport must be used within a <ContinuumProvider>'
+    );
+  }
+  if (
+    scope
+    && typeof process !== 'undefined'
+    && process.env.NODE_ENV !== 'production'
+  ) {
+    console.warn(
+      `useContinuumViewport("${nodeId}") called inside a collection scope. Viewport state is not supported for collection item nodes.`
     );
   }
   const { session, store } = ctx;
@@ -443,16 +453,22 @@ export function useContinuumAction(intentId: string): {
   const { session } = ctx;
   const [isDispatching, setIsDispatching] = useState(false);
   const [lastResult, setLastResult] = useState<ActionResult | null>(null);
+  const dispatchIdRef = useRef(0);
 
   const dispatch = useCallback(
     async (nodeId: string) => {
+      const dispatchId = ++dispatchIdRef.current;
       setIsDispatching(true);
       try {
         const result = await session.dispatchAction(intentId, nodeId);
-        setLastResult(result);
+        if (dispatchIdRef.current === dispatchId) {
+          setLastResult(result);
+        }
         return result;
       } finally {
-        setIsDispatching(false);
+        if (dispatchIdRef.current === dispatchId) {
+          setIsDispatching(false);
+        }
       }
     },
     [session, intentId]

@@ -29,6 +29,15 @@ export class NodeErrorBoundary extends Component<
     };
   }
 
+  override componentDidUpdate(prevProps: NodeErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.children !== this.props.children) {
+      this.setState({
+        hasError: false,
+        message: '',
+      });
+    }
+  }
+
   override render() {
     if (this.state.hasError) {
       return (
