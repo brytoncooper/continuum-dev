@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/angular",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },
@@ -11,7 +11,7 @@
     "url": "https://github.com/CooperContinuum/continuum.git",
     "directory": "packages/angular"
   },
-  "author": "CooperContinuum",
+  "author": "Bryton Cooper",
   "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "angular", "signals"],
   "type": "module",
   "main": "./index.js",
@@ -37,9 +37,9 @@
     "@angular/forms": ">=20.0.0"
   },
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.0",
-    "@continuum-dev/runtime": "^0.1.0",
-    "@continuum-dev/session": "^0.1.0"
+    "@continuum-dev/contract": "^0.1.1",
+    "@continuum-dev/runtime": "^0.1.1",
+    "@continuum-dev/session": "^0.1.1"
   },
   "nx": {
     "tags": ["scope:angular"]

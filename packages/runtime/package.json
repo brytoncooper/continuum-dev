@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },
@@ -11,7 +11,7 @@
     "url": "https://github.com/brytoncooper/cooper-continuum.git",
     "directory": "packages/runtime"
   },
-  "author": "CooperContinuum",
+  "author": "Bryton Cooper",
   "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "engine"],
   "type": "module",
   "sideEffects": false,
@@ -33,7 +33,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.0"
+    "@continuum-dev/contract": "^0.1.1"
   },
   "nx": {
     "tags": [
