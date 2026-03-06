@@ -11,6 +11,7 @@ import type {
   NodeValue,
   ActionRegistration,
   ActionHandler,
+  ActionResult,
 } from '@continuum/contract';
 import type {
   ReconciliationIssue,
@@ -263,8 +264,18 @@ export interface Session {
   getRegisteredActions(): Record<string, ActionRegistration>;
   /**
    * Dispatches a registered action handler with current snapshot context.
+   *
+   * Returns `{ success: false }` when no handler is registered or when no
+   * active snapshot exists.
    */
-  dispatchAction(intentId: string, nodeId: string): void | Promise<void>;
+  dispatchAction(intentId: string, nodeId: string): Promise<ActionResult>;
+  /**
+   * Submits a pending intent, dispatches the registered action, and updates
+   * intent status based on the result (validated on success, cancelled on failure).
+   *
+   * Returns the same `ActionResult` shape as `dispatchAction`.
+   */
+  executeIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): Promise<ActionResult>;
 }
 
 /**

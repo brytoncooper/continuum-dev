@@ -122,6 +122,8 @@ import {
   ViewportState,
   ActionHandler,
   ActionContext,
+  ActionResult,
+  ActionSessionRef,
   ISSUE_CODES,
   DATA_RESOLUTIONS,
   VIEW_DIFFS,
@@ -146,8 +148,10 @@ import {
 
 **Actions:**
 
-* `ActionHandler`: execution contract for UI intents (`(context: ActionContext) => void | Promise<void>`).
-* `ActionContext`: runtime context passed to handlers containing the intent ID, node ID, and current snapshot.
+* `ActionHandler`: execution contract for UI intents. Handlers receive an `ActionContext` and may return an `ActionResult`.
+* `ActionContext`: runtime context passed to handlers containing the intent ID, node ID, current snapshot, and a session reference for post-action mutations.
+* `ActionResult<T>`: structured result from action dispatch with `success`, optional `data`, and optional `error`.
+* `ActionSessionRef`: narrow session interface available inside handlers for `pushView`, `updateState`, `getSnapshot`, and `proposeValue`.
 
 **Constants:**
 
