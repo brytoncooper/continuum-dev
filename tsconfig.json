@@ -20,6 +20,9 @@
     },
     {
       "path": "./packages/angular"
+    },
+    {
+      "path": "./packages/prompts"
     }
   ]
 }

@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-const packageNames = ['contract', 'runtime', 'session', 'adapters', 'react', 'angular'];
+const packageNames = ['contract', 'runtime', 'session', 'react', 'prompts'];
 const distRoots = packageNames.map((name) => resolve(process.cwd(), 'dist', 'packages', name));
 
 const forbiddenFilePatterns = [
@@ -68,11 +68,12 @@ function assertNodeImportSmoke(tarballs) {
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'runtime')]}"`,
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'session')]}"`,
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'react')]}"`,
+      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'prompts')]}"`,
       'react@18',
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
     run(
-      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/react\');"',
+      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\');"',
       tempRoot
     );
   } finally {

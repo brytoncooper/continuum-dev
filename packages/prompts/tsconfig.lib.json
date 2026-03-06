@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/prompts",
+    "tsBuildInfoFile": "../../dist/packages/prompts/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "emitDeclarationOnly": false
+  },
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src/**/*.ts"]
+}
