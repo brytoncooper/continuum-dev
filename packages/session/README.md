@@ -240,15 +240,54 @@ const log = session.getEventLog();
 
 ### 6) Actions Registry
 
-Register local handlers for semantic intent ids and dispatch them with current session snapshot data.
+Register handlers for semantic intent ids and dispatch them with full session context.
+
+#### `session.registerAction(intentId, registration, handler)`
 
 ```typescript
-session.registerAction('fetch_data', { label: 'Fetch Data' }, async ({ snapshot, nodeId }) => {
-  void snapshot;
-  void nodeId;
+session.registerAction('submit_form', { label: 'Submit' }, async (context) => {
+  const response = await fetch('/api/submit', {
+    method: 'POST',
+    body: JSON.stringify(context.snapshot.values),
+  });
+  const data = await response.json();
+  context.session.updateState('status', { value: 'submitted' });
+  return { success: true, data };
 });
+```
 
-await session.dispatchAction('fetch_data', 'btn_1');
+Handlers receive an `ActionContext` with:
+
+- `intentId` -- the dispatched intent identifier
+- `snapshot` -- current `DataSnapshot` at dispatch time
+- `nodeId` -- the node that triggered the action
+- `session` -- an `ActionSessionRef` for post-action mutations (`pushView`, `updateState`, `getSnapshot`, `proposeValue`)
+
+#### `session.dispatchAction(intentId, nodeId)`
+
+Returns a `Promise<ActionResult>`. Catches handler errors automatically.
+
+```typescript
+const result = await session.dispatchAction('submit_form', 'btn_submit');
+if (result.success) {
+  console.log('Submitted:', result.data);
+} else {
+  console.error('Failed:', result.error);
+}
+```
+
+If no handler is registered, a warning is logged and `{ success: false }` is returned.
+
+#### `session.executeIntent(intent)`
+
+Bridges the intent lifecycle and action dispatch in a single call: submits a pending intent, dispatches the registered action, and marks the intent as validated on success or cancelled on failure.
+
+```typescript
+const result = await session.executeIntent({
+  nodeId: 'btn_submit',
+  intentName: 'submit_form',
+  payload: { source: 'user' },
+});
 ```
 
 Also available:

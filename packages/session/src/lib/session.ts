@@ -1,5 +1,5 @@
 import { INTERACTION_TYPES } from '@continuum/contract';
-import type { ViewportState, DetachedValue, NodeValue, ActionRegistration, ActionHandler } from '@continuum/contract';
+import type { ViewportState, DetachedValue, NodeValue, ActionRegistration, ActionHandler, ActionResult, ActionSessionRef } from '@continuum/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
 import { createEmptySessionState, generateId, resetSessionState } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
@@ -190,13 +190,46 @@ function assembleSessionFromInternalState(
       }
       return result;
     },
-    dispatchAction(intentId: string, nodeId: string) {
+    async dispatchAction(intentId: string, nodeId: string): Promise<ActionResult> {
       assertNotDestroyed(internal);
       const entry = internal.actionRegistry.get(intentId);
-      if (!entry) return;
+      if (!entry) {
+        console.warn(`[Continuum] dispatchAction: no handler registered for intentId "${intentId}"`);
+        return { success: false, error: `No handler registered for intentId "${intentId}"` };
+      }
       const snapshot = buildSnapshotFromCurrentState(internal);
-      if (!snapshot) return;
-      return entry.handler({ intentId, snapshot: snapshot.data, nodeId });
+      if (!snapshot) {
+        return { success: false, error: 'No active snapshot' };
+      }
+      const sessionRef: ActionSessionRef = {
+        pushView: (v) => session.pushView(v),
+        updateState: (id, p) => session.updateState(id, p),
+        getSnapshot: () => session.getSnapshot(),
+        proposeValue: (id, v, s) => session.proposeValue(id, v, s),
+      };
+      try {
+        const raw = await entry.handler({ intentId, snapshot: snapshot.data, nodeId, session: sessionRef });
+        return raw ?? { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    async executeIntent(partial) {
+      assertNotDestroyed(internal);
+      submitIntent(internal, partial);
+      const intent = internal.pendingIntents[internal.pendingIntents.length - 1];
+      try {
+        const result = await session.dispatchAction(partial.intentName, partial.nodeId);
+        if (result.success) {
+          validateIntent(internal, intent.intentId);
+        } else {
+          cancelIntent(internal, intent.intentId);
+        }
+        return result;
+      } catch (error) {
+        cancelIntent(internal, intent.intentId);
+        return { success: false, error };
+      }
     },
   };
 
