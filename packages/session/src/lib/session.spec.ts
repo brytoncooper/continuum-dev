@@ -135,7 +135,7 @@ describe('Session Ledger', () => {
 
       const snapshot = session.getSnapshot();
       expect(snapshot).not.toBeNull();
-      expect(snapshot!.view).toBe(view);
+      expect(snapshot!.view).toEqual(view);
       expect(snapshot!.data.values).toEqual({});
     });
 

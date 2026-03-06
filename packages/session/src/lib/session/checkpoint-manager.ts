@@ -66,6 +66,16 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
     trigger: 'manual' as const,
   };
   internal.checkpoints.push(checkpoint);
+  if (internal.checkpoints.length > internal.maxCheckpoints) {
+    const overflow = internal.checkpoints.length - internal.maxCheckpoints;
+    for (let index = 0; index < overflow; index += 1) {
+      const removableIndex = internal.checkpoints.findIndex((cp) => cp.trigger === 'manual');
+      if (removableIndex === -1) {
+        break;
+      }
+      internal.checkpoints.splice(removableIndex, 1);
+    }
+  }
   return checkpoint;
 }
 

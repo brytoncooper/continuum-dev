@@ -39,36 +39,43 @@ export function attachPersistence(
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let isApplyingRemote = false;
   const encoder = new TextEncoder();
+  const flushNow = () => {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
+    try {
+      const payload = JSON.stringify(serializeSession(internal));
+      const attemptedBytes = encoder.encode(payload).byteLength;
+      if (
+        typeof options.maxBytes === 'number'
+        && Number.isFinite(options.maxBytes)
+        && options.maxBytes >= 0
+        && attemptedBytes > options.maxBytes
+      ) {
+        options.onError?.({
+          reason: 'size_limit',
+          key,
+          attemptedBytes,
+          maxBytes: options.maxBytes,
+        });
+        return;
+      }
+      storage.setItem(key, payload);
+    } catch (cause) {
+      options.onError?.({
+        reason: 'storage_error',
+        key,
+        cause,
+      });
+    }
+  };
 
   const unsubscribe = subscribeSnapshot(internal, () => {
     if (isApplyingRemote) return;
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => {
-      try {
-        const payload = JSON.stringify(serializeSession(internal));
-        const attemptedBytes = encoder.encode(payload).byteLength;
-        if (
-          typeof options.maxBytes === 'number'
-          && Number.isFinite(options.maxBytes)
-          && options.maxBytes >= 0
-          && attemptedBytes > options.maxBytes
-        ) {
-          options.onError?.({
-            reason: 'size_limit',
-            key,
-            attemptedBytes,
-            maxBytes: options.maxBytes,
-          });
-          return;
-        }
-        storage.setItem(key, payload);
-      } catch (cause) {
-        options.onError?.({
-          reason: 'storage_error',
-          key,
-          cause,
-        });
-      }
+      flushNow();
     }, 200);
   });
 
@@ -83,11 +90,11 @@ export function attachPersistence(
       });
       isApplyingRemote = true;
       replaceInternalState(internal, next);
+      isApplyingRemote = false;
       notifySnapshotAndIssueListeners(internal);
     } catch {
-      return;
-    } finally {
       isApplyingRemote = false;
+      return;
     }
   };
 
@@ -95,13 +102,18 @@ export function attachPersistence(
   const maybeRemove = (globalThis as { removeEventListener?: (type: string, listener: (event: unknown) => void) => void }).removeEventListener;
   if (maybeAdd) {
     maybeAdd('storage', onStorage);
+    maybeAdd('beforeunload', flushNow as unknown as (event: unknown) => void);
   }
 
   return () => {
-    if (timeout) clearTimeout(timeout);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = undefined;
+    }
     unsubscribe();
     if (maybeRemove) {
       maybeRemove('storage', onStorage);
+      maybeRemove('beforeunload', flushNow as unknown as (event: unknown) => void);
     }
   };
 }

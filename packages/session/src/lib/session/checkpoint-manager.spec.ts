@@ -70,6 +70,20 @@ describe('createManualCheckpoint', () => {
     expect(cp.snapshot.data.values.a.value).toBeInstanceOf(Date);
     expect(cp.snapshot.data.values.a.value).toEqual(createdAt);
   });
+
+  it('enforces maxCheckpoints for manual checkpoints', () => {
+    let now = 1000;
+    const internal = createEmptySessionState('s', () => now++);
+    internal.maxCheckpoints = 2;
+    setupWithSnapshot(internal);
+
+    createManualCheckpoint(internal);
+    createManualCheckpoint(internal);
+    createManualCheckpoint(internal);
+
+    expect(internal.checkpoints).toHaveLength(2);
+    expect(internal.checkpoints.every((cp) => cp.trigger === 'manual')).toBe(true);
+  });
 });
 
 describe('restoreFromCheckpoint', () => {

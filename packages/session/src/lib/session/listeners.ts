@@ -10,7 +10,13 @@ import type { SessionState } from './session-state.js';
  */
 export function buildSnapshotFromCurrentState(internal: SessionState): ContinuitySnapshot | null {
   if (!internal.currentView || !internal.currentData) return null;
-  return { view: internal.currentView, data: internal.currentData };
+  const snapshot: ContinuitySnapshot = {
+    view: { ...internal.currentView },
+    data: { ...internal.currentData },
+  };
+  Object.freeze(snapshot.view);
+  Object.freeze(snapshot.data);
+  return Object.freeze(snapshot);
 }
 
 /**

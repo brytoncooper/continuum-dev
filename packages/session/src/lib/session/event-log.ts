@@ -11,6 +11,20 @@ interface NodeLookupEntry {
   node: ViewNode;
 }
 
+function dedupeIssues(
+  existing: SessionState['issues'],
+  incoming: SessionState['issues']
+): SessionState['issues'] {
+  if (incoming.length === 0) {
+    return existing;
+  }
+  const nextKeys = new Set(incoming.map((issue) => `${issue.nodeId ?? ''}:${issue.code}`));
+  return [
+    ...existing.filter((issue) => !nextKeys.has(`${issue.nodeId ?? ''}:${issue.code}`)),
+    ...incoming,
+  ];
+}
+
 function collectNodesByCanonicalId(nodes: ViewNode[]): Map<string, ViewNode> {
   const byId = new Map<string, ViewNode>();
   const walk = (items: ViewNode[], parentPath: string) => {
@@ -92,25 +106,23 @@ export function recordIntent(
 
   const resolvedEntry = resolveNodeLookupEntry(internal.currentView.nodes, partial.nodeId);
   if (!resolvedEntry) {
-    internal.issues = [
-      ...internal.issues,
-      {
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: partial.nodeId,
-        message: `Node ${partial.nodeId} not found in current view`,
-        code: ISSUE_CODES.UNKNOWN_NODE,
-      },
-    ];
+    internal.issues = dedupeIssues(internal.issues, [{
+      severity: ISSUE_SEVERITY.WARNING,
+      nodeId: partial.nodeId,
+      message: `Node ${partial.nodeId} not found in current view`,
+      code: ISSUE_CODES.UNKNOWN_NODE,
+    }]);
     notifySnapshotAndIssueListeners(internal);
     return;
   }
   const { canonicalId, node } = resolvedEntry;
+  const payload = { ...(partial.payload as NodeValue) };
 
   internal.currentData = {
     ...internal.currentData,
     values: {
       ...internal.currentData.values,
-      [canonicalId]: partial.payload as NodeValue,
+      [canonicalId]: payload,
     },
     lineage: {
       ...internal.currentData.lineage,
@@ -129,10 +141,10 @@ export function recordIntent(
   if (internal.validateOnUpdate) {
     const validationIssues = validateNodeValue(
       node,
-      partial.payload as NodeValue
+      payload
     );
     if (validationIssues.length > 0) {
-      internal.issues = [...internal.issues, ...validationIssues];
+      internal.issues = dedupeIssues(internal.issues, validationIssues);
     }
   }
 

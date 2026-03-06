@@ -35,8 +35,21 @@ describe('buildSnapshotFromCurrentState', () => {
     internal.currentData = makeData();
     const snapshot = buildSnapshotFromCurrentState(internal);
     expect(snapshot).not.toBeNull();
-    expect(snapshot!.view).toBe(internal.currentView);
-    expect(snapshot!.data).toBe(internal.currentData);
+    expect(snapshot!.view).toEqual(internal.currentView);
+    expect(snapshot!.data).toEqual(internal.currentData);
+    expect(snapshot!.view).not.toBe(internal.currentView);
+    expect(snapshot!.data).not.toBe(internal.currentData);
+  });
+
+  it('returns an immutable snapshot', () => {
+    const internal = createEmptySessionState('s', () => 0);
+    internal.currentView = makeView();
+    internal.currentData = makeData();
+    const snapshot = buildSnapshotFromCurrentState(internal);
+    expect(snapshot).not.toBeNull();
+    expect(Object.isFrozen(snapshot!)).toBe(true);
+    expect(Object.isFrozen(snapshot!.view)).toBe(true);
+    expect(Object.isFrozen(snapshot!.data)).toBe(true);
   });
 });
 
