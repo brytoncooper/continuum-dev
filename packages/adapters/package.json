@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/adapters",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },
@@ -11,7 +11,7 @@
     "url": "https://github.com/CooperContinuum/continuum.git",
     "directory": "packages/adapters"
   },
-  "author": "CooperContinuum",
+  "author": "Bryton Cooper",
   "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "a2ui", "adapter", "protocol"],
   "type": "module",
   "main": "./index.js",
@@ -32,7 +32,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.0"
+    "@continuum-dev/contract": "^0.1.1"
   },
   "nx": {
     "tags": [

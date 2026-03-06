@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },
@@ -11,7 +11,7 @@
     "url": "https://github.com/brytoncooper/cooper-continuum.git",
     "directory": "packages/react"
   },
-  "author": "CooperContinuum",
+  "author": "Bryton Cooper",
   "keywords": [
     "continuum",
     "ai",
@@ -45,8 +45,8 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.0",
-    "@continuum-dev/session": "^0.1.0"
+    "@continuum-dev/contract": "^0.1.1",
+    "@continuum-dev/session": "^0.1.1"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
