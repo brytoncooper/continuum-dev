@@ -1,24 +1,24 @@
-# @continuum/angular
+# @continuum-dev/angular
+
+> ⚠️ Internal preview package.
+>
+> This package is not published for public use yet, APIs are unstable, and there are no compatibility guarantees. Do not use in production.
 
 Angular bindings for the Continuum SDK.
 
 Provides environment providers, signal-based inject APIs, a view-driven standalone renderer, and Reactive Forms / Signal Forms adapters. Handles persistence to localStorage/sessionStorage automatically.
 
-## Installation
+## Availability
 
-```bash
-npm install @continuum/angular @continuum/contract
-```
-
-Peer dependencies: `@angular/core`, `@angular/common`, `@angular/forms` >= 20.
+`@continuum-dev/angular` is currently under active development and intentionally marked private in this repository.
 
 ## Quick Start
 
 ```typescript
 import { ApplicationConfig } from '@angular/core';
-import type { ViewDefinition } from '@continuum/contract';
-import { provideContinuum } from '@continuum/angular';
-import { ContinuumRendererComponent } from '@continuum/angular';
+import type { ViewDefinition } from '@continuum-dev/contract';
+import { provideContinuum } from '@continuum-dev/angular';
+import { ContinuumRendererComponent } from '@continuum-dev/angular';
 
 const componentMap = {
   input: MyInputComponent,
