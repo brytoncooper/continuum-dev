@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publishConfig": {
     "access": "public"
   },
@@ -45,8 +45,8 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.1",
-    "@continuum-dev/session": "^0.1.1"
+    "@continuum-dev/contract": "^0.1.2",
+    "@continuum-dev/session": "^0.1.2"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
