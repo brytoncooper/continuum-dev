@@ -50,18 +50,28 @@ describe('attachPersistence', () => {
   const originalAddEventListener = (globalThis as { addEventListener?: typeof addEventListener }).addEventListener;
   const originalRemoveEventListener = (globalThis as { removeEventListener?: typeof removeEventListener }).removeEventListener;
   let storageHandlers: Array<(event: StorageEventLike) => void> = [];
+  let beforeUnloadHandlers: Array<() => void> = [];
 
   beforeEach(() => {
     vi.useFakeTimers();
     storageHandlers = [];
+    beforeUnloadHandlers = [];
     (globalThis as { addEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void }).addEventListener = (type, listener) => {
       if (type === 'storage' && typeof listener === 'function') {
         storageHandlers.push(listener as unknown as (event: StorageEventLike) => void);
       }
+      if (type === 'beforeunload' && typeof listener === 'function') {
+        beforeUnloadHandlers.push(listener as unknown as () => void);
+      }
     };
     (globalThis as { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void }).removeEventListener = (type, listener) => {
-      if (type !== 'storage' || typeof listener !== 'function') return;
-      storageHandlers = storageHandlers.filter((entry) => entry !== (listener as unknown as (event: StorageEventLike) => void));
+      if (typeof listener !== 'function') return;
+      if (type === 'storage') {
+        storageHandlers = storageHandlers.filter((entry) => entry !== (listener as unknown as (event: StorageEventLike) => void));
+      }
+      if (type === 'beforeunload') {
+        beforeUnloadHandlers = beforeUnloadHandlers.filter((entry) => entry !== (listener as unknown as () => void));
+      }
     };
   });
 
@@ -86,6 +96,22 @@ describe('attachPersistence', () => {
     vi.advanceTimersByTime(1);
     expect(setItemSpy).toHaveBeenCalledTimes(1);
     expect(storage.getItem('continuum_session')).toBeTruthy();
+    detach();
+  });
+
+  it('flushes pending writes on beforeunload', () => {
+    const storage = new MemoryStorage();
+    const setItemSpy = vi.spyOn(storage, 'setItem');
+    const state = makeState('local');
+    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+
+    notifySnapshotListeners(state);
+    expect(setItemSpy).toHaveBeenCalledTimes(0);
+    expect(beforeUnloadHandlers).toHaveLength(1);
+
+    beforeUnloadHandlers[0]();
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+
     detach();
   });
 
@@ -163,7 +189,7 @@ describe('attachPersistence', () => {
     detach();
   });
 
-  it('suppresses write-through while applying remote state', () => {
+  it('persists once after applying remote state', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
@@ -186,7 +212,46 @@ describe('attachPersistence', () => {
       }
     );
     vi.runAllTimers();
-    expect(setItemSpy).toHaveBeenCalledTimes(0);
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    detach();
+  });
+
+  it('persists listener-triggered updates after remote sync', () => {
+    const storage = new MemoryStorage();
+    const setItemSpy = vi.spyOn(storage, 'setItem');
+    const state = makeState('local');
+    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const listener = vi.fn(() => {
+      if (!state.currentData?.values['listener']) {
+        state.currentData = {
+          ...state.currentData!,
+          values: {
+            ...state.currentData!.values,
+            listener: { value: 'local-update' },
+          },
+        };
+        notifySnapshotListeners(state);
+      }
+    });
+    state.snapshotListeners.add(listener);
+
+    const remote = makeState('remote');
+    remote.currentData = {
+      values: { field: { value: 'remote' } },
+      lineage: {
+        timestamp: 2000,
+        sessionId: 'remote',
+      },
+    };
+
+    storageHandlers[0]({
+      key: 'continuum_session',
+      newValue: JSON.stringify(serializeSession(remote)),
+      storageArea: storage,
+    });
+    vi.runAllTimers();
+
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
     detach();
   });
 
@@ -201,5 +266,6 @@ describe('attachPersistence', () => {
     vi.runAllTimers();
     expect(setItemSpy).toHaveBeenCalledTimes(0);
     expect(storageHandlers).toHaveLength(0);
+    expect(beforeUnloadHandlers).toHaveLength(0);
   });
 });

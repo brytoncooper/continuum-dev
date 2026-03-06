@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { recordIntent } from './event-log.js';
+import { ISSUE_CODES } from '@continuum/contract';
 
 function setupWithView(internal: ReturnType<typeof createEmptySessionState>) {
   internal.currentView = { viewId: 's1', version: '1.0', nodes: [{ id: 'a', type: 'field' as const, dataType: 'string' as const }] };
@@ -77,5 +78,53 @@ describe('recordIntent', () => {
       type: 'invalid-type' as never,
       payload: { value: 'hello' },
     })).toThrow('Invalid interaction type');
+  });
+
+  it('stores a cloned payload value', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    setupWithView(internal);
+    const payload = { value: 'hello', isDirty: true };
+
+    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload });
+    payload.value = 'changed-after';
+
+    expect(internal.currentData?.values['a']).toEqual({ value: 'hello', isDirty: true });
+  });
+
+  it('deduplicates unknown-node issues by nodeId and code', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    setupWithView(internal);
+
+    recordIntent(internal, { nodeId: 'missing', type: 'value-change', payload: { value: 'x' } });
+    recordIntent(internal, { nodeId: 'missing', type: 'value-change', payload: { value: 'y' } });
+
+    const unknownNodeIssues = internal.issues.filter(
+      (issue) => issue.code === ISSUE_CODES.UNKNOWN_NODE && issue.nodeId === 'missing'
+    );
+    expect(unknownNodeIssues).toHaveLength(1);
+  });
+
+  it('deduplicates validation issues by nodeId and code', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    internal.currentView = {
+      viewId: 's1',
+      version: '1.0',
+      nodes: [{
+        id: 'a',
+        type: 'field',
+        dataType: 'string',
+        constraints: { required: true },
+      }],
+    };
+    internal.currentData = { values: {}, lineage: { timestamp: 1000, sessionId: 's' } };
+    internal.validateOnUpdate = true;
+
+    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: '' } });
+    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: '' } });
+
+    const validationIssues = internal.issues.filter(
+      (issue) => issue.code === ISSUE_CODES.VALIDATION_FAILED && issue.nodeId === 'a'
+    );
+    expect(validationIssues).toHaveLength(1);
   });
 });
