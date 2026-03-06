@@ -51,13 +51,23 @@ function getChangedNodeIds(
   return changed;
 }
 
+/**
+ * Subscription-oriented store facade over Continuum session state.
+ */
 export interface ContinuumStore {
+  /** Returns the latest continuity snapshot. */
   getSnapshot(): ContinuitySnapshot | null;
+  /** Subscribes to snapshot updates. */
   subscribeSnapshot(listener: Listener): () => void;
+  /** Subscribes to diagnostics-related updates. */
   subscribeDiagnostics(listener: Listener): () => void;
+  /** Returns a node value by canonical id. */
   getNodeValue(nodeId: string): NodeValue | undefined;
+  /** Returns viewport state by canonical node id. */
   getNodeViewport(nodeId: string): ViewportState | undefined;
+  /** Subscribes to updates for a specific node id. */
   subscribeNode(nodeId: string, listener: Listener): () => void;
+  /** Releases store subscriptions and listeners. */
   destroy(): void;
 }
 
@@ -143,13 +153,23 @@ function createContinuumStore(session: Session): ContinuumStore {
   };
 }
 
+/**
+ * Value shape exposed through `ContinuumContext`.
+ */
 export interface ContinuumContextValue {
+  /** Backing Continuum session instance. */
   session: Session;
+  /** Subscription-friendly store facade over session state. */
   store: ContinuumStore;
+  /** Resolved node type to component map. */
   componentMap: ContinuumNodeMap;
+  /** True when provider loaded from existing persisted state. */
   wasHydrated: boolean;
 }
 
+/**
+ * React context backing all `@continuum/react` hooks and renderer behavior.
+ */
 export const ContinuumContext = createContext<ContinuumContextValue | null>(null);
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
@@ -189,6 +209,12 @@ function useStableMap(map: ContinuumNodeMap): ContinuumNodeMap {
   return map;
 }
 
+/**
+ * Initializes and provides Continuum session context to the React subtree.
+ *
+ * Creates (or hydrates) a session once, wires optional persistence, and
+ * provides a reactive store used by hooks and renderer components.
+ */
 export function ContinuumProvider({
   components,
   persist = false,

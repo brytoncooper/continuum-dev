@@ -7,7 +7,8 @@ import {
   useContinuumState,
   useContinuumSnapshot,
   useContinuumDiagnostics,
-  useContinuumViewport
+  useContinuumViewport,
+  useContinuumAction,
 } from './hooks.js';
 import { ContinuumProvider } from './context.js';
 import type { NodeValue, ViewDefinition, ViewportState } from '@continuum/contract';
@@ -243,5 +244,79 @@ describe('useContinuumDiagnostics', () => {
     expect(diags).toBeDefined();
     expect(requireSession(diags).issues).toEqual([]);
     expect(requireSession(diags).checkpoints).toBeDefined();
+  });
+});
+
+describe('useContinuumAction', () => {
+  const componentMap = {
+    field: () => <div />,
+    action: () => <div />,
+  };
+  const viewDef: ViewDefinition = {
+    viewId: 'v1',
+    version: '1.0',
+    nodes: [
+      { id: 'f1', type: 'field', dataType: 'string' },
+      { id: 'btn', type: 'action', intentId: 'do_it', label: 'Go' },
+    ],
+  };
+
+  it('returns dispatch function and initial state', () => {
+    let hookResult: ReturnType<typeof useContinuumAction> | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      if (!session.getSnapshot()) session.pushView(viewDef);
+      hookResult = useContinuumAction('do_it');
+      return null;
+    }
+
+    render(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    expect(hookResult).toBeDefined();
+    expect(typeof requireSession(hookResult).dispatch).toBe('function');
+    expect(requireSession(hookResult).isDispatching).toBe(false);
+    expect(requireSession(hookResult).lastResult).toBeNull();
+  });
+
+  it('updates lastResult after dispatch', async () => {
+    let hookResult: ReturnType<typeof useContinuumAction> | null = null;
+    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) session.pushView(viewDef);
+      hookResult = useContinuumAction('do_it');
+      return <div data-testid="result">{hookResult.lastResult?.success ? 'ok' : 'none'}</div>;
+    }
+
+    const { getByTestId } = render(
+      <ContinuumProvider components={componentMap} sessionOptions={{
+        actions: {
+          do_it: {
+            registration: { label: 'Go' },
+            handler: () => ({ success: true, data: 'done' }),
+          },
+        },
+      }}><App /></ContinuumProvider>
+    );
+
+    expect(getByTestId('result').textContent).toBe('none');
+
+    await act(async () => {
+      await requireSession(hookResult).dispatch('btn');
+    });
+
+    expect(getByTestId('result').textContent).toBe('ok');
+    expect(requireSession(hookResult).lastResult?.success).toBe(true);
+    expect(requireSession(hookResult).lastResult?.data).toBe('done');
+  });
+
+  it('throws when used outside provider', () => {
+    function Orphan() {
+      useContinuumAction('test');
+      return null;
+    }
+    expect(() => render(<Orphan />)).toThrow('useContinuumAction must be used within a <ContinuumProvider>');
   });
 });

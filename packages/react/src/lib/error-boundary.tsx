@@ -10,6 +10,9 @@ interface NodeErrorBoundaryState {
   message: string;
 }
 
+/**
+ * Per-node error boundary used by the renderer to isolate component failures.
+ */
 export class NodeErrorBoundary extends Component<
   NodeErrorBoundaryProps,
   NodeErrorBoundaryState

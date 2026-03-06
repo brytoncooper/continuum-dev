@@ -343,6 +343,34 @@ Scans current snapshot values for suggestions and provides accept-all / reject-a
 const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
 ```
 
+#### `useContinuumAction(intentId)`
+
+Handles action dispatch with built-in loading and result state.
+
+```ts
+const { dispatch, isDispatching, lastResult } = useContinuumAction('submit_form');
+```
+
+Example action component:
+
+```tsx
+function SubmitButton({ definition }: ContinuumNodeProps) {
+  const intentId = definition.intentId ?? '';
+  const { dispatch, isDispatching, lastResult } = useContinuumAction(intentId);
+
+  return (
+    <div>
+      <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
+        {isDispatching ? 'Working...' : definition.label}
+      </button>
+      {lastResult && (
+        <span>{lastResult.success ? 'Done' : 'Failed'}</span>
+      )}
+    </div>
+  );
+}
+```
+
 ---
 
 ## The node contract
