@@ -1,0 +1,20 @@
+export * from './lib/types.js';
+export {
+  ADDON_ATTACHMENTS,
+  ADDON_STRICT_CONTINUITY,
+  EXAMPLE_CORRECTION_LOOP_USER_MESSAGE,
+  EXAMPLE_CREATE_VIEW_USER_MESSAGE,
+  EXAMPLE_EVOLVE_VIEW_USER_MESSAGE,
+  MODE_CORRECTION_LOOP,
+  MODE_CREATE_VIEW,
+  MODE_EVOLVE_VIEW,
+  PROMPT_LIBRARY,
+  PROMPT_LIBRARY_VERSION,
+  SYSTEM_CORE,
+  assembleSystemPrompt,
+  buildCorrectionUserMessage,
+  buildCreateUserMessage,
+  buildEvolveUserMessage,
+  getAddonPrompt,
+  getModePrompt,
+} from './lib/templates.js';

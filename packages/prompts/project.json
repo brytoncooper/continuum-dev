@@ -1,0 +1,16 @@
+{
+  "name": "prompts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/prompts/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/prompts"
+      }
+    }
+  }
+}
