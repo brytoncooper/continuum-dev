@@ -85,6 +85,7 @@ export function attachPersistence(
       replaceInternalState(internal, next);
       notifySnapshotAndIssueListeners(internal);
     } catch {
+      return;
     } finally {
       isApplyingRemote = false;
     }
