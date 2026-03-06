@@ -136,6 +136,8 @@ describe('resolveAllNodes', () => {
     const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
 
     expect(result.values['a']).toEqual({ value: 'new', isDirty: false });
+    expect(result.diffs.some((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBe(true);
+    expect(result.resolutions[0].reconciledValue).toEqual({ value: 'new', isDirty: false });
   });
 
   it('carries state between compatible container types (row -> group)', () => {
