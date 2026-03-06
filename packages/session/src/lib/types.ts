@@ -94,7 +94,7 @@ export interface SessionOptions {
    */
   maxCheckpoints?: number;
   /**
-   * Reconciliation options forwarded to `@continuum-dev/runtime`.
+   * Reconciliation options forwarded to `@continuum/runtime`.
    *
    * `clock` is managed by session and intentionally omitted here.
    */

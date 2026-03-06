@@ -303,4 +303,4 @@ Framework bindings can wrap this package for UI-first usage:
 
 ## License
 
-MIT © CooperContinuum
+MIT © Bryton Cooper
