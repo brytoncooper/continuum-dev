@@ -1,7 +1,7 @@
 import type { CSSProperties, ComponentType } from 'react';
 import { getChildNodes, type ViewNode, type NodeValue } from '@continuum/contract';
 import {
-  useContinuumSession,
+  useContinuumAction,
   type ContinuumNodeMap,
   type ContinuumNodeProps,
 } from '@continuum/react';
@@ -697,25 +697,38 @@ function ActionButton({ onChange, definition }: ContinuumNodeProps) {
   const lbl = nodeLabel(definition);
   const disabled = Boolean(attr(definition, 'disabled'));
   const intentId = attr<string>(definition, 'intentId') ?? '';
-  const session = useContinuumSession();
+  const { dispatch, isDispatching, lastResult } = useContinuumAction(intentId);
+
+  const busy = isDispatching || disabled;
 
   return (
     <div
       style={{
         display: 'flex',
         justifyContent: 'flex-end',
+        alignItems: 'center',
         width: '100%',
         marginLeft: 'auto',
         flex: '1 0 100%',
+        gap: space.sm,
       }}
     >
+      {lastResult && (
+        <span style={{
+          ...typeScale.caption,
+          color: lastResult.success ? '#16a34a' : '#dc2626',
+          fontWeight: 500,
+        }}>
+          {lastResult.success ? 'Done' : 'Failed'}
+        </span>
+      )}
       <button
         className="continuum-field"
-        disabled={disabled}
-        onClick={() => {
+        disabled={busy}
+        onClick={async () => {
           onChange({ value: true, isDirty: true } as NodeValue);
           if (intentId) {
-            void session.dispatchAction(intentId, definition.id);
+            await dispatch(definition.id);
           }
         }}
         style={{
@@ -729,17 +742,17 @@ function ActionButton({ onChange, definition }: ContinuumNodeProps) {
           border: `1px solid ${fc.primary}`,
           background: fc.primary,
           color: fc.surface,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.5 : 1,
+          cursor: busy ? 'not-allowed' : 'pointer',
+          opacity: busy ? 0.5 : 1,
           transition: `background ${transition.normal}, border-color ${transition.normal}, transform ${transition.fast}`,
           ...typeScale.body,
           fontWeight: 600,
           outline: 'none',
         }}
-        onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.background = fc.primaryHover; e.currentTarget.style.borderColor = fc.primaryHover; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+        onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.background = fc.primaryHover; e.currentTarget.style.borderColor = fc.primaryHover; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
         onMouseLeave={(e) => { e.currentTarget.style.background = fc.primary; e.currentTarget.style.borderColor = fc.primary; e.currentTarget.style.transform = 'translateY(0)'; }}
       >
-        {lbl}
+        {isDispatching ? 'Working...' : lbl}
       </button>
     </div>
   );
