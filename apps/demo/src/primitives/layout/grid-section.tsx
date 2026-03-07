@@ -1,0 +1,27 @@
+import type { ContinuumNodeProps } from '@continuum/react';
+import { space } from '../../ui/tokens';
+import { ContainerShell } from '../shared/container-shell';
+import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node';
+
+export function GridSection(props: ContinuumNodeProps) {
+  const columns = readNodeProp<number>(props.definition, 'columns') ?? 2;
+
+  return (
+    <ContainerShell
+      title={nodeLabel(props.definition)}
+      description={nodeDescription(props.definition)}
+      nodeId={props.nodeId}
+      itemIndex={props.itemIndex as number | undefined}
+      canRemove={props.canRemove as boolean | undefined}
+      onRemove={props.onRemove as (() => void) | undefined}
+      layoutStyle={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gap: space.lg,
+        alignItems: 'start',
+      }}
+    >
+      {props.children}
+    </ContainerShell>
+  );
+}
