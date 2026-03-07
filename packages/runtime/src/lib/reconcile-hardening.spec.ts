@@ -125,9 +125,31 @@ describe('runtime hardening', () => {
     const next: ViewDefinition = { viewId: 'view-1', version: '2', nodes: [] };
     const result = reconcile(next, priorView, priorData);
     expect(result.reconciledState.values).toEqual({});
-    expect(Array.isArray(result.diffs)).toBe(true);
-    expect(Array.isArray(result.resolutions)).toBe(true);
-    expect(Array.isArray(result.issues)).toBe(true);
+    expect(result.diffs).toEqual([
+      {
+        nodeId: 'a',
+        type: 'removed',
+        oldValue: { value: 'old' },
+        reason: 'Node removed from view',
+      },
+    ]);
+    expect(result.resolutions).toEqual([]);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        code: ISSUE_CODES.NODE_REMOVED,
+        nodeId: 'a',
+      })
+    );
+    expect(result.reconciledState.detachedValues).toEqual({
+      k: expect.objectContaining({
+        value: { value: 'old' },
+        previousNodeType: 'field',
+        key: 'k',
+        reason: 'node-removed',
+      }),
+    });
+    expect(result.reconciledState.lineage.viewVersion).toBe('2');
+    expect(result.reconciledState.lineage.timestamp).toBe(2);
   });
 
   it('reports cycle issues for cyclic child graphs', () => {

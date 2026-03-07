@@ -145,6 +145,55 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['field_456']).toBeUndefined();
     expect(result.reconciledState.values['no_match']).toBeUndefined();
   });
+
+  it('preserves valueLineage and detachedValues when carrying blindly by key', () => {
+    const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
+    const data = makeData(
+      { email: { value: 'test@example.com' } },
+      {},
+      { email: { lastUpdated: 400, lastInteractionId: 'int-9' } }
+    );
+    data.detachedValues = {
+      phone: {
+        value: { value: '555-1234' },
+        previousNodeType: 'field',
+        key: 'phone',
+        detachedAt: 300,
+        viewVersion: '1.0',
+        reason: 'node-removed',
+      },
+    };
+
+    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+
+    expect(result.reconciledState.values['field_456']).toEqual({ value: 'test@example.com' });
+    expect(result.reconciledState.valueLineage?.['field_456']).toEqual({
+      lastUpdated: 400,
+      lastInteractionId: 'int-9',
+    });
+    expect(result.reconciledState.valueLineage?.['email']).toBeUndefined();
+    expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
+  });
+
+  it('preserves detachedValues even when allowBlindCarry is false', () => {
+    const view = makeView([makeNode({ id: 'a' })]);
+    const data = makeData({ a: { value: 'hello' } });
+    data.detachedValues = {
+      archived: {
+        value: { value: 'saved' },
+        previousNodeType: 'field',
+        key: 'archived',
+        detachedAt: 250,
+        viewVersion: '1.0',
+        reason: 'node-removed',
+      },
+    };
+
+    const result = buildBlindCarryResult(view, data, 5000, {});
+
+    expect(result.reconciledState.values).toEqual({});
+    expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
+  });
 });
 
 describe('assembleReconciliationResult', () => {

@@ -471,6 +471,55 @@ describe('collection reconciliation', () => {
     expect(items[1].values['val']).toEqual({ value: 'second' });
   });
 
+  it('keeps dirty collection items as value and moves new defaultValues into suggestion', () => {
+    const priorView = makeView([
+      collectionNode('addresses', {
+        template: makeNode({ id: 'val', type: 'field' }),
+        defaultValues: [
+          { val: 'first' },
+        ]
+      })
+    ], 'view-1', '1.0');
+    const newView = makeView([
+      collectionNode('addresses', {
+        template: makeNode({ id: 'val', type: 'field' }),
+        defaultValues: [
+          { val: 'replacement-1' },
+          { val: 'replacement-2' }
+        ]
+      })
+    ], 'view-1', '2.0');
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { val: { value: 'custom', isDirty: true } } }],
+        },
+        isDirty: true,
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+
+    expect(result.reconciledState.values['addresses']).toEqual({
+      value: {
+        items: [{ values: { val: { value: 'custom', isDirty: true } } }],
+      },
+      suggestion: {
+        items: [
+          { values: { val: { value: 'replacement-1' } } },
+          { values: { val: { value: 'replacement-2' } } },
+        ],
+      },
+      isDirty: true,
+    });
+    expect(result.diffs).toContainEqual(
+      expect.objectContaining({
+        nodeId: 'addresses',
+        type: 'migrated',
+      })
+    );
+  });
+
   it('retains dirty state on existing collection items during carry', () => {
     const priorView = makeView([collectionNode('addresses')]);
     const newView = makeView([collectionNode('addresses')]);
@@ -489,6 +538,306 @@ describe('collection reconciliation', () => {
     const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
     expect(items).toHaveLength(1);
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'dirty-value', isDirty: true });
+  });
+
+  it('preserves top-level collection metadata during unchanged carry', () => {
+    const priorView = makeView([collectionNode('addresses')]);
+    const newView = makeView([collectionNode('addresses')]);
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'home' } } }],
+        },
+        isDirty: true,
+        isValid: false,
+        suggestion: {
+          items: [{ values: { 'addresses-item-value': { value: 'work' } } }],
+        },
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+
+    expect(result.reconciledState.values['addresses']).toEqual({
+      value: {
+        items: [{ values: { 'addresses-item-value': { value: 'home' } } }],
+      },
+      isDirty: true,
+      isValid: false,
+      suggestion: {
+        items: [{ values: { 'addresses-item-value': { value: 'work' } } }],
+      },
+    });
+  });
+
+  describe('cross-level key migration', () => {
+    it('injects prior top-level value into first collection item when node moves into collection via key', () => {
+      const priorView = makeView([
+        makeNode({ id: 'user_name', type: 'field', key: 'user_name', defaultValue: '' }),
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          template: makeNode({
+            id: 'task_item',
+            type: 'group',
+            children: [
+              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+            ],
+          }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          minItems: 1,
+          template: makeNode({
+            id: 'task_item',
+            type: 'group',
+            children: [
+              makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string' }),
+              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+            ],
+          }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        user_name: { value: 'Alice', isDirty: true },
+        tasks: { value: { items: [{ values: { 'task_item/title': { value: 'Task 1' } } }] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      const items = ((result.reconciledState.values['tasks'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }).items;
+
+      expect(items).toHaveLength(1);
+      expect(items[0].values['task_item/assignee']).toEqual({
+        value: undefined,
+        suggestion: 'Alice',
+        isDirty: true,
+      });
+      expect(items[0].values['task_item/title']).toEqual({ value: 'Task 1' });
+      expect(result.reconciledState.values['user_name']).toBeUndefined();
+    });
+
+    it('preserves moved top-level user data as the seeded item value', () => {
+      const priorView = makeView([
+        makeNode({ id: 'user_name', type: 'field', key: 'user_name', defaultValue: '' }),
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          template: makeNode({
+            id: 'task_item',
+            type: 'group',
+            children: [
+              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+            ],
+          }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          minItems: 1,
+          template: makeNode({
+            id: 'task_item',
+            type: 'group',
+            children: [
+              makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string', defaultValue: '' }),
+              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+            ],
+          }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        user_name: { value: 'Alice', isDirty: true },
+        tasks: { value: { items: [] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      const items = ((result.reconciledState.values['tasks'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }).items;
+
+      expect(items).toHaveLength(1);
+      expect(items[0].values['task_item/assignee']).toEqual({
+        value: 'Alice',
+        isDirty: true,
+      });
+      expect(result.reconciledState.values['user_name']).toBeUndefined();
+    });
+
+    it('injects prior top-level value into all existing collection items when node moves into collection', () => {
+      const priorView = makeView([
+        makeNode({ id: 'status', type: 'field', key: 'status', defaultValue: 'active' }),
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          template: makeNode({ id: 'row', type: 'group', children: [
+            makeNode({ id: 'name', type: 'field', dataType: 'string' }),
+          ] }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          template: makeNode({ id: 'row', type: 'group', children: [
+            makeNode({ id: 'name', type: 'field', dataType: 'string' }),
+            makeNode({ id: 'item_status', type: 'field', key: 'status', dataType: 'string' }),
+          ] }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        status: { value: 'archived', isDirty: true },
+        items: { value: { items: [
+          { values: { 'row/name': { value: 'First' } } },
+          { values: { 'row/name': { value: 'Second' } } },
+        ] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }).items;
+
+      expect(items).toHaveLength(2);
+      expect(items[0].values['row/item_status']).toEqual({
+        value: undefined,
+        suggestion: 'archived',
+        isDirty: true,
+      });
+      expect(items[0].values['row/name']).toEqual({ value: 'First' });
+      expect(items[1].values['row/item_status']).toEqual({
+        value: undefined,
+        suggestion: 'archived',
+        isDirty: true,
+      });
+      expect(items[1].values['row/name']).toEqual({ value: 'Second' });
+      expect(result.reconciledState.values['status']).toBeUndefined();
+    });
+
+    it('extracts value from first collection item when node moves from collection to top-level via key', () => {
+      const priorView = makeView([
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          template: makeNode({ id: 'task_item', type: 'group', children: [
+            makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string' }),
+            makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+          ] }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({ id: 'user_name', type: 'field', key: 'user_name', dataType: 'string' }),
+        makeNode({
+          id: 'tasks',
+          type: 'collection',
+          template: makeNode({ id: 'task_item', type: 'group', children: [
+            makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+          ] }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        tasks: { value: { items: [
+          { values: {
+            'task_item/assignee': { value: 'Bob', isDirty: true },
+            'task_item/title': { value: 'Do stuff' },
+          } },
+          { values: {
+            'task_item/assignee': { value: 'Carol' },
+            'task_item/title': { value: 'More stuff' },
+          } },
+        ] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      expect(result.reconciledState.values['user_name']).toEqual({
+        value: undefined,
+        suggestion: 'Bob',
+        isDirty: true,
+      });
+    });
+
+    it('does not inject cross-level value when types do not match', () => {
+      const priorView = makeView([
+        makeNode({ id: 'counter', type: 'field', key: 'counter', dataType: 'number' }),
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          template: makeNode({ id: 'row', type: 'group', children: [] }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          minItems: 1,
+          template: makeNode({ id: 'row', type: 'group', children: [
+            makeNode({ id: 'counter', type: 'collection', key: 'counter',
+              template: makeNode({ id: 'c_item', type: 'field', dataType: 'string' }),
+            }),
+          ] }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        counter: { value: 42 },
+        items: { value: { items: [] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }).items;
+
+      expect(items).toHaveLength(1);
+      expect(items[0].values['row/counter']).toBeUndefined();
+      expect(result.diffs.find((diff) => diff.nodeId === 'items' && diff.type === 'migrated')).toBeUndefined();
+      expect(result.reconciledState.values['counter']).toEqual({ value: 42 });
+    });
+
+    it('emits a migrated diff when cross-level injection occurs', () => {
+      const priorView = makeView([
+        makeNode({ id: 'tag', type: 'field', key: 'tag', defaultValue: '' }),
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          template: makeNode({ id: 'row', type: 'group', children: [] }),
+        }),
+      ], 'view-1', '1.0');
+      const newView = makeView([
+        makeNode({
+          id: 'items',
+          type: 'collection',
+          minItems: 1,
+          template: makeNode({ id: 'row', type: 'group', children: [
+            makeNode({ id: 'row_tag', type: 'field', key: 'tag', dataType: 'string' }),
+          ] }),
+        }),
+      ], 'view-1', '2.0');
+      const priorData = makeData({
+        tag: { value: 'urgent', isDirty: true },
+        items: { value: { items: [] } },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }).items;
+
+      expect(items).toHaveLength(1);
+      expect(items[0].values['row/row_tag']).toEqual({
+        value: undefined,
+        suggestion: 'urgent',
+        isDirty: true,
+      });
+
+      const migrated = result.diffs.filter(d => d.type === 'migrated' && d.nodeId === 'items');
+      expect(migrated).toHaveLength(1);
+      expect(result.reconciledState.values['tag']).toBeUndefined();
+    });
   });
 });
 

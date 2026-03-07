@@ -140,6 +140,54 @@ describe('resolveAllNodes', () => {
     expect(result.resolutions[0].reconciledValue).toEqual({ value: 'new', isDirty: false });
   });
 
+  it('does not migrate when object default values are semantically equal', () => {
+    const priorView = makeView([
+      makeNode({ id: 'a', defaultValue: { first: 1, second: 2 } as unknown as string }),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'a', defaultValue: { second: 2, first: 1 } as unknown as string }),
+    ]);
+    const priorData = makeData({
+      a: { value: { first: 1, second: 2 }, isDirty: true } as NodeValue,
+    });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({
+      value: { first: 1, second: 2 },
+      isDirty: true,
+    });
+    expect(result.diffs.find((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBeUndefined();
+    expect(result.resolutions[0].reconciledValue).toEqual({
+      value: { first: 1, second: 2 },
+      isDirty: true,
+    });
+  });
+
+  it('does not overwrite a clean value when object default values only differ by property order', () => {
+    const priorView = makeView([
+      makeNode({ id: 'a', defaultValue: { first: 1, second: 2 } as unknown as string }),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'a', defaultValue: { second: 2, first: 1 } as unknown as string }),
+    ]);
+    const priorData = makeData({
+      a: { value: { first: 1, second: 2 }, isDirty: false } as NodeValue,
+    });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({
+      value: { first: 1, second: 2 },
+      isDirty: false,
+    });
+    expect(result.diffs.find((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBeUndefined();
+  });
+
   it('carries state between compatible container types (row -> group)', () => {
     const priorView = makeView([makeNode({ id: 'a', type: 'row', children: [] } as any)]);
     const newView = makeView([makeNode({ id: 'a', type: 'group', children: [] } as any)]);
