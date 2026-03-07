@@ -6,6 +6,7 @@ import type {
   NodeValue,
 } from '@continuum/contract';
 import { reconcile } from './reconcile.js';
+import { computeViewHash } from './reconciliation/state-builder.js';
 import type { MigrationStrategy } from './types.js';
 
 function makeView(
@@ -500,12 +501,20 @@ describe('reconcile', () => {
         { a: { lastUpdated: 500, lastInteractionId: 'int-1' } }
       );
 
-      const result = reconcile(newView, priorView, priorData);
+      const result = reconcile(newView, priorView, priorData, {
+        clock: () => 4321,
+      });
 
-      expect(result.reconciledState.valueLineage?.['a']).toBeDefined();
-      expect(
-        result.reconciledState.valueLineage!['a'].lastUpdated
-      ).toBeGreaterThan(500);
+      expect(result.reconciledState.valueLineage?.['a']).toEqual({
+        lastUpdated: 4321,
+        lastInteractionId: 'int-1',
+      });
+      expect(result.diffs).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'a',
+          type: 'migrated',
+        })
+      );
     });
 
     it('remaps valueLineage to new id when node matched by key', () => {
@@ -523,8 +532,19 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.valueLineage?.['new-id']).toBeDefined();
+      expect(result.reconciledState.valueLineage?.['new-id']).toEqual({
+        lastUpdated: 500,
+        lastInteractionId: 'int-1',
+      });
       expect(result.reconciledState.valueLineage?.['old-id']).toBeUndefined();
+      expect(result.resolutions).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'new-id',
+          priorId: 'old-id',
+          matchedBy: 'key',
+          resolution: 'carried',
+        })
+      );
     });
   });
 
@@ -540,9 +560,12 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.lineage.viewHash).toBeDefined();
-      expect(typeof result.reconciledState.lineage.viewHash).toBe('string');
-      expect(result.reconciledState.lineage.viewHash!.length).toBeGreaterThan(0);
+      expect(result.reconciledState.lineage.viewHash).toBe(computeViewHash(newView));
+
+      const repeated = reconcile(newView, priorView, priorData);
+      expect(repeated.reconciledState.lineage.viewHash).toBe(
+        result.reconciledState.lineage.viewHash
+      );
     });
 
     it('does not set viewHash when no nodes have hashes', () => {
@@ -808,20 +831,65 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result).toBeDefined();
+      expect(result.reconciledState.values['dup']).toBeUndefined();
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'DUPLICATE_NODE_ID',
+          nodeId: 'dup',
+        })
+      );
+      expect(result.diffs).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'dup',
+          type: 'type-changed',
+          oldValue: { value: 'original' },
+        })
+      );
+      expect(result.resolutions).toEqual([
+        expect.objectContaining({
+          nodeId: 'dup',
+          priorId: 'dup',
+          resolution: 'detached',
+          newType: 'action',
+        }),
+      ]);
     });
 
     it('last-write-wins when duplicate keys appear in a view', () => {
+      const priorNode = makeNode({ id: 'old', key: 'same-key' });
       const first = makeNode({ id: 'a', key: 'same-key' });
       const second = makeNode({ id: 'b', key: 'same-key' });
 
-      const priorView = makeView([first]);
+      const priorView = makeView([priorNode]);
       const newView = makeView([first, second]);
-      const priorData = makeData({ a: { value: 'original' } });
+      const priorData = makeData({ old: { value: 'original' } });
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result).toBeDefined();
+      expect(result.reconciledState.values['a']).toBeUndefined();
+      expect(result.reconciledState.values['b']).toEqual({ value: 'original' });
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'DUPLICATE_NODE_KEY',
+          nodeId: 'b',
+        })
+      );
+      expect(result.resolutions).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'a',
+          priorId: null,
+          matchedBy: null,
+          resolution: 'added',
+        })
+      );
+      expect(result.resolutions).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'b',
+          priorId: 'old',
+          matchedBy: 'key',
+          resolution: 'carried',
+        })
+      );
     });
   });
 
@@ -954,6 +1022,33 @@ describe('reconcile', () => {
       expect(r3.reconciledState.values['d']).toEqual({ value: '555-1234' });
       expect(r3.reconciledState.detachedValues?.['email']).toBeUndefined();
       expect(r3.reconciledState.detachedValues?.['phone']).toBeUndefined();
+    });
+
+    it('restores prior user data over a new default when a replacement node is introduced in one push', () => {
+      const priorView = makeView([
+        makeNode({ id: 'old-email', key: 'email', defaultValue: '' }),
+      ]);
+      const newView = makeView([
+        makeNode({ id: 'new-email', key: 'contact.email', defaultValue: 'AI default' }),
+      ]);
+      const priorData = makeData({
+        'old-email': { value: 'user@example.com', isDirty: true },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+
+      expect(result.reconciledState.values['new-email']).toEqual({
+        value: 'user@example.com',
+        isDirty: true,
+      });
+      expect(result.reconciledState.values['old-email']).toBeUndefined();
+      expect(result.diffs).toContainEqual(
+        expect.objectContaining({
+          nodeId: 'new-email',
+          type: 'restored',
+        })
+      );
+      expect(result.reconciledState.detachedValues?.['email']).toBeUndefined();
     });
   });
 
