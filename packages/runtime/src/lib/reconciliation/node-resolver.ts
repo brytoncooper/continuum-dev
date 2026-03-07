@@ -50,11 +50,14 @@ export function resolveAllNodes(
   for (const [newId, newNode] of ctx.newById) {
     const priorNode = findPriorNode(ctx, newNode);
     const priorNodeId = priorNode ? (ctx.priorNodeIds.get(priorNode) ?? priorNode.id) : null;
-    const priorValue =
-      priorValues.get(newId) ?? (priorNodeId ? priorData.values[priorNodeId] : undefined);
     const matchedBy = determineNodeMatchStrategy(ctx, newNode, priorNode);
+    const carriedPriorValue = priorValues.get(newId);
+    const shouldTreatAsAdded = matchedBy === 'key' && carriedPriorValue === undefined;
+    const priorValue = matchedBy === 'key'
+      ? carriedPriorValue
+      : carriedPriorValue ?? (priorNodeId ? priorData.values[priorNodeId] : undefined);
 
-    if (!priorNode) {
+    if (!priorNode || shouldTreatAsAdded) {
       resolveNewNode(acc, newId, newNode, priorData, now);
     } else if (newNode.type === 'collection' && priorNode.type === 'collection') {
       resolveCollectionNode(
@@ -230,6 +233,42 @@ function areCompatibleContainerTypes(a: string, b: string): boolean {
   return CONTAINER_TYPES.has(a) && CONTAINER_TYPES.has(b);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function areDefaultValuesEqual(a: unknown, b: unknown): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+      if (!areDefaultValuesEqual(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const aKeys = Object.keys(a).sort();
+    const bKeys = Object.keys(b).sort();
+    if (aKeys.length !== bKeys.length) {
+      return false;
+    }
+    for (let i = 0; i < aKeys.length; i += 1) {
+      const key = aKeys[i];
+      if (key !== bKeys[i] || !areDefaultValuesEqual(a[key], b[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 function hasNodeHashChanged(
   priorNode: ViewNode,
   newNode: ViewNode
@@ -309,10 +348,13 @@ function resolveUnchangedNode(
   if (priorValue !== undefined) {
     const priorNodeValue = priorValue as NodeValue;
     const resolvedValue = { ...priorNodeValue };
+    const canApplyDefaultChange =
+      newId === priorNodeId ||
+      (newNode.key !== undefined && newNode.key === priorNode.key);
     
-    if ('defaultValue' in newNode && newNode.defaultValue !== undefined) {
+    if (canApplyDefaultChange && 'defaultValue' in newNode && newNode.defaultValue !== undefined) {
       if ('defaultValue' in priorNode) {
-        if (JSON.stringify(priorNode.defaultValue) !== JSON.stringify(newNode.defaultValue)) {
+        if (!areDefaultValuesEqual(priorNode.defaultValue, newNode.defaultValue)) {
           didApplyDefaultChange = true;
           if (priorNodeValue.isDirty) {
             resolvedValue.suggestion = newNode.defaultValue;

@@ -61,6 +61,7 @@ export interface ReconciliationContext {
    * New-view node lookup keyed by semantic key (scoped when needed).
    */
   newByKey: Map<string, ViewNode>;
+  newBySemanticKey: Map<string, { node: ViewNode; nodeId: string }>;
   /**
    * Prior-view node lookup keyed by scoped node id.
    */
@@ -69,6 +70,7 @@ export interface ReconciliationContext {
    * Prior-view node lookup keyed by semantic key (scoped when needed).
    */
   priorByKey: Map<string, ViewNode>;
+  priorBySemanticKey: Map<string, { node: ViewNode; nodeId: string }>;
   /**
    * New-view indexed ids grouped by raw node id.
    */
@@ -115,8 +117,10 @@ export function buildReconciliationContext(
 ): ReconciliationContext {
   const newById = new Map<string, ViewNode>();
   const newByKey = new Map<string, ViewNode>();
+  const newBySemanticKey = new Map<string, { node: ViewNode; nodeId: string }>();
   const priorById = new Map<string, ViewNode>();
   const priorByKey = new Map<string, ViewNode>();
+  const priorBySemanticKey = new Map<string, { node: ViewNode; nodeId: string }>();
   const newIdsByRawId = new Map<string, string[]>();
   const priorIdsByRawId = new Map<string, string[]>();
   const newNodeIds = new WeakMap<ViewNode, string>();
@@ -135,6 +139,7 @@ export function buildReconciliationContext(
     newTraversal.visited,
     newById,
     newByKey,
+    newBySemanticKey,
     newIdsByRawId,
     newNodeIds,
     newKeyCounts,
@@ -145,6 +150,7 @@ export function buildReconciliationContext(
       priorTraversal?.visited ?? [],
       priorById,
       priorByKey,
+      priorBySemanticKey,
       priorIdsByRawId,
       priorNodeIds,
       priorKeyCounts,
@@ -157,8 +163,10 @@ export function buildReconciliationContext(
     priorView,
     newById,
     newByKey,
+    newBySemanticKey,
     priorById,
     priorByKey,
+    priorBySemanticKey,
     newIdsByRawId,
     priorIdsByRawId,
     newNodeIds,
@@ -354,6 +362,7 @@ function indexNodesByIdAndKey(
   traversed: TraversedViewNode[],
   byId: Map<string, ViewNode>,
   byKey: Map<string, ViewNode>,
+  bySemanticKey: Map<string, { node: ViewNode; nodeId: string }>,
   idsByRawId: Map<string, string[]>,
   nodeIds: WeakMap<ViewNode, string>,
   keyCounts: Map<string, number>,
@@ -387,6 +396,11 @@ function indexNodesByIdAndKey(
       if (!byKey.has(entry.node.key) && (keyCounts.get(entry.node.key) ?? 0) === 1) {
         byKey.set(entry.node.key, entry.node);
       }
+    }
+
+    const semanticKey = entry.node.semanticKey;
+    if (semanticKey !== undefined && semanticKey.length > 0) {
+      bySemanticKey.set(semanticKey, { node: entry.node, nodeId: indexedId });
     }
   }
 }

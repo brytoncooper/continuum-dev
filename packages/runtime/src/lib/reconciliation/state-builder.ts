@@ -122,11 +122,14 @@ export function buildBlindCarryResult(
     const newIds = collectNodeIds(newView.nodes);
     const keyToId = collectNodeKeyToIdMap(newView.nodes);
     const carriedValues: Record<string, NodeValue> = {};
+    const carriedValueLineage: Record<string, ValueLineage> = {};
     const carriedNodeIds = new Set<string>();
+    const sourceIdsByCarriedNodeId = new Map<string, string>();
     for (const [id, value] of Object.entries(priorData.values)) {
       if (newIds.has(id)) {
         carriedValues[id] = value;
         carriedNodeIds.add(id);
+        sourceIdsByCarriedNodeId.set(id, id);
         issues.push({
           severity: ISSUE_SEVERITY.INFO,
           nodeId: id,
@@ -145,6 +148,7 @@ export function buildBlindCarryResult(
       }
       carriedValues[matchedNodeId] = value;
       carriedNodeIds.add(matchedNodeId);
+      sourceIdsByCarriedNodeId.set(matchedNodeId, id);
       issues.push({
         severity: ISSUE_SEVERITY.INFO,
         nodeId: matchedNodeId,
@@ -152,6 +156,14 @@ export function buildBlindCarryResult(
         code: ISSUE_CODES.UNVALIDATED_CARRY,
       });
     }
+    for (const [carriedNodeId, sourceId] of sourceIdsByCarriedNodeId) {
+      const priorMeta = priorData.valueLineage?.[sourceId];
+      if (priorMeta) {
+        carriedValueLineage[carriedNodeId] = { ...priorMeta };
+      }
+    }
+    const hasValueLineage = Object.keys(carriedValueLineage).length > 0;
+    const hasDetachedValues = Object.keys(priorData.detachedValues ?? {}).length > 0;
 
     return {
       reconciledState: {
@@ -162,6 +174,8 @@ export function buildBlindCarryResult(
           viewId: newView.viewId,
           viewVersion: newView.version,
         },
+        ...(hasValueLineage ? { valueLineage: carriedValueLineage } : {}),
+        ...(hasDetachedValues ? { detachedValues: { ...priorData.detachedValues } } : {}),
       },
       diffs: [],
       issues,
@@ -178,6 +192,9 @@ export function buildBlindCarryResult(
         viewId: newView.viewId,
         viewVersion: newView.version,
       },
+      ...(priorData.detachedValues && Object.keys(priorData.detachedValues).length > 0
+        ? { detachedValues: { ...priorData.detachedValues } }
+        : {}),
     },
     diffs: [],
     issues,
