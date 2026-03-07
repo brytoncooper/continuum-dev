@@ -311,6 +311,8 @@ Tracks non-data state (focus, expansion, scroll, zoom, offsets) inside the sessi
 const [viewport, setViewport] = useContinuumViewport('table');
 ```
 
+If this hook is called from inside a collection-item scope, Continuum logs a development warning because viewport state is not currently scoped per collection item.
+
 #### `useContinuumSession()`
 
 Returns the active session for full session API access.
@@ -326,6 +328,8 @@ Subscribes to the full current `ContinuitySnapshot`.
 ```ts
 const snapshot = useContinuumSnapshot();
 ```
+
+Snapshots are delivered as immutable top-level copies so consumer code cannot accidentally mutate session internals.
 
 #### `useContinuumHydrated()`
 
@@ -350,6 +354,8 @@ Handles action dispatch with built-in loading and result state.
 ```ts
 const { dispatch, isDispatching, lastResult } = useContinuumAction('submit_form');
 ```
+
+When multiple dispatches overlap, `isDispatching` and `lastResult` reflect the latest in-flight dispatch.
 
 Example action component:
 
@@ -471,14 +477,15 @@ function UndoButton() {
 - scoped item state storage
 - default template values
 - canonical nested ids for collection children
+- headless control wiring through your own collection components
 
-Rendered collection controls include attributes like:
+Collection controls are now passed as props to your mapped components:
 
-- `data-continuum-collection-add`
-- `data-continuum-collection-remove`
-- `data-continuum-collection-item`
+- collection root components receive `onAdd`, `canAdd`, `onRemove`, and `canRemove`
+- template root components receive `itemIndex`, `onRemove`, and `canRemove`
+- no renderer-owned wrapper elements or `data-continuum-*` control attributes are injected
 
-You get practical collection behavior out of the box while still controlling the visual wrapper component.
+This keeps collection behavior built in while letting your design system fully own the markup and styles.
 
 ---
 
@@ -505,6 +512,7 @@ The fallback renders:
 Every rendered node is wrapped in `NodeErrorBoundary`.
 
 If one component crashes while rendering a dynamic node, sibling regions can keep working.
+When a later rerender provides recoverable children, the boundary resets and the node can render again.
 
 ---
 

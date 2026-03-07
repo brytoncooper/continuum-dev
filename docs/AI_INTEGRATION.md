@@ -290,6 +290,7 @@ const session = hydrateOrCreate({
 Current persistence behavior:
 
 - Writes are debounced by 200ms
+- Pending writes are flushed on `beforeunload`
 - Payload size is guarded by `maxBytes`
 - Cross-tab sync uses `storage` events
 

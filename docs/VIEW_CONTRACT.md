@@ -372,7 +372,7 @@ const VIEW_DIFFS = {
 | -------------- | ------------------------------------------------------------ |
 | `added`        | A node was added in the new view.                            |
 | `removed`      | A node from the prior view is missing in the new view.       |
-| `migrated`     | A node's hash changed and it was migrated.                   |
+| `migrated`     | A value changed during reconciliation (for example hash migration or default-value migration). |
 | `type-changed` | A node's type changed, breaking state continuity.            |
 | `restored`     | A node was restored from detached values.                    |
 
@@ -674,8 +674,8 @@ interface Checkpoint {
 }
 ```
 
-- **Auto checkpoints** are created on every `pushView` call, capped by `maxCheckpoints` (default: 50). When the cap is exceeded, the oldest auto checkpoint is removed first.
-- **Manual checkpoints** are created by calling `session.checkpoint()`.
+- **Auto checkpoints** are created on every `pushView` call, capped by `maxCheckpoints` (default: 50). When over the cap, older auto checkpoints are pruned first.
+- **Manual checkpoints** are created by calling `session.checkpoint()` and are also capped by `maxCheckpoints`.
 - `restoreFromCheckpoint` restores view + data from the checkpoint, truncates the event log, and clears issues, diffs, resolutions, and pending intents.
 - `rewind(checkpointId)` restores to the given checkpoint and removes all checkpoints after it.
 
