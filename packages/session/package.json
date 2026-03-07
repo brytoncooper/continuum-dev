@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/session",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publishConfig": {
     "access": "public"
   },
@@ -12,7 +12,15 @@
     "directory": "packages/session"
   },
   "author": "Bryton Cooper",
-  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "session", "lifecycle"],
+  "keywords": [
+    "continuum",
+    "ai",
+    "ui",
+    "continuity",
+    "reconciliation",
+    "session",
+    "lifecycle"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./index.js",
@@ -33,8 +41,8 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.2",
-    "@continuum-dev/runtime": "^0.1.2"
+    "@continuum-dev/contract": "^0.1.3",
+    "@continuum-dev/runtime": "^0.1.3"
   },
   "nx": {
     "tags": [

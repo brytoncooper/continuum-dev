@@ -1,7 +1,7 @@
 {
   "name": "@continuum-dev/adapters",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publishConfig": {
     "access": "public"
   },
@@ -13,7 +13,16 @@
     "directory": "packages/adapters"
   },
   "author": "Bryton Cooper",
-  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "a2ui", "adapter", "protocol"],
+  "keywords": [
+    "continuum",
+    "ai",
+    "ui",
+    "continuity",
+    "reconciliation",
+    "a2ui",
+    "adapter",
+    "protocol"
+  ],
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -33,7 +42,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.1.2"
+    "@continuum-dev/contract": "^0.1.3"
   },
   "nx": {
     "tags": [

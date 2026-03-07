@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/contract",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publishConfig": {
     "access": "public"
   },
@@ -12,7 +12,14 @@
     "directory": "packages/contract"
   },
   "author": "Bryton Cooper",
-  "keywords": ["continuum", "ai", "ui", "continuity", "reconciliation", "types"],
+  "keywords": [
+    "continuum",
+    "ai",
+    "ui",
+    "continuity",
+    "reconciliation",
+    "types"
+  ],
   "type": "module",
   "sideEffects": false,
   "main": "./index.js",
