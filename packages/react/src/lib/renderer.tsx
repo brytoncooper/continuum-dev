@@ -14,6 +14,10 @@ import { NodeErrorBoundary } from './error-boundary.js';
 
 const noopOnChange = () => undefined;
 
+function deepCloneValues(values: Record<string, NodeValue>): Record<string, NodeValue> {
+  return structuredClone(values);
+}
+
 function toCanonicalId(id: string, parentPath: string): string {
   return parentPath.length > 0 ? `${parentPath}/${id}` : id;
 }
@@ -43,12 +47,19 @@ interface NodeRendererProps {
 function normalizeCollectionNodeValue(
   value: NodeValue | undefined
 ): NodeValue<CollectionNodeState> {
+  const metadata = value
+    ? {
+        ...(value.suggestion !== undefined ? { suggestion: value.suggestion } : {}),
+        ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
+        ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
+      }
+    : {};
   const items = (value as NodeValue<CollectionNodeState> | undefined)?.value?.items;
   if (!Array.isArray(items)) {
-    return { value: { items: [] } };
+    return { ...metadata, value: { items: [] } } as NodeValue<CollectionNodeState>;
   }
   return {
-    ...value,
+    ...metadata,
     value: {
       items: items.map((item) => ({
         values:
@@ -246,7 +257,7 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
           }
           const collectionValue = readCollectionValue();
           const items = collectionValue.value.items.map((item) => ({
-            values: { ...item.values },
+            values: deepCloneValues(item.values),
           }));
           while (items.length <= itemIndex) {
             items.push({ values: {} });
@@ -333,9 +344,9 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
     }
     const items = [
       ...current.value.items.map((item) => ({
-        values: { ...item.values },
+        values: deepCloneValues(item.values),
       })),
-      { values: { ...templateDefaults } },
+      { values: deepCloneValues(templateDefaults) },
     ];
     setCollectionValue({
       ...current,
@@ -349,7 +360,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
       return;
     }
     const items = current.value.items
-      .map((item) => ({ values: { ...item.values } }))
+      .map((item) => ({ values: deepCloneValues(item.values) }))
       .filter((_, itemIndex) => itemIndex !== index);
     if (items.length < minItems) {
       return;
@@ -376,7 +387,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
     <>
       <NodeErrorBoundary nodeId={definition.id}>
         <Component
-          value={collectionValue}
+          value={normalizedCollection}
           onChange={setCollectionValue}
           definition={definition}
           nodeId={canonicalId}

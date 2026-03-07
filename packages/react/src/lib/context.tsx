@@ -8,7 +8,11 @@ type Listener = () => void;
 
 function notifyListeners(listeners: Set<Listener>): void {
   for (const listener of [...listeners]) {
-    listener();
+    try {
+      listener();
+    } catch (e) {
+      console.error('Continuum listener error', e);
+    }
   }
 }
 
