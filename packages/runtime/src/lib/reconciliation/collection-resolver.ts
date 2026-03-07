@@ -206,23 +206,25 @@ export function reconcileCollectionValue(
     // If there were dirty items, return the new defaults as a `suggestion` for the whole collection
     if (hasDirtyItems) {
       const suggestedValue: NodeValue<CollectionNodeState> = {
-        value: normalized.value, // keep prior as current
-        suggestion: { items: constrained } // new items as suggestion
+        ...normalized,
+        value: normalized.value,
+        suggestion: { items: constrained }
       };
-      // Keep isDirty flag from prior NodeValue if it exists
-      if ((normalized as any).isDirty) {
-        suggestedValue.isDirty = true;
-      }
       return {
         value: suggestedValue,
         issues,
-        didMigrateItems: true, // Treat as migration to force UI update
+        didMigrateItems: true,
       };
     }
 
-    // If no dirty items, immediately overwrite
+    const replacedValue: NodeValue<CollectionNodeState> = {
+      ...normalized,
+      value: { items: constrained },
+    };
+    delete replacedValue.suggestion;
+
     return {
-      value: { value: { items: constrained } },
+      value: replacedValue,
       issues,
       didMigrateItems: true,
     };
@@ -282,7 +284,10 @@ export function reconcileCollectionValue(
     newNode.template
   );
   return {
-    value: { value: { items: constrained } },
+    value: {
+      ...normalized,
+      value: { items: constrained },
+    },
     issues,
     didMigrateItems,
   };
@@ -295,11 +300,24 @@ export function normalizeCollectionValue(
   if (!value || typeof value !== 'object' || !('value' in (value as Record<string, unknown>))) {
     return createInitialCollectionValue(node);
   }
-  const state = (value as NodeValue).value as { items?: Array<{ values?: Record<string, NodeValue> }> };
-  const items = Array.isArray(state?.items)
-    ? state.items.map((item) => ({ values: (item?.values ?? {}) as Record<string, NodeValue> }))
-    : [];
-  return { value: { items } };
+  const nodeValue = value as NodeValue;
+  const normalizeState = (
+    state: unknown
+  ): CollectionNodeState => {
+    const typedState = state as { items?: Array<{ values?: Record<string, NodeValue> }> } | undefined;
+    const items = Array.isArray(typedState?.items)
+      ? typedState.items.map((item) => ({ values: (item?.values ?? {}) as Record<string, NodeValue> }))
+      : [];
+    return { items };
+  };
+  return {
+    value: normalizeState(nodeValue.value),
+    ...(nodeValue.suggestion !== undefined
+      ? { suggestion: normalizeState(nodeValue.suggestion) }
+      : {}),
+    ...(nodeValue.isDirty !== undefined ? { isDirty: nodeValue.isDirty } : {}),
+    ...(nodeValue.isValid !== undefined ? { isValid: nodeValue.isValid } : {}),
+  };
 }
 
 function applyItemConstraints(
