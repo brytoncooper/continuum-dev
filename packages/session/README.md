@@ -92,6 +92,7 @@ function hydrateOrCreate(options?: SessionOptions): Session;
 Persistence note:
 
 - When `options.persistence` is provided, snapshot writes are debounced by 200ms.
+- Pending writes are flushed on `beforeunload` so tab closes do not drop recent updates.
 - `SessionPersistenceOptions.maxBytes` enforces a payload size cap before writes.
 - `SessionPersistenceOptions.onError` receives `size_limit` and `storage_error` events.
 - Browser `storage` events are consumed for cross-tab session synchronization.
@@ -117,6 +118,8 @@ const stopIssues = session.onIssues((issues) => {
   // handle warnings/errors
 });
 ```
+
+Snapshot listeners receive immutable top-level copies of `view` and `data`.
 
 ### 2) View and State Updates
 
@@ -147,6 +150,8 @@ session.recordIntent({
   payload: { value: 'test@example.com' }
 });
 ```
+
+`recordIntent` clones incoming payload objects before storing them and deduplicates issues by `nodeId + code`.
 
 #### Viewport APIs
 
@@ -310,6 +315,7 @@ Persistence behavior:
 
 - `serialize()` returns a JSON-safe payload with `formatVersion: 1`.
 - Automatic persistence writes are debounced (200ms) to reduce storage churn.
+- Pending writes are flushed on `beforeunload` to reduce data loss risk during tab close.
 - If `maxBytes` is exceeded, the write is skipped and `onError` is invoked.
 - Remote storage updates can rehydrate in-memory state for cross-tab continuity.
 
