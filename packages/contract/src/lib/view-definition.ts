@@ -46,6 +46,10 @@ export interface BaseNode {
    */
   key?: string;
   /**
+   * Optional explicit semantic identity for cross-level matching.
+   */
+  semanticKey?: string;
+  /**
    * Optional visibility hint.
    */
   hidden?: boolean;
