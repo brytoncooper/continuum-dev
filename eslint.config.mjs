@@ -69,6 +69,14 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:demo',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:session',
+                'scope:react',
+              ],
+            },
+            {
               sourceTag: 'scope:async',
               onlyDependOnLibsWithTags: ['scope:shared', 'scope:async'],
             },
