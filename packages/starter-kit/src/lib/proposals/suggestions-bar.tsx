@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useContinuumSuggestions } from '@continuum-dev/react';
 import { color, radius, space, type } from '../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../style-config.js';
 
 const containerStyle: CSSProperties = {
   display: 'flex',
@@ -25,22 +26,13 @@ const actionsStyle: CSSProperties = {
   flexWrap: 'wrap',
 };
 
-const buttonStyle: CSSProperties = {
-  ...type.small,
-  color: color.text,
-  padding: `${space.sm}px ${space.md}px`,
-  borderRadius: radius.pill,
-  border: `1px solid ${color.border}`,
-  background: color.surfaceMuted,
-  cursor: 'pointer',
-};
-
 export function StarterKitSuggestionsBar({
   label = 'Suggested updates are available.',
 }: {
   label?: string;
 }) {
   const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
+  const buttonStyle = useStarterKitStyle('suggestionsActionButton', starterKitDefaultStyles.suggestionsActionButton);
 
   if (!hasSuggestions) {
     return null;

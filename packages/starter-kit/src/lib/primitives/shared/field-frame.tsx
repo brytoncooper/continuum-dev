@@ -1,10 +1,12 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { color, control, radius, space, type } from '../../tokens.js';
+import { color, space, type } from '../../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
   gap: space.sm,
   minWidth: 0,
+  boxSizing: 'border-box',
 };
 
 const labelRowStyle: CSSProperties = {
@@ -22,24 +24,17 @@ const descriptionStyle: CSSProperties = {
   color: color.textMuted,
 };
 
-export const controlStyle: CSSProperties = {
-  width: '100%',
-  minWidth: 0,
-  height: control.height,
-  padding: `${control.paddingY}px ${control.paddingX}px`,
-  borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
-  outline: 'none',
-};
+export const controlStyle: CSSProperties = starterKitDefaultStyles.fieldControl;
 
 export function inputLikeStyle(overrides?: CSSProperties): CSSProperties {
   return {
     ...controlStyle,
-    ...type.body,
     ...overrides,
   };
+}
+
+export function useInputLikeStyle(overrides?: CSSProperties): CSSProperties {
+  return useStarterKitStyle('fieldControl', inputLikeStyle(overrides));
 }
 
 export function FieldFrame({
@@ -47,16 +42,18 @@ export function FieldFrame({
   description,
   children,
 }: {
-  label: string;
+  label?: string;
   description?: string;
   children: ReactNode;
 }) {
   return (
     <label style={wrapStyle}>
-      <div style={labelRowStyle}>
-        <span style={labelStyle}>{label}</span>
-        {description ? <span style={descriptionStyle}>{description}</span> : null}
-      </div>
+      {label || description ? (
+        <div style={labelRowStyle}>
+          {label ? <span style={labelStyle}>{label}</span> : null}
+          {description ? <span style={descriptionStyle}>{description}</span> : null}
+        </div>
+      ) : null}
       {children}
     </label>
   );

@@ -1,11 +1,15 @@
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { useContinuumAction } from '@continuum-dev/react';
-import { color, control, radius, space, type } from '../../tokens.js';
+import { color, space, type } from '../../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
 export function ActionButton({ definition }: ContinuumNodeProps) {
   const intentId = readNodeProp<string>(definition, 'intentId') ?? '';
+  const label = nodeLabel(definition) ?? 'Run action';
   const { dispatch, isDispatching, lastResult } = useContinuumAction(intentId);
+
+  const buttonStyle = useStarterKitStyle('actionButton', starterKitDefaultStyles.actionButton);
 
   return (
     <div
@@ -20,23 +24,12 @@ export function ActionButton({ definition }: ContinuumNodeProps) {
     >
       <button
         type="button"
-        style={{
-          height: control.height,
-          padding: `0 ${space.lg}px`,
-          borderRadius: radius.md,
-          border: `1px solid ${color.borderStrong}`,
-          background: color.accent,
-          color: color.surface,
-          cursor: 'pointer',
-          justifySelf: 'end',
-          ...type.body,
-          fontWeight: 600,
-        }}
+        style={buttonStyle}
         onClick={() => {
           void dispatch(definition.id);
         }}
       >
-        {isDispatching ? 'Working…' : nodeLabel(definition)}
+        {isDispatching ? 'Working...' : label}
       </button>
       {nodeDescription(definition) ? (
         <div

@@ -1,22 +1,12 @@
 import type { CSSProperties } from 'react';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
-import { color, control, radius, space, type } from '../../tokens.js';
+import { color, radius, space, type } from '../../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { nodeDepth, nodeDescription, nodeLabel } from '../shared/node.js';
 
 const headerStyle: CSSProperties = {
   display: 'grid',
   gap: space.xs,
-};
-
-const addButtonStyle: CSSProperties = {
-  height: control.height,
-  padding: `0 ${space.md}px`,
-  borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
-  cursor: 'pointer',
-  flexShrink: 0,
 };
 
 export function CollectionSection({
@@ -26,7 +16,10 @@ export function CollectionSection({
   canAdd,
   onAdd,
 }: ContinuumNodeProps) {
+  const label = nodeLabel(definition);
+  const description = nodeDescription(definition);
   const depth = nodeDepth(nodeId);
+  const addButtonStyle = useStarterKitStyle('collectionAddButton', starterKitDefaultStyles.collectionAddButton);
 
   return (
     <section
@@ -39,16 +32,18 @@ export function CollectionSection({
         border: depth === 0 ? `1px solid ${color.border}` : 'none',
       }}
     >
-      <div style={headerStyle}>
-        <div style={{ ...type.section, color: color.text }}>
-          {nodeLabel(definition)}
+      {label || description ? (
+        <div style={headerStyle}>
+          {label ? (
+            <div style={{ ...type.section, color: color.text }}>{label}</div>
+          ) : null}
+          {description ? (
+            <div style={{ ...type.small, color: color.textMuted }}>
+              {description}
+            </div>
+          ) : null}
         </div>
-        {nodeDescription(definition) ? (
-          <div style={{ ...type.small, color: color.textMuted }}>
-            {nodeDescription(definition)}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
       <div style={{ display: 'grid', gap: space.md }}>{children}</div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button
