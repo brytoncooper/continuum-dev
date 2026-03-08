@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { color, control, radius, space, type } from '../../tokens.js';
 import { nodeDepth, nodeDescription, nodeLabel } from '../shared/node.js';
 
@@ -40,9 +40,13 @@ export function CollectionSection({
       }}
     >
       <div style={headerStyle}>
-        <div style={{ ...type.section, color: color.text }}>{nodeLabel(definition)}</div>
+        <div style={{ ...type.section, color: color.text }}>
+          {nodeLabel(definition)}
+        </div>
         {nodeDescription(definition) ? (
-          <div style={{ ...type.small, color: color.textMuted }}>{nodeDescription(definition)}</div>
+          <div style={{ ...type.small, color: color.textMuted }}>
+            {nodeDescription(definition)}
+          </div>
         ) : null}
       </div>
       <div style={{ display: 'grid', gap: space.md }}>{children}</div>

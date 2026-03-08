@@ -1,15 +1,15 @@
 import { inject, computed, Signal } from '@angular/core';
-import type { Session } from '@continuum/session';
+import type { Session } from '@continuum-dev/session';
 import type {
   ContinuitySnapshot,
   NodeValue,
   Checkpoint,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import type {
   ReconciliationIssue,
   StateDiff,
   ReconciliationResolution,
-} from '@continuum/runtime';
+} from '@continuum-dev/runtime';
 import {
   CONTINUUM_SESSION,
   CONTINUUM_SNAPSHOT,

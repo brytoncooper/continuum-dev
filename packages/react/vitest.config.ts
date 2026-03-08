@@ -4,16 +4,16 @@ export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/react',
   resolve: {
-    conditions: ['@continuum/source'],
+    conditions: ['@continuum-dev/source'],
   },
   ssr: {
     resolve: {
-      conditions: ['@continuum/source'],
+      conditions: ['@continuum-dev/source'],
     },
   },
   plugins: [],
   test: {
-    name: '@continuum/react',
+    name: '@continuum-dev/react',
     watch: false,
     globals: true,
     environment: 'jsdom',

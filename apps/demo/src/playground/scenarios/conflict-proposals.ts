@@ -1,4 +1,4 @@
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import type { PlaygroundConflictScenario } from '../types';
 
 const initialView: ViewDefinition = {
@@ -110,7 +110,8 @@ const evolvedView: ViewDefinition = {
 export const conflictProposalsScenario: PlaygroundConflictScenario = {
   id: 'conflict-proposals',
   kind: 'conflict-proposals',
-  title: 'AI suggestions should not overwrite a form the user already filled out.',
+  title:
+    'AI suggestions should not overwrite a form the user already filled out.',
   selectorLabel: 'AI overwrite conflict',
   problem:
     'The user has already filled out five profile fields. A later deterministic AI pass tries to replace three of them. Without continuity, those user values are overwritten directly. With Continuum, the same update becomes proposals the user can accept or reject.',
@@ -141,7 +142,8 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
     'profile.title': { value: 'Staff Product Designer' },
     'profile.company': { value: 'Continuum Labs' },
     'profile.notes': {
-      value: 'AI draft suggests a launch-focused summary with clearer product positioning.',
+      value:
+        'AI draft suggests a launch-focused summary with clearer product positioning.',
     },
   },
   nextProblems: [
@@ -153,7 +155,8 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
     {
       id: 'initial-user-values',
       title: 'Step 1: User-entered values are loaded',
-      description: 'Both panes start with the same five dirty fields already filled in by the user.',
+      description:
+        'Both panes start with the same five dirty fields already filled in by the user.',
       view: initialView,
     },
     {

@@ -1,5 +1,8 @@
-import type { NodeValue } from '@continuum/contract';
-import type { PlaygroundConflictReplayState, PlaygroundConflictScenario } from '../types';
+import type { NodeValue } from '@continuum-dev/contract';
+import type {
+  PlaygroundConflictReplayState,
+  PlaygroundConflictScenario,
+} from '../types';
 import { findScopedNodeIdByKey, findScopedNodeIdsByKey } from './view-helpers';
 
 function buildStatus(stepIndex: number): string {
@@ -15,7 +18,10 @@ export function replayNaiveOverwriteScenario(
   stepIndex: number,
   initialValues: Record<string, NodeValue>
 ): PlaygroundConflictReplayState {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
   let currentView = scenario.steps[boundedStepIndex].view;
 
   const initialNodeIds = findScopedNodeIdsByKey(

@@ -1,4 +1,4 @@
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { space } from '../../tokens.js';
 import { ContainerShell } from '../shared/container-shell.js';
 import { nodeDescription, nodeLabel } from '../shared/node.js';

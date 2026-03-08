@@ -1,5 +1,8 @@
-import type { NodeValue } from '@continuum/contract';
-import type { PlaygroundDetachedReplayState, PlaygroundDetachedScenario } from '../types';
+import type { NodeValue } from '@continuum-dev/contract';
+import type {
+  PlaygroundDetachedReplayState,
+  PlaygroundDetachedScenario,
+} from '../types';
 import { findScopedNodeIdByKey } from './view-helpers';
 
 function buildStatus(stepIndex: number): string {
@@ -19,7 +22,10 @@ export function replayNaiveDetachedScenario(
   stepIndex: number,
   initialValues: Record<string, NodeValue>
 ): PlaygroundDetachedReplayState {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
   const currentView = scenario.steps[boundedStepIndex].view;
   const values: Record<string, NodeValue> = {};
 

@@ -1,6 +1,11 @@
-import type { CollectionNode, CollectionNodeState, NodeValue, ViewNode } from '@continuum/contract';
-import { getChildNodes } from '@continuum/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import type {
+  CollectionNode,
+  CollectionNodeState,
+  NodeValue,
+  ViewNode,
+} from '@continuum-dev/contract';
+import { getChildNodes } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import type { ReconciliationIssue, ReconciliationOptions } from '../types.js';
 import { attemptMigration } from './migrator.js';
 
@@ -16,22 +21,24 @@ interface CollectionResolutionResult {
   didMigrateItems: boolean;
 }
 
-export function resolveCollectionDefaultValues(node: CollectionNode): NodeValue<CollectionNodeState> {
+export function resolveCollectionDefaultValues(
+  node: CollectionNode
+): NodeValue<CollectionNodeState> {
   if (!node.defaultValues || !Array.isArray(node.defaultValues)) {
     return createInitialCollectionValue(node);
   }
 
   const { keyToPath } = buildTemplatePathMap(node.template);
-  
+
   const items = node.defaultValues.map((defaultItem) => {
     const itemValues: Record<string, NodeValue> = {};
-    
+
     // Fill in default values based on semantic keys provided in `defaultValues`
     for (const [key, value] of Object.entries(defaultItem)) {
       const path = keyToPath.get(key) || key; // If path not mapped, use key as path
       itemValues[path] = { value };
     }
-    
+
     // Fill in missing fields with template defaults
     const templateDefaults = collectTemplateDefaults(node.template);
     for (const [path, defaultValue] of Object.entries(templateDefaults)) {
@@ -39,14 +46,16 @@ export function resolveCollectionDefaultValues(node: CollectionNode): NodeValue<
         itemValues[path] = defaultValue;
       }
     }
-    
+
     return { values: itemValues };
   });
 
   return { value: { items } };
 }
 
-export function createInitialCollectionValue(node: CollectionNode): NodeValue<CollectionNodeState> {
+export function createInitialCollectionValue(
+  node: CollectionNode
+): NodeValue<CollectionNodeState> {
   if (node.defaultValues && Array.isArray(node.defaultValues)) {
     return resolveCollectionDefaultValues(node);
   }
@@ -66,7 +75,11 @@ export function createInitialCollectionValue(node: CollectionNode): NodeValue<Co
 function buildTemplatePathMap(
   node: ViewNode,
   parentPath = ''
-): { keyToPath: Map<string, string>; pathToKey: Map<string, string>; allPaths: Set<string> } {
+): {
+  keyToPath: Map<string, string>;
+  pathToKey: Map<string, string>;
+  allPaths: Set<string>;
+} {
   const keyToPath = new Map<string, string>();
   const pathToKey = new Map<string, string>();
   const allPaths = new Set<string>();
@@ -101,7 +114,7 @@ function buildTemplatePathMap(
 function remapCollectionItemPaths(
   oldValues: Record<string, NodeValue>,
   priorMap: { pathToKey: Map<string, string>; allPaths: Set<string> },
-  newMap: { keyToPath: Map<string, string>; allPaths: Set<string> },
+  newMap: { keyToPath: Map<string, string>; allPaths: Set<string> }
 ): Record<string, NodeValue> {
   const remapped: Record<string, NodeValue> = {};
   let hasChanges = false;
@@ -148,7 +161,10 @@ export function reconcileCollectionValue(
 ): CollectionResolutionResult {
   const issues: ReconciliationIssue[] = [];
   const normalized = normalizeCollectionValue(newNode, priorValue);
-  if (priorNode.template.type !== newNode.template.type && !areCompatibleContainerTypes(priorNode.template.type, newNode.template.type)) {
+  if (
+    priorNode.template.type !== newNode.template.type &&
+    !areCompatibleContainerTypes(priorNode.template.type, newNode.template.type)
+  ) {
     issues.push({
       severity: ISSUE_SEVERITY.ERROR,
       nodeId: newNode.id,
@@ -176,7 +192,11 @@ export function reconcileCollectionValue(
   let hasDirtyItems = false;
 
   if (newNode.defaultValues !== undefined) {
-    if (!priorNode.defaultValues || JSON.stringify(priorNode.defaultValues) !== JSON.stringify(newNode.defaultValues)) {
+    if (
+      !priorNode.defaultValues ||
+      JSON.stringify(priorNode.defaultValues) !==
+        JSON.stringify(newNode.defaultValues)
+    ) {
       receivedNewDefaults = true;
     }
   }
@@ -185,8 +205,9 @@ export function reconcileCollectionValue(
   if (receivedNewDefaults && priorValue !== undefined) {
     const state = (priorValue as NodeValue<CollectionNodeState>).value;
     if (state && Array.isArray(state.items)) {
-      hasDirtyItems = state.items.some(item => 
-        item.values && Object.values(item.values).some(v => v.isDirty)
+      hasDirtyItems = state.items.some(
+        (item) =>
+          item.values && Object.values(item.values).some((v) => v.isDirty)
       );
     }
   }
@@ -208,7 +229,7 @@ export function reconcileCollectionValue(
       const suggestedValue: NodeValue<CollectionNodeState> = {
         ...normalized,
         value: normalized.value,
-        suggestion: { items: constrained }
+        suggestion: { items: constrained },
       };
       return {
         value: suggestedValue,
@@ -242,7 +263,10 @@ export function reconcileCollectionValue(
 
     // Step 2: Handle hash-based migration for the template root value
     const priorTemplateValue = values[priorTemplate.id];
-    if (priorTemplateValue !== undefined && hasTemplateHashChanged(priorTemplate, newTemplate)) {
+    if (
+      priorTemplateValue !== undefined &&
+      hasTemplateHashChanged(priorTemplate, newTemplate)
+    ) {
       const migrationResult = attemptMigration(
         priorTemplate.id,
         priorTemplate,
@@ -260,7 +284,9 @@ export function reconcileCollectionValue(
         issues.push({
           severity: ISSUE_SEVERITY.WARNING,
           nodeId: newNode.id,
-          message: `Node ${newNode.id} migration failed: ${String(migrationResult.error)}`,
+          message: `Node ${newNode.id} migration failed: ${String(
+            migrationResult.error
+          )}`,
           code: ISSUE_CODES.MIGRATION_FAILED,
         });
       } else {
@@ -297,16 +323,22 @@ export function normalizeCollectionValue(
   node: CollectionNode,
   value: unknown
 ): NodeValue<CollectionNodeState> {
-  if (!value || typeof value !== 'object' || !('value' in (value as Record<string, unknown>))) {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    !('value' in (value as Record<string, unknown>))
+  ) {
     return createInitialCollectionValue(node);
   }
   const nodeValue = value as NodeValue;
-  const normalizeState = (
-    state: unknown
-  ): CollectionNodeState => {
-    const typedState = state as { items?: Array<{ values?: Record<string, NodeValue> }> } | undefined;
+  const normalizeState = (state: unknown): CollectionNodeState => {
+    const typedState = state as
+      | { items?: Array<{ values?: Record<string, NodeValue> }> }
+      | undefined;
     const items = Array.isArray(typedState?.items)
-      ? typedState.items.map((item) => ({ values: (item?.values ?? {}) as Record<string, NodeValue> }))
+      ? typedState.items.map((item) => ({
+          values: (item?.values ?? {}) as Record<string, NodeValue>,
+        }))
       : [];
     return { items };
   };
@@ -366,8 +398,15 @@ function normalizeMaxItems(value: number | undefined): number | undefined {
   return Math.floor(value);
 }
 
-function hasTemplateHashChanged(priorTemplate: ViewNode, newTemplate: ViewNode): boolean {
-  return !!(priorTemplate.hash && newTemplate.hash && priorTemplate.hash !== newTemplate.hash);
+function hasTemplateHashChanged(
+  priorTemplate: ViewNode,
+  newTemplate: ViewNode
+): boolean {
+  return !!(
+    priorTemplate.hash &&
+    newTemplate.hash &&
+    priorTemplate.hash !== newTemplate.hash
+  );
 }
 
 function collectTemplateDefaults(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Injector } from '@angular/core';
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import { provideContinuum } from './provider.js';
 import {
   injectContinuumSession,
@@ -29,9 +29,9 @@ describe('injectContinuumSession', () => {
 
   it('throws when used outside provideContinuum', () => {
     const injector = Injector.create({ providers: [] });
-    expect(() =>
-      injector.runInContext(() => injectContinuumSession())
-    ).toThrow(/CONTINUUM_SESSION|provideContinuum/);
+    expect(() => injector.runInContext(() => injectContinuumSession())).toThrow(
+      /CONTINUUM_SESSION|provideContinuum/
+    );
   });
 });
 
@@ -76,7 +76,9 @@ describe('injectContinuumDiagnostics', () => {
       providers: provideContinuum({ components: {}, persist: false }),
     });
 
-    const diagnostics = injector.runInContext(() => injectContinuumDiagnostics());
+    const diagnostics = injector.runInContext(() =>
+      injectContinuumDiagnostics()
+    );
     expect(diagnostics()).toBeDefined();
     expect(diagnostics().issues).toEqual([]);
     expect(diagnostics().diffs).toEqual([]);

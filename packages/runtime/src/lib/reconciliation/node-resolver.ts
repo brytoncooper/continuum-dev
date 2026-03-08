@@ -1,5 +1,10 @@
-import type { DataSnapshot, DetachedValue, NodeValue, ViewNode } from '@continuum/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import type {
+  DataSnapshot,
+  DetachedValue,
+  NodeValue,
+  ViewNode,
+} from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import type {
   NodeResolutionAccumulator,
   ReconciliationIssue,
@@ -28,7 +33,10 @@ import {
 import { attemptMigration } from './migrator.js';
 import { carryValuesMeta } from './state-builder.js';
 import { validateNodeValue } from './validator.js';
-import { createInitialCollectionValue, reconcileCollectionValue } from './collection-resolver.js';
+import {
+  createInitialCollectionValue,
+  reconcileCollectionValue,
+} from './collection-resolver.js';
 
 export function resolveAllNodes(
   ctx: ReconciliationContext,
@@ -49,17 +57,25 @@ export function resolveAllNodes(
 
   for (const [newId, newNode] of ctx.newById) {
     const priorNode = findPriorNode(ctx, newNode);
-    const priorNodeId = priorNode ? (ctx.priorNodeIds.get(priorNode) ?? priorNode.id) : null;
+    const priorNodeId = priorNode
+      ? ctx.priorNodeIds.get(priorNode) ?? priorNode.id
+      : null;
     const matchedBy = determineNodeMatchStrategy(ctx, newNode, priorNode);
     const carriedPriorValue = priorValues.get(newId);
-    const shouldTreatAsAdded = matchedBy === 'key' && carriedPriorValue === undefined;
-    const priorValue = matchedBy === 'key'
-      ? carriedPriorValue
-      : carriedPriorValue ?? (priorNodeId ? priorData.values[priorNodeId] : undefined);
+    const shouldTreatAsAdded =
+      matchedBy === 'key' && carriedPriorValue === undefined;
+    const priorValue =
+      matchedBy === 'key'
+        ? carriedPriorValue
+        : carriedPriorValue ??
+          (priorNodeId ? priorData.values[priorNodeId] : undefined);
 
     if (!priorNode || shouldTreatAsAdded) {
       resolveNewNode(acc, newId, newNode, priorData, now);
-    } else if (newNode.type === 'collection' && priorNode.type === 'collection') {
+    } else if (
+      newNode.type === 'collection' &&
+      priorNode.type === 'collection'
+    ) {
       resolveCollectionNode(
         acc,
         newId,
@@ -72,7 +88,10 @@ export function resolveAllNodes(
         now,
         options
       );
-    } else if (priorNode.type !== newNode.type && !areCompatibleContainerTypes(priorNode.type, newNode.type)) {
+    } else if (
+      priorNode.type !== newNode.type &&
+      !areCompatibleContainerTypes(priorNode.type, newNode.type)
+    ) {
       resolveTypeMismatchedNode(
         acc,
         newId,
@@ -112,10 +131,7 @@ export function resolveAllNodes(
     }
 
     acc.issues.push(
-      ...validateNodeValue(
-        newNode,
-        acc.values[newId] as NodeValue | undefined
-      )
+      ...validateNodeValue(newNode, acc.values[newId] as NodeValue | undefined)
     );
   }
 
@@ -135,7 +151,9 @@ function resolveNewNode(
     acc.values[newId] = detachedValue.value as NodeValue;
     acc.restoredDetachedKeys.add(detachedKey);
     acc.diffs.push(restoredDiff(newId, detachedValue.value));
-    acc.resolutions.push(restoredResolution(newId, newNode.type, detachedValue.value));
+    acc.resolutions.push(
+      restoredResolution(newId, newNode.type, detachedValue.value)
+    );
     return;
   }
   if (newNode.type === 'collection') {
@@ -159,9 +177,21 @@ function resolveCollectionNode(
   now: number,
   options: ReconciliationOptions
 ): void {
-  const result = reconcileCollectionValue(priorNode, newNode, priorValue, options);
+  const result = reconcileCollectionValue(
+    priorNode,
+    newNode,
+    priorValue,
+    options
+  );
   acc.values[newId] = result.value;
-  carryValuesMeta(acc.valueLineage, newId, priorNodeId, priorData, now, result.didMigrateItems);
+  carryValuesMeta(
+    acc.valueLineage,
+    newId,
+    priorNodeId,
+    priorData,
+    now,
+    result.didMigrateItems
+  );
   acc.issues.push(...result.issues);
   if (result.didMigrateItems) {
     acc.diffs.push(migratedDiff(newId, priorValue, result.value));
@@ -207,8 +237,19 @@ function resolveTypeMismatchedNode(
     message: `Node type mismatch: ${priorNode.type} -> ${newNode.type}`,
     code: ISSUE_CODES.TYPE_MISMATCH,
   });
-  acc.diffs.push(typeChangedDiff(newId, priorValue, priorNode.type, newNode.type));
-  acc.resolutions.push(detachedResolution(newId, priorNodeId, matchedBy, priorNode.type, newNode.type, priorValue));
+  acc.diffs.push(
+    typeChangedDiff(newId, priorValue, priorNode.type, newNode.type)
+  );
+  acc.resolutions.push(
+    detachedResolution(
+      newId,
+      priorNodeId,
+      matchedBy,
+      priorNode.type,
+      newNode.type,
+      priorValue
+    )
+  );
   if (priorValue !== undefined) {
     const detachedKey = priorNode.key ?? priorNodeId;
     acc.detachedValues[detachedKey] = {
@@ -269,10 +310,7 @@ function areDefaultValuesEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
-function hasNodeHashChanged(
-  priorNode: ViewNode,
-  newNode: ViewNode
-): boolean {
+function hasNodeHashChanged(priorNode: ViewNode, newNode: ViewNode): boolean {
   return !!(priorNode.hash && newNode.hash && priorNode.hash !== newNode.hash);
 }
 
@@ -288,7 +326,13 @@ function resolveHashChangedNode(
   now: number,
   options: ReconciliationOptions
 ): void {
-  const migrationResult = attemptMigration(newId, priorNode, newNode, priorValue, options);
+  const migrationResult = attemptMigration(
+    newId,
+    priorNode,
+    newNode,
+    priorValue,
+    options
+  );
 
   if (migrationResult.kind === 'migrated') {
     acc.values[newId] = migrationResult.value as NodeValue;
@@ -308,9 +352,10 @@ function resolveHashChangedNode(
     return;
   }
 
-  const message = migrationResult.kind === 'error'
-    ? `Node ${newId} migration failed: ${String(migrationResult.error)}`
-    : `Node ${newId} view changed but no migration strategy available`;
+  const message =
+    migrationResult.kind === 'error'
+      ? `Node ${newId} migration failed: ${String(migrationResult.error)}`
+      : `Node ${newId} view changed but no migration strategy available`;
 
   acc.issues.push({
     severity: ISSUE_SEVERITY.WARNING,
@@ -343,7 +388,8 @@ function resolveUnchangedNode(
   priorData: DataSnapshot,
   now: number
 ): void {
-  let reconciledValue: NodeValue | undefined = priorValue !== undefined ? (priorValue as NodeValue) : undefined;
+  let reconciledValue: NodeValue | undefined =
+    priorValue !== undefined ? (priorValue as NodeValue) : undefined;
   let didApplyDefaultChange = false;
   if (priorValue !== undefined) {
     const priorNodeValue = priorValue as NodeValue;
@@ -351,10 +397,16 @@ function resolveUnchangedNode(
     const canApplyDefaultChange =
       newId === priorNodeId ||
       (newNode.key !== undefined && newNode.key === priorNode.key);
-    
-    if (canApplyDefaultChange && 'defaultValue' in newNode && newNode.defaultValue !== undefined) {
+
+    if (
+      canApplyDefaultChange &&
+      'defaultValue' in newNode &&
+      newNode.defaultValue !== undefined
+    ) {
       if ('defaultValue' in priorNode) {
-        if (!areDefaultValuesEqual(priorNode.defaultValue, newNode.defaultValue)) {
+        if (
+          !areDefaultValuesEqual(priorNode.defaultValue, newNode.defaultValue)
+        ) {
           didApplyDefaultChange = true;
           if (priorNodeValue.isDirty) {
             resolvedValue.suggestion = newNode.defaultValue;
@@ -374,20 +426,29 @@ function resolveUnchangedNode(
 
     acc.values[newId] = resolvedValue;
     reconciledValue = resolvedValue;
-    carryValuesMeta(acc.valueLineage, newId, priorNodeId, priorData, now, false);
+    carryValuesMeta(
+      acc.valueLineage,
+      newId,
+      priorNodeId,
+      priorData,
+      now,
+      false
+    );
     if (didApplyDefaultChange) {
       acc.diffs.push(migratedDiff(newId, priorValue, resolvedValue));
     }
   }
 
-  acc.resolutions.push(carriedResolution(
-    newId,
-    priorNodeId,
-    matchedBy,
-    priorNode.type,
-    priorValue,
-    reconciledValue
-  ));
+  acc.resolutions.push(
+    carriedResolution(
+      newId,
+      priorNodeId,
+      matchedBy,
+      priorNode.type,
+      priorValue,
+      reconciledValue
+    )
+  );
 }
 
 export function detectRemovedNodes(
@@ -395,7 +456,11 @@ export function detectRemovedNodes(
   priorData: DataSnapshot,
   options: ReconciliationOptions,
   now: number
-): { diffs: StateDiff[]; issues: ReconciliationIssue[]; detachedValues: Record<string, DetachedValue> } {
+): {
+  diffs: StateDiff[];
+  issues: ReconciliationIssue[];
+  detachedValues: Record<string, DetachedValue>;
+} {
   const diffs: StateDiff[] = [];
   const issues: ReconciliationIssue[] = [];
   const detachedValues: Record<string, DetachedValue> = {};
@@ -403,10 +468,10 @@ export function detectRemovedNodes(
   for (const [priorId, priorValue] of Object.entries(priorData.values)) {
     const resolvedPriorId = resolvePriorSnapshotId(ctx, priorId) ?? priorId;
     const priorComp = ctx.priorById.get(resolvedPriorId);
-    const keyMatchedNode = priorComp ? findNewNodeByPriorNode(ctx, priorComp) : null;
-    const stillExists =
-      ctx.newById.has(resolvedPriorId) ||
-      !!keyMatchedNode;
+    const keyMatchedNode = priorComp
+      ? findNewNodeByPriorNode(ctx, priorComp)
+      : null;
+    const stillExists = ctx.newById.has(resolvedPriorId) || !!keyMatchedNode;
 
     if (!stillExists) {
       diffs.push(removedDiff(resolvedPriorId, priorValue));

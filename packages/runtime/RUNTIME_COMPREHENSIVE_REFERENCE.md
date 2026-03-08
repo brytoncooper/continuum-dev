@@ -1,4 +1,4 @@
-# `@continuum/runtime` Comprehensive Reference
+# `@continuum-dev/runtime` Comprehensive Reference
 
 This document is a deep technical guide to everything currently inside `packages/runtime`.
 
@@ -11,7 +11,7 @@ It is written for both:
 
 ## 1) Package Purpose
 
-`@continuum/runtime` is a pure reconciliation engine:
+`@continuum-dev/runtime` is a pure reconciliation engine:
 
 - Input: `newView`, `priorView`, `priorData`, and optional reconciliation options.
 - Output: a deterministic `ReconciliationResult` containing:
@@ -108,10 +108,10 @@ Purpose:
 
 Important fields:
 
-- `name: "@continuum/runtime"`
+- `name: "@continuum-dev/runtime"`
 - `type: "module"` (ESM semantics)
 - `main` and `types` both point to `./src/index.ts` in-repo
-- dependency on `@continuum/contract`
+- dependency on `@continuum-dev/contract`
 
 Methods/functions:
 
@@ -961,7 +961,7 @@ When adding new reconciliation behavior:
 
 ## 12) Summary
 
-`@continuum/runtime` is organized around a clear pipeline:
+`@continuum-dev/runtime` is organized around a clear pipeline:
 
 - context indexing -> node resolution -> removal detection -> final assembly.
 

@@ -1,7 +1,7 @@
 import { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ViewDefinition } from '@continuum/contract';
-import type { Session } from '@continuum/session';
+import type { ViewDefinition } from '@continuum-dev/contract';
+import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ContinuumProvider } from './context.js';
 import { useContinuumSession } from './hooks.js';
@@ -13,7 +13,13 @@ const viewDef: ViewDefinition = {
 };
 
 const componentMap = {
-  field: ({ value, onChange }: { value: { value?: string } | undefined; onChange: (next: { value: string }) => void }) => (
+  field: ({
+    value,
+    onChange,
+  }: {
+    value: { value?: string } | undefined;
+    onChange: (next: { value: string }) => void;
+  }) => (
     <input
       data-testid="input"
       value={typeof value?.value === 'string' ? value.value : ''}
@@ -22,7 +28,9 @@ const componentMap = {
   ),
 };
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function renderIntoDom(element: ReactElement) {
   const container = document.createElement('div');
@@ -41,7 +49,11 @@ function renderIntoDom(element: ReactElement) {
   };
 }
 
-function SessionProbe({ onSession }: { onSession: (session: Session) => void }) {
+function SessionProbe({
+  onSession,
+}: {
+  onSession: (session: Session) => void;
+}) {
   const session = useContinuumSession();
   onSession(session);
   return null;
@@ -68,7 +80,11 @@ describe('react persistence guard', () => {
         persist="localStorage"
         maxPersistBytes={100_000}
       >
-        <SessionProbe onSession={(next) => { session = next; }} />
+        <SessionProbe
+          onSession={(next) => {
+            session = next;
+          }}
+        />
       </ContinuumProvider>
     );
 
@@ -96,7 +112,11 @@ describe('react persistence guard', () => {
           errors.push(error as unknown as Record<string, unknown>);
         }}
       >
-        <SessionProbe onSession={(next) => { session = next; }} />
+        <SessionProbe
+          onSession={(next) => {
+            session = next;
+          }}
+        />
       </ContinuumProvider>
     );
 
@@ -119,7 +139,9 @@ describe('react persistence guard', () => {
     vi.useFakeTimers();
     const setItemSpy = vi
       .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => { throw new Error('quota exceeded'); });
+      .mockImplementation(() => {
+        throw new Error('quota exceeded');
+      });
     const errors: Array<Record<string, unknown>> = [];
     let session: Session | null = null;
     const rendered = renderIntoDom(
@@ -130,7 +152,11 @@ describe('react persistence guard', () => {
           errors.push(error as unknown as Record<string, unknown>);
         }}
       >
-        <SessionProbe onSession={(next) => { session = next; }} />
+        <SessionProbe
+          onSession={(next) => {
+            session = next;
+          }}
+        />
       </ContinuumProvider>
     );
 

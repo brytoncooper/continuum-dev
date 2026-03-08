@@ -1,4 +1,4 @@
-import type { ReconciliationIssue } from '@continuum/runtime';
+import type { ReconciliationIssue } from '@continuum-dev/runtime';
 import type { SessionState } from './session-state.js';
 
 /**
@@ -7,7 +7,9 @@ import type { SessionState } from './session-state.js';
  * @param internal Mutable internal session state.
  * @returns Final snapshot of issues captured before teardown.
  */
-export function teardownSessionAndClearState(internal: SessionState): { issues: ReconciliationIssue[] } {
+export function teardownSessionAndClearState(internal: SessionState): {
+  issues: ReconciliationIssue[];
+} {
   internal.destroyed = true;
   internal.currentView = null;
   internal.currentData = null;

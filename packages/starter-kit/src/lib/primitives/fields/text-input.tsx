@@ -1,7 +1,12 @@
-import type { NodeValue } from '@continuum/contract';
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { NodeValue } from '@continuum-dev/contract';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { FieldFrame, inputLikeStyle } from '../shared/field-frame.js';
-import { nodeDescription, nodeLabel, nodePlaceholder, readNodeProp } from '../shared/node.js';
+import {
+  nodeDescription,
+  nodeLabel,
+  nodePlaceholder,
+  readNodeProp,
+} from '../shared/node.js';
 
 export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
   const dataType = readNodeProp<string>(definition, 'dataType') ?? 'string';
@@ -12,20 +17,29 @@ export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
         ? String(rawValue)
         : ''
       : typeof rawValue === 'string'
-        ? rawValue
-        : '';
+      ? rawValue
+      : '';
 
   return (
-    <FieldFrame label={nodeLabel(definition)} description={nodeDescription(definition)}>
+    <FieldFrame
+      label={nodeLabel(definition)}
+      description={nodeDescription(definition)}
+    >
       <input
         type={dataType === 'number' ? 'number' : 'text'}
         value={displayValue}
-        placeholder={nodePlaceholder(definition) ?? `Enter ${nodeLabel(definition).toLowerCase()}`}
+        placeholder={
+          nodePlaceholder(definition) ??
+          `Enter ${nodeLabel(definition).toLowerCase()}`
+        }
         readOnly={Boolean(readNodeProp<boolean>(definition, 'readOnly'))}
         style={inputLikeStyle()}
         onChange={(event) =>
           onChange({
-            value: dataType === 'number' ? Number(event.target.value) : event.target.value,
+            value:
+              dataType === 'number'
+                ? Number(event.target.value)
+                : event.target.value,
             isDirty: true,
           } as NodeValue)
         }

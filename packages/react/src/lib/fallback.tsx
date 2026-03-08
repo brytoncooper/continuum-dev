@@ -1,4 +1,4 @@
-import type { NodeValue } from '@continuum/core';
+import type { NodeValue } from '@continuum-dev/core';
 import type { ContinuumNodeProps } from './types.js';
 
 /**
@@ -17,14 +17,16 @@ export function FallbackComponent({
 
   const meta = definition as unknown as Record<string, unknown>;
   const displayName =
-    (typeof meta['label'] === 'string' ? meta['label'] : null) ??
-    definition.id;
+    (typeof meta['label'] === 'string' ? meta['label'] : null) ?? definition.id;
   const placeholder =
     (typeof meta['placeholder'] === 'string' ? meta['placeholder'] : null) ??
     `Enter value for "${displayName}"`;
 
   return (
-    <div data-continuum-fallback={definition.type} className="continuum-fallback">
+    <div
+      data-continuum-fallback={definition.type}
+      className="continuum-fallback"
+    >
       <div className="continuum-fallback-title">
         Unknown type: {definition.type} ({displayName})
       </div>

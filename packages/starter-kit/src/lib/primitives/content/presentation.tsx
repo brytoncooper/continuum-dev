@@ -1,4 +1,4 @@
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { color, space, type } from '../../tokens.js';
 import { readNodeProp } from '../shared/node.js';
 

@@ -1,6 +1,16 @@
-import { getChildNodes } from '@continuum/contract';
-import type { CollectionNodeState, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession, useContinuumSnapshot } from '@continuum/react';
+import { getChildNodes } from '@continuum-dev/contract';
+import type {
+  CollectionNodeState,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
 import { useEffect, useMemo } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
@@ -8,7 +18,10 @@ import { color, radius, space, type } from '../../ui/tokens';
 import { createHighlightedComponentMap } from './highlighted-node-map';
 import { StateSummaryCard } from './state-summary-card';
 import { StaticViewRenderer } from './static-view-renderer';
-import type { PlaygroundCollectionScenario, PlaygroundCollectionReplayState } from '../types';
+import type {
+  PlaygroundCollectionScenario,
+  PlaygroundCollectionReplayState,
+} from '../types';
 
 const statusRowStyle = {
   display: 'flex',
@@ -18,14 +31,17 @@ const statusRowStyle = {
   flexWrap: 'wrap',
 } as const;
 
-const statusChipStyle = (status: string) => ({
-  ...type.small,
-  color: color.text,
-  padding: `${space.sm}px ${space.md}px`,
-  borderRadius: radius.pill,
-  border: `1px solid ${status.includes('lost') ? color.borderStrong : color.border}`,
-  background: color.surface,
-} as const);
+const statusChipStyle = (status: string) =>
+  ({
+    ...type.small,
+    color: color.text,
+    padding: `${space.sm}px ${space.md}px`,
+    borderRadius: radius.pill,
+    border: `1px solid ${
+      status.includes('lost') ? color.borderStrong : color.border
+    }`,
+    background: color.surface,
+  } as const);
 
 const previewStyle = {
   padding: space.lg,
@@ -89,7 +105,10 @@ function scopedNodeId(nodeId: string, parentNodeId?: string): string {
   return parentNodeId ? `${parentNodeId}/${nodeId}` : nodeId;
 }
 
-function collectVisibleRelativeIds(node: ViewNode, parentNodeId?: string): string[] {
+function collectVisibleRelativeIds(
+  node: ViewNode,
+  parentNodeId?: string
+): string[] {
   const nodeId = scopedNodeId(node.id, parentNodeId);
   const childNodes = getChildNodes(node);
 
@@ -97,14 +116,26 @@ function collectVisibleRelativeIds(node: ViewNode, parentNodeId?: string): strin
     return 'key' in node && typeof node.key === 'string' ? [nodeId] : [];
   }
 
-  return childNodes.flatMap((childNode) => collectVisibleRelativeIds(childNode, nodeId));
+  return childNodes.flatMap((childNode) =>
+    collectVisibleRelativeIds(childNode, nodeId)
+  );
 }
 
-function currentItemCount(values: Record<string, NodeValue>, collectionNodeId: string): number {
-  return ((values[collectionNodeId] as NodeValue<CollectionNodeState> | undefined)?.value?.items ?? []).length;
+function currentItemCount(
+  values: Record<string, NodeValue>,
+  collectionNodeId: string
+): number {
+  return (
+    (values[collectionNodeId] as NodeValue<CollectionNodeState> | undefined)
+      ?.value?.items ?? []
+  ).length;
 }
 
-function visibleValueCount(view: ViewDefinition, values: Record<string, NodeValue>, collectionNodeId: string): number {
+function visibleValueCount(
+  view: ViewDefinition,
+  values: Record<string, NodeValue>,
+  collectionNodeId: string
+): number {
   const collectionNode = view.nodes.find(
     (node) => node.type === 'collection' && node.id === collectionNodeId
   ) as ViewNode | undefined;
@@ -113,14 +144,19 @@ function visibleValueCount(view: ViewDefinition, values: Record<string, NodeValu
     return 0;
   }
 
-  const visibleRelativeIds = new Set(collectVisibleRelativeIds(collectionNode.template));
+  const visibleRelativeIds = new Set(
+    collectVisibleRelativeIds(collectionNode.template)
+  );
   const items =
-    ((values[collectionNodeId] as NodeValue<CollectionNodeState> | undefined)?.value?.items ?? []);
+    (values[collectionNodeId] as NodeValue<CollectionNodeState> | undefined)
+      ?.value?.items ?? [];
 
   return items.reduce((count, item) => {
     return (
       count +
-      Object.keys(item.values ?? {}).filter((relativeId) => visibleRelativeIds.has(relativeId)).length
+      Object.keys(item.values ?? {}).filter((relativeId) =>
+        visibleRelativeIds.has(relativeId)
+      ).length
     );
   }, 0);
 }
@@ -130,12 +166,19 @@ function replayNaiveCollectionScenario(
   stepIndex: number,
   inputValues: Record<string, string>
 ): PlaygroundCollectionReplayState {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
   const currentView = scenario.steps[boundedStepIndex].view;
   const values = {
     [scenario.collectionNodeId]: scenario.buildCollectionValue(inputValues),
   };
-  const visibleValues = visibleValueCount(currentView, values, scenario.collectionNodeId);
+  const visibleValues = visibleValueCount(
+    currentView,
+    values,
+    scenario.collectionNodeId
+  );
 
   return {
     view: currentView,
@@ -145,8 +188,8 @@ function replayNaiveCollectionScenario(
       boundedStepIndex === 0
         ? 'User data staged'
         : visibleValues > 0
-          ? 'Collection values partially visible'
-          : 'Item values lost on naive path',
+        ? 'Collection values partially visible'
+        : 'Item values lost on naive path',
   };
 }
 
@@ -183,7 +226,9 @@ function CollectionPaneCard({
         <div style={summaryGridStyle}>
           <div style={fullRowStyle}>
             <div style={explanationCardStyle}>
-              <div style={explanationTitleStyle}>Why this pane behaves this way</div>
+              <div style={explanationTitleStyle}>
+                Why this pane behaves this way
+              </div>
               <div style={explanationBodyStyle}>{modelDescription}</div>
             </div>
           </div>
@@ -193,7 +238,10 @@ function CollectionPaneCard({
               rows={[
                 { label: 'Semantic key', value: collectionKey },
                 { label: 'Items present now', value: String(itemCount) },
-                { label: 'Seeded user values', value: String(seededValueCount) },
+                {
+                  label: 'Seeded user values',
+                  value: String(seededValueCount),
+                },
                 { label: 'Visible values now', value: String(visibleCount) },
               ]}
             />
@@ -216,12 +264,18 @@ function ContinuumCollectionRuntime({
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
     session.pushView(scenario.steps[0].view);
-    session.updateState(scenario.collectionNodeId, scenario.buildCollectionValue(inputValues));
+    session.updateState(
+      scenario.collectionNodeId,
+      scenario.buildCollectionValue(inputValues)
+    );
 
     for (let index = 1; index <= boundedStepIndex; index += 1) {
       session.pushView(scenario.steps[index].view);
@@ -230,14 +284,20 @@ function ContinuumCollectionRuntime({
 
   const currentView = snapshot?.view ?? scenario.steps[boundedStepIndex].view;
   const values = snapshot?.data.values ?? {};
-  const visibleCount = visibleValueCount(currentView, values, scenario.collectionNodeId);
+  const visibleCount = visibleValueCount(
+    currentView,
+    values,
+    scenario.collectionNodeId
+  );
   const seededValueCount = scenario.inputFields?.length ?? 0;
 
   return (
     <CollectionPaneCard
       title="With Continuum Reconciliation"
       description="The same collection template upgrade remaps the repeated item values into the richer item shape."
-      status={boundedStepIndex === 0 ? 'User data staged' : 'Item values preserved'}
+      status={
+        boundedStepIndex === 0 ? 'User data staged' : 'Item values preserved'
+      }
       modelDescription="Continuum keeps the collection state and remaps each repeated item's stored values into the evolved template path."
       collectionKey={scenario.collectionKey}
       itemCount={currentItemCount(values, scenario.collectionNodeId)}
@@ -276,12 +336,20 @@ export function CollectionPane({
   if (mode === 'continuum') {
     return (
       <ContinuumProvider components={componentMap} persist={false}>
-        <ContinuumCollectionRuntime scenario={scenario} stepIndex={stepIndex} inputValues={inputValues} />
+        <ContinuumCollectionRuntime
+          scenario={scenario}
+          stepIndex={stepIndex}
+          inputValues={inputValues}
+        />
       </ContinuumProvider>
     );
   }
 
-  const replay = replayNaiveCollectionScenario(scenario, stepIndex, inputValues);
+  const replay = replayNaiveCollectionScenario(
+    scenario,
+    stepIndex,
+    inputValues
+  );
 
   return (
     <CollectionPaneCard
@@ -292,7 +360,11 @@ export function CollectionPane({
       collectionKey={scenario.collectionKey}
       itemCount={replay.itemCount}
       seededValueCount={scenario.inputFields?.length ?? 0}
-      visibleCount={visibleValueCount(replay.view, replay.values, scenario.collectionNodeId)}
+      visibleCount={visibleValueCount(
+        replay.view,
+        replay.values,
+        scenario.collectionNodeId
+      )}
       values={replay.values}
       preview={
         <StaticViewRenderer

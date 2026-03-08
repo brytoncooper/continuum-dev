@@ -9,13 +9,13 @@ import type {
   ProposedValue,
   ActionRegistration,
   ActionHandler,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResolution,
   StateDiff,
-} from '@continuum/runtime';
+} from '@continuum-dev/runtime';
 
 /**
  * Internal mutable session backing state.
@@ -44,7 +44,10 @@ export interface SessionState {
   snapshotListeners: Set<(snapshot: ContinuitySnapshot) => void>;
   issueListeners: Set<(issues: ReconciliationIssue[]) => void>;
   pendingProposals: Record<string, ProposedValue>;
-  actionRegistry: Map<string, { registration: ActionRegistration; handler: ActionHandler }>;
+  actionRegistry: Map<
+    string,
+    { registration: ActionRegistration; handler: ActionHandler }
+  >;
   destroyed: boolean;
 }
 
@@ -55,7 +58,10 @@ export interface SessionState {
  * @param clock Clock source used for ids/timestamps.
  * @returns Initialized internal state object.
  */
-export function createEmptySessionState(sessionId: string, clock: () => number): SessionState {
+export function createEmptySessionState(
+  sessionId: string,
+  clock: () => number
+): SessionState {
   return {
     sessionId,
     clock,

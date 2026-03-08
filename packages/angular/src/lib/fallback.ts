@@ -5,7 +5,7 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import type { ViewNode, NodeValue } from '@continuum/contract';
+import type { ViewNode, NodeValue } from '@continuum-dev/contract';
 
 @Component({
   selector: 'continuum-fallback',
@@ -32,7 +32,8 @@ import type { ViewNode, NodeValue } from '@continuum/contract';
           style="font-size: 10px; overflow: auto; background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 4px 0 0"
         >
           {{ definitionJson() }}
-        </pre>
+        </pre
+        >
       </details>
     </div>
   `,
@@ -49,7 +50,11 @@ export class ContinuumFallbackComponent {
   });
   protected placeholder = computed(() => {
     const def = this.definition();
-    return ('placeholder' in def ? (def as { placeholder?: string }).placeholder : undefined) ?? `Enter value for "${this.displayName()}"`;
+    return (
+      ('placeholder' in def
+        ? (def as { placeholder?: string }).placeholder
+        : undefined) ?? `Enter value for "${this.displayName()}"`
+    );
   });
   protected textValue = computed(() => {
     const v = this.value();

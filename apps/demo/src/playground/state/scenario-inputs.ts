@@ -1,5 +1,12 @@
-import type { NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
-import type { PlaygroundScenario, PlaygroundScenarioInputField } from '../types';
+import type {
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
+import type {
+  PlaygroundScenario,
+  PlaygroundScenarioInputField,
+} from '../types';
 
 function childNodes(node: ViewNode): ViewNode[] {
   if ('children' in node && Array.isArray(node.children)) {
@@ -24,11 +31,16 @@ function findNodeByKey(nodes: ViewNode[], trackedKey: string): ViewNode | null {
   return null;
 }
 
-function findNodeByKeyInView(view: ViewDefinition, trackedKey: string): ViewNode | null {
+function findNodeByKeyInView(
+  view: ViewDefinition,
+  trackedKey: string
+): ViewNode | null {
   return findNodeByKey(view.nodes, trackedKey);
 }
 
-function initialFieldKeys(scenario: PlaygroundScenario): Array<{ key: string; label: string }> {
+function initialFieldKeys(
+  scenario: PlaygroundScenario
+): Array<{ key: string; label: string }> {
   if (scenario.inputFields?.length) {
     return scenario.inputFields.map((field) => ({
       key: field.key,
@@ -37,7 +49,9 @@ function initialFieldKeys(scenario: PlaygroundScenario): Array<{ key: string; la
   }
 
   if (scenario.kind === 'state-drop') {
-    return [{ key: scenario.trackedField.key, label: scenario.trackedField.label }];
+    return [
+      { key: scenario.trackedField.key, label: scenario.trackedField.label },
+    ];
   }
 
   return scenario.trackedFields.map((field) => ({
@@ -58,7 +72,9 @@ function isMultilineNode(node: ViewNode | null): boolean {
   return Boolean(node && 'type' in node && node.type === 'textarea');
 }
 
-export function getScenarioInputFields(scenario: PlaygroundScenario): PlaygroundScenarioInputField[] {
+export function getScenarioInputFields(
+  scenario: PlaygroundScenario
+): PlaygroundScenarioInputField[] {
   if (scenario.inputFields?.length) {
     return scenario.inputFields;
   }
@@ -77,7 +93,9 @@ export function getScenarioInputFields(scenario: PlaygroundScenario): Playground
   });
 }
 
-export function getScenarioDefaultInputValues(scenario: PlaygroundScenario): Record<string, string> {
+export function getScenarioDefaultInputValues(
+  scenario: PlaygroundScenario
+): Record<string, string> {
   if (scenario.defaultInputValues) {
     return scenario.defaultInputValues;
   }
@@ -89,7 +107,10 @@ export function getScenarioDefaultInputValues(scenario: PlaygroundScenario): Rec
   }
 
   return Object.fromEntries(
-    Object.entries(scenario.initialValues).map(([key, value]) => [key, typeof value.value === 'string' ? value.value : String(value.value ?? '')])
+    Object.entries(scenario.initialValues).map(([key, value]) => [
+      key,
+      typeof value.value === 'string' ? value.value : String(value.value ?? ''),
+    ])
   );
 }
 
@@ -102,7 +123,11 @@ export function buildSeedValues(
       key,
       {
         ...value,
-        value: inputValues[key] ?? (typeof value.value === 'string' ? value.value : String(value.value ?? '')),
+        value:
+          inputValues[key] ??
+          (typeof value.value === 'string'
+            ? value.value
+            : String(value.value ?? '')),
         isDirty: true,
       },
     ])

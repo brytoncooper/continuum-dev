@@ -4,16 +4,16 @@ export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/angular',
   resolve: {
-    conditions: ['@continuum/source'],
+    conditions: ['@continuum-dev/source'],
   },
   ssr: {
     resolve: {
-      conditions: ['@continuum/source'],
+      conditions: ['@continuum-dev/source'],
     },
   },
   plugins: [],
   test: {
-    name: '@continuum/angular',
+    name: '@continuum-dev/angular',
     watch: false,
     globals: true,
     environment: 'jsdom',

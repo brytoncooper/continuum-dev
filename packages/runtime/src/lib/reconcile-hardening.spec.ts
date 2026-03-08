@@ -1,7 +1,14 @@
-import type { ViewDefinition, ViewNode, DataSnapshot } from '@continuum/contract';
-import { ISSUE_CODES } from '@continuum/contract';
+import type {
+  ViewDefinition,
+  ViewNode,
+  DataSnapshot,
+} from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/contract';
 import { describe, expect, it } from 'vitest';
-import { buildPriorValueLookupByIdAndKey, buildReconciliationContext } from './context.js';
+import {
+  buildPriorValueLookupByIdAndKey,
+  buildReconciliationContext,
+} from './context.js';
 import { reconcile } from './reconcile.js';
 import { computeViewHash } from './reconciliation/state-builder.js';
 
@@ -48,7 +55,9 @@ describe('runtime hardening', () => {
     });
 
     expect(result.reconciledState.values.a).toBeNull();
-    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.MIGRATION_FAILED)).toBe(false);
+    expect(
+      result.issues.some((issue) => issue.code === ISSUE_CODES.MIGRATION_FAILED)
+    ).toBe(false);
     expect(result.diffs[0]).toEqual({
       nodeId: 'a',
       type: 'migrated',
@@ -66,7 +75,11 @@ describe('runtime hardening', () => {
     };
 
     const result = reconcile(nextView, priorView, priorData, {
-      migrationStrategies: { a: () => { throw new Error('boom'); } },
+      migrationStrategies: {
+        a: () => {
+          throw new Error('boom');
+        },
+      },
     });
 
     expect(result.reconciledState.values.a).toEqual({ value: 'old' });
@@ -101,14 +114,22 @@ describe('runtime hardening', () => {
       viewId: 'view-1',
       version: '1',
       nodes: [
-        makeNode({ id: 'root', type: 'group', children: [makeNode({ id: 'old-child', key: 'child-key' })] }),
+        makeNode({
+          id: 'root',
+          type: 'group',
+          children: [makeNode({ id: 'old-child', key: 'child-key' })],
+        }),
       ],
     };
     const next: ViewDefinition = {
       viewId: 'view-1',
       version: '2',
       nodes: [
-        makeNode({ id: 'root', type: 'group', children: [makeNode({ id: 'new-child', key: 'child-key' })] }),
+        makeNode({
+          id: 'root',
+          type: 'group',
+          children: [makeNode({ id: 'new-child', key: 'child-key' })],
+        }),
       ],
     };
     const context = buildReconciliationContext(next, previous);
@@ -165,7 +186,11 @@ describe('runtime hardening', () => {
 
     const result = reconcile(cyclicView, null, null);
 
-    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.VIEW_CHILD_CYCLE_DETECTED)).toBe(true);
+    expect(
+      result.issues.some(
+        (issue) => issue.code === ISSUE_CODES.VIEW_CHILD_CYCLE_DETECTED
+      )
+    ).toBe(true);
   });
 
   it('reports max-depth issues for overly deep trees', () => {
@@ -184,6 +209,10 @@ describe('runtime hardening', () => {
 
     const result = reconcile(deepView, null, null);
 
-    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.VIEW_MAX_DEPTH_EXCEEDED)).toBe(true);
+    expect(
+      result.issues.some(
+        (issue) => issue.code === ISSUE_CODES.VIEW_MAX_DEPTH_EXCEEDED
+      )
+    ).toBe(true);
   });
 });

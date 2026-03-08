@@ -25,7 +25,7 @@
   "types": "./index.d.ts",
   "exports": {
     ".": {
-      "@continuum/source": "./src/index.ts",
+      "@continuum-dev/source": "./src/index.ts",
       "types": "./index.d.ts",
       "import": "./index.js",
       "default": "./index.js"

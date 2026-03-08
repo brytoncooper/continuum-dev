@@ -1,10 +1,10 @@
-# `@continuum/adapters` Deep Reference
+# `@continuum-dev/adapters` Deep Reference
 
 This document explains every file and every method/function in `packages/adapters` so future engineers and AI agents can understand, maintain, and extend the library safely.
 
 ## Purpose of This Library
 
-`@continuum/adapters` is the protocol translation layer between external UI schema formats and Continuum's core contract types from `@continuum/contract`.
+`@continuum-dev/adapters` is the protocol translation layer between external UI schema formats and Continuum's core contract types from `@continuum-dev/contract`.
 
 Current implementation scope:
 
@@ -35,7 +35,7 @@ The package currently contains 11 files:
 
 ## `README.md`
 
-Human-facing usage guide for consumers of `@continuum/adapters`.
+Human-facing usage guide for consumers of `@continuum-dev/adapters`.
 
 What it covers:
 
@@ -59,10 +59,10 @@ Declares package identity and module entrypoint.
 
 Key fields:
 
-- `name`: `@continuum/adapters`
+- `name`: `@continuum-dev/adapters`
 - `type`: `module` (ESM semantics)
 - `main`/`types`/`exports["."]`: all point to `./src/index.ts`
-- Dependency on `@continuum/contract` for shared view/data types
+- Dependency on `@continuum-dev/contract` for shared view/data types
 - Nx tagging: `scope:adapters`
 
 Operational implication:
@@ -137,7 +137,7 @@ Exports:
 
 Purpose:
 
-- Centralized import surface for consumers (`import { a2uiAdapter } from '@continuum/adapters'`).
+- Centralized import surface for consumers (`import { a2uiAdapter } from '@continuum-dev/adapters'`).
 
 ---
 
@@ -262,7 +262,7 @@ Algorithm:
 1. Normalize raw type from `field.type` (fallback to `'default'` when non-string).
 2. Resolve node `id`:
    - Use `field.name` when present.
-   - Otherwise generate deterministic id: ``${rawType.toLowerCase()}_${nextGeneratedId()}``.
+   - Otherwise generate deterministic id: `${rawType.toLowerCase()}_${nextGeneratedId()}`.
 3. Resolve Continuum `type` and optional `dataType` via `DATA_TYPE_MAP` (fallback `field` with `dataType: 'string'`).
 4. Initialize base `ViewNode` with `{ id, type, key: id }`.
 5. If `field.label` exists, set `def.label`.

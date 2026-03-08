@@ -8,16 +8,40 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@continuum/adapters': resolve(__dirname, '../../packages/adapters/src/index.ts'),
-      '@continuum/contract': resolve(__dirname, '../../packages/contract/src/index.ts'),
-      '@continuum/core': resolve(__dirname, '../../packages/core/src/index.ts'),
-      '@continuum/prompts': resolve(__dirname, '../../packages/prompts/src/index.ts'),
-      '@continuum/react': resolve(__dirname, '../../packages/react/src/index.ts'),
-      '@continuum/runtime': resolve(__dirname, '../../packages/runtime/src/index.ts'),
-      '@continuum/session': resolve(__dirname, '../../packages/session/src/index.ts'),
-      '@continuum/starter-kit': resolve(__dirname, '../../packages/starter-kit/src/index.ts'),
+      '@continuum-dev/adapters': resolve(
+        __dirname,
+        '../../packages/adapters/src/index.ts'
+      ),
+      '@continuum-dev/contract': resolve(
+        __dirname,
+        '../../packages/contract/src/index.ts'
+      ),
+      '@continuum-dev/core': resolve(
+        __dirname,
+        '../../packages/core/src/index.ts'
+      ),
+      '@continuum-dev/prompts': resolve(
+        __dirname,
+        '../../packages/prompts/src/index.ts'
+      ),
+      '@continuum-dev/react': resolve(
+        __dirname,
+        '../../packages/react/src/index.ts'
+      ),
+      '@continuum-dev/runtime': resolve(
+        __dirname,
+        '../../packages/runtime/src/index.ts'
+      ),
+      '@continuum-dev/session': resolve(
+        __dirname,
+        '../../packages/session/src/index.ts'
+      ),
+      '@continuum-dev/starter-kit': resolve(
+        __dirname,
+        '../../packages/starter-kit/src/index.ts'
+      ),
     },
-    conditions: ['@continuum/source'],
+    conditions: ['@continuum-dev/source'],
   },
   server: {
     port: 4300,

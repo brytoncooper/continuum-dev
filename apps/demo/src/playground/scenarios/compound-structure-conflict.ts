@@ -1,4 +1,4 @@
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import type { PlaygroundConflictScenario } from '../types';
 
 const initialView: ViewDefinition = {
@@ -108,7 +108,8 @@ const evolvedView: ViewDefinition = {
 export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
   id: 'compound-structure-conflict',
   kind: 'conflict-proposals',
-  title: 'A single AI update should be able to restructure the form and still respect dirty user input.',
+  title:
+    'A single AI update should be able to restructure the form and still respect dirty user input.',
   selectorLabel: 'Compound update',
   problem:
     'The user has already filled out the draft. Then one deterministic AI pass both reorganizes the form into new sections and proposes replacement values for several dirty fields. Without continuity, the moved fields are overwritten immediately.',
@@ -139,7 +140,8 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
     'profile.title': { value: 'Founder and CEO' },
     'profile.company': { value: 'Continuum Labs' },
     'profile.notes': {
-      value: 'AI draft wants a sharper company story and a more assertive launch message.',
+      value:
+        'AI draft wants a sharper company story and a more assertive launch message.',
     },
   },
   nextProblems: [
@@ -156,7 +158,8 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
     },
     {
       id: 'compound-update',
-      title: 'Step 2: The AI reorganizes the form and proposes replacements in one pass',
+      title:
+        'Step 2: The AI reorganizes the form and proposes replacements in one pass',
       description:
         'The view moves the fields under new groups while the same update also proposes replacement values for title, company, and notes.',
       view: evolvedView,

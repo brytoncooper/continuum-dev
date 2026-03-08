@@ -4,16 +4,16 @@ export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/adapters',
   resolve: {
-    conditions: ['@continuum/source'],
+    conditions: ['@continuum-dev/source'],
   },
   ssr: {
     resolve: {
-      conditions: ['@continuum/source'],
+      conditions: ['@continuum-dev/source'],
     },
   },
   plugins: [],
   test: {
-    name: '@continuum/adapters',
+    name: '@continuum-dev/adapters',
     watch: false,
     globals: true,
     environment: 'node',
