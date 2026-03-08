@@ -24,6 +24,7 @@
       "@continuum-dev/session": ["./packages/session/src/index.ts"],
       "@continuum-dev/core": ["./packages/core/src/index.ts"],
       "@continuum-dev/adapters": ["./packages/adapters/src/index.ts"],
+      "@continuum-dev/ai-connect": ["./packages/ai-connect/src/index.ts"],
       "@continuum-dev/react": ["./packages/react/src/index.ts"],
       "@continuum-dev/angular": ["./packages/angular/src/index.ts"],
       "@continuum-dev/prompts": ["./packages/prompts/src/index.ts"],

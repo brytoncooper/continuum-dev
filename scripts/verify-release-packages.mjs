@@ -3,8 +3,19 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-const packageNames = ['contract', 'runtime', 'session', 'core', 'react', 'prompts', 'starter-kit'];
-const distRoots = packageNames.map((name) => resolve(process.cwd(), 'dist', 'packages', name));
+const packageNames = [
+  'contract',
+  'runtime',
+  'session',
+  'core',
+  'react',
+  'prompts',
+  'ai-connect',
+  'starter-kit',
+];
+const distRoots = packageNames.map((name) =>
+  resolve(process.cwd(), 'dist', 'packages', name)
+);
 
 const forbiddenFilePatterns = [
   /\.spec\.[cm]?[jt]sx?$/i,
@@ -29,7 +40,9 @@ function assertDistOutputsExist() {
       throw new Error(`Missing dist package output: ${distRoot}`);
     }
     if (!existsSync(resolve(distRoot, 'package.json'))) {
-      throw new Error(`Missing dist package manifest: ${resolve(distRoot, 'package.json')}`);
+      throw new Error(
+        `Missing dist package manifest: ${resolve(distRoot, 'package.json')}`
+      );
     }
   }
 }
@@ -70,12 +83,13 @@ function assertNodeImportSmoke(tarballs) {
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'core')]}"`,
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'react')]}"`,
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'prompts')]}"`,
+      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'ai-connect')]}"`,
       `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'starter-kit')]}"`,
       'react@18',
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
     run(
-      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/core\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\'); await import(\'@continuum-dev/starter-kit\');"',
+      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/core\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\'); await import(\'@continuum-dev/ai-connect\'); await import(\'@continuum-dev/starter-kit\');"',
       tempRoot
     );
   } finally {
