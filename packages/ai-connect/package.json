@@ -1,0 +1,49 @@
+{
+  "name": "@continuum-dev/ai-connect",
+  "version": "0.1.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Headless provider connection clients for Continuum AI workflows",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/ai-connect"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "ai",
+    "providers",
+    "llm",
+    "headless"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "dependencies": {
+    "@continuum-dev/prompts": "^0.1.5"
+  },
+  "nx": {
+    "tags": [
+      "scope:ai-connect"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/ai-connect",
+    "tsBuildInfoFile": "../../dist/packages/ai-connect/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "lib": ["es2022", "dom"],
+    "emitDeclarationOnly": false
+  },
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../prompts/tsconfig.lib.json"
+    }
+  ]
+}

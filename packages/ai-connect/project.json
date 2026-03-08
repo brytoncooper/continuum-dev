@@ -1,0 +1,16 @@
+{
+  "name": "@continuum-dev/ai-connect",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/ai-connect/src",
+  "projectType": "library",
+  "tags": ["scope:ai-connect"],
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/ai-connect"
+      }
+    }
+  }
+}
