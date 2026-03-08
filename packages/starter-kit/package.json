@@ -1,0 +1,56 @@
+{
+  "name": "@continuum-dev/starter-kit",
+  "version": "0.1.4",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Opinionated React starter kit for Continuum with primitives, component map, and prompt helpers",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/starter-kit"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "ai",
+    "ui",
+    "react",
+    "starter-kit",
+    "primitives",
+    "prompts"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@continuum-dev/core": "^0.1.4",
+    "@continuum-dev/prompts": "^0.1.4",
+    "@continuum-dev/react": "^0.1.4"
+  },
+  "nx": {
+    "tags": [
+      "scope:starter-kit"
+    ]
+  }
+}

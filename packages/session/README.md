@@ -2,6 +2,9 @@
 
 **The Stateful Ledger for Generative UI.** Give your AI agents memory, conflict resolution, and time-travel capabilities.
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 [![npm version](https://badge.fury.io/js/@continuum-dev%2Fsession.svg)](https://badge.fury.io/js/@continuum-dev%2Fsession)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
