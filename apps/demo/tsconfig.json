@@ -13,5 +13,21 @@
     "noEmit": true
   },
   "include": ["src/**/*"],
-  "references": []
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/starter-kit"
+    },
+    {
+      "path": "../../packages/session"
+    },
+    {
+      "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/contract"
+    }
+  ]
 }

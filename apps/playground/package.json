@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@continuum/adapters": "*",
-    "@continuum/contract": "*",
-    "@continuum/react": "*",
-    "@continuum/runtime": "*",
-    "@continuum/session": "*",
+    "@continuum-dev/adapters": "0.1.4",
+    "@continuum-dev/contract": "0.1.5",
+    "@continuum-dev/react": "0.1.5",
+    "@continuum-dev/runtime": "0.1.5",
+    "@continuum-dev/session": "0.1.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.13.1"
