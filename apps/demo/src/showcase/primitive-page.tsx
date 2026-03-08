@@ -4,6 +4,7 @@ import { repositoryUrl } from '../site-config';
 import { SiteNav } from '../ui/site-nav';
 import { PrimitiveView } from './primitive-view';
 import { demoSections } from './schemas';
+import { color, radius, space, type } from '../ui/tokens';
 
 const codeStyle = {
   margin: 0,
@@ -29,6 +30,58 @@ const installCardStyle = {
   display: 'grid',
   height: '100%',
 };
+
+const liveHeroStyle = {
+  display: 'grid',
+  gap: space.md,
+  padding: space.xl,
+  borderRadius: radius.md,
+  border: `1px solid ${color.borderStrong}`,
+  background: color.surfaceMuted,
+};
+
+const liveHeroTitleStyle = {
+  ...type.title,
+  color: color.text,
+};
+
+const liveHeroBodyStyle = {
+  ...type.body,
+  color: color.textMuted,
+};
+
+const highlightBodyStyle = {
+  ...type.body,
+  color: color.textMuted,
+};
+
+const relevanceHighlights = [
+  {
+    title: 'Live AI provider chat',
+    description:
+      'Starter-kit includes provider chat wiring with model selection, token handling, output contract generation, and one-click run flows.',
+  },
+  {
+    title: 'Session workbench and rewind',
+    description:
+      'Users get reset, checkpoints, preview-before-rewind, and confirmation flows for safer experimentation.',
+  },
+  {
+    title: 'Per-field proposals and suggestions',
+    description:
+      'AI updates can be reviewed at field level with accept/reject behavior and bulk suggestion controls.',
+  },
+  {
+    title: 'Starter prompts and quick try UX',
+    description:
+      'Optional suggested prompts with copy support make zero-setup demos easy while staying opt-in in code.',
+  },
+  {
+    title: 'Style customization without lock-in',
+    description:
+      'Starter-kit ships sensible defaults, but teams can override style slots and swap primitives over time.',
+  },
+];
 
 function InstallCard({
   title,
@@ -69,6 +122,12 @@ function InstallCard({
 }
 
 export function PrimitivePage() {
+  const orderedSections = [
+    ...demoSections.filter((section) => section.title === 'Container primitives'),
+    ...demoSections.filter((section) => section.title === 'Nested composition'),
+    ...demoSections.filter((section) => section.title === 'Primitive gallery'),
+  ];
+
   return (
     <PageShell
       nav={<SiteNav />}
@@ -76,6 +135,54 @@ export function PrimitivePage() {
       title="Continuum is headless by design. The Starter Kit gets teams moving fast."
       description="Continuum keeps the continuity layer headless so teams can bring their own design system. The Starter Kit is the opinionated React layer we provide for faster adoption, with ready-to-use primitives, action wiring patterns, and proposal-friendly UI."
     >
+      <PageSection
+        title="Try the Live AI Studio"
+        description="This is the best zero-setup showcase of starter-kit in action: provider setup, AI chat, session checkpoints, proposal flows, and generated Continuum rendering in one place."
+      >
+        <ExampleGrid alignItems="stretch">
+          <ExampleCard
+            title="Built with starter-kit primitives"
+            description="The Live AI page is built with starter-kit components end to end. If this experience feels good, you can ship it immediately and customize from there."
+            span={12}
+            fullHeight
+          >
+            <div style={liveHeroStyle}>
+              <div style={liveHeroTitleStyle}>Open the live studio and try it now</div>
+              <div style={liveHeroBodyStyle}>
+                Configure a provider, run prompts, review proposals, and rewind checkpoints with preview. This is the recommended first-stop page for new users evaluating starter-kit.
+              </div>
+              <div style={{ display: 'flex', gap: space.sm, flexWrap: 'wrap' }}>
+                <a href="/live-ai" style={actionStyle}>
+                  Launch Live AI
+                </a>
+                <a href="/docs" style={actionStyle}>
+                  Read setup docs
+                </a>
+              </div>
+            </div>
+          </ExampleCard>
+        </ExampleGrid>
+      </PageSection>
+
+      <PageSection
+        title="What Is Most Relevant Right Now"
+        description="These are the newest starter-kit capabilities, ordered by what delivers immediate value to teams evaluating Continuum."
+      >
+        <ExampleGrid alignItems="stretch">
+          {relevanceHighlights.map((item) => (
+            <ExampleCard
+              key={item.title}
+              title={item.title}
+              description={item.description}
+              span={6}
+              fullHeight
+            >
+              <div style={highlightBodyStyle}>Available in starter-kit now.</div>
+            </ExampleCard>
+          ))}
+        </ExampleGrid>
+      </PageSection>
+
       <PageSection
         title="Use the layer that matches your team"
         description="Start with the Starter Kit when you want a polished path to working screens. Drop down to headless React and core when you want full control over your component system and styling."
@@ -108,7 +215,7 @@ export function PrimitivePage() {
           </ExampleCard>
         </ExampleGrid>
       </PageSection>
-      {demoSections.map((section) => (
+      {orderedSections.map((section) => (
         <PageSection key={section.title} title={section.title} description={section.description}>
           <ExampleGrid alignItems="stretch">
             {section.examples.map((example) => (

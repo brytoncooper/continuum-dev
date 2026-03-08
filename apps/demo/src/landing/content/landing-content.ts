@@ -214,12 +214,13 @@ export const ctaContent = {
   description:
     'Continuum gives teams a continuity layer for interfaces that regenerate at runtime, with reconciliation, persistence, proposals, diagnostics, collections, and headless rendering built in.',
   links: [
+    { label: 'Try Live AI', href: '/live-ai' },
+    { label: 'Starter Kit', href: '/starter-kit' },
     { label: 'Docs', href: '/docs' },
     { label: 'GitHub', href: 'https://github.com/brytoncooper/continuum-dev' },
     { label: 'The problem', href: '#the-problem' },
     { label: 'How it works', href: '#how-it-works' },
     { label: 'Feature highlights', href: '#feature-highlights' },
     { label: 'Package stack', href: '#package-stack' },
-    { label: 'Starter Kit', href: '/starter-kit' },
   ],
 };
