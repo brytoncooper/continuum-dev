@@ -16,6 +16,12 @@ If you want to stay headless from the start instead, install:
 npm install @continuum-dev/react @continuum-dev/core react
 ```
 
+If you want built-in provider chat + model selection for live generation, also install:
+
+```bash
+npm install @continuum-dev/ai-connect
+```
+
 ## 2) Define Your Component Map
 
 The Starter Kit ships with a default component map, so you can render immediately and customize later.
@@ -124,7 +130,7 @@ session.pushView({
 ## 6) Add Rewind and Diagnostics
 
 ```tsx
-import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/react';
+import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/starter-kit';
 
 function Devtools() {
   const session = useContinuumSession();
@@ -154,31 +160,72 @@ function Devtools() {
 Register a handler and render an action button:
 
 ```tsx
-// In your session setup
-const session = createSession({
-  actions: {
-    submit: {
-      registration: { label: 'Submit' },
-      handler: async (ctx) => {
-        await fetch('/api/submit', { method: 'POST', body: JSON.stringify(ctx.snapshot.values) });
-        return { success: true };
-      },
-    },
-  },
-});
+import { useEffect } from 'react';
+import { useContinuumAction, useContinuumSession } from '@continuum-dev/starter-kit';
 
-// In your component map
-import { useContinuumAction } from '@continuum-dev/react';
+function RegisterActions() {
+  const session = useContinuumSession();
+
+  useEffect(() => {
+    session.registerAction(
+      'submit',
+      { label: 'Submit' },
+      async (ctx) => {
+        await fetch('/api/submit', {
+          method: 'POST',
+          body: JSON.stringify(ctx.snapshot.values),
+        });
+        return { success: true };
+      }
+    );
+  }, [session]);
+
+  return null;
+}
 
 const components = {
   action: ({ definition }) => {
     const { dispatch, isDispatching } = useContinuumAction(definition.intentId);
-    return <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>{definition.label}</button>;
+    return (
+      <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
+        {definition.label}
+      </button>
+    );
   },
 };
 ```
 
-## 8) Optional: Use Prompt Helpers
+## 8) Optional: Add Built-In AI Chat + Session Workbench
+
+`StarterKitProviderChatBox` lets users send instructions directly to a configured provider.
+`StarterKitSessionWorkbench` gives checkpoint timeline, preview, and rewind controls.
+
+```tsx
+import {
+  StarterKitProviderChatBox,
+  StarterKitSessionWorkbench,
+} from '@continuum-dev/starter-kit';
+import { createOpenAiClient, createGoogleClient } from '@continuum-dev/ai-connect';
+
+const providers = [
+  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, model: 'gpt-5.4' }),
+  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+];
+
+function AiControls() {
+  return (
+    <>
+      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <StarterKitSessionWorkbench />
+    </>
+  );
+}
+```
+
+If both OpenAI and Google are present, the provider selector appears automatically.
+Anthropic is optional and only needed if you explicitly enable it.
+
+## 9) Optional: Use Prompt Helpers
 
 The Starter Kit re-exports the prompt helpers, so you can import them from the same package surface.
 

@@ -4,6 +4,21 @@ How to wire an AI model into Continuum so generated views can evolve safely whil
 
 ---
 
+## Recommended Stack
+
+For most teams, the fastest reliable setup is:
+
+- `@continuum-dev/starter-kit` for renderer + chat/workbench primitives
+- `@continuum-dev/prompts` for mode-aware prompt assembly and output contracts
+- `@continuum-dev/ai-connect` for provider clients and model catalogs
+
+Default provider path:
+
+- OpenAI + Google enabled
+- Anthropic optional (only include when explicitly configured)
+
+---
+
 ## Integration Model
 
 The model never mutates Continuum state directly. Your app:
@@ -52,6 +67,8 @@ export function applyModelView(view: ViewDefinition): void {
   session.pushView(view);
 }
 ```
+
+If you are using starter-kit UI primitives, `StarterKitProviderChatBox` can run this flow for you and auto-apply valid views to the active session.
 
 ---
 
@@ -102,16 +119,33 @@ This gives you repeatable behavior and faster debugging.
 Example:
 
 ```typescript
-import { assembleSystemPrompt, buildEvolveUserMessage } from '@continuum-dev/prompts';
+import {
+  assembleSystemPrompt,
+  buildEvolveUserMessage,
+  getDefaultOutputContract,
+} from '@continuum-dev/prompts';
+import { createOpenAiClient } from '@continuum-dev/ai-connect';
+
+const client = createOpenAiClient({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-5.4',
+});
 
 const systemPrompt = assembleSystemPrompt({
   mode: 'evolve-view',
   addons: ['strict-continuity'],
+  outputContract: getDefaultOutputContract(),
 });
 
 const userMessage = buildEvolveUserMessage({
   currentView,
   instruction: 'Add co-borrower employment and preserve semantic keys.',
+});
+
+const result = await client.generate({
+  systemPrompt,
+  userMessage,
+  outputContract: getDefaultOutputContract(),
 });
 ```
 
@@ -197,6 +231,8 @@ Recommended policy:
 - Retry model generation when validation or runtime errors exist
 - Retry when detached count is unexpectedly high
 - Accept and continue when issues are warnings only and behavior is expected
+
+For high-volume flows, cap retries (for example, max 2-3 correction attempts) and then surface the latest candidate + issues to the user instead of looping forever.
 
 ---
 
@@ -293,6 +329,14 @@ Current persistence behavior:
 - Pending writes are flushed on `beforeunload`
 - Payload size is guarded by `maxBytes`
 - Cross-tab sync uses `storage` events
+
+---
+
+## Provider-Specific Notes
+
+- OpenAI: use structured output contracts directly when available.
+- Google Gemini: validate parsed output before `pushView` and run a correction retry when the candidate is malformed.
+- Anthropic: keep optional unless you have active keys and tested config for your environment.
 
 ---
 

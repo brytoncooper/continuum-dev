@@ -18,22 +18,19 @@
   },
   "references": [
     {
+      "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/contract"
+    },
+    {
       "path": "../../packages/core"
     },
     {
       "path": "../../packages/ai-connect"
     },
     {
-      "path": "../../packages/session"
-    },
-    {
       "path": "../../packages/starter-kit"
-    },
-    {
-      "path": "../../packages/react"
-    },
-    {
-      "path": "../../packages/contract"
     }
   ]
 }

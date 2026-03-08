@@ -28,6 +28,7 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 | `@continuum-dev/react`    | React bindings built on top of core                                                  | Published |
 | `@continuum-dev/starter-kit` | Opinionated React primitives, component map, and proposal UI                      | New |
 | `@continuum-dev/prompts`  | Prompt templates and composition helpers for AI view generation                      | Ready to publish |
+| `@continuum-dev/ai-connect` | Headless provider connectors and model catalog for AI chat workflows               | Published |
 | `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            | Not published (internal preview) |
 | `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           | Not published (internal preview) |
 
@@ -103,8 +104,8 @@ Serialized payloads use `formatVersion: 1`; deserialization accepts `formatVersi
 ```bash
 npx nx run-many -t test        # Run all tests
 npx nx run-many -t build       # Build all packages
-npx nx run playground:serve    # Run the playground demo
-npx nx run playground:e2e      # Run e2e tests
+npx nx run demo:serve          # Run the demo app (landing + docs + live studio + playground)
+npx nx run demo:build          # Build the demo app
 ```
 
 ## Architecture
@@ -122,8 +123,8 @@ npx nx run playground:e2e      # Run e2e tests
        ↓
 @continuum-dev/starter-kit (opinionated primitives and proposal UI)
 @continuum-dev/prompts     (AI prompt templates)
+@continuum-dev/ai-connect  (headless provider connectors)
 apps/demo                  (public launch site)
-apps/playground            (interactive playground)
 
 @continuum-dev/angular     (internal preview, not published)
 @continuum-dev/adapters    (internal preview, not published)
@@ -141,3 +142,4 @@ apps/playground            (interactive playground)
 ## License
 
 MIT
+

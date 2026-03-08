@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/ai-connect",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public"
   },
@@ -39,7 +39,7 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/prompts": "^0.1.5"
+    "@continuum-dev/prompts": "^0.2.0"
   },
   "nx": {
     "tags": [

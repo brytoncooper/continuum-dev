@@ -118,6 +118,9 @@ export function App() {
 ```
 
 If multiple providers are configured, the primitive shows a provider select automatically.
+
+For full session timeline UX (checkpoint preview + confirm/cancel rewind), use `StarterKitSessionWorkbench` alongside the chat box.
+
 ### Provider composer helper
 
 Use `StarterKitProviderComposer` to build providers from one config object:
@@ -138,3 +141,4 @@ const providers = StarterKitProviderComposer({
 ```
 
 If a provider is listed in `include`, its `apiKey` is required.
+Anthropic support is optional and should only be included when you have it configured.

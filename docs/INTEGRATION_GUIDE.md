@@ -6,6 +6,44 @@ React-first integration patterns for:
 - `@continuum-dev/react`
 - `@continuum-dev/starter-kit`
 - `@continuum-dev/prompts`
+- `@continuum-dev/ai-connect`
+
+## 0) Fastest Production Path (Starter Kit)
+
+If you want zero-setup rendering + AI controls, start with starter-kit primitives first and customize later.
+
+```tsx
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitProviderChatBox,
+  StarterKitSessionWorkbench,
+  starterKitComponentMap,
+  useContinuumSnapshot,
+} from '@continuum-dev/starter-kit';
+import { createOpenAiClient, createGoogleClient } from '@continuum-dev/ai-connect';
+
+const providers = [
+  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, model: 'gpt-5.4' }),
+  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+];
+
+function Page() {
+  const snapshot = useContinuumSnapshot();
+  if (!snapshot) return null;
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+function App() {
+  return (
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <StarterKitSessionWorkbench />
+      <Page />
+    </ContinuumProvider>
+  );
+}
+```
 
 ## 1) Production Baseline in React
 
@@ -81,11 +119,19 @@ import {
   assembleSystemPrompt,
   buildEvolveUserMessage,
   buildCorrectionUserMessage,
+  getDefaultOutputContract,
 } from '@continuum-dev/prompts';
+import { createOpenAiClient } from '@continuum-dev/ai-connect';
+
+const client = createOpenAiClient({
+  apiKey: process.env.OPENAI_API_KEY!,
+  model: 'gpt-5.4',
+});
 
 const systemPrompt = assembleSystemPrompt({
   mode: 'evolve-view',
   addons: ['strict-continuity'],
+  outputContract: getDefaultOutputContract(),
 });
 
 const userMessage = buildEvolveUserMessage({
@@ -100,6 +146,12 @@ const correctionMessage = buildCorrectionUserMessage({
   runtimeErrors,
   detachedNodeIds,
 });
+
+const result = await client.generate({
+  systemPrompt,
+  userMessage,
+  outputContract: getDefaultOutputContract(),
+});
 ```
 
 Recommended loop:
@@ -109,6 +161,11 @@ Recommended loop:
 3. Call `session.pushView(view)`.
 4. Inspect `issues` and `resolutions`.
 5. Retry with correction mode when blocking errors appear.
+
+Provider recommendation:
+
+- Default to OpenAI + Google first for most apps.
+- Treat Anthropic as optional and include it only when you explicitly need/test it.
 
 ## 4) Persistence Strategies
 
