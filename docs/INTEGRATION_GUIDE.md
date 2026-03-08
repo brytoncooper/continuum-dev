@@ -2,10 +2,9 @@
 
 React-first integration patterns for:
 
-- `@continuum-dev/contract`
-- `@continuum-dev/runtime`
-- `@continuum-dev/session`
+- `@continuum-dev/core`
 - `@continuum-dev/react`
+- `@continuum-dev/starter-kit`
 - `@continuum-dev/prompts`
 
 ## 1) Production Baseline in React
@@ -45,8 +44,7 @@ Before `pushView`, validate payload shape and reject duplicate ids or keys.
 ```tsx
 import { useEffect } from 'react';
 import { useContinuumSession } from '@continuum-dev/react';
-import { collectDuplicateIssues } from '@continuum-dev/runtime';
-import type { ViewDefinition } from '@continuum-dev/contract';
+import { collectDuplicateIssues, type ViewDefinition } from '@continuum-dev/core';
 
 function AgentListener({ agentUrl }: { agentUrl: string }) {
   const session = useContinuumSession();

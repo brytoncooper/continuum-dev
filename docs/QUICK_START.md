@@ -5,86 +5,35 @@ Get a working Continuum React integration in a few minutes.
 ## 1) Install
 
 ```bash
-npm install @continuum-dev/react react
+npm install @continuum-dev/starter-kit react
 ```
 
-`@continuum-dev/react` includes `@continuum-dev/session` and `@continuum-dev/contract` as dependencies.
+`@continuum-dev/starter-kit` is the fastest path: it includes the opinionated primitives, a default component map, prompt helpers, and the headless React layer underneath.
+
+If you want to stay headless from the start instead, install:
+
+```bash
+npm install @continuum-dev/react @continuum-dev/core react
+```
 
 ## 2) Define Your Component Map
 
-Create React components for each node type your views contain.
+The Starter Kit ships with a default component map, so you can render immediately and customize later.
 
 ```tsx
-// components.tsx
-import type { NodeValue } from '@continuum-dev/contract';
-import type { ContinuumNodeMap, ContinuumNodeProps } from '@continuum-dev/react';
-
-function FieldRenderer({ value, onChange, definition }: ContinuumNodeProps) {
-  if (definition.type !== 'field') {
-    return null;
-  }
-
-  const current = value as NodeValue | undefined;
-  const label = definition.label ?? definition.key ?? definition.id;
-
-  if (definition.dataType === 'boolean') {
-    return (
-      <label>
-        <input
-          type="checkbox"
-          checked={Boolean(current?.value)}
-          onChange={(event) =>
-            onChange({ value: event.target.checked, isDirty: true } as NodeValue)
-          }
-        />
-        {label}
-      </label>
-    );
-  }
-
-  const text = String(current?.value ?? '');
-  return (
-    <label>
-      {label}
-      <input
-        value={text}
-        onChange={(event) =>
-          onChange({ value: event.target.value, isDirty: true } as NodeValue)
-        }
-      />
-    </label>
-  );
-}
-
-function GroupRenderer({ definition, children }: ContinuumNodeProps) {
-  if (definition.type !== 'group') {
-    return null;
-  }
-  return (
-    <fieldset>
-      <legend>{definition.label ?? definition.key ?? definition.id}</legend>
-      <div style={{ display: 'grid', gap: 8 }}>{children}</div>
-    </fieldset>
-  );
-}
-
-export const componentMap: ContinuumNodeMap = {
-  field: FieldRenderer,
-  group: GroupRenderer,
-};
+import { starterKitComponentMap } from '@continuum-dev/starter-kit';
 ```
 
 ## 3) Wrap Your App With `ContinuumProvider`
 
 ```tsx
 // App.tsx
-import { ContinuumProvider } from '@continuum-dev/react';
-import { componentMap } from './components';
+import { ContinuumProvider, starterKitComponentMap } from '@continuum-dev/starter-kit';
 import { MyPage } from './MyPage';
 
 export default function App() {
   return (
-    <ContinuumProvider components={componentMap} persist="localStorage">
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
       <MyPage />
     </ContinuumProvider>
   );
@@ -98,12 +47,12 @@ export default function App() {
 ```tsx
 // MyPage.tsx
 import { useEffect } from 'react';
-import type { ViewDefinition } from '@continuum-dev/contract';
+import type { ViewDefinition } from '@continuum-dev/core';
 import {
   ContinuumRenderer,
   useContinuumSession,
   useContinuumSnapshot,
-} from '@continuum-dev/react';
+} from '@continuum-dev/starter-kit';
 
 const initialView: ViewDefinition = {
   viewId: 'profile-form',
@@ -231,10 +180,10 @@ const components = {
 
 ## 8) Optional: Use Prompt Helpers
 
-For AI-generated views, use `@continuum-dev/prompts` to keep system prompts and correction loops consistent.
+The Starter Kit re-exports the prompt helpers, so you can import them from the same package surface.
 
 ```bash
-npm install @continuum-dev/prompts
+npm install @continuum-dev/starter-kit react
 ```
 
 ## Next Steps
