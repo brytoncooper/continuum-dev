@@ -3,7 +3,12 @@ import type { ContinuumNodeProps } from '@continuum-dev/react';
 import type { CSSProperties } from 'react';
 import { color, radius, space, type } from '../../tokens.js';
 import { FieldFrame } from '../shared/field-frame.js';
-import { nodeDescription, nodeLabel, nodeOptions } from '../shared/node.js';
+import {
+  nodeDescription,
+  nodeLabel,
+  nodeOptions,
+  readNodeProp,
+} from '../shared/node.js';
 
 const optionStyle: CSSProperties = {
   display: 'flex',
@@ -20,7 +25,10 @@ export function RadioGroupInput({
   onChange,
   definition,
 }: ContinuumNodeProps) {
-  const selected = (value as NodeValue<string> | undefined)?.value ?? '';
+  const selected =
+    (value as NodeValue<string> | undefined)?.value ??
+    readNodeProp<string>(definition, 'defaultValue') ??
+    '';
   const options = nodeOptions(definition);
 
   return (

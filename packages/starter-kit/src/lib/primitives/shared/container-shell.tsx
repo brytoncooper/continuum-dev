@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { color, control, radius, space, type } from '../../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { nodeDepth } from './node.js';
 
 const headingStyle: CSSProperties = {
@@ -28,32 +29,6 @@ const itemMetaStyle: CSSProperties = {
 const itemLabelStyle: CSSProperties = {
   ...type.label,
   color: color.textSoft,
-};
-
-const removeButtonStyle: CSSProperties = {
-  height: control.height,
-  padding: `0 ${space.md}px`,
-  borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
-  cursor: 'pointer',
-};
-
-const iconRemoveButtonStyle: CSSProperties = {
-  width: control.height,
-  height: control.height,
-  padding: 0,
-  borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
-  cursor: 'pointer',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  ...type.section,
 };
 
 function hierarchyStyle(depth: number, isItem: boolean): CSSProperties {
@@ -93,7 +68,7 @@ export function ContainerShell({
   itemRemovePlacement = 'header',
   itemRemoveVariant = 'default',
 }: {
-  title: string;
+  title?: string;
   description?: string;
   nodeId?: string;
   itemIndex?: number;
@@ -106,6 +81,12 @@ export function ContainerShell({
 }) {
   const depth = nodeDepth(nodeId);
   const isItem = typeof itemIndex === 'number';
+  const removeButtonStyle = useStarterKitStyle('itemRemoveButton', starterKitDefaultStyles.itemRemoveButton);
+  const iconRemoveButtonStyle = useStarterKitStyle(
+    'itemIconRemoveButton',
+    starterKitDefaultStyles.itemIconRemoveButton
+  );
+
   const removeButton =
     canRemove ? (
       <button
@@ -114,7 +95,7 @@ export function ContainerShell({
         aria-label="Remove item"
         style={itemRemoveVariant === 'icon' ? iconRemoveButtonStyle : removeButtonStyle}
       >
-        {itemRemoveVariant === 'icon' ? '×' : 'Remove'}
+        {itemRemoveVariant === 'icon' ? 'x' : 'Remove'}
       </button>
     ) : null;
 
@@ -150,10 +131,14 @@ export function ContainerShell({
           </div>
         </>
       ) : (
-        <div style={headingStyle}>
-          <div style={titleStyle}>{title}</div>
-          {description ? <div style={textStyle}>{description}</div> : null}
-        </div>
+        <>
+          {title || description ? (
+            <div style={headingStyle}>
+              {title ? <div style={titleStyle}>{title}</div> : null}
+              {description ? <div style={textStyle}>{description}</div> : null}
+            </div>
+          ) : null}
+        </>
       )}
       {!isItem ? <div style={layoutStyle}>{children}</div> : null}
     </section>

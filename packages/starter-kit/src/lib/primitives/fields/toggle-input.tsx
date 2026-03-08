@@ -2,7 +2,7 @@ import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import type { CSSProperties } from 'react';
 import { color, control, radius, space, type } from '../../tokens.js';
-import { nodeDescription, nodeLabel } from '../shared/node.js';
+import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
 const wrapStyle: CSSProperties = {
   display: 'flex',
@@ -37,7 +37,11 @@ export function ToggleInput({
   onChange,
   definition,
 }: ContinuumNodeProps) {
-  const checked = Boolean((value as NodeValue<boolean> | undefined)?.value);
+  const label = nodeLabel(definition);
+  const checked = Boolean(
+    (value as NodeValue<boolean> | undefined)?.value ??
+      readNodeProp<boolean>(definition, 'defaultValue')
+  );
 
   return (
     <label style={wrapStyle}>
@@ -61,9 +65,7 @@ export function ToggleInput({
         />
       </span>
       <span style={{ display: 'grid', gap: space.xs }}>
-        <span style={{ ...type.section, color: color.text }}>
-          {nodeLabel(definition)}
-        </span>
+        {label ? <span style={{ ...type.section, color: color.text }}>{label}</span> : null}
         {nodeDescription(definition) ? (
           <span style={{ ...type.small, color: color.textMuted }}>
             {nodeDescription(definition)}

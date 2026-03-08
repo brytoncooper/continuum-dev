@@ -1,10 +1,13 @@
 import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
-import { FieldFrame, inputLikeStyle } from '../shared/field-frame.js';
-import { nodeDescription, nodeLabel } from '../shared/node.js';
+import { FieldFrame, useInputLikeStyle } from '../shared/field-frame.js';
+import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
 export function DateInput({ value, onChange, definition }: ContinuumNodeProps) {
-  const dateValue = (value as NodeValue<string> | undefined)?.value ?? '';
+  const dateValue =
+    (value as NodeValue<string> | undefined)?.value ??
+    readNodeProp<string>(definition, 'defaultValue') ??
+    '';
 
   return (
     <FieldFrame
@@ -14,7 +17,7 @@ export function DateInput({ value, onChange, definition }: ContinuumNodeProps) {
       <input
         type="date"
         value={dateValue}
-        style={inputLikeStyle()}
+        style={useInputLikeStyle()}
         onChange={(event) =>
           onChange({ value: event.target.value, isDirty: true } as NodeValue)
         }

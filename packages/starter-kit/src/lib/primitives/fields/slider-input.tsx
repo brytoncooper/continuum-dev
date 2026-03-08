@@ -1,8 +1,14 @@
 import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { color, space, type } from '../../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { FieldFrame } from '../shared/field-frame.js';
-import { nodeDescription, nodeLabel, nodeNumberProp } from '../shared/node.js';
+import {
+  nodeDescription,
+  nodeLabel,
+  nodeNumberProp,
+  readNodeProp,
+} from '../shared/node.js';
 
 export function SliderInput({
   value,
@@ -12,10 +18,14 @@ export function SliderInput({
   const min = nodeNumberProp(definition, 'min', 0);
   const max = nodeNumberProp(definition, 'max', 100);
   const fallback = Math.round((min + max) / 2);
+  const defaultValue = readNodeProp<number>(definition, 'defaultValue');
   const numericValue =
     typeof (value as NodeValue<number> | undefined)?.value === 'number'
       ? (value as NodeValue<number>).value
+      : typeof defaultValue === 'number'
+      ? defaultValue
       : fallback;
+  const sliderStyle = useStarterKitStyle('sliderInput', starterKitDefaultStyles.sliderInput);
 
   return (
     <FieldFrame
@@ -40,7 +50,7 @@ export function SliderInput({
           min={min}
           max={max}
           value={numericValue}
-          style={{ width: '100%', accentColor: color.accent }}
+          style={sliderStyle}
           onChange={(event) =>
             onChange({
               value: Number(event.target.value),

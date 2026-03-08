@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { color, radius, shadow, space, type } from '../tokens.js';
+import { starterKitDefaultStyles, useStarterKitStyle } from '../style-config.js';
 
 type ConflictBannerTone =
   | 'proposal'
@@ -61,23 +62,14 @@ const valueStyle: CSSProperties = {
 const actionsStyle: CSSProperties = {
   display: 'flex',
   gap: space.sm,
-  flexWrap: 'wrap',
+  flexWrap: 'nowrap',
+  alignItems: 'center',
 };
 
 const popoverActionsStyle: CSSProperties = {
   ...actionsStyle,
   width: '100%',
   justifyContent: 'flex-end',
-};
-
-const buttonStyle: CSSProperties = {
-  ...type.small,
-  color: color.text,
-  padding: `${space.sm}px ${space.md}px`,
-  borderRadius: radius.pill,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  cursor: 'pointer',
 };
 
 function statusText(tone: ConflictBannerTone): string {
@@ -118,6 +110,8 @@ export function ConflictBanner({
   onAccept?: () => void;
   onReject?: () => void;
 }) {
+  const buttonStyle = useStarterKitStyle('conflictActionButton', starterKitDefaultStyles.conflictActionButton);
+
   if (variant === 'popover') {
     return (
       <div style={containerStyle(tone, variant)}>

@@ -9,10 +9,13 @@ export function readNodeProp<T>(
     | undefined;
 }
 
-export function nodeLabel(definition: ViewNode): string {
-  return (
-    readNodeProp<string>(definition, 'label') ?? definition.key ?? definition.id
-  );
+export function nodeLabel(definition: ViewNode): string | undefined {
+  const label = readNodeProp<string>(definition, 'label');
+  if (typeof label !== 'string') {
+    return undefined;
+  }
+  const trimmed = label.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function nodeDescription(definition: ViewNode): string | undefined {

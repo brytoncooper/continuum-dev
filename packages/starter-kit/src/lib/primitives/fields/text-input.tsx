@@ -1,6 +1,6 @@
 import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
-import { FieldFrame, inputLikeStyle } from '../shared/field-frame.js';
+import { FieldFrame, useInputLikeStyle } from '../shared/field-frame.js';
 import {
   nodeDescription,
   nodeLabel,
@@ -9,8 +9,11 @@ import {
 } from '../shared/node.js';
 
 export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
+  const label = nodeLabel(definition);
   const dataType = readNodeProp<string>(definition, 'dataType') ?? 'string';
-  const rawValue = (value as NodeValue<string | number> | undefined)?.value;
+  const defaultValue = readNodeProp<string | number>(definition, 'defaultValue');
+  const rawValue =
+    (value as NodeValue<string | number> | undefined)?.value ?? defaultValue;
   const displayValue =
     dataType === 'number'
       ? typeof rawValue === 'number'
@@ -22,18 +25,17 @@ export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
 
   return (
     <FieldFrame
-      label={nodeLabel(definition)}
+      label={label}
       description={nodeDescription(definition)}
     >
       <input
         type={dataType === 'number' ? 'number' : 'text'}
         value={displayValue}
         placeholder={
-          nodePlaceholder(definition) ??
-          `Enter ${nodeLabel(definition).toLowerCase()}`
+          nodePlaceholder(definition) ?? 'Enter value'
         }
         readOnly={Boolean(readNodeProp<boolean>(definition, 'readOnly'))}
-        style={inputLikeStyle()}
+        style={useInputLikeStyle()}
         onChange={(event) =>
           onChange({
             value:
