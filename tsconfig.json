@@ -23,6 +23,12 @@
     },
     {
       "path": "./packages/prompts"
+    },
+    {
+      "path": "./packages/starter-kit"
+    },
+    {
+      "path": "./packages/core"
     }
   ]
 }
