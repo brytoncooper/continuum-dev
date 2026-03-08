@@ -70,6 +70,5 @@
   "sync": {
     "applyChanges": true
   },
-  "targetDefaults": { "test": { "dependsOn": ["^build"] } },
-  "nxCloudId": "69a58e584bf16f3ed545eca2"
+  "targetDefaults": { "test": { "dependsOn": ["^build"] } }
 }
