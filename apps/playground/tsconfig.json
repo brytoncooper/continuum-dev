@@ -15,16 +15,19 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../../packages/runtime"
+      "path": "../../packages/session"
     },
     {
-      "path": "../../packages/session"
+      "path": "../../packages/runtime"
     },
     {
       "path": "../../packages/react"
     },
     {
       "path": "../../packages/contract"
+    },
+    {
+      "path": "../../packages/adapters"
     },
     {
       "path": "./tsconfig.e2e.json"
