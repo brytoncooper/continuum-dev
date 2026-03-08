@@ -77,44 +77,6 @@ export default [
               ],
             },
             {
-              sourceTag: 'scope:core',
-              onlyDependOnLibsWithTags: [
-                'scope:contract',
-                'scope:runtime',
-                'scope:session',
-              ],
-            },
-            {
-              sourceTag: 'scope:starter-kit',
-              onlyDependOnLibsWithTags: [
-                'scope:contract',
-                'scope:runtime',
-                'scope:session',
-                'scope:react',
-                'scope:core',
-                'scope:prompts',
-              ],
-            },
-            {
-              sourceTag: 'scope:core',
-              onlyDependOnLibsWithTags: [
-                'scope:contract',
-                'scope:runtime',
-                'scope:session',
-              ],
-            },
-            {
-              sourceTag: 'scope:starter-kit',
-              onlyDependOnLibsWithTags: [
-                'scope:contract',
-                'scope:runtime',
-                'scope:session',
-                'scope:react',
-                'scope:core',
-                'scope:prompts',
-              ],
-            },
-            {
               sourceTag: 'scope:async',
               onlyDependOnLibsWithTags: ['scope:shared', 'scope:async'],
             },

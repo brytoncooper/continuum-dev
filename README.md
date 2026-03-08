@@ -2,6 +2,9 @@
 
 **Protocol-agnostic state continuity for view-driven UIs.**
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 > [!WARNING] > **Pre-release Note**: Continuum is currently in active development. The APIs, package exports, and installation processes described below are subject to change.
 
 Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a view update reorganizes your form, or a user refreshes the page -- their data stays intact.
@@ -21,7 +24,9 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 | `@continuum-dev/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint     | Published |
 | `@continuum-dev/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions               | Published |
 | `@continuum-dev/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize | Published |
-| `@continuum-dev/react`    | React bindings -- Provider, Renderer, hooks                                          | Published |
+| `@continuum-dev/core`     | Thin facade over contract, runtime, and session                                      | New |
+| `@continuum-dev/react`    | React bindings built on top of core                                                  | Published |
+| `@continuum-dev/starter-kit` | Opinionated React primitives, component map, and proposal UI                      | New |
 | `@continuum-dev/prompts`  | Prompt templates and composition helpers for AI view generation                      | Ready to publish |
 | `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            | Not published (internal preview) |
 | `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           | Not published (internal preview) |
@@ -29,28 +34,21 @@ View-driven UIs are fragile. An AI generates a form, the user fills it out, the 
 ## Quick Start
 
 ```bash
-npm install @continuum-dev/react @continuum-dev/contract
+npm install @continuum-dev/starter-kit react
 ```
 
 ```tsx
 import {
   ContinuumProvider,
   ContinuumRenderer,
+  starterKitComponentMap,
   useContinuumSession,
-} from '@continuum-dev/react';
-import type { ContinuumNodeMap } from '@continuum-dev/react';
-import type { ViewDefinition } from '@continuum-dev/contract';
-
-const nodeMap: ContinuumNodeMap = {
-  field: MyFieldComponent,
-  group: MySectionComponent,
-  action: MyActionButton,
-  presentation: MyDisplayContent,
-};
+} from '@continuum-dev/starter-kit';
+import type { ViewDefinition } from '@continuum-dev/core';
 
 function App() {
   return (
-    <ContinuumProvider components={nodeMap} persist="localStorage">
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
       <YourApp />
     </ContinuumProvider>
   );
@@ -118,9 +116,14 @@ npx nx run playground:e2e      # Run e2e tests
        ↓
 @continuum-dev/session     (session lifecycle)
        ↓
-@continuum-dev/react       (React bindings)
+@continuum-dev/core        (runtime facade)
+       ↓
+@continuum-dev/react       (headless React bindings)
+       ↓
+@continuum-dev/starter-kit (opinionated primitives and proposal UI)
 @continuum-dev/prompts     (AI prompt templates)
-apps/playground        (demo application)
+apps/demo                  (public launch site)
+apps/playground            (interactive playground)
 
 @continuum-dev/angular     (internal preview, not published)
 @continuum-dev/adapters    (internal preview, not published)
