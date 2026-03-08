@@ -9,7 +9,7 @@ import {
   useContinuumSnapshot,
 } from '@continuum-dev/react';
 import { ConflictBanner } from '@continuum-dev/starter-kit';
-import { useEffect, useMemo } from 'react';
+import { createElement, useEffect, useMemo, type ReactNode } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
 import { color, radius, space, type } from '../../ui/tokens';
@@ -203,10 +203,10 @@ function ConflictPaneCard({
   values: Record<string, NodeValue>;
   trackedFields: PlaygroundTrackedFieldState[];
   modelDescription: string;
-  previewHeader?: JSX.Element;
-  preview: JSX.Element;
+  previewHeader?: ReactNode;
+  preview: ReactNode;
   previewInteractive?: boolean;
-  details?: JSX.Element;
+  details?: ReactNode;
 }) {
   return (
     <ExampleCard title={title} description={description} span={6} fullHeight>
@@ -264,7 +264,7 @@ function createConflictAwareComponentMap(): ContinuumNodeMap {
     return (
       <div style={inlineFieldWrapStyle}>
         <div style={inlineFieldControlStyle}>
-          {baseField({
+          {createElement(baseField, {
             ...props,
             onChange: () => undefined,
           })}
@@ -298,7 +298,7 @@ function createConflictAwareComponentMap(): ContinuumNodeMap {
     return (
       <div style={inlineFieldWrapStyle}>
         <div style={inlineFieldControlStyle}>
-          {baseTextarea({
+          {createElement(baseTextarea, {
             ...props,
             onChange: () => undefined,
           })}

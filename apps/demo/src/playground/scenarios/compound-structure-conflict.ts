@@ -37,7 +37,8 @@ const initialView: ViewDefinition = {
         {
           id: 'profile_notes',
           key: 'profile.notes',
-          type: 'textarea',
+          type: 'field',
+          dataType: 'string',
           label: 'Notes',
           placeholder: 'Enter Notes',
         },
@@ -94,7 +95,8 @@ const evolvedView: ViewDefinition = {
             {
               id: 'profile_notes_v2',
               key: 'profile.notes',
-              type: 'textarea',
+              type: 'field',
+              dataType: 'string',
               label: 'Notes',
               placeholder: 'Enter Notes',
             },
@@ -138,7 +140,7 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
   },
   proposedValues: {
     'profile.title': { value: 'Founder and CEO' },
-    'profile.company': { value: 'Continuum Labs' },
+    'profile.company': { value: 'Continuum Dev' },
     'profile.notes': {
       value:
         'AI draft wants a sharper company story and a more assertive launch message.',

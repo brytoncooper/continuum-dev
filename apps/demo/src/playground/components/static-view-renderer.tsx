@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { getChildNodes } from '@continuum-dev/contract';
 import type {
   CollectionNode,
@@ -23,12 +24,12 @@ function renderCollectionItemNode(
   itemIndex: number,
   components: ContinuumNodeMap,
   relativeParentId?: string
-): JSX.Element {
+): ReactElement {
   const relativeNodeId = scopedNodeId(node.id, relativeParentId);
   const nodeId = scopedNodeId(relativeNodeId, collectionNodeId);
   const Component = (components[node.type] ?? components.default) as (
     props: ContinuumNodeProps
-  ) => JSX.Element;
+  ) => ReactElement;
   const children = getChildNodes(node);
 
   return (
@@ -60,11 +61,11 @@ function renderCollectionNode(
   values: Record<string, NodeValue>,
   components: ContinuumNodeMap,
   parentNodeId?: string
-): JSX.Element {
+): ReactElement {
   const nodeId = scopedNodeId(node.id, parentNodeId);
   const Component = (components[node.type] ?? components.default) as (
     props: ContinuumNodeProps
-  ) => JSX.Element;
+  ) => ReactElement;
   const collectionValue =
     (values[nodeId] as NodeValue<CollectionNodeState> | undefined)?.value
       ?.items ?? [];
@@ -98,7 +99,7 @@ function renderNode(
   onChange: (nodeId: string, value: NodeValue) => void,
   components: ContinuumNodeMap,
   parentNodeId?: string
-): JSX.Element {
+): ReactElement {
   if (node.type === 'collection') {
     return renderCollectionNode(
       node as CollectionNode,
@@ -111,7 +112,7 @@ function renderNode(
   const nodeId = scopedNodeId(node.id, parentNodeId);
   const Component = (components[node.type] ?? components.default) as (
     props: ContinuumNodeProps
-  ) => JSX.Element;
+  ) => ReactElement;
   const children = getChildNodes(node);
 
   return (

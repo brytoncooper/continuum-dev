@@ -11,7 +11,7 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
 import { color, radius, space, type } from '../../ui/tokens';
@@ -214,7 +214,7 @@ function CollectionPaneCard({
   seededValueCount: number;
   visibleCount: number;
   values: Record<string, NodeValue>;
-  preview: JSX.Element;
+  preview: ReactNode;
 }) {
   return (
     <ExampleCard title={title} description={description} span={6} fullHeight>

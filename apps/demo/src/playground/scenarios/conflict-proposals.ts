@@ -45,7 +45,8 @@ const initialView: ViewDefinition = {
         {
           id: 'profile_notes',
           key: 'profile.notes',
-          type: 'textarea',
+          type: 'field',
+          dataType: 'string',
           label: 'Notes',
           placeholder: 'Enter Notes',
         },
@@ -98,7 +99,8 @@ const evolvedView: ViewDefinition = {
         {
           id: 'profile_notes',
           key: 'profile.notes',
-          type: 'textarea',
+          type: 'field',
+          dataType: 'string',
           label: 'Notes',
           placeholder: 'Enter Notes',
         },
@@ -131,8 +133,8 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
   initialValues: {
     'profile.name': { value: 'Bryton Cooper', isDirty: true },
     'profile.title': { value: 'Senior Product Designer', isDirty: true },
-    'profile.company': { value: 'Northstar Labs', isDirty: true },
-    'profile.location': { value: 'Seattle, WA', isDirty: true },
+    'profile.company': { value: 'Continuum Dev', isDirty: true },
+    'profile.location': { value: 'Boise, ID', isDirty: true },
     'profile.notes': {
       value: 'Customer interviews completed and launch notes are drafted.',
       isDirty: true,
@@ -140,7 +142,7 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
   },
   proposedValues: {
     'profile.title': { value: 'Staff Product Designer' },
-    'profile.company': { value: 'Continuum Labs' },
+    'profile.company': { value: 'Continuum Dev' },
     'profile.notes': {
       value:
         'AI draft suggests a launch-focused summary with clearer product positioning.',

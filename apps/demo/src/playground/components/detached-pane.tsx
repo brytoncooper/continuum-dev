@@ -5,7 +5,7 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
 import { color, radius, space, type } from '../../ui/tokens';
@@ -245,9 +245,9 @@ function DetachedPaneCard({
   values: Record<string, NodeValue>;
   trackedFields: PlaygroundTrackedFieldState[];
   detachedValues: Record<string, DetachedValue>;
-  fieldDetails: JSX.Element;
-  previewNotice?: JSX.Element;
-  preview: JSX.Element;
+  fieldDetails: ReactNode;
+  previewNotice?: ReactNode;
+  preview: ReactNode;
 }) {
   return (
     <ExampleCard title={title} description={description} span={6} fullHeight>
@@ -307,7 +307,7 @@ function DetachedContinuumRuntime({
   scenario: PlaygroundDetachedScenario;
   stepIndex: number;
   initialValues: Record<string, NodeValue>;
-  previewNotice?: JSX.Element;
+  previewNotice?: ReactNode;
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();

@@ -151,8 +151,8 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
   defaultInputValues: {
     'contact.0.name': 'Bryton Cooper',
     'contact.0.company': 'Continuum',
-    'contact.1.name': 'Morgan Hale',
-    'contact.1.company': 'Northstar Labs',
+    'contact.1.name': 'Developer',
+    'contact.1.company': 'Continuum Dev',
   },
   collectionNodeId: 'lead_contacts',
   collectionKey: 'deal.contacts',

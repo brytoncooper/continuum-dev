@@ -6,6 +6,7 @@ import type {
 import type {
   PlaygroundScenario,
   PlaygroundScenarioInputField,
+  PlaygroundTrackedField,
 } from '../types';
 
 function childNodes(node: ViewNode): ViewNode[] {
@@ -54,7 +55,11 @@ function initialFieldKeys(
     ];
   }
 
-  return scenario.trackedFields.map((field) => ({
+  if (scenario.kind === 'collection-evolution') {
+    return [];
+  }
+
+  return scenario.trackedFields.map((field: PlaygroundTrackedField) => ({
     key: field.key,
     label: field.label,
   }));
@@ -68,8 +73,8 @@ function placeholderForNode(node: ViewNode | null): string | undefined {
   return undefined;
 }
 
-function isMultilineNode(node: ViewNode | null): boolean {
-  return Boolean(node && 'type' in node && node.type === 'textarea');
+function isMultilineNode(_node: ViewNode | null): boolean {
+  return false;
 }
 
 export function getScenarioInputFields(
@@ -106,11 +111,18 @@ export function getScenarioDefaultInputValues(
     };
   }
 
+  if (scenario.kind === 'collection-evolution') {
+    return {};
+  }
+
   return Object.fromEntries(
-    Object.entries(scenario.initialValues).map(([key, value]) => [
-      key,
-      typeof value.value === 'string' ? value.value : String(value.value ?? ''),
-    ])
+    Object.entries(scenario.initialValues).map(([key, nodeValue]) => {
+      const rawValue = (nodeValue as NodeValue).value;
+      return [
+        key,
+        typeof rawValue === 'string' ? rawValue : String(rawValue ?? ''),
+      ];
+    })
   );
 }
 

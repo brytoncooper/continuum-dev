@@ -29,7 +29,8 @@ const initialView: ViewDefinition = {
         {
           id: 'recovery_notes',
           key: 'profile.notes',
-          type: 'textarea',
+          type: 'field',
+          dataType: 'string',
           label: 'Notes',
           placeholder: 'Enter Notes',
         },

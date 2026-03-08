@@ -5,7 +5,7 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
 import { color, control, radius, space, type } from '../../ui/tokens';
@@ -206,8 +206,8 @@ function RecoveryPaneCard({
   trackedFields: PlaygroundTrackedFieldState[];
   checkpointCount: number;
   values: Record<string, NodeValue>;
-  tool?: JSX.Element;
-  preview: JSX.Element;
+  tool?: ReactNode;
+  preview: ReactNode;
 }) {
   return (
     <ExampleCard title={title} description={description} span={6} fullHeight>

@@ -13,8 +13,15 @@ import { PlaygroundStepCard } from './components/playground-step-card';
 import { RecoveryPane } from './components/recovery-pane';
 import { ScenarioControls } from './components/scenario-controls';
 import { ScenarioSelector } from './components/scenario-selector';
-import { getScenarioDefaultInputValues, getScenarioInputFields } from './state/scenario-inputs';
-import { defaultPlaygroundScenarioId, playgroundScenarios, playgroundScenariosById } from './scenarios';
+import {
+  getScenarioDefaultInputValues,
+  getScenarioInputFields,
+} from './state/scenario-inputs';
+import {
+  defaultPlaygroundScenarioId,
+  playgroundScenarios,
+  playgroundScenariosById,
+} from './scenarios';
 
 const scenarioLayoutStyle: CSSProperties = {
   display: 'grid',
@@ -42,8 +49,15 @@ const responsiveLayoutStyle: CSSProperties = {
 
 export function PlaygroundPage() {
   const [scenarioId, setScenarioId] = useState(defaultPlaygroundScenarioId);
-  const [scenarioInputs, setScenarioInputs] = useState<Record<string, Record<string, string>>>(
-    Object.fromEntries(playgroundScenarios.map((scenario) => [scenario.id, getScenarioDefaultInputValues(scenario)]))
+  const [scenarioInputs, setScenarioInputs] = useState<
+    Record<string, Record<string, string>>
+  >(
+    Object.fromEntries(
+      playgroundScenarios.map((scenario) => [
+        scenario.id,
+        getScenarioDefaultInputValues(scenario),
+      ])
+    )
   );
   const [stepIndex, setStepIndex] = useState(0);
   const scenario = playgroundScenariosById[scenarioId];
@@ -52,9 +66,16 @@ export function PlaygroundPage() {
     setStepIndex(0);
   }, [scenario]);
 
-  const stepTitles = useMemo(() => scenario.steps.map((step) => step.title), [scenario.steps]);
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
-  const inputValues = scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
+  const stepTitles = useMemo(
+    () => scenario.steps.map((step) => step.title),
+    [scenario.steps]
+  );
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
+  const inputValues =
+    scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
   const inputFields = getScenarioInputFields(scenario).map((field) => ({
     ...field,
     value: inputValues[field.key] ?? '',
@@ -68,7 +89,10 @@ export function PlaygroundPage() {
       }));
     },
   }));
-  const stateDropValue = scenario.kind === 'state-drop' ? inputValues[scenario.trackedField.key] ?? '' : '';
+  const stateDropValue =
+    scenario.kind === 'state-drop'
+      ? inputValues[scenario.trackedField.key] ?? ''
+      : '';
 
   return (
     <PageShell
@@ -85,16 +109,19 @@ export function PlaygroundPage() {
           scenarios={playgroundScenarios}
           activeScenarioId={scenario.id}
           onSelect={setScenarioId}
-          queuedScenarios={playgroundContent.queuedScenarios}
+          queuedScenarios={[...playgroundContent.queuedScenarios]}
         />
       </PageSection>
       <PageSection title={scenario.title} description={scenario.problem}>
         <div style={{ ...scenarioLayoutStyle, ...responsiveLayoutStyle }}>
           <div style={scenarioMainStyle}>
             <ScenarioControls
-              inputTitle={scenario.controls.inputLabel ?? 'Starting form values'}
+              inputTitle={
+                scenario.controls.inputLabel ?? 'Starting form values'
+              }
               inputDescription={
-                scenario.controls.inputDescription ?? 'Edit these values to seed both panes before the deterministic steps replay.'
+                scenario.controls.inputDescription ??
+                'Edit these values to seed both panes before the deterministic steps replay.'
               }
               inputFields={inputFields}
               stepIndex={boundedStepIndex}
@@ -104,12 +131,25 @@ export function PlaygroundPage() {
             <ExampleGrid alignItems="stretch">
               {scenario.kind === 'state-drop' ? (
                 <>
-                  <NaivePane scenario={scenario} stepIndex={boundedStepIndex} userValue={stateDropValue} />
-                  <ContinuityPane scenario={scenario} stepIndex={boundedStepIndex} userValue={stateDropValue} />
+                  <NaivePane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    userValue={stateDropValue}
+                  />
+                  <ContinuityPane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    userValue={stateDropValue}
+                  />
                 </>
               ) : scenario.kind === 'conflict-proposals' ? (
                 <>
-                  <ConflictPane scenario={scenario} stepIndex={boundedStepIndex} mode="naive" inputValues={inputValues} />
+                  <ConflictPane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    mode="naive"
+                    inputValues={inputValues}
+                  />
                   <ConflictPane
                     scenario={scenario}
                     stepIndex={boundedStepIndex}
@@ -119,7 +159,12 @@ export function PlaygroundPage() {
                 </>
               ) : scenario.kind === 'detached-restore' ? (
                 <>
-                  <DetachedPane scenario={scenario} stepIndex={boundedStepIndex} mode="naive" inputValues={inputValues} />
+                  <DetachedPane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    mode="naive"
+                    inputValues={inputValues}
+                  />
                   <DetachedPane
                     scenario={scenario}
                     stepIndex={boundedStepIndex}
@@ -129,7 +174,12 @@ export function PlaygroundPage() {
                 </>
               ) : scenario.kind === 'collection-evolution' ? (
                 <>
-                  <CollectionPane scenario={scenario} stepIndex={boundedStepIndex} mode="naive" inputValues={inputValues} />
+                  <CollectionPane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    mode="naive"
+                    inputValues={inputValues}
+                  />
                   <CollectionPane
                     scenario={scenario}
                     stepIndex={boundedStepIndex}
@@ -139,7 +189,12 @@ export function PlaygroundPage() {
                 </>
               ) : (
                 <>
-                  <RecoveryPane scenario={scenario} stepIndex={boundedStepIndex} mode="naive" inputValues={inputValues} />
+                  <RecoveryPane
+                    scenario={scenario}
+                    stepIndex={boundedStepIndex}
+                    mode="naive"
+                    inputValues={inputValues}
+                  />
                   <RecoveryPane
                     scenario={scenario}
                     stepIndex={boundedStepIndex}

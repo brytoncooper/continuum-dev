@@ -1,8 +1,9 @@
+import type { ReactElement } from 'react';
 import type {
   ContinuumNodeMap,
   ContinuumNodeProps,
-  NodeValue,
 } from '@continuum-dev/starter-kit';
+import type { NodeValue } from '@continuum-dev/contract';
 import {
   DateInput,
   Presentation,
@@ -31,7 +32,7 @@ function errorInputStyle() {
 }
 
 function wrapFieldComponent(
-  Component: (props: ContinuumNodeProps) => JSX.Element
+  Component: (props: ContinuumNodeProps) => ReactElement
 ) {
   return function HighlightedComponent(props: ContinuumNodeProps) {
     const key = readNodeProp<string>(props.definition, 'key');

@@ -19,6 +19,18 @@
   "nx": {
     "tags": [
       "scope:demo"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/demo",
+          "command": "tsc --noEmit -p tsconfig.json"
+        },
+        "dependsOn": [
+          "^build"
+        ]
+      }
+    }
   }
 }
