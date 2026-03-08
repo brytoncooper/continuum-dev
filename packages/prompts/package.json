@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/prompts",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publishConfig": {
     "access": "public"
   },
@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brytoncooper/cooper-continuum.git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
     "directory": "packages/prompts"
   },
   "author": "Bryton Cooper",

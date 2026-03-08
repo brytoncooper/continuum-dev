@@ -18,6 +18,25 @@ const leadStyle: CSSProperties = {
   color: color.text,
 };
 
+const actionsStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: space.sm,
+};
+
+const actionStyle = (strong = false): CSSProperties => ({
+  ...type.small,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: strong ? color.surface : color.text,
+  textDecoration: 'none',
+  padding: `${space.sm}px ${space.md}px`,
+  border: `1px solid ${strong ? color.borderStrong : color.border}`,
+  borderRadius: 999,
+  background: strong ? color.accent : color.surface,
+});
+
 export function HeroBlock() {
   return (
     <LandingGrid>
@@ -25,6 +44,14 @@ export function HeroBlock() {
         <div style={leadStyle}>
           Dynamic interfaces should feel adaptive, not fragile. Continuum keeps the session
           coherent while the UI keeps changing.
+        </div>
+        <div style={actionsStyle}>
+          <a href="/playground" style={actionStyle(true)}>
+            Open playground
+          </a>
+          <a href="/docs" style={actionStyle()}>
+            Read quick start
+          </a>
         </div>
         <LandingFeatureList
           items={[

@@ -1,0 +1,16 @@
+{
+  "name": "@continuum/starter-kit",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/starter-kit/src",
+  "projectType": "library",
+  "tags": ["scope:starter-kit"],
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/starter-kit"
+      }
+    }
+  }
+}

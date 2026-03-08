@@ -1,10 +1,18 @@
-import type { ContinuumNodeMap, ContinuumNodeProps } from '@continuum/react';
-import type { NodeValue } from '@continuum/contract';
+import type { ContinuumNodeMap, ContinuumNodeProps, NodeValue } from '@continuum/starter-kit';
+import {
+  DateInput,
+  Presentation,
+  SelectInput,
+  TextInput,
+  TextareaInput,
+  inputLikeStyle,
+  nodeDescription,
+  nodeLabel,
+  nodePlaceholder,
+  readNodeProp,
+} from '@continuum/starter-kit';
 import { color } from '../../ui/tokens';
 import { componentMap } from '../../component-map';
-import { DateInput, Presentation, SelectInput, TextInput, TextareaInput } from '../../primitives';
-import { inputLikeStyle } from '../../primitives/shared/field-frame';
-import { nodeDescription, nodeLabel, nodePlaceholder, readNodeProp } from '../../primitives/shared/node';
 
 export interface NodeHighlight {
   tone: 'error';

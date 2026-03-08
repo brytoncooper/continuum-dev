@@ -21,10 +21,10 @@ export type FeatureItem = {
 };
 
 export const heroContent = {
-  eyebrow: 'Continuum demo',
+  eyebrow: 'continuumstack.dev',
   title: 'Your UI can change mid-session. Your user state should not.',
   description:
-    'Continuum is the continuity layer for AI-generated, schema-driven, and server-driven interfaces. It separates AI-owned view structure from user-owned state so live screens can regenerate, reorder, and evolve without blowing away what the user already did.',
+    'Continuum is the continuity layer for AI-generated, schema-driven, and server-driven interfaces. It stays headless where it matters, and now ships with an opinionated Starter Kit so teams can get from install to working UI much faster.',
   callouts: [
     {
       title: 'Dynamic UI without state loss',
@@ -110,8 +110,13 @@ export const howItWorksContent = {
 export const packageStackContent = {
   title: 'A tight stack with sharp responsibilities',
   description:
-    'Each layer handles one part of the problem so teams can adopt the model without inheriting a giant framework.',
+    'Each layer handles one part of the problem so teams can adopt the model without inheriting a giant framework, then opt into the Starter Kit when they want a faster path to usable screens.',
   items: [
+    {
+      name: 'core',
+      title: 'Bundles the runtime spine',
+      body: 'Collects contract, runtime, and session into one convenience package so the lower-level Continuum stack ships as a single dependency edge.',
+    },
     {
       name: 'contract',
       title: 'Defines the language',
@@ -131,6 +136,11 @@ export const packageStackContent = {
       name: 'react',
       title: 'Renders headlessly',
       body: 'Binds the model into React so teams can bring their own design system without surrendering continuity.',
+    },
+    {
+      name: 'starter-kit',
+      title: 'Gets teams moving fast',
+      body: 'Provides an opinionated component map, primitives, and proposal-friendly UI for teams that want a polished starting point before customizing.',
     },
   ] satisfies PackageItem[],
 };
@@ -204,9 +214,12 @@ export const ctaContent = {
   description:
     'Continuum gives teams a continuity layer for interfaces that regenerate at runtime, with reconciliation, persistence, proposals, diagnostics, collections, and headless rendering built in.',
   links: [
+    { label: 'Docs', href: '/docs' },
+    { label: 'GitHub', href: 'https://github.com/brytoncooper/continuum-dev' },
     { label: 'The problem', href: '#the-problem' },
     { label: 'How it works', href: '#how-it-works' },
     { label: 'Feature highlights', href: '#feature-highlights' },
     { label: 'Package stack', href: '#package-stack' },
+    { label: 'Starter Kit', href: '/starter-kit' },
   ],
 };

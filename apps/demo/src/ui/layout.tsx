@@ -159,12 +159,14 @@ export function ExampleCard({
   description,
   span = 6,
   fullHeight = false,
+  headerAction,
   children,
 }: {
   title: string;
   description: string;
   span?: 4 | 6 | 12;
   fullHeight?: boolean;
+  headerAction?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -183,9 +185,18 @@ export function ExampleCard({
           flexDirection: fullHeight ? 'column' : undefined,
         }}
       >
-        <div style={cardHeaderStyle}>
-          <div style={cardTitleStyle}>{title}</div>
-          <div style={cardBodyStyle}>{description}</div>
+        <div
+          style={{
+            ...cardHeaderStyle,
+            gridTemplateColumns: headerAction ? 'minmax(0, 1fr) auto' : undefined,
+            alignItems: 'start',
+          }}
+        >
+          <div style={{ display: 'grid', gap: space.sm, minWidth: 0 }}>
+            <div style={cardTitleStyle}>{title}</div>
+            <div style={cardBodyStyle}>{description}</div>
+          </div>
+          {headerAction}
         </div>
         {children}
       </div>

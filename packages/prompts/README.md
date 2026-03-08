@@ -1,6 +1,11 @@
 # @continuum-dev/prompts
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 Prompt templates and assembly helpers for Continuum AI view generation.
+
+If you want the opinionated UI layer and prompt helpers from one install path, `@continuum-dev/starter-kit` re-exports this package.
 
 ## Install
 

@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/core",
+    "tsBuildInfoFile": "../../dist/packages/core/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "emitDeclarationOnly": false
+  },
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../session/tsconfig.lib.json"
+    },
+    {
+      "path": "../runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../contract/tsconfig.lib.json"
+    }
+  ]
+}

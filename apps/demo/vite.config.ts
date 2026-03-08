@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -6,6 +7,11 @@ export default defineConfig({
   cacheDir: '../../node_modules/.vite/apps/demo',
   plugins: [react()],
   resolve: {
+    alias: {
+      '@continuum/core': resolve(__dirname, '../../packages/core/src/index.ts'),
+      '@continuum/prompts': resolve(__dirname, '../../packages/prompts/src/index.ts'),
+      '@continuum/starter-kit': resolve(__dirname, '../../packages/starter-kit/src/index.ts'),
+    },
     conditions: ['@continuum/source'],
   },
   server: {
