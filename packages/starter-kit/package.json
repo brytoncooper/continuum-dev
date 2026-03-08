@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@continuum-dev/core": "^0.1.5",
+    "@continuum-dev/ai-connect": "^0.1.5",
     "@continuum-dev/prompts": "^0.1.5",
     "@continuum-dev/react": "^0.1.5"
   },

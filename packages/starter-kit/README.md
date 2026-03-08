@@ -37,3 +37,104 @@ export function App() {
   );
 }
 ```
+
+## Optional style customization
+
+Starter kit primitives now ship with stable defaults, and you can override key style slots with `StarterKitStyleProvider`.
+
+```tsx
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitStyleProvider,
+  starterKitComponentMap,
+} from '@continuum-dev/starter-kit';
+
+export function App() {
+  return (
+    <StarterKitStyleProvider
+      styles={{
+        fieldControl: { borderRadius: 10 },
+        actionButton: { background: '#0f172a' },
+        suggestionsActionButton: { borderRadius: 999 },
+      }}
+    >
+      <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    </StarterKitStyleProvider>
+  );
+}
+```
+
+Supported slots: `fieldControl`, `sliderInput`, `actionButton`, `collectionAddButton`, `itemRemoveButton`, `itemIconRemoveButton`, `conflictActionButton`, `suggestionsActionButton`.
+You can also inspect the exact shipped defaults in code with `starterKitDefaultStyles`.
+
+```tsx
+import { starterKitDefaultStyles } from '@continuum-dev/starter-kit';
+
+console.log(starterKitDefaultStyles.fieldControl);
+```
+
+Default slots and what they target:
+
+- `fieldControl`: input/select/textarea/date controls
+- `sliderInput`: range input host element
+- `actionButton`: `action` primitive button
+- `collectionAddButton`: collection "Add item" button
+- `itemRemoveButton`: collection item remove button (text)
+- `itemIconRemoveButton`: collection item remove button (icon)
+- `conflictActionButton`: accept/reject buttons in `ConflictBanner`
+- `suggestionsActionButton`: accept all / reject all in `StarterKitSuggestionsBar`
+## AI provider chat primitive
+
+Starter kit includes a ready-to-use headless-provider chat control: `StarterKitProviderChatBox`.
+
+```tsx
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitProviderChatBox,
+  starterKitComponentMap,
+} from '@continuum-dev/starter-kit';
+import {
+  createGoogleClient,
+  createOpenAiClient,
+} from '@continuum-dev/ai-connect';
+
+const providers = [
+  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY }),
+  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+];
+
+export function App() {
+  return (
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <ContinuumRenderer view={view} />
+    </ContinuumProvider>
+  );
+}
+```
+
+If multiple providers are configured, the primitive shows a provider select automatically.
+### Provider composer helper
+
+Use `StarterKitProviderComposer` to build providers from one config object:
+
+```tsx
+import {
+  StarterKitProviderChatBox,
+  StarterKitProviderComposer,
+} from '@continuum-dev/starter-kit';
+
+const providers = StarterKitProviderComposer({
+  include: ['openai', 'google'],
+  openai: { apiKey: import.meta.env.VITE_OPENAI_API_KEY },
+  google: { apiKey: import.meta.env.VITE_GOOGLE_API_KEY },
+});
+
+<StarterKitProviderChatBox providers={providers} mode="evolve-view" />;
+```
+
+If a provider is listed in `include`, its `apiKey` is required.
