@@ -4,10 +4,16 @@ import React, { useContext, useRef, useState } from 'react';
 import { ContinuumProvider, ContinuumContext } from './context.js';
 import type { ContinuumContextValue, ContinuumStore } from './context.js';
 import { useContinuumSession, useContinuumState } from './hooks.js';
-import type { ViewDefinition, NodeValue, ContinuitySnapshot } from '@continuum/contract';
-import type { Session } from '@continuum/session';
+import type {
+  ViewDefinition,
+  NodeValue,
+  ContinuitySnapshot,
+} from '@continuum-dev/contract';
+import type { Session } from '@continuum-dev/session';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const simpleView: ViewDefinition = {
   viewId: 'v1',
@@ -122,15 +128,23 @@ describe('notifyListeners (via store subscriptions)', () => {
     const deliveryOrder: string[] = [];
     const secondListener = vi.fn(() => {
       deliveryOrder.push(
-        String((store?.getSnapshot()?.data.values?.['f1'] as NodeValue | undefined)?.value ?? 'unset')
+        String(
+          (store?.getSnapshot()?.data.values?.['f1'] as NodeValue | undefined)
+            ?.value ?? 'unset'
+        )
       );
     });
     const thirdListener = vi.fn(() => {
       deliveryOrder.push(
-        String((store?.getSnapshot()?.data.values?.['f1'] as NodeValue | undefined)?.value ?? 'unset')
+        String(
+          (store?.getSnapshot()?.data.values?.['f1'] as NodeValue | undefined)
+            ?.value ?? 'unset'
+        )
       );
     });
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
 
     function Probe() {
       const ctx = useContext(ContinuumContext);
@@ -166,7 +180,9 @@ describe('notifyListeners (via store subscriptions)', () => {
 
     expect(secondListener).toHaveBeenCalledTimes(2);
     expect(thirdListener).toHaveBeenCalledTimes(2);
-    expect(store!.getSnapshot()?.data.values?.['f1']).toEqual({ value: 'after-update' });
+    expect(store!.getSnapshot()?.data.values?.['f1']).toEqual({
+      value: 'after-update',
+    });
     expect(deliveryOrder).toEqual([
       'throw',
       'unset',
@@ -986,7 +1002,12 @@ describe('resolveStorage (via ContinuumProvider persist)', () => {
 describe('mapsMatch (via ContinuumProvider re-renders)', () => {
   it('returns true for identical refs', () => {
     const renderCounts = { inner: 0 };
-    const singleMap = { field: () => { renderCounts.inner++; return <div />; } };
+    const singleMap = {
+      field: () => {
+        renderCounts.inner++;
+        return <div />;
+      },
+    };
 
     function App() {
       const session = useContinuumSession();
@@ -1006,13 +1027,21 @@ describe('mapsMatch (via ContinuumProvider re-renders)', () => {
 
   it('returns true for same keys with same component refs', () => {
     const renderCounts = { field: 0 };
-    const fieldComp = () => { renderCounts.field++; return <div data-testid="stable-field" />; };
+    const fieldComp = () => {
+      renderCounts.field++;
+      return <div data-testid="stable-field" />;
+    };
 
     function ProviderShell() {
       const [tick, setTick] = useState(0);
       return (
         <div>
-          <button data-testid="rerender-btn" onClick={() => setTick(t => t + 1)}>{tick}</button>
+          <button
+            data-testid="rerender-btn"
+            onClick={() => setTick((t) => t + 1)}
+          >
+            {tick}
+          </button>
           <ContinuumProvider components={{ field: fieldComp }}>
             <InnerApp />
           </ContinuumProvider>
@@ -1109,7 +1138,9 @@ describe('useStableMap (via provider)', () => {
       const [tick, setTick] = useState(0);
       return (
         <div>
-          <button data-testid="tick" onClick={() => setTick(t => t + 1)}>{tick}</button>
+          <button data-testid="tick" onClick={() => setTick((t) => t + 1)}>
+            {tick}
+          </button>
           <ContinuumProvider components={{ field: fieldComp }}>
             <InnerApp />
           </ContinuumProvider>
@@ -1199,7 +1230,12 @@ describe('useStableMap (via provider)', () => {
       const [tick, setTick] = useState(0);
       return (
         <div>
-          <button data-testid="multi-tick" onClick={() => setTick(t => t + 1)}>{tick}</button>
+          <button
+            data-testid="multi-tick"
+            onClick={() => setTick((t) => t + 1)}
+          >
+            {tick}
+          </button>
           <ContinuumProvider components={{ field: fieldComp }}>
             <InnerApp />
           </ContinuumProvider>
@@ -1209,9 +1245,15 @@ describe('useStableMap (via provider)', () => {
 
     const { unmount, getByTestId } = render(<Shell />);
 
-    act(() => { getByTestId('multi-tick').click(); });
-    act(() => { getByTestId('multi-tick').click(); });
-    act(() => { getByTestId('multi-tick').click(); });
+    act(() => {
+      getByTestId('multi-tick').click();
+    });
+    act(() => {
+      getByTestId('multi-tick').click();
+    });
+    act(() => {
+      getByTestId('multi-tick').click();
+    });
 
     const uniqueMaps = new Set(maps);
     expect(uniqueMaps.size).toBe(1);

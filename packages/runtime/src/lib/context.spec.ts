@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ViewDefinition, ViewNode } from '@continuum/contract';
+import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { buildReconciliationContext, findPriorNode } from './context.js';
 
 function makeNode(
@@ -17,14 +17,28 @@ function makeNode(
       ? { dataType: 'string', defaultValue: undefined, constraints: undefined }
       : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'collection' ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode } : {}),
+    ...(type === 'collection'
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
+      : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
-    ...(type === 'presentation' ? { contentType: 'text', content: 'text' } : {}),
+    ...(type === 'presentation'
+      ? { contentType: 'text', content: 'text' }
+      : {}),
     ...overrides,
   } as ViewNode;
 }
 
-function makeView(nodes: ViewNode[], viewId = 'view-1', version = '1.0'): ViewDefinition {
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
+  version = '1.0'
+): ViewDefinition {
   return { viewId, version, nodes };
 }
 
@@ -71,7 +85,9 @@ describe('findPriorNode', () => {
 
   it('matches by dot-notation suffix key', () => {
     const priorView = makeView([makeNode({ id: 'node-1', key: 'firstName' })]);
-    const newView = makeView([makeNode({ id: 'node-2', key: 'applicantName.firstName' })]);
+    const newView = makeView([
+      makeNode({ id: 'node-2', key: 'applicantName.firstName' }),
+    ]);
     const ctx = buildReconciliationContext(newView, priorView);
     const priorNode = findPriorNode(ctx, ctx.newById.get('node-2')!);
     expect(priorNode?.id).toBe('node-1');
@@ -79,41 +95,75 @@ describe('findPriorNode', () => {
 
   it('matches by unique raw id when nested deeply', () => {
     const priorView = makeView([
-      makeNode({ id: 'row-1', type: 'row', children: [makeNode({ id: 'first_name', key: 'firstName' })] })
+      makeNode({
+        id: 'row-1',
+        type: 'row',
+        children: [makeNode({ id: 'first_name', key: 'firstName' })],
+      }),
     ]);
     const newView = makeView([
-      makeNode({ id: 'group-1', type: 'group', children: [
-        makeNode({ id: 'row-2', type: 'row', children: [makeNode({ id: 'first_name', key: 'first_name' })] })
-      ]})
+      makeNode({
+        id: 'group-1',
+        type: 'group',
+        children: [
+          makeNode({
+            id: 'row-2',
+            type: 'row',
+            children: [makeNode({ id: 'first_name', key: 'first_name' })],
+          }),
+        ],
+      }),
     ]);
     const ctx = buildReconciliationContext(newView, priorView);
-    const priorNode = findPriorNode(ctx, ctx.newById.get('group-1/row-2/first_name')!);
+    const priorNode = findPriorNode(
+      ctx,
+      ctx.newById.get('group-1/row-2/first_name')!
+    );
     expect(ctx.priorNodeIds.get(priorNode!)).toBe('row-1/first_name');
   });
 
   it('does not match by raw id if not globally unique', () => {
     const priorView = makeView([
-      makeNode({ id: 'row-1', type: 'row', children: [makeNode({ id: 'label_text', key: 't1' })] }),
-      makeNode({ id: 'row-2', type: 'row', children: [makeNode({ id: 'label_text', key: 't2' })] })
+      makeNode({
+        id: 'row-1',
+        type: 'row',
+        children: [makeNode({ id: 'label_text', key: 't1' })],
+      }),
+      makeNode({
+        id: 'row-2',
+        type: 'row',
+        children: [makeNode({ id: 'label_text', key: 't2' })],
+      }),
     ]);
     const newView = makeView([
-      makeNode({ id: 'group-1', type: 'group', children: [
-        makeNode({ id: 'label_text', key: 't3' })
-      ]})
+      makeNode({
+        id: 'group-1',
+        type: 'group',
+        children: [makeNode({ id: 'label_text', key: 't3' })],
+      }),
     ]);
     const ctx = buildReconciliationContext(newView, priorView);
-    const priorNode = findPriorNode(ctx, ctx.newById.get('group-1/label_text')!);
+    const priorNode = findPriorNode(
+      ctx,
+      ctx.newById.get('group-1/label_text')!
+    );
     expect(priorNode).toBeNull();
   });
 
   it('matches newly dot-notated key to old unique raw ID', () => {
     const priorView = makeView([
-      makeNode({ id: 'row-1', type: 'row', children: [makeNode({ id: 'first_name', key: 'firstName' })] })
+      makeNode({
+        id: 'row-1',
+        type: 'row',
+        children: [makeNode({ id: 'first_name', key: 'firstName' })],
+      }),
     ]);
     const newView = makeView([
-      makeNode({ id: 'group-1', type: 'group', children: [
-        makeNode({ id: 'new_id', key: 'applicantName.first_name' })
-      ]})
+      makeNode({
+        id: 'group-1',
+        type: 'group',
+        children: [makeNode({ id: 'new_id', key: 'applicantName.first_name' })],
+      }),
     ]);
     const ctx = buildReconciliationContext(newView, priorView);
     const priorNode = findPriorNode(ctx, ctx.newById.get('group-1/new_id')!);

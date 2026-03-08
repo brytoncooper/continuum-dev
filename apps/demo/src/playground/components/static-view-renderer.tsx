@@ -1,6 +1,15 @@
-import { getChildNodes } from '@continuum/contract';
-import type { CollectionNode, CollectionNodeState, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
-import type { ContinuumNodeMap, ContinuumNodeProps } from '@continuum/react';
+import { getChildNodes } from '@continuum-dev/contract';
+import type {
+  CollectionNode,
+  CollectionNodeState,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
+import type {
+  ContinuumNodeMap,
+  ContinuumNodeProps,
+} from '@continuum-dev/react';
 import { componentMap } from '../../component-map';
 
 function scopedNodeId(nodeId: string, parentNodeId?: string): string {
@@ -57,7 +66,8 @@ function renderCollectionNode(
     props: ContinuumNodeProps
   ) => JSX.Element;
   const collectionValue =
-    (values[nodeId] as NodeValue<CollectionNodeState> | undefined)?.value?.items ?? [];
+    (values[nodeId] as NodeValue<CollectionNodeState> | undefined)?.value
+      ?.items ?? [];
 
   return (
     <Component
@@ -90,7 +100,12 @@ function renderNode(
   parentNodeId?: string
 ): JSX.Element {
   if (node.type === 'collection') {
-    return renderCollectionNode(node as CollectionNode, values, components, parentNodeId);
+    return renderCollectionNode(
+      node as CollectionNode,
+      values,
+      components,
+      parentNodeId
+    );
   }
 
   const nodeId = scopedNodeId(node.id, parentNodeId);
@@ -107,7 +122,9 @@ function renderNode(
       value={values[nodeId]}
       onChange={(value) => onChange(nodeId, value as NodeValue)}
     >
-      {children.map((childNode) => renderNode(childNode, values, onChange, components, nodeId))}
+      {children.map((childNode) =>
+        renderNode(childNode, values, onChange, components, nodeId)
+      )}
     </Component>
   );
 }
@@ -123,5 +140,9 @@ export function StaticViewRenderer({
   onChange: (nodeId: string, value: NodeValue) => void;
   components?: ContinuumNodeMap;
 }) {
-  return <>{view.nodes.map((node) => renderNode(node, values, onChange, components))}</>;
+  return (
+    <>
+      {view.nodes.map((node) => renderNode(node, values, onChange, components))}
+    </>
+  );
 }

@@ -1,6 +1,15 @@
-import { type DataSnapshot, type ViewDefinition, type ViewNode, ISSUE_SEVERITY, ISSUE_CODES } from '@continuum/contract';
+import {
+  type DataSnapshot,
+  type ViewDefinition,
+  type ViewNode,
+  ISSUE_SEVERITY,
+  ISSUE_CODES,
+} from '@continuum-dev/contract';
 import type { ReconciliationIssue } from './types.js';
-import { type TraversedViewNode, traverseViewNodes } from './reconciliation/view-traversal.js';
+import {
+  type TraversedViewNode,
+  traverseViewNodes,
+} from './reconciliation/view-traversal.js';
 
 /**
  * Scans a view tree for duplicate ids/keys and traversal-level issues.
@@ -11,7 +20,9 @@ import { type TraversedViewNode, traverseViewNodes } from './reconciliation/view
  * @param nodes Root nodes from a view definition.
  * @returns Aggregated issues for duplicates and traversal anomalies.
  */
-export function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[] {
+export function collectDuplicateIssues(
+  nodes: ViewNode[]
+): ReconciliationIssue[] {
   const issues: ReconciliationIssue[] = [];
   const byId = new Map<string, ViewNode>();
   const byKey = new Map<string, ViewNode>();
@@ -117,10 +128,16 @@ export function buildReconciliationContext(
 ): ReconciliationContext {
   const newById = new Map<string, ViewNode>();
   const newByKey = new Map<string, ViewNode>();
-  const newBySemanticKey = new Map<string, { node: ViewNode; nodeId: string }>();
+  const newBySemanticKey = new Map<
+    string,
+    { node: ViewNode; nodeId: string }
+  >();
   const priorById = new Map<string, ViewNode>();
   const priorByKey = new Map<string, ViewNode>();
-  const priorBySemanticKey = new Map<string, { node: ViewNode; nodeId: string }>();
+  const priorBySemanticKey = new Map<
+    string,
+    { node: ViewNode; nodeId: string }
+  >();
   const newIdsByRawId = new Map<string, string[]>();
   const priorIdsByRawId = new Map<string, string[]>();
   const newNodeIds = new WeakMap<ViewNode, string>();
@@ -129,7 +146,9 @@ export function buildReconciliationContext(
   const newTraversal = traverseViewNodes(newView.nodes);
   const priorTraversal = priorView ? traverseViewNodes(priorView.nodes) : null;
   const newKeyCounts = collectKeyCounts(newTraversal.visited);
-  const priorKeyCounts = priorTraversal ? collectKeyCounts(priorTraversal.visited) : new Map<string, number>();
+  const priorKeyCounts = priorTraversal
+    ? collectKeyCounts(priorTraversal.visited)
+    : new Map<string, number>();
   issues.push(...newTraversal.issues);
   if (priorTraversal) {
     issues.push(...priorTraversal.issues);
@@ -200,7 +219,7 @@ export function findPriorNode(
   if (newNode.key) {
     const byKey = findByKey(ctx.priorByKey, newNode.key, newNodeId);
     if (byKey) return byKey;
-    
+
     // 3. Dot-Notation Suffix Key
     if (newNode.key.includes('.')) {
       const parts = newNode.key.split('.');
@@ -253,11 +272,17 @@ export function buildPriorValueLookupByIdAndKey(
   const map = new Map<string, unknown>();
   for (const [priorId, priorValue] of Object.entries(priorData.values)) {
     map.set(priorId, priorValue);
-    const resolvedPriorId = resolveIdFromSnapshot(ctx.priorById, ctx.priorIdsByRawId, priorId);
+    const resolvedPriorId = resolveIdFromSnapshot(
+      ctx.priorById,
+      ctx.priorIdsByRawId,
+      priorId
+    );
     if (resolvedPriorId && resolvedPriorId !== priorId) {
       map.set(resolvedPriorId, priorValue);
     }
-    const priorNode = resolvedPriorId ? ctx.priorById.get(resolvedPriorId) : undefined;
+    const priorNode = resolvedPriorId
+      ? ctx.priorById.get(resolvedPriorId)
+      : undefined;
     if (priorNode?.key) {
       const newNode = findByKey(
         ctx.newByKey,
@@ -291,14 +316,21 @@ export function determineNodeMatchStrategy(
 ): 'id' | 'key' | null {
   if (!priorNode) return null;
   const newNodeId = ctx.newNodeIds.get(newNode) ?? newNode.id;
-  if (ctx.priorById.has(newNodeId) || ctx.priorById.has(newNode.id)) return 'id';
-  
-  if (newNode.key && (ctx.priorByKey.has(newNode.key) || findByKey(ctx.priorByKey, newNode.key, newNodeId) === priorNode)) return 'key';
+  if (ctx.priorById.has(newNodeId) || ctx.priorById.has(newNode.id))
+    return 'id';
+
+  if (
+    newNode.key &&
+    (ctx.priorByKey.has(newNode.key) ||
+      findByKey(ctx.priorByKey, newNode.key, newNodeId) === priorNode)
+  )
+    return 'key';
 
   if (newNode.key && newNode.key.includes('.')) {
     const parts = newNode.key.split('.');
     const suffix = parts[parts.length - 1];
-    if (suffix && findByKey(ctx.priorByKey, suffix, newNodeId) === priorNode) return 'key';
+    if (suffix && findByKey(ctx.priorByKey, suffix, newNodeId) === priorNode)
+      return 'key';
   }
 
   if (priorNode.id === newNode.id) return 'id';
@@ -339,13 +371,7 @@ export function findNewNodeByPriorNode(
 ): ViewNode | null {
   if (!priorNode.key) return null;
   const priorId = ctx.priorNodeIds.get(priorNode) ?? priorNode.id;
-  return (
-    findByKey(
-      ctx.newByKey,
-      priorNode.key,
-      priorId
-    ) ?? null
-  );
+  return findByKey(ctx.newByKey, priorNode.key, priorId) ?? null;
 }
 
 function collectKeyCounts(traversed: TraversedViewNode[]): Map<string, number> {
@@ -380,7 +406,10 @@ function indexNodesByIdAndKey(
     }
     byId.set(indexedId, entry.node);
     nodeIds.set(entry.node, indexedId);
-    idsByRawId.set(entry.node.id, [...(idsByRawId.get(entry.node.id) ?? []), indexedId]);
+    idsByRawId.set(entry.node.id, [
+      ...(idsByRawId.get(entry.node.id) ?? []),
+      indexedId,
+    ]);
 
     if (entry.node.key) {
       const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
@@ -393,7 +422,10 @@ function indexNodesByIdAndKey(
         });
       }
       byKey.set(indexedKey, entry.node);
-      if (!byKey.has(entry.node.key) && (keyCounts.get(entry.node.key) ?? 0) === 1) {
+      if (
+        !byKey.has(entry.node.key) &&
+        (keyCounts.get(entry.node.key) ?? 0) === 1
+      ) {
         byKey.set(entry.node.key, entry.node);
       }
     }

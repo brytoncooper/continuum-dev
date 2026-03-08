@@ -1,5 +1,5 @@
-import { INTERACTION_TYPES } from '@continuum/contract';
-import type { ViewDefinition, ViewNode } from '@continuum/contract';
+import { INTERACTION_TYPES } from '@continuum-dev/contract';
+import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createSession, deserialize } from './session.js';
 
@@ -25,19 +25,13 @@ function makeNode(
 const viewV1: ViewDefinition = {
   viewId: 'view',
   version: '1',
-  nodes: [
-    makeNode({ id: 'a', key: 'a' }),
-    makeNode({ id: 'b', key: 'b' }),
-  ],
+  nodes: [makeNode({ id: 'a', key: 'a' }), makeNode({ id: 'b', key: 'b' })],
 };
 
 const viewV2: ViewDefinition = {
   viewId: 'view',
   version: '2',
-  nodes: [
-    makeNode({ id: 'a2', key: 'a' }),
-    makeNode({ id: 'b', key: 'b' }),
-  ],
+  nodes: [makeNode({ id: 'a2', key: 'a' }), makeNode({ id: 'b', key: 'b' })],
 };
 
 describe('session hardening', () => {
@@ -48,7 +42,9 @@ describe('session hardening', () => {
     const checkpoint = session.checkpoint();
     session.updateState('a', { value: 'two' });
 
-    expect(session.getCheckpoints().map((cp) => cp.checkpointId)).toContain(checkpoint.checkpointId);
+    expect(session.getCheckpoints().map((cp) => cp.checkpointId)).toContain(
+      checkpoint.checkpointId
+    );
 
     session.rewind(checkpoint.checkpointId);
     expect(session.getSnapshot()?.data.values.a).toEqual({ value: 'one' });
@@ -56,7 +52,9 @@ describe('session hardening', () => {
 
   it('throws when manual checkpoint is created without a snapshot', () => {
     const session = createSession();
-    expect(() => session.checkpoint()).toThrow('Cannot create checkpoint before pushing a view');
+    expect(() => session.checkpoint()).toThrow(
+      'Cannot create checkpoint before pushing a view'
+    );
   });
 
   it('isolates listener failures so all listeners still receive updates', () => {
@@ -99,25 +97,55 @@ describe('session hardening', () => {
     expect(() => session.getSnapshot()).toThrow('Session has been destroyed');
     expect(() => session.getIssues()).toThrow('Session has been destroyed');
     expect(() => session.getDiffs()).toThrow('Session has been destroyed');
-    expect(() => session.getResolutions()).toThrow('Session has been destroyed');
+    expect(() => session.getResolutions()).toThrow(
+      'Session has been destroyed'
+    );
     expect(() => session.getEventLog()).toThrow('Session has been destroyed');
-    expect(() => session.getPendingIntents()).toThrow('Session has been destroyed');
-    expect(() => session.getDetachedValues()).toThrow('Session has been destroyed');
-    expect(() => session.getCheckpoints()).toThrow('Session has been destroyed');
-    expect(() => session.pushView(viewV1)).toThrow('Session has been destroyed');
-    expect(() => session.recordIntent({ nodeId: 'a', type: INTERACTION_TYPES.DATA_UPDATE, payload: { value: 'x' } }))
-      .toThrow('Session has been destroyed');
-    expect(() => session.updateState('a', { value: 'x' })).toThrow('Session has been destroyed');
-    expect(() => session.submitIntent({ nodeId: 'a', intentName: 'submit', payload: {} }))
-      .toThrow('Session has been destroyed');
-    expect(() => session.validateIntent('missing')).toThrow('Session has been destroyed');
-    expect(() => session.cancelIntent('missing')).toThrow('Session has been destroyed');
+    expect(() => session.getPendingIntents()).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.getDetachedValues()).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.getCheckpoints()).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.pushView(viewV1)).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() =>
+      session.recordIntent({
+        nodeId: 'a',
+        type: INTERACTION_TYPES.DATA_UPDATE,
+        payload: { value: 'x' },
+      })
+    ).toThrow('Session has been destroyed');
+    expect(() => session.updateState('a', { value: 'x' })).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() =>
+      session.submitIntent({ nodeId: 'a', intentName: 'submit', payload: {} })
+    ).toThrow('Session has been destroyed');
+    expect(() => session.validateIntent('missing')).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.cancelIntent('missing')).toThrow(
+      'Session has been destroyed'
+    );
     expect(() => session.checkpoint()).toThrow('Session has been destroyed');
-    expect(() => session.restoreFromCheckpoint(checkpoint)).toThrow('Session has been destroyed');
-    expect(() => session.rewind('missing')).toThrow('Session has been destroyed');
+    expect(() => session.restoreFromCheckpoint(checkpoint)).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.rewind('missing')).toThrow(
+      'Session has been destroyed'
+    );
     expect(() => session.reset()).toThrow('Session has been destroyed');
-    expect(() => session.onSnapshot(vi.fn())).toThrow('Session has been destroyed');
-    expect(() => session.onIssues(vi.fn())).toThrow('Session has been destroyed');
+    expect(() => session.onSnapshot(vi.fn())).toThrow(
+      'Session has been destroyed'
+    );
+    expect(() => session.onIssues(vi.fn())).toThrow(
+      'Session has been destroyed'
+    );
     expect(() => session.serialize()).toThrow('Session has been destroyed');
     expect(() => session.destroy()).toThrow('Session has been destroyed');
   });
@@ -137,13 +165,25 @@ describe('session hardening', () => {
   it('validates view shape in pushView', () => {
     const session = createSession();
     expect(() =>
-      session.pushView({ viewId: '', version: '1', nodes: [] } as ViewDefinition)
+      session.pushView({
+        viewId: '',
+        version: '1',
+        nodes: [],
+      } as ViewDefinition)
     ).toThrow('Invalid view: "viewId" must be a non-empty string');
     expect(() =>
-      session.pushView({ viewId: 'x', version: '', nodes: [] } as ViewDefinition)
+      session.pushView({
+        viewId: 'x',
+        version: '',
+        nodes: [],
+      } as ViewDefinition)
     ).toThrow('Invalid view: "version" must be a non-empty string');
     expect(() =>
-      session.pushView({ viewId: 'x', version: '1', nodes: null } as unknown as ViewDefinition)
+      session.pushView({
+        viewId: 'x',
+        version: '1',
+        nodes: null,
+      } as unknown as ViewDefinition)
     ).toThrow('Invalid view: "nodes" must be an array');
   });
 
@@ -160,14 +200,20 @@ describe('session hardening', () => {
     serialized.eventLog.push({ type: 'tampered' });
 
     expect(session.getSnapshot()?.data.values.a).toEqual({ value: 'safe' });
-    expect(session.getEventLog().some((item) => item.type === 'tampered')).toBe(false);
+    expect(session.getEventLog().some((item) => item.type === 'tampered')).toBe(
+      false
+    );
   });
 
   it('supports full round-trip of snapshot, events, intents, and checkpoints', () => {
     const session = createSession();
     session.pushView(viewV1);
     session.updateState('a', { value: 'alpha' });
-    session.submitIntent({ nodeId: 'a', intentName: 'submit', payload: { ok: true } });
+    session.submitIntent({
+      nodeId: 'a',
+      intentName: 'submit',
+      payload: { ok: true },
+    });
     session.checkpoint();
     session.pushView(viewV2);
     const blob = session.serialize();
@@ -189,9 +235,13 @@ describe('session hardening', () => {
     const checkpoint = session.checkpoint();
     session.updateState('a', { value: 'after-checkpoint' });
     const checkpoints = session.getCheckpoints();
-    const persisted = checkpoints.find((cp) => cp.checkpointId === checkpoint.checkpointId);
+    const persisted = checkpoints.find(
+      (cp) => cp.checkpointId === checkpoint.checkpointId
+    );
 
-    expect(persisted?.snapshot.data.values.a).toEqual({ value: 'at-checkpoint' });
+    expect(persisted?.snapshot.data.values.a).toEqual({
+      value: 'at-checkpoint',
+    });
   });
 
   it('clears issues, diffs, and resolutions when rewinding', () => {

@@ -1,5 +1,5 @@
-import type { ViewNode, NodeValue } from '@continuum/contract';
-import type { SessionOptions } from '@continuum/session';
+import type { ViewNode, NodeValue } from '@continuum-dev/contract';
+import type { SessionOptions } from '@continuum-dev/session';
 import type { Type } from '@angular/core';
 
 export interface ContinuumNodeProps<T = NodeValue> {

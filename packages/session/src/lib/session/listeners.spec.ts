@@ -6,8 +6,8 @@ import {
   notifyIssueListeners,
   notifySnapshotAndIssueListeners,
 } from './listeners.js';
-import type { ViewDefinition, DataSnapshot } from '@continuum/contract';
-import { ISSUE_CODES } from '@continuum/contract';
+import type { ViewDefinition, DataSnapshot } from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/contract';
 
 function makeView(): ViewDefinition {
   return { viewId: 's1', version: '1.0', nodes: [] };
@@ -73,7 +73,9 @@ describe('notifySnapshotListeners', () => {
     const internal = createEmptySessionState('s', () => 0);
     internal.currentView = makeView();
     internal.currentData = makeData();
-    const failingListener = vi.fn(() => { throw new Error('boom'); });
+    const failingListener = vi.fn(() => {
+      throw new Error('boom');
+    });
     const successListener = vi.fn();
     internal.snapshotListeners.add(failingListener);
     internal.snapshotListeners.add(successListener);
@@ -90,11 +92,11 @@ describe('notifySnapshotListeners', () => {
     internal.currentView = makeView();
     internal.currentData = makeData();
     const listener = vi.fn();
-    
+
     internal.snapshotListeners.add(listener);
     notifySnapshotListeners(internal);
     expect(listener).toHaveBeenCalledTimes(1);
-    
+
     internal.snapshotListeners.delete(listener);
     notifySnapshotListeners(internal);
     expect(listener).toHaveBeenCalledTimes(1); // Still 1
@@ -114,7 +116,9 @@ describe('notifySnapshotListeners', () => {
 describe('notifyIssueListeners', () => {
   it('calls all registered issue listeners with a copy of issues', () => {
     const internal = createEmptySessionState('s', () => 0);
-    internal.issues = [{ severity: 'info', message: 'test', code: ISSUE_CODES.UNKNOWN_NODE }];
+    internal.issues = [
+      { severity: 'info', message: 'test', code: ISSUE_CODES.UNKNOWN_NODE },
+    ];
     const listener = vi.fn();
     internal.issueListeners.add(listener);
 

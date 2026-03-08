@@ -1,5 +1,5 @@
 import { inject, effect, signal, type Signal } from '@angular/core';
-import type { NodeValue } from '@continuum/contract';
+import type { NodeValue } from '@continuum-dev/contract';
 import { injectContinuumSession } from '../inject.js';
 import { CONTINUUM_SNAPSHOT } from '../tokens.js';
 

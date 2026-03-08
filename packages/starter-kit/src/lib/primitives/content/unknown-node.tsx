@@ -1,4 +1,4 @@
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { color, radius, space, type } from '../../tokens.js';
 
 export function UnknownNode({ definition }: ContinuumNodeProps) {

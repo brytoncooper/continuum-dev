@@ -10,7 +10,7 @@ import type {
   ViewNode,
   NodeValue,
   ViewDefinition,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import { CONTINUUM_NODE_MAP, CONTINUUM_SNAPSHOT } from './tokens.js';
 import { ContinuumFallbackComponent } from './fallback.js';
 import { injectContinuumSession } from './inject.js';
@@ -21,19 +21,17 @@ import { injectContinuumSession } from './inject.js';
   imports: [NgComponentOutlet, ContinuumFallbackComponent],
   template: `
     @if (!definition().hidden) {
-      <div [attr.data-continuum-id]="definition().id">
-        @if (resolvedComponent(); as comp) {
-          <ng-container
-            *ngComponentOutlet="comp; inputs: nodeInputs()"
-          />
-        } @else {
-          <continuum-fallback
-            [definition]="definition()"
-            [value]="state()"
-            (valueChange)="setState($event)"
-          />
-        }
-      </div>
+    <div [attr.data-continuum-id]="definition().id">
+      @if (resolvedComponent(); as comp) {
+      <ng-container *ngComponentOutlet="comp; inputs: nodeInputs()" />
+      } @else {
+      <continuum-fallback
+        [definition]="definition()"
+        [value]="state()"
+        (valueChange)="setState($event)"
+      />
+      }
+    </div>
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,9 +55,7 @@ export class ContinuumViewNodeComponent {
   protected resolvedComponent = computed(() => {
     const def = this.definition();
     if (!def) return null;
-    return (
-      (this.nodeMap[def.type] ?? this.nodeMap['default'] ?? null)
-    );
+    return this.nodeMap[def.type] ?? this.nodeMap['default'] ?? null;
   });
   protected nodeInputs = computed(() => ({
     value: this.state(),
@@ -75,7 +71,7 @@ export class ContinuumViewNodeComponent {
   template: `
     <div [attr.data-continuum-view]="view().viewId">
       @for (node of view().nodes ?? []; track node.id) {
-        <continuum-view-node [definition]="node" />
+      <continuum-view-node [definition]="node" />
       }
     </div>
   `,

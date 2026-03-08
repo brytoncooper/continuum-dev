@@ -12,13 +12,13 @@ import type {
   ActionRegistration,
   ActionHandler,
   ActionResult,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResolution,
   StateDiff,
-} from '@continuum/runtime';
+} from '@continuum-dev/runtime';
 
 /**
  * Minimal storage adapter used by session persistence.
@@ -95,7 +95,7 @@ export interface SessionOptions {
    */
   maxCheckpoints?: number;
   /**
-   * Reconciliation options forwarded to `@continuum/runtime`.
+   * Reconciliation options forwarded to `@continuum-dev/runtime`.
    *
    * `clock` is managed by session and intentionally omitted here.
    */
@@ -115,7 +115,10 @@ export interface SessionOptions {
   /**
    * Initial action handlers to pre-register at session creation.
    */
-  actions?: Record<string, { registration: ActionRegistration; handler: ActionHandler }>;
+  actions?: Record<
+    string,
+    { registration: ActionRegistration; handler: ActionHandler }
+  >;
 }
 
 /**
@@ -153,7 +156,12 @@ export interface Session {
   /**
    * Appends a raw interaction event to the event log and applies its payload.
    */
-  recordIntent(interaction: Omit<Interaction, 'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'>): void;
+  recordIntent(
+    interaction: Omit<
+      Interaction,
+      'interactionId' | 'timestamp' | 'sessionId' | 'viewVersion'
+    >
+  ): void;
   /**
    * Convenience wrapper for `data-update` interactions.
    */
@@ -173,7 +181,12 @@ export interface Session {
   /**
    * Queues an intent awaiting validation/cancellation.
    */
-  submitIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): void;
+  submitIntent(
+    intent: Omit<
+      PendingIntent,
+      'intentId' | 'queuedAt' | 'status' | 'viewVersion'
+    >
+  ): void;
   /**
    * Returns currently tracked pending intents.
    */
@@ -185,7 +198,9 @@ export interface Session {
   /**
    * Purges detached values either fully or by predicate.
    */
-  purgeDetachedValues(filter?: (key: string, value: DetachedValue) => boolean): void;
+  purgeDetachedValues(
+    filter?: (key: string, value: DetachedValue) => boolean
+  ): void;
   /**
    * Applies a value proposal immediately or stages it when current value is dirty.
    */
@@ -235,7 +250,9 @@ export interface Session {
    *
    * Returns an unsubscribe function.
    */
-  onSnapshot(listener: (snapshot: ContinuitySnapshot | null) => void): () => void;
+  onSnapshot(
+    listener: (snapshot: ContinuitySnapshot | null) => void
+  ): () => void;
   /**
    * Subscribes to issue updates.
    *
@@ -253,7 +270,11 @@ export interface Session {
   /**
    * Registers an action handler for an intent id.
    */
-  registerAction(intentId: string, registration: ActionRegistration, handler: ActionHandler): void;
+  registerAction(
+    intentId: string,
+    registration: ActionRegistration,
+    handler: ActionHandler
+  ): void;
   /**
    * Removes a previously registered action handler.
    */
@@ -275,7 +296,12 @@ export interface Session {
    *
    * Returns the same `ActionResult` shape as `dispatchAction`.
    */
-  executeIntent(intent: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>): Promise<ActionResult>;
+  executeIntent(
+    intent: Omit<
+      PendingIntent,
+      'intentId' | 'queuedAt' | 'status' | 'viewVersion'
+    >
+  ): Promise<ActionResult>;
 }
 
 /**

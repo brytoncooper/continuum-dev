@@ -1,5 +1,10 @@
-import type { DetachedValue, NodeValue } from '@continuum/contract';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession, useContinuumSnapshot } from '@continuum/react';
+import type { DetachedValue, NodeValue } from '@continuum-dev/contract';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
 import { useEffect, useMemo } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
@@ -29,7 +34,11 @@ const statusChipStyle = (status: string) => ({
   color: color.text,
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.pill,
-  border: `1px solid ${status.includes('lost') || status.includes('empty') ? color.borderStrong : color.border}`,
+  border: `1px solid ${
+    status.includes('lost') || status.includes('empty')
+      ? color.borderStrong
+      : color.border
+  }`,
   background: color.surface,
 });
 
@@ -143,13 +152,19 @@ function buildTrackedFieldStates(
 }
 
 function detachedLabel(reason: DetachedValue['reason']): string {
-  return reason === 'node-removed' ? 'Detached on removal' : 'Detached on type mismatch';
+  return reason === 'node-removed'
+    ? 'Detached on removal'
+    : 'Detached on type mismatch';
 }
 
-function detachedSummary(detachedValues: Record<string, DetachedValue>): Array<{ label: string; value: string }> {
+function detachedSummary(
+  detachedValues: Record<string, DetachedValue>
+): Array<{ label: string; value: string }> {
   const keys = Object.keys(detachedValues);
   if (keys.length === 0) {
-    return [{ label: 'Store', value: 'No detached values are being held right now.' }];
+    return [
+      { label: 'Store', value: 'No detached values are being held right now.' },
+    ];
   }
 
   return keys.map((key) => ({
@@ -173,7 +188,11 @@ function continuumFieldStatus(
     return detachedLabel(detachedValue.reason);
   }
 
-  if (stepIndex === 2 && scenario.restoredKeys.includes(field.key) && field.value) {
+  if (
+    stepIndex === 2 &&
+    scenario.restoredKeys.includes(field.key) &&
+    field.value
+  ) {
     return 'Restored from detached value';
   }
 
@@ -241,7 +260,9 @@ function DetachedPaneCard({
         <div style={summaryGridStyle}>
           <div style={fullRowStyle}>
             <div style={explanationCardStyle}>
-              <div style={explanationTitleStyle}>Why this pane behaves this way</div>
+              <div style={explanationTitleStyle}>
+                Why this pane behaves this way
+              </div>
               <div style={explanationBodyStyle}>{modelDescription}</div>
             </div>
           </div>
@@ -249,13 +270,24 @@ function DetachedPaneCard({
             <StateSummaryCard
               title="Tracked fields"
               rows={[
-                { label: 'Fields in this scenario', value: String(trackedFields.length) },
-                { label: 'Fields present now', value: String(trackedFields.filter((field) => field.nodeId).length) },
+                {
+                  label: 'Fields in this scenario',
+                  value: String(trackedFields.length),
+                },
+                {
+                  label: 'Fields present now',
+                  value: String(
+                    trackedFields.filter((field) => field.nodeId).length
+                  ),
+                },
               ]}
             />
           </div>
         </div>
-        <StateSummaryCard title="Detached value store" rows={detachedSummary(detachedValues)} />
+        <StateSummaryCard
+          title="Detached value store"
+          rows={detachedSummary(detachedValues)}
+        />
         <details style={drawerStyle}>
           <summary style={drawerSummaryStyle}>Field details</summary>
           <div style={drawerContentStyle}>{fieldDetails}</div>
@@ -279,7 +311,10 @@ function DetachedContinuumRuntime({
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
@@ -309,8 +344,10 @@ function DetachedContinuumRuntime({
     boundedStepIndex === 0
       ? 'User data staged'
       : boundedStepIndex === 1
-        ? `${String(Object.keys(detachedValues).length)} detached values preserved`
-        : 'Detached values restored';
+      ? `${String(
+          Object.keys(detachedValues).length
+        )} detached values preserved`
+      : 'Detached values restored';
 
   return (
     <DetachedPaneCard
@@ -331,7 +368,12 @@ function DetachedContinuumRuntime({
               rows={[
                 {
                   label: 'Status',
-                  value: continuumFieldStatus(scenario, boundedStepIndex, field, detachedValues),
+                  value: continuumFieldStatus(
+                    scenario,
+                    boundedStepIndex,
+                    field,
+                    detachedValues
+                  ),
                 },
                 {
                   label: 'Current node id',
@@ -430,7 +472,8 @@ export function DetachedPane({
   const previewNotice =
     mode === 'naive' && stepIndex === 1 ? (
       <div style={previewNoticeStyle}>
-        Location is removed from this view and its prior value is lost on the naive path.
+        Location is removed from this view and its prior value is lost on the
+        naive path.
       </div>
     ) : undefined;
 
@@ -447,7 +490,11 @@ export function DetachedPane({
     );
   }
 
-  const replay = replayNaiveDetachedScenario(scenario, stepIndex, initialValues);
+  const replay = replayNaiveDetachedScenario(
+    scenario,
+    stepIndex,
+    initialValues
+  );
 
   return (
     <DetachedPaneCard
@@ -458,9 +505,22 @@ export function DetachedPane({
       values={replay.values}
       trackedFields={replay.trackedFields}
       detachedValues={{}}
-      fieldDetails={<NaiveDetachedDetails scenario={scenario} replay={replay} stepIndex={stepIndex} />}
+      fieldDetails={
+        <NaiveDetachedDetails
+          scenario={scenario}
+          replay={replay}
+          stepIndex={stepIndex}
+        />
+      }
       previewNotice={previewNotice}
-      preview={<StaticViewRenderer view={replay.view} values={replay.values} onChange={() => undefined} components={previewComponentMap} />}
+      preview={
+        <StaticViewRenderer
+          view={replay.view}
+          values={replay.values}
+          onChange={() => undefined}
+          components={previewComponentMap}
+        />
+      }
     />
   );
 }

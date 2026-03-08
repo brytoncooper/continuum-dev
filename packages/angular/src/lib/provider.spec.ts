@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { Injector } from '@angular/core';
-import { createSession } from '@continuum/session';
-import type { ViewDefinition } from '@continuum/contract';
+import { createSession } from '@continuum-dev/session';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import { provideContinuum } from './provider.js';
 import { CONTINUUM_SESSION } from './tokens.js';
 
@@ -115,7 +115,9 @@ describe('provideContinuum', () => {
     vi.useFakeTimers();
     const setItemSpy = vi
       .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => { throw new Error('quota exceeded'); });
+      .mockImplementation(() => {
+        throw new Error('quota exceeded');
+      });
     const errors: Array<Record<string, unknown>> = [];
     const nodeMap = {};
     const injector = Injector.create({

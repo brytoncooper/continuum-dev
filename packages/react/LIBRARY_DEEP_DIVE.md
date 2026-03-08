@@ -1,6 +1,6 @@
-# @continuum/react Deep Dive
+# @continuum-dev/react Deep Dive
 
-This document is a comprehensive, implementation-level reference for the `@continuum/react` library in `packages/react`.
+This document is a comprehensive, implementation-level reference for the `@continuum-dev/react` library in `packages/react`.
 
 It is designed for:
 
@@ -33,7 +33,7 @@ For source files, every exported and internal function/method is documented.
 
 ## What This Library Does
 
-`@continuum/react` is the React binding layer for the Continuum SDK:
+`@continuum-dev/react` is the React binding layer for the Continuum SDK:
 
 - Creates and owns a Continuum `Session` in React context
 - Optionally hydrates/persists session data via browser storage
@@ -90,12 +90,12 @@ Role:
 
 Important fields:
 
-- `name`: `@continuum/react`
+- `name`: `@continuum-dev/react`
 - `type`: `module` (ESM)
 - `main` / `types`: `./src/index.ts`
 - `exports["."]`: `./src/index.ts`
 - `peerDependencies.react`: `>=18`
-- `dependencies`: `@continuum/contract`, `@continuum/session`
+- `dependencies`: `@continuum-dev/contract`, `@continuum-dev/session`
 - `nx.tags`: `scope:react`
 
 Implications:
@@ -317,7 +317,7 @@ Notes:
 
 Type:
 
-- Imported session factory helper from `@continuum/session`.
+- Imported session factory helper from `@continuum-dev/session`.
 
 Behavior:
 
@@ -774,13 +774,13 @@ Verifies:
 
 Direct package dependencies:
 
-- `@continuum/contract`: shared view/data types
-- `@continuum/session`: runtime session engine
+- `@continuum-dev/contract`: shared view/data types
+- `@continuum-dev/session`: runtime session engine
 - `react`: runtime peer dependency
 
 Inferred runtime dependency graph:
 
-- `context.tsx` depends on `@continuum/session`, `types.ts`
+- `context.tsx` depends on `@continuum-dev/session`, `types.ts`
 - `hooks.ts` depends on `context.tsx`, session API
 - `renderer.tsx` depends on `context.tsx`, `hooks.ts`, fallback + error boundary
 - `fallback.tsx` depends on `types.ts`
@@ -810,18 +810,18 @@ Change-risk hot spots:
 
 Use Nx tasks for this package:
 
-- `nx test @continuum/react`
-- `nx lint @continuum/react`
-- `nx build @continuum/react`
-- `nx typecheck @continuum/react`
+- `nx test @continuum-dev/react`
+- `nx lint @continuum-dev/react`
+- `nx build @continuum-dev/react`
+- `nx typecheck @continuum-dev/react`
 
 Project metadata (from Nx MCP `nx_project_details`):
 
-- project: `@continuum/react`
+- project: `@continuum-dev/react`
 - type: `library`
 - root: `packages/react`
 - tags: `scope:react`
-- project dependencies: `contract`, `@continuum/session`
+- project dependencies: `contract`, `@continuum-dev/session`
 
 ## Quick Index of Functions and Methods
 

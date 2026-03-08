@@ -1,8 +1,18 @@
-import type { NodeValue } from '@continuum/contract';
-import type { PlaygroundReplayState, PlaygroundStateDropScenario } from '../types';
-import { collectScopedNodeIdsFromView, findScopedNodeIdByKey } from './view-helpers';
+import type { NodeValue } from '@continuum-dev/contract';
+import type {
+  PlaygroundReplayState,
+  PlaygroundStateDropScenario,
+} from '../types';
+import {
+  collectScopedNodeIdsFromView,
+  findScopedNodeIdByKey,
+} from './view-helpers';
 
-function buildStatus(stepIndex: number, inputValue: string, currentValue: NodeValue | undefined): string {
+function buildStatus(
+  stepIndex: number,
+  inputValue: string,
+  currentValue: NodeValue | undefined
+): string {
   if (!inputValue) {
     return 'Waiting for input';
   }
@@ -19,9 +29,15 @@ export function replayNaiveScenario(
   stepIndex: number,
   inputValue: string
 ): PlaygroundReplayState {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
   const initialView = scenario.steps[0].view;
-  const initialNodeId = findScopedNodeIdByKey(initialView, scenario.trackedField.key);
+  const initialNodeId = findScopedNodeIdByKey(
+    initialView,
+    scenario.trackedField.key
+  );
 
   let values: Record<string, NodeValue> = {};
   let currentView = initialView;
@@ -36,10 +52,15 @@ export function replayNaiveScenario(
   for (let index = 1; index <= boundedStepIndex; index += 1) {
     currentView = scenario.steps[index].view;
     const allowedNodeIds = new Set(collectScopedNodeIdsFromView(currentView));
-    values = Object.fromEntries(Object.entries(values).filter(([nodeId]) => allowedNodeIds.has(nodeId)));
+    values = Object.fromEntries(
+      Object.entries(values).filter(([nodeId]) => allowedNodeIds.has(nodeId))
+    );
   }
 
-  const currentNodeId = findScopedNodeIdByKey(currentView, scenario.trackedField.key);
+  const currentNodeId = findScopedNodeIdByKey(
+    currentView,
+    scenario.trackedField.key
+  );
   const currentValue = currentNodeId ? values[currentNodeId] : undefined;
 
   return {

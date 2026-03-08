@@ -1,4 +1,4 @@
-import { VIEW_DIFFS, DATA_RESOLUTIONS } from '@continuum/contract';
+import { VIEW_DIFFS, DATA_RESOLUTIONS } from '@continuum-dev/contract';
 import type { StateDiff, ReconciliationResolution } from '../types.js';
 
 export function addedDiff(nodeId: string): StateDiff {
@@ -47,10 +47,7 @@ export function migratedDiff(
   };
 }
 
-export function restoredDiff(
-  nodeId: string,
-  newValue: unknown
-): StateDiff {
+export function restoredDiff(nodeId: string, newValue: unknown): StateDiff {
   return {
     nodeId,
     type: VIEW_DIFFS.RESTORED,
@@ -59,7 +56,10 @@ export function restoredDiff(
   };
 }
 
-export function addedResolution(nodeId: string, newType: string): ReconciliationResolution {
+export function addedResolution(
+  nodeId: string,
+  newType: string
+): ReconciliationResolution {
   return {
     nodeId,
     priorId: null,

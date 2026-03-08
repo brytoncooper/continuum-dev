@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
-import type { SessionOptions } from '@continuum/core';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/starter-kit';
+import type { SessionOptions } from '@continuum-dev/core';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+} from '@continuum-dev/starter-kit';
 import { componentMap } from '../component-map';
 import { color, radius, space } from '../ui/tokens';
 import type { DemoExample } from './schemas';
@@ -52,8 +56,15 @@ export function PrimitiveView({ example }: { example: DemoExample }) {
         border: `1px solid ${color.borderSoft}`,
       }}
     >
-      <ContinuumProvider components={componentMap} persist={false} sessionOptions={sessionOptions}>
-        <ExampleRuntime view={example.view} initialValues={example.initialValues} />
+      <ContinuumProvider
+        components={componentMap}
+        persist={false}
+        sessionOptions={sessionOptions}
+      >
+        <ExampleRuntime
+          view={example.view}
+          initialValues={example.initialValues}
+        />
       </ContinuumProvider>
     </div>
   );

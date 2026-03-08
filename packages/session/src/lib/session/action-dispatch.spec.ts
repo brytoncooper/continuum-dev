@@ -1,13 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createSession } from '../session.js';
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 
 const testView: ViewDefinition = {
   viewId: 'test',
   version: '1',
   nodes: [
     { id: 'name', type: 'field', dataType: 'string' } as any,
-    { id: 'submit_btn', type: 'action', intentId: 'do_submit', label: 'Submit' } as any,
+    {
+      id: 'submit_btn',
+      type: 'action',
+      intentId: 'do_submit',
+      label: 'Submit',
+    } as any,
   ],
 };
 
@@ -20,7 +25,10 @@ function sessionWithView() {
 describe('dispatchAction', () => {
   it('returns ActionResult with success true for a sync handler', async () => {
     const session = sessionWithView();
-    session.registerAction('do_submit', { label: 'Submit' }, () => ({ success: true, data: 'ok' }));
+    session.registerAction('do_submit', { label: 'Submit' }, () => ({
+      success: true,
+      data: 'ok',
+    }));
 
     const result = await session.dispatchAction('do_submit', 'submit_btn');
 
@@ -30,7 +38,10 @@ describe('dispatchAction', () => {
 
   it('returns ActionResult with success true for an async handler', async () => {
     const session = sessionWithView();
-    session.registerAction('do_submit', { label: 'Submit' }, async () => ({ success: true, data: 42 }));
+    session.registerAction('do_submit', { label: 'Submit' }, async () => ({
+      success: true,
+      data: 42,
+    }));
 
     const result = await session.dispatchAction('do_submit', 'submit_btn');
 
@@ -40,7 +51,11 @@ describe('dispatchAction', () => {
 
   it('normalizes void handler return to success true', async () => {
     const session = sessionWithView();
-    session.registerAction('do_submit', { label: 'Submit' }, () => undefined as any);
+    session.registerAction(
+      'do_submit',
+      { label: 'Submit' },
+      () => undefined as any
+    );
 
     const result = await session.dispatchAction('do_submit', 'submit_btn');
 
@@ -86,7 +101,9 @@ describe('dispatchAction', () => {
 
   it('returns failure when no active snapshot exists', async () => {
     const session = createSession();
-    session.registerAction('do_submit', { label: 'Submit' }, () => ({ success: true }));
+    session.registerAction('do_submit', { label: 'Submit' }, () => ({
+      success: true,
+    }));
 
     const result = await session.dispatchAction('do_submit', 'submit_btn');
 
@@ -160,7 +177,9 @@ describe('ActionContext.session ref', () => {
 describe('executeIntent', () => {
   it('submits intent, dispatches action, and validates on success', async () => {
     const session = sessionWithView();
-    session.registerAction('do_submit', { label: 'Submit' }, () => ({ success: true }));
+    session.registerAction('do_submit', { label: 'Submit' }, () => ({
+      success: true,
+    }));
 
     const result = await session.executeIntent({
       nodeId: 'submit_btn',

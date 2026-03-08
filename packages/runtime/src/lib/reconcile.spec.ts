@@ -4,7 +4,7 @@ import type {
   ViewNode,
   DataSnapshot,
   NodeValue,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import { reconcile } from './reconcile.js';
 import { computeViewHash } from './reconciliation/state-builder.js';
 import type { MigrationStrategy } from './types.js';
@@ -31,7 +31,13 @@ function makeNode(
     ...(type === 'field' ? { dataType: 'string' } : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
     ...(type === 'collection'
-      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
     ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
@@ -114,9 +120,7 @@ describe('reconcile', () => {
     });
 
     it('only carries values for nodes present in new view when allowBlindCarry is true', () => {
-      const newView = makeView([
-        makeNode({ id: 'a' }),
-      ]);
+      const newView = makeView([makeNode({ id: 'a' })]);
       const priorData = makeData({
         a: { value: 'hello' },
         orphan: { value: 'gone' },
@@ -135,9 +139,7 @@ describe('reconcile', () => {
         makeNode({
           id: 'section',
           type: 'group',
-          children: [
-            makeNode({ id: 'nested-input' }),
-          ],
+          children: [makeNode({ id: 'nested-input' })],
         }),
       ]);
       const priorData = makeData({
@@ -148,21 +150,25 @@ describe('reconcile', () => {
         allowBlindCarry: true,
       });
 
-      expect(result.reconciledState.values['section/nested-input']).toEqual({ value: 'carried' });
+      expect(result.reconciledState.values['section/nested-input']).toEqual({
+        value: 'carried',
+      });
     });
 
     it('still emits NO_PRIOR_VIEW warning alongside UNVALIDATED_CARRY when allowBlindCarry is true', () => {
-      const newView = makeView([
-        makeNode({ id: 'a' }),
-      ]);
+      const newView = makeView([makeNode({ id: 'a' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
       const result = reconcile(newView, null, priorData, {
         allowBlindCarry: true,
       });
 
-      expect(result.issues.find((i) => i.code === 'NO_PRIOR_VIEW')).toBeDefined();
-      expect(result.issues.find((i) => i.code === 'UNVALIDATED_CARRY')).toBeDefined();
+      expect(
+        result.issues.find((i) => i.code === 'NO_PRIOR_VIEW')
+      ).toBeDefined();
+      expect(
+        result.issues.find((i) => i.code === 'UNVALIDATED_CARRY')
+      ).toBeDefined();
     });
   });
 
@@ -178,12 +184,8 @@ describe('reconcile', () => {
     });
 
     it('carries state over when node matched by key (id changed)', () => {
-      const priorView = makeView([
-        makeNode({ id: 'old-id', key: 'email' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'new-id', key: 'email' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'old-id', key: 'email' })]);
+      const newView = makeView([makeNode({ id: 'new-id', key: 'email' })]);
       const priorData = makeData({ 'old-id': { value: 'test@example.com' } });
 
       const result = reconcile(newView, priorView, priorData);
@@ -228,9 +230,7 @@ describe('reconcile', () => {
       expect(removedDiff!.type).toBe('removed');
       expect(removedDiff!.oldValue).toEqual({ value: true });
 
-      const removedIssue = result.issues.find(
-        (i) => i.code === 'NODE_REMOVED'
-      );
+      const removedIssue = result.issues.find((i) => i.code === 'NODE_REMOVED');
       expect(removedIssue).toBeDefined();
       expect(removedIssue!.severity).toBe('warning');
     });
@@ -254,9 +254,7 @@ describe('reconcile', () => {
       expect(removedDiff).toBeDefined();
       expect(removedDiff!.type).toBe('removed');
 
-      const removedIssue = result.issues.find(
-        (i) => i.code === 'NODE_REMOVED'
-      );
+      const removedIssue = result.issues.find((i) => i.code === 'NODE_REMOVED');
       expect(removedIssue).toBeUndefined();
     });
   });
@@ -297,12 +295,8 @@ describe('reconcile', () => {
 
   describe('view migration', () => {
     it('passes state through when hash changes but type matches (no explicit strategy)', () => {
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v2' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
+      const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
       const result = reconcile(newView, priorView, priorData);
@@ -318,12 +312,8 @@ describe('reconcile', () => {
         return { value: (oldState as { value: string }).value.toUpperCase() };
       });
 
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v2' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
+      const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
       const result = reconcile(newView, priorView, priorData, {
@@ -344,9 +334,7 @@ describe('reconcile', () => {
         }
       );
 
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([
         makeNode({
           id: 'a',
@@ -383,9 +371,7 @@ describe('reconcile', () => {
         value: 'registry',
       }));
 
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([
         makeNode({
           id: 'a',
@@ -412,9 +398,7 @@ describe('reconcile', () => {
     });
 
     it('skips migration logic entirely on type mismatch (no MIGRATION_FAILED)', () => {
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([
         makeNode({ id: 'a', type: 'action', hash: 'hash-v2' }),
       ]);
@@ -422,10 +406,14 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      const typeMismatch = result.issues.find((i) => i.code === 'TYPE_MISMATCH');
+      const typeMismatch = result.issues.find(
+        (i) => i.code === 'TYPE_MISMATCH'
+      );
       expect(typeMismatch).toBeDefined();
 
-      const migrationFailed = result.issues.find((i) => i.code === 'MIGRATION_FAILED');
+      const migrationFailed = result.issues.find(
+        (i) => i.code === 'MIGRATION_FAILED'
+      );
       expect(migrationFailed).toBeUndefined();
 
       const diff = result.diffs.find((d) => d.type === 'type-changed');
@@ -489,12 +477,8 @@ describe('reconcile', () => {
     });
 
     it('updates lastUpdated timestamp for migrated values', () => {
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v2' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
+      const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData(
         { a: { value: 'hello' } },
         {},
@@ -518,12 +502,8 @@ describe('reconcile', () => {
     });
 
     it('remaps valueLineage to new id when node matched by key', () => {
-      const priorView = makeView([
-        makeNode({ id: 'old-id', key: 'email' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'new-id', key: 'email' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'old-id', key: 'email' })]);
+      const newView = makeView([makeNode({ id: 'new-id', key: 'email' })]);
       const priorData = makeData(
         { 'old-id': { value: 'test@example.com' } },
         {},
@@ -560,7 +540,9 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.lineage.viewHash).toBe(computeViewHash(newView));
+      expect(result.reconciledState.lineage.viewHash).toBe(
+        computeViewHash(newView)
+      );
 
       const repeated = reconcile(newView, priorView, priorData);
       expect(repeated.reconciledState.lineage.viewHash).toBe(
@@ -689,12 +671,8 @@ describe('reconcile', () => {
     });
 
     it('resolution for migrated node', () => {
-      const priorView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v1' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'a', hash: 'hash-v2' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
+      const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
       const result = reconcile(newView, priorView, priorData);
@@ -707,12 +685,8 @@ describe('reconcile', () => {
     });
 
     it('resolution for key-matched node with matchedBy key', () => {
-      const priorView = makeView([
-        makeNode({ id: 'old-id', key: 'email' }),
-      ]);
-      const newView = makeView([
-        makeNode({ id: 'new-id', key: 'email' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'old-id', key: 'email' })]);
+      const newView = makeView([makeNode({ id: 'new-id', key: 'email' })]);
       const priorData = makeData({ 'old-id': { value: 'test@example.com' } });
 
       const result = reconcile(newView, priorView, priorData);
@@ -727,16 +701,8 @@ describe('reconcile', () => {
 
   describe('output metadata', () => {
     it('updates viewId and viewVersion from new view', () => {
-      const priorView = makeView(
-        [makeNode({ id: 'a' })],
-        'old-view',
-        '0.9'
-      );
-      const newView = makeView(
-        [makeNode({ id: 'a' })],
-        'new-view',
-        '2.0'
-      );
+      const priorView = makeView([makeNode({ id: 'a' })], 'old-view', '0.9');
+      const newView = makeView([makeNode({ id: 'a' })], 'new-view', '2.0');
       const priorData = makeData(
         { a: { value: 'hello' } },
         { viewId: 'old-view', viewVersion: '0.9' }
@@ -786,7 +752,9 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.values['root/mid/deep']).toEqual({ value: 'buried' });
+      expect(result.reconciledState.values['root/mid/deep']).toEqual({
+        value: 'buried',
+      });
     });
 
     it('detects removal of a deeply nested node', () => {
@@ -794,7 +762,9 @@ describe('reconcile', () => {
       const root = makeNode({ id: 'root', type: 'group', children: [nested] });
 
       const priorView = makeView([root]);
-      const newView = makeView([makeNode({ id: 'root', type: 'group', children: [] })]);
+      const newView = makeView([
+        makeNode({ id: 'root', type: 'group', children: [] }),
+      ]);
       const priorData = makeData({ 'root/deep': { value: 'gone' } });
 
       const result = reconcile(newView, priorView, priorData);
@@ -806,17 +776,29 @@ describe('reconcile', () => {
 
     it('matches deeply nested node by key across id renames', () => {
       const deepOld = makeNode({ id: 'old-deep', key: 'stable-key' });
-      const rootOld = makeNode({ id: 'root', type: 'group', children: [deepOld] });
+      const rootOld = makeNode({
+        id: 'root',
+        type: 'group',
+        children: [deepOld],
+      });
       const deepNew = makeNode({ id: 'new-deep', key: 'stable-key' });
-      const rootNew = makeNode({ id: 'root', type: 'group', children: [deepNew] });
+      const rootNew = makeNode({
+        id: 'root',
+        type: 'group',
+        children: [deepNew],
+      });
 
       const priorView = makeView([rootOld]);
       const newView = makeView([rootNew]);
-      const priorData = makeData({ 'root/old-deep': { value: 'nested-carry' } });
+      const priorData = makeData({
+        'root/old-deep': { value: 'nested-carry' },
+      });
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.reconciledState.values['root/new-deep']).toEqual({ value: 'nested-carry' });
+      expect(result.reconciledState.values['root/new-deep']).toEqual({
+        value: 'nested-carry',
+      });
     });
   });
 
@@ -956,9 +938,7 @@ describe('reconcile', () => {
         makeNode({ id: 'a', key: 'a-key' }),
         makeNode({ id: 'b', key: 'b-key' }),
       ]);
-      const newView = makeView([
-        makeNode({ id: 'a', key: 'a-key' }),
-      ]);
+      const newView = makeView([makeNode({ id: 'a', key: 'a-key' })]);
       const priorData = makeData({
         a: { value: 'keep' },
         b: { value: 'orphan me' },
@@ -967,17 +947,15 @@ describe('reconcile', () => {
       const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.detachedValues?.['b-key']).toBeDefined();
-      expect(result.reconciledState.detachedValues?.['b-key'].reason).toBe('node-removed');
+      expect(result.reconciledState.detachedValues?.['b-key'].reason).toBe(
+        'node-removed'
+      );
     });
 
     it('restores detached value when matching key and type return', () => {
-      const priorView = makeView([
-        makeNode({ id: 'a', key: 'a-key' }),
-      ]);
+      const priorView = makeView([makeNode({ id: 'a', key: 'a-key' })]);
       const removedView = makeView([]);
-      const restoreView = makeView([
-        makeNode({ id: 'a2', key: 'a-key' }),
-      ]);
+      const restoreView = makeView([makeNode({ id: 'a2', key: 'a-key' })]);
       const priorData = makeData({
         a: { value: 'hello' },
       });
@@ -989,10 +967,20 @@ describe('reconcile', () => {
         removedResult.reconciledState
       );
 
-      expect(restoredResult.reconciledState.values['a2']).toEqual({ value: 'hello' });
-      expect(restoredResult.reconciledState.detachedValues?.['a-key']).toBeUndefined();
-      expect(restoredResult.resolutions.some((entry) => entry.resolution === 'restored')).toBe(true);
-      expect(restoredResult.diffs.some((diff) => diff.type === 'restored')).toBe(true);
+      expect(restoredResult.reconciledState.values['a2']).toEqual({
+        value: 'hello',
+      });
+      expect(
+        restoredResult.reconciledState.detachedValues?.['a-key']
+      ).toBeUndefined();
+      expect(
+        restoredResult.resolutions.some(
+          (entry) => entry.resolution === 'restored'
+        )
+      ).toBe(true);
+      expect(
+        restoredResult.diffs.some((diff) => diff.type === 'restored')
+      ).toBe(true);
     });
 
     it('accumulates detached values from multiple pushes and restores them when key returns', () => {
@@ -1018,7 +1006,9 @@ describe('reconcile', () => {
 
       const r3 = reconcile(viewRestore, viewEmpty, r2.reconciledState);
 
-      expect(r3.reconciledState.values['c']).toEqual({ value: 'a@example.com' });
+      expect(r3.reconciledState.values['c']).toEqual({
+        value: 'a@example.com',
+      });
       expect(r3.reconciledState.values['d']).toEqual({ value: '555-1234' });
       expect(r3.reconciledState.detachedValues?.['email']).toBeUndefined();
       expect(r3.reconciledState.detachedValues?.['phone']).toBeUndefined();
@@ -1029,7 +1019,11 @@ describe('reconcile', () => {
         makeNode({ id: 'old-email', key: 'email', defaultValue: '' }),
       ]);
       const newView = makeView([
-        makeNode({ id: 'new-email', key: 'contact.email', defaultValue: 'AI default' }),
+        makeNode({
+          id: 'new-email',
+          key: 'contact.email',
+          defaultValue: 'AI default',
+        }),
       ]);
       const priorData = makeData({
         'old-email': { value: 'user@example.com', isDirty: true },
@@ -1072,8 +1066,18 @@ describe('reconcile', () => {
 
     it('detects duplicate node keys in new view', () => {
       const view = makeView([
-        makeNode({ id: 'a', key: 'dup-key', type: 'field', dataType: 'string' }),
-        makeNode({ id: 'b', key: 'dup-key', type: 'field', dataType: 'string' }),
+        makeNode({
+          id: 'a',
+          key: 'dup-key',
+          type: 'field',
+          dataType: 'string',
+        }),
+        makeNode({
+          id: 'b',
+          key: 'dup-key',
+          type: 'field',
+          dataType: 'string',
+        }),
       ]);
 
       const result = reconcile(view, null, null);
@@ -1107,12 +1111,22 @@ describe('reconcile', () => {
 
     it('does not flag duplicate keys across parent scope boundaries', () => {
       const view = makeView([
-        makeNode({ id: 'a', key: 'dup-key', type: 'field', dataType: 'string' }),
+        makeNode({
+          id: 'a',
+          key: 'dup-key',
+          type: 'field',
+          dataType: 'string',
+        }),
         makeNode({
           id: 'group',
           type: 'group',
           children: [
-            makeNode({ id: 'b', key: 'dup-key', type: 'field', dataType: 'string' }),
+            makeNode({
+              id: 'b',
+              key: 'dup-key',
+              type: 'field',
+              dataType: 'string',
+            }),
           ],
         }),
       ]);
@@ -1144,7 +1158,9 @@ describe('reconcile', () => {
 
       const result = reconcile(view, null, null);
 
-      expect(result.reconciledState.values['duplicate']).toEqual({ value: 'second' });
+      expect(result.reconciledState.values['duplicate']).toEqual({
+        value: 'second',
+      });
     });
 
     it('detects duplicates in blind carry scenario', () => {
@@ -1154,10 +1170,14 @@ describe('reconcile', () => {
       ]);
       const priorData = makeData({ duplicate: { value: 'old' } });
 
-      const result = reconcile(view, null, priorData, { allowBlindCarry: true });
+      const result = reconcile(view, null, priorData, {
+        allowBlindCarry: true,
+      });
 
-      expect(result.issues.some(i => i.code === 'DUPLICATE_NODE_ID')).toBe(true);
-      expect(result.issues.some(i => i.code === 'NO_PRIOR_VIEW')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'DUPLICATE_NODE_ID')).toBe(
+        true
+      );
+      expect(result.issues.some((i) => i.code === 'NO_PRIOR_VIEW')).toBe(true);
     });
 
     it('detects duplicates in view transition', () => {
@@ -1172,7 +1192,9 @@ describe('reconcile', () => {
 
       const result = reconcile(newView, priorView, priorData);
 
-      expect(result.issues.some(i => i.code === 'DUPLICATE_NODE_ID')).toBe(true);
+      expect(result.issues.some((i) => i.code === 'DUPLICATE_NODE_ID')).toBe(
+        true
+      );
     });
   });
 });

@@ -1,1 +1,1 @@
-export { starterKitComponentMap as componentMap } from '@continuum/starter-kit';
+export { starterKitComponentMap as componentMap } from '@continuum-dev/starter-kit';

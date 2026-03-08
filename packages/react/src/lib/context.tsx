@@ -1,6 +1,11 @@
 import { createContext, useRef, useMemo, useEffect } from 'react';
-import { hydrateOrCreate } from '@continuum/core';
-import type { Session, ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/core';
+import { hydrateOrCreate } from '@continuum-dev/core';
+import type {
+  Session,
+  ContinuitySnapshot,
+  NodeValue,
+  ViewportState,
+} from '@continuum-dev/core';
 import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
 
 type Listener = () => void;
@@ -42,12 +47,11 @@ function getChangedNodeIds(
   for (const id of ids) {
     const previousValue = previousValues[id] as NodeValue | undefined;
     const nextValue = nextValues[id] as NodeValue | undefined;
-    const previousViewport = previousViewContext[id] as ViewportState | undefined;
+    const previousViewport = previousViewContext[id] as
+      | ViewportState
+      | undefined;
     const nextViewport = nextViewContext[id] as ViewportState | undefined;
-    if (
-      previousValue !== nextValue ||
-      previousViewport !== nextViewport
-    ) {
+    if (previousValue !== nextValue || previousViewport !== nextViewport) {
       changed.push(id);
     }
   }
@@ -171,9 +175,11 @@ export interface ContinuumContextValue {
 }
 
 /**
- * React context backing all `@continuum/react` hooks and renderer behavior.
+ * React context backing all `@continuum-dev/react` hooks and renderer behavior.
  */
-export const ContinuumContext = createContext<ContinuumContextValue | null>(null);
+export const ContinuumContext = createContext<ContinuumContextValue | null>(
+  null
+);
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
 
@@ -185,10 +191,7 @@ function resolveStorage(
   return undefined;
 }
 
-function mapsMatch(
-  left: ContinuumNodeMap,
-  right: ContinuumNodeMap
-): boolean {
+function mapsMatch(left: ContinuumNodeMap, right: ContinuumNodeMap): boolean {
   const leftKeys = Object.keys(left);
   const rightKeys = Object.keys(right);
   if (leftKeys.length !== rightKeys.length) {
@@ -242,13 +245,15 @@ export function ContinuumProvider({
       ...sessionOptions,
       persistence: storage
         ? {
-          storage,
-          key: storageKey,
-          maxBytes: maxPersistBytes,
-          onError: onPersistError ?? ((error) => {
-            console.warn('Continuum persistence error', error);
-          }),
-        }
+            storage,
+            key: storageKey,
+            maxBytes: maxPersistBytes,
+            onError:
+              onPersistError ??
+              ((error) => {
+                console.warn('Continuum persistence error', error);
+              }),
+          }
         : undefined,
     });
     const store = createContinuumStore(session);

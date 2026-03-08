@@ -4,16 +4,16 @@ export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/contract',
   resolve: {
-    conditions: ['@continuum/source'],
+    conditions: ['@continuum-dev/source'],
   },
   ssr: {
     resolve: {
-      conditions: ['@continuum/source'],
+      conditions: ['@continuum-dev/source'],
     },
   },
   plugins: [],
   test: {
-    name: '@continuum/contract',
+    name: '@continuum-dev/contract',
     watch: false,
     globals: true,
     environment: 'node',

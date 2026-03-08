@@ -4,9 +4,13 @@ import type {
   Checkpoint,
   ViewDefinition,
   DataSnapshot,
-} from '@continuum/contract';
-import { isInteractionType } from '@continuum/contract';
-import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from '@continuum/runtime';
+} from '@continuum-dev/contract';
+import { isInteractionType } from '@continuum-dev/contract';
+import type {
+  ReconciliationIssue,
+  ReconciliationResolution,
+  StateDiff,
+} from '@continuum-dev/runtime';
 import type { SessionState } from './session-state.js';
 
 const CURRENT_FORMAT_VERSION = 1;
@@ -71,7 +75,9 @@ function assertArrayField(
 ): void {
   const value = data[field as string];
   if (value !== undefined && !Array.isArray(value)) {
-    throw new Error(`Invalid serialized session: "${String(field)}" must be an array`);
+    throw new Error(
+      `Invalid serialized session: "${String(field)}" must be an array`
+    );
   }
 }
 
@@ -81,7 +87,9 @@ function assertObjectOrNullField(
 ): void {
   const value = data[field];
   if (value !== undefined && value !== null && !isRecord(value)) {
-    throw new Error(`Invalid serialized session: "${field}" must be an object or null`);
+    throw new Error(
+      `Invalid serialized session: "${field}" must be an object or null`
+    );
   }
 }
 
@@ -91,15 +99,21 @@ function assertValidEventLogTypes(data: Record<string, unknown>): void {
   for (let i = 0; i < value.length; i++) {
     const interaction = value[i];
     if (!isRecord(interaction)) {
-      throw new Error(`Invalid serialized session: "eventLog[${i}]" must be an object`);
+      throw new Error(
+        `Invalid serialized session: "eventLog[${i}]" must be an object`
+      );
     }
     if (!isInteractionType(interaction.type)) {
-      throw new Error(`Invalid serialized session: "eventLog[${i}].type" must be a valid interaction type`);
+      throw new Error(
+        `Invalid serialized session: "eventLog[${i}].type" must be a valid interaction type`
+      );
     }
   }
 }
 
-function validateSerializedSessionData(data: unknown): asserts data is SerializedSessionData {
+function validateSerializedSessionData(
+  data: unknown
+): asserts data is SerializedSessionData {
   if (!isRecord(data)) {
     throw new Error('Invalid serialized session: expected an object');
   }
@@ -112,7 +126,9 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
     data.formatVersion !== undefined &&
     typeof data.formatVersion !== 'number'
   ) {
-    throw new Error('Invalid serialized session: "formatVersion" must be a number');
+    throw new Error(
+      'Invalid serialized session: "formatVersion" must be a number'
+    );
   }
 
   assertObjectOrNullField(data, 'currentView');
@@ -141,12 +157,19 @@ function validateSerializedSessionData(data: unknown): asserts data is Serialize
 export function deserializeToState(
   data: unknown,
   clock: () => number,
-  limits?: { maxEventLogSize?: number; maxPendingIntents?: number; maxCheckpoints?: number }
+  limits?: {
+    maxEventLogSize?: number;
+    maxPendingIntents?: number;
+    maxCheckpoints?: number;
+  }
 ): SessionState {
   validateSerializedSessionData(data);
   const raw = data;
 
-  if (raw.formatVersion !== undefined && raw.formatVersion !== CURRENT_FORMAT_VERSION) {
+  if (
+    raw.formatVersion !== undefined &&
+    raw.formatVersion !== CURRENT_FORMAT_VERSION
+  ) {
     throw new Error(
       `Unsupported format version ${raw.formatVersion}. This runtime supports version ${CURRENT_FORMAT_VERSION}.`
     );
@@ -170,7 +193,9 @@ export function deserializeToState(
     diffs: raw.diffs ?? [],
     resolutions: raw.resolutions ?? [],
     eventLog: (raw.eventLog ?? []).slice(-(limits?.maxEventLogSize ?? 1000)),
-    pendingIntents: (raw.pendingIntents ?? []).slice(-(limits?.maxPendingIntents ?? 500)),
+    pendingIntents: (raw.pendingIntents ?? []).slice(
+      -(limits?.maxPendingIntents ?? 500)
+    ),
     checkpoints: (raw.checkpoints ?? []).slice(-(limits?.maxCheckpoints ?? 50)),
     snapshotListeners: new Set(),
     issueListeners: new Set(),

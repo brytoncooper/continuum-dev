@@ -5,15 +5,17 @@ import type {
   NodeValue,
   ViewDefinition,
   ViewNode,
-} from '@continuum/contract';
-import { createSession } from '@continuum/session';
-import type { Session } from '@continuum/session';
+} from '@continuum-dev/contract';
+import { createSession } from '@continuum-dev/session';
+import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumProvider } from './context.js';
 import { useContinuumSession, useContinuumState } from './hooks.js';
 import { ContinuumRenderer } from './renderer.js';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function readStringNodeValue(value: NodeValue | undefined): string {
   if (typeof value?.value === 'string') return value.value;
@@ -43,7 +45,9 @@ function requireSession(session: Session | null): Session {
   return session;
 }
 
-type CollectionValue = NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>;
+type CollectionValue = NodeValue<{
+  items: Array<{ values: Record<string, NodeValue> }>;
+}>;
 
 function collectionMap(overrides?: Record<string, React.ComponentType<any>>) {
   return {
@@ -66,11 +70,17 @@ function collectionMap(overrides?: Record<string, React.ComponentType<any>>) {
     }) => (
       <div data-testid={`collection-${definition.id}`} data-nodeid={nodeId}>
         {children}
-        <button data-testid={`add-${definition.id}`} onClick={onAdd} disabled={!canAdd}>
+        <button
+          data-testid={`add-${definition.id}`}
+          onClick={onAdd}
+          disabled={!canAdd}
+        >
           add
         </button>
         <span data-testid={`canAdd-${definition.id}`}>{String(canAdd)}</span>
-        <span data-testid={`canRemove-${definition.id}`}>{String(canRemove)}</span>
+        <span data-testid={`canRemove-${definition.id}`}>
+          {String(canRemove)}
+        </span>
       </div>
     ),
     group: ({
@@ -86,7 +96,11 @@ function collectionMap(overrides?: Record<string, React.ComponentType<any>>) {
       canRemove?: boolean;
       itemIndex?: number;
     }) => (
-      <div data-testid="item-group" data-nodeid={nodeId} data-item-index={itemIndex}>
+      <div
+        data-testid="item-group"
+        data-nodeid={nodeId}
+        data-item-index={itemIndex}
+      >
         {children}
         {canRemove !== undefined && (
           <button data-testid="remove-item" onClick={onRemove}>
@@ -111,7 +125,9 @@ function collectionMap(overrides?: Record<string, React.ComponentType<any>>) {
         data-nodeid={nodeId}
         data-value={readStringNodeValue(value)}
       >
-        <span data-testid={`value-${definition.id}`}>{readStringNodeValue(value)}</span>
+        <span data-testid={`value-${definition.id}`}>
+          {readStringNodeValue(value)}
+        </span>
         <button
           data-testid={`set-${definition.id}`}
           onClick={() => onChange({ value: `edited-${definition.id}` })}
@@ -169,7 +185,10 @@ function makeCollectionView(opts: {
   };
 }
 
-function renderApp(view: ViewDefinition, map: Record<string, React.ComponentType<any>>) {
+function renderApp(
+  view: ViewDefinition,
+  map: Record<string, React.ComponentType<any>>
+) {
   let capturedSession: Session | null = null;
   function App() {
     const session = useContinuumSession();
@@ -182,7 +201,7 @@ function renderApp(view: ViewDefinition, map: Record<string, React.ComponentType
   const rendered = renderIntoDom(
     <ContinuumProvider components={map}>
       <App />
-    </ContinuumProvider>,
+    </ContinuumProvider>
   );
   return { rendered, getSession: () => requireSession(capturedSession) };
 }
@@ -239,12 +258,18 @@ describe('renderer', () => {
         }) => (
           <div data-testid={`collection-${definition.id}`}>
             {children}
-            <button data-testid={`add-${definition.id}`} onClick={onAdd} disabled={!canAdd}>
+            <button
+              data-testid={`add-${definition.id}`}
+              onClick={onAdd}
+              disabled={!canAdd}
+            >
               add
             </button>
           </div>
         ),
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
         field: ({
           value,
           onChange,
@@ -266,22 +291,38 @@ describe('renderer', () => {
 
       const { rendered } = renderApp(deepNestedView, map);
 
-      const taskFields = rendered.container.querySelectorAll('[data-testid="task-field"]');
+      const taskFields = rendered.container.querySelectorAll(
+        '[data-testid="task-field"]'
+      );
       expect(taskFields).toHaveLength(2);
 
-      act(() => { (taskFields[0] as HTMLButtonElement).click(); });
+      act(() => {
+        (taskFields[0] as HTMLButtonElement).click();
+      });
 
-      const fieldsAfterEdit = rendered.container.querySelectorAll('[data-testid="task-field"]');
-      expect((fieldsAfterEdit[0] as HTMLButtonElement).textContent).toBe('Task-1');
+      const fieldsAfterEdit = rendered.container.querySelectorAll(
+        '[data-testid="task-field"]'
+      );
+      expect((fieldsAfterEdit[0] as HTMLButtonElement).textContent).toBe(
+        'Task-1'
+      );
       expect((fieldsAfterEdit[1] as HTMLButtonElement).textContent).toBe('');
 
-      const addDaysButtons = rendered.container.querySelectorAll('[data-testid="add-days"]');
+      const addDaysButtons = rendered.container.querySelectorAll(
+        '[data-testid="add-days"]'
+      );
       expect(addDaysButtons).toHaveLength(2);
-      act(() => { (addDaysButtons[0] as HTMLButtonElement).click(); });
+      act(() => {
+        (addDaysButtons[0] as HTMLButtonElement).click();
+      });
 
-      const fieldsAfterAdd = rendered.container.querySelectorAll('[data-testid="task-field"]');
+      const fieldsAfterAdd = rendered.container.querySelectorAll(
+        '[data-testid="task-field"]'
+      );
       expect(fieldsAfterAdd).toHaveLength(3);
-      expect((fieldsAfterAdd[0] as HTMLButtonElement).textContent).toBe('Task-1');
+      expect((fieldsAfterAdd[0] as HTMLButtonElement).textContent).toBe(
+        'Task-1'
+      );
       expect((fieldsAfterAdd[1] as HTMLButtonElement).textContent).toBe('');
       expect((fieldsAfterAdd[2] as HTMLButtonElement).textContent).toBe('');
       rendered.unmount();
@@ -291,7 +332,9 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 1 });
       const { rendered } = renderApp(view, collectionMap());
 
-      const values = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const values = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(values).toHaveLength(1);
       expect((values[0] as HTMLElement).textContent).toBe('');
 
@@ -304,7 +347,9 @@ describe('renderer', () => {
       const view: ViewDefinition = {
         viewId: 'v',
         version: '1',
-        nodes: [{ id: 'topfield', type: 'field', dataType: 'string' } as ViewNode],
+        nodes: [
+          { id: 'topfield', type: 'field', dataType: 'string' } as ViewNode,
+        ],
       };
       const map = {
         field: ({ nodeId }: { nodeId?: string }) => (
@@ -314,9 +359,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-testid="node-id"]')?.textContent).toBe('topfield');
+      expect(
+        rendered.container.querySelector('[data-testid="node-id"]')?.textContent
+      ).toBe('topfield');
       rendered.unmount();
     });
 
@@ -334,7 +381,9 @@ describe('renderer', () => {
       };
       const nodeIds: string[] = [];
       const map = {
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
         field: ({ nodeId }: { nodeId?: string }) => {
           if (nodeId) nodeIds.push(nodeId);
           return <div data-testid="nested-id">{nodeId}</div>;
@@ -343,7 +392,7 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(nodeIds).toContain('grp/child');
       rendered.unmount();
@@ -369,7 +418,9 @@ describe('renderer', () => {
       };
       const nodeIds: string[] = [];
       const map = {
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
         field: ({ nodeId }: { nodeId?: string }) => {
           if (nodeId) nodeIds.push(nodeId);
           return <div />;
@@ -378,7 +429,7 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(nodeIds).toContain('a/b/c');
       rendered.unmount();
@@ -391,9 +442,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={collectionMap()}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(0);
       rendered.unmount();
     });
@@ -404,7 +457,9 @@ describe('renderer', () => {
       act(() => {
         getSession().updateState('items', { value: { items: 'not-an-array' } });
       });
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(0);
       rendered.unmount();
     });
@@ -454,7 +509,9 @@ describe('renderer', () => {
           value: { items: ['not-an-object', null, 42] },
         });
       });
-      const groups = rendered.container.querySelectorAll('[data-testid="item-group"]');
+      const groups = rendered.container.querySelectorAll(
+        '[data-testid="item-group"]'
+      );
       expect(groups).toHaveLength(3);
       rendered.unmount();
     });
@@ -467,7 +524,9 @@ describe('renderer', () => {
           value: { items: [{ values: null }] },
         });
       });
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(1);
       expect((fields[0] as HTMLElement).textContent).toBe('');
       rendered.unmount();
@@ -478,14 +537,18 @@ describe('renderer', () => {
       const { rendered, getSession } = renderApp(view, collectionMap());
       act(() => {
         getSession().updateState('items', {
-          value: { items: [{ values: null }] } as unknown as CollectionNodeState,
+          value: {
+            items: [{ values: null }],
+          } as unknown as CollectionNodeState,
           isDirty: true,
         });
       });
       const snapshot = getSession().getSnapshot();
       const cv = snapshot?.data.values['items'] as CollectionValue | undefined;
       expect(cv?.isDirty).toBe(true);
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(1);
       expect((fields[0] as HTMLElement).textContent).toBe('x');
       rendered.unmount();
@@ -497,7 +560,9 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 1 });
       let scopeValue: NodeValue | undefined = undefined;
       const map = collectionMap({
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
         field: ({ value }: { value: NodeValue | undefined }) => {
           scopeValue = value;
           return <div data-testid="scope-probe" />;
@@ -535,7 +600,9 @@ describe('renderer', () => {
     it('54: collection scope returns correct relative id for child', () => {
       const view = makeCollectionView({ minItems: 1, defaultValue: 'hello' });
       const { rendered } = renderApp(view, collectionMap());
-      const val = rendered.container.querySelector('[data-testid="value-name"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-name"]'
+      );
       expect((val as HTMLElement).textContent).toBe('hello');
       rendered.unmount();
     });
@@ -543,7 +610,13 @@ describe('renderer', () => {
     it('55: collection scope returns undefined for unrelated node id', () => {
       let probeValue: NodeValue | undefined = { value: 'should-be-undefined' };
       const map = collectionMap({
-        field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
+        field: ({
+          value,
+          definition,
+        }: {
+          value: NodeValue | undefined;
+          definition: { id: string };
+        }) => {
           if (definition.id === 'unrelated') {
             probeValue = value;
           }
@@ -563,7 +636,11 @@ describe('renderer', () => {
               id: 'row',
               type: 'group',
               children: [
-                { id: 'unrelated', type: 'field', dataType: 'string' } as ViewNode,
+                {
+                  id: 'unrelated',
+                  type: 'field',
+                  dataType: 'string',
+                } as ViewNode,
               ],
             },
           } as ViewNode,
@@ -582,7 +659,7 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <App />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(probeValue).toBeUndefined();
       rendered.unmount();
@@ -609,7 +686,12 @@ describe('renderer', () => {
                     id: 'inner_item',
                     type: 'group',
                     children: [
-                      { id: 'leaf', type: 'field', dataType: 'string', defaultValue: 'deep' } as ViewNode,
+                      {
+                        id: 'leaf',
+                        type: 'field',
+                        dataType: 'string',
+                        defaultValue: 'deep',
+                      } as ViewNode,
                     ],
                   },
                 } as ViewNode,
@@ -619,7 +701,9 @@ describe('renderer', () => {
         ],
       };
       const { rendered } = renderApp(nestedView, collectionMap());
-      const val = rendered.container.querySelector('[data-testid="value-leaf"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-leaf"]'
+      );
       expect((val as HTMLElement).textContent).toBe('deep');
       rendered.unmount();
     });
@@ -629,7 +713,9 @@ describe('renderer', () => {
     it('57: collection with undefined minItems renders 0 initial items', () => {
       const view = makeCollectionView({});
       const { rendered } = renderApp(view, collectionMap());
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(0);
       rendered.unmount();
     });
@@ -637,7 +723,9 @@ describe('renderer', () => {
     it('58: collection with negative minItems renders 0 initial items', () => {
       const view = makeCollectionView({ minItems: -3 });
       const { rendered } = renderApp(view, collectionMap());
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(0);
       rendered.unmount();
     });
@@ -645,7 +733,9 @@ describe('renderer', () => {
     it('59: collection with fractional minItems (2.7) floors to 2', () => {
       const view = makeCollectionView({ minItems: 2.7, defaultValue: 'f' });
       const { rendered } = renderApp(view, collectionMap());
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(2);
       rendered.unmount();
     });
@@ -653,11 +743,17 @@ describe('renderer', () => {
     it('60: collection with undefined maxItems has no add limit', () => {
       const view = makeCollectionView({ minItems: 0 });
       const { rendered } = renderApp(view, collectionMap());
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
       for (let i = 0; i < 10; i++) {
-        act(() => { addBtn.click(); });
+        act(() => {
+          addBtn.click();
+        });
       }
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(10);
       rendered.unmount();
     });
@@ -665,11 +761,17 @@ describe('renderer', () => {
     it('61: collection with negative maxItems has no add limit', () => {
       const view = makeCollectionView({ minItems: 0, maxItems: -5 });
       const { rendered } = renderApp(view, collectionMap());
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
       for (let i = 0; i < 5; i++) {
-        act(() => { addBtn.click(); });
+        act(() => {
+          addBtn.click();
+        });
       }
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(5);
       rendered.unmount();
     });
@@ -677,11 +779,21 @@ describe('renderer', () => {
     it('62: collection with fractional maxItems (2.7) floors to 2', () => {
       const view = makeCollectionView({ minItems: 0, maxItems: 2.7 });
       const { rendered } = renderApp(view, collectionMap());
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
-      act(() => { addBtn.click(); });
-      act(() => { addBtn.click(); });
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
+      act(() => {
+        addBtn.click();
+      });
+      act(() => {
+        addBtn.click();
+      });
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(2);
       rendered.unmount();
     });
@@ -691,7 +803,9 @@ describe('renderer', () => {
     it('63: creates correct number of items from minItems', () => {
       const view = makeCollectionView({ minItems: 3 });
       const { rendered } = renderApp(view, collectionMap());
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(3);
       rendered.unmount();
     });
@@ -699,7 +813,9 @@ describe('renderer', () => {
     it('64: creates 0 items when minItems is undefined', () => {
       const view = makeCollectionView({});
       const { rendered } = renderApp(view, collectionMap());
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(0);
       rendered.unmount();
     });
@@ -707,7 +823,9 @@ describe('renderer', () => {
     it('65: each item has values populated from template defaults', () => {
       const view = makeCollectionView({ minItems: 2, defaultValue: 'preset' });
       const { rendered } = renderApp(view, collectionMap());
-      const values = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const values = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(values).toHaveLength(2);
       expect((values[0] as HTMLElement).textContent).toBe('preset');
       expect((values[1] as HTMLElement).textContent).toBe('preset');
@@ -735,7 +853,12 @@ describe('renderer', () => {
                     id: 'inner_item',
                     type: 'group',
                     children: [
-                      { id: 'leaf', type: 'field', dataType: 'string', defaultValue: 'nested-default' } as ViewNode,
+                      {
+                        id: 'leaf',
+                        type: 'field',
+                        dataType: 'string',
+                        defaultValue: 'nested-default',
+                      } as ViewNode,
                     ],
                   },
                 } as ViewNode,
@@ -745,7 +868,9 @@ describe('renderer', () => {
         ],
       };
       const { rendered } = renderApp(nestedView, collectionMap());
-      const leaves = rendered.container.querySelectorAll('[data-testid="value-leaf"]');
+      const leaves = rendered.container.querySelectorAll(
+        '[data-testid="value-leaf"]'
+      );
       expect(leaves).toHaveLength(2);
       expect((leaves[0] as HTMLElement).textContent).toBe('nested-default');
       expect((leaves[1] as HTMLElement).textContent).toBe('nested-default');
@@ -755,9 +880,14 @@ describe('renderer', () => {
 
   describe('collectTemplateDefaults', () => {
     it('67: field with defaultValue shows default in initial render', () => {
-      const view = makeCollectionView({ minItems: 1, defaultValue: 'mydefault' });
+      const view = makeCollectionView({
+        minItems: 1,
+        defaultValue: 'mydefault',
+      });
       const { rendered } = renderApp(view, collectionMap());
-      const val = rendered.container.querySelector('[data-testid="value-name"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-name"]'
+      );
       expect((val as HTMLElement).textContent).toBe('mydefault');
       rendered.unmount();
     });
@@ -765,7 +895,9 @@ describe('renderer', () => {
     it('68: field without defaultValue shows empty', () => {
       const view = makeCollectionView({ minItems: 1 });
       const { rendered } = renderApp(view, collectionMap());
-      const val = rendered.container.querySelector('[data-testid="value-name"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-name"]'
+      );
       expect((val as HTMLElement).textContent).toBe('');
       rendered.unmount();
     });
@@ -787,7 +919,12 @@ describe('renderer', () => {
                   id: 'inner_group',
                   type: 'group',
                   children: [
-                    { id: 'deep_field', type: 'field', dataType: 'string', defaultValue: 'deep-val' } as ViewNode,
+                    {
+                      id: 'deep_field',
+                      type: 'field',
+                      dataType: 'string',
+                      defaultValue: 'deep-val',
+                    } as ViewNode,
                   ],
                 } as ViewNode,
               ],
@@ -796,10 +933,14 @@ describe('renderer', () => {
         ],
       };
       const map = collectionMap({
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
       });
       const { rendered } = renderApp(view, map);
-      const val = rendered.container.querySelector('[data-testid="value-deep_field"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-deep_field"]'
+      );
       expect((val as HTMLElement).textContent).toBe('deep-val');
       rendered.unmount();
     });
@@ -825,7 +966,12 @@ describe('renderer', () => {
                     id: 'i_item',
                     type: 'group',
                     children: [
-                      { id: 'val', type: 'field', dataType: 'string', defaultValue: 'recursive' } as ViewNode,
+                      {
+                        id: 'val',
+                        type: 'field',
+                        dataType: 'string',
+                        defaultValue: 'recursive',
+                      } as ViewNode,
                     ],
                   },
                 } as ViewNode,
@@ -858,7 +1004,11 @@ describe('renderer', () => {
                   id: 'sub',
                   type: 'group',
                   children: [
-                    { id: 'leaf', type: 'field', dataType: 'string' } as ViewNode,
+                    {
+                      id: 'leaf',
+                      type: 'field',
+                      dataType: 'string',
+                    } as ViewNode,
                   ],
                 } as ViewNode,
               ],
@@ -867,7 +1017,9 @@ describe('renderer', () => {
         ],
       };
       const map = collectionMap({
-        group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div>{children}</div>
+        ),
         field: ({ nodeId }: { nodeId?: string }) => {
           if (nodeId) nodeIds.push(nodeId);
           return <div data-testid="path-probe" />;
@@ -919,9 +1071,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-testid="matched-component"]')).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-testid="matched-component"]')
+      ).toBeTruthy();
       rendered.unmount();
     });
 
@@ -934,9 +1088,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={{}}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-continuum-fallback="field"]')).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-continuum-fallback="field"]')
+      ).toBeTruthy();
       rendered.unmount();
     });
 
@@ -944,7 +1100,13 @@ describe('renderer', () => {
       const view: ViewDefinition = {
         viewId: 'v',
         version: '1',
-        nodes: [{ id: 'f', type: 'custom_widget', dataType: 'string' } as unknown as ViewNode],
+        nodes: [
+          {
+            id: 'f',
+            type: 'custom_widget',
+            dataType: 'string',
+          } as unknown as ViewNode,
+        ],
       };
       const map = {
         default: ({ definition }: { definition: { type: string } }) => (
@@ -954,9 +1116,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      const el = rendered.container.querySelector('[data-testid="default-comp"]');
+      const el = rendered.container.querySelector(
+        '[data-testid="default-comp"]'
+      );
       expect(el).toBeTruthy();
       expect(el?.textContent).toBe('custom_widget');
       rendered.unmount();
@@ -966,7 +1130,14 @@ describe('renderer', () => {
       const view: ViewDefinition = {
         viewId: 'v',
         version: '1',
-        nodes: [{ id: 'f', type: 'field', dataType: 'string', hidden: true } as ViewNode],
+        nodes: [
+          {
+            id: 'f',
+            type: 'field',
+            dataType: 'string',
+            hidden: true,
+          } as ViewNode,
+        ],
       };
       const map = {
         field: () => <div data-testid="should-not-render">visible</div>,
@@ -974,9 +1145,11 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-testid="should-not-render"]')).toBeNull();
+      expect(
+        rendered.container.querySelector('[data-testid="should-not-render"]')
+      ).toBeNull();
       rendered.unmount();
     });
   });
@@ -997,7 +1170,15 @@ describe('renderer', () => {
         ],
       };
       const map = {
-        group: ({ value, onChange, children }: { value: unknown; onChange: unknown; children?: ReactNode }) => {
+        group: ({
+          value,
+          onChange,
+          children,
+        }: {
+          value: unknown;
+          onChange: unknown;
+          children?: ReactNode;
+        }) => {
           receivedValue = value;
           receivedOnChange = onChange;
           return <div>{children}</div>;
@@ -1007,7 +1188,7 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(receivedValue).toBeUndefined();
       expect(typeof receivedOnChange).toBe('function');
@@ -1031,7 +1212,9 @@ describe('renderer', () => {
         ],
       };
       const map = {
-        group: ({ children }: { children?: ReactNode }) => <div data-testid="container">{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div data-testid="container">{children}</div>
+        ),
         field: ({ definition }: { definition: { id: string } }) => (
           <div data-testid={`child-${definition.id}`} />
         ),
@@ -1039,10 +1222,14 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-testid="child-f1"]')).toBeTruthy();
-      expect(rendered.container.querySelector('[data-testid="child-f2"]')).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-testid="child-f1"]')
+      ).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-testid="child-f2"]')
+      ).toBeTruthy();
       rendered.unmount();
     });
 
@@ -1060,16 +1247,22 @@ describe('renderer', () => {
         ],
       };
       const map = {
-        group: ({ children }: { children?: ReactNode }) => <div data-testid="hidden-grp">{children}</div>,
+        group: ({ children }: { children?: ReactNode }) => (
+          <div data-testid="hidden-grp">{children}</div>
+        ),
         field: () => <div data-testid="hidden-child" />,
       };
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
-      expect(rendered.container.querySelector('[data-testid="hidden-grp"]')).toBeNull();
-      expect(rendered.container.querySelector('[data-testid="hidden-child"]')).toBeNull();
+      expect(
+        rendered.container.querySelector('[data-testid="hidden-grp"]')
+      ).toBeNull();
+      expect(
+        rendered.container.querySelector('[data-testid="hidden-child"]')
+      ).toBeNull();
       rendered.unmount();
     });
 
@@ -1093,7 +1286,13 @@ describe('renderer', () => {
         ],
       };
       const map = {
-        group: ({ nodeId, children }: { nodeId?: string; children?: ReactNode }) => {
+        group: ({
+          nodeId,
+          children,
+        }: {
+          nodeId?: string;
+          children?: ReactNode;
+        }) => {
           if (nodeId === 'outer/inner') capturedNodeId = nodeId;
           return <div>{children}</div>;
         },
@@ -1102,7 +1301,7 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(capturedNodeId).toBe('outer/inner');
       rendered.unmount();
@@ -1133,7 +1332,9 @@ describe('renderer', () => {
     it('82: collection items provide scoped state to children', () => {
       const view = makeCollectionView({ minItems: 2, defaultValue: 'scoped' });
       const { rendered } = renderApp(view, collectionMap());
-      const values = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const values = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(values).toHaveLength(2);
       expect((values[0] as HTMLElement).textContent).toBe('scoped');
       expect((values[1] as HTMLElement).textContent).toBe('scoped');
@@ -1144,29 +1345,46 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 2, defaultValue: 'init' });
       const { rendered } = renderApp(view, collectionMap());
 
-      const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-      act(() => { (setBtns[1] as HTMLButtonElement).click(); });
+      const setBtns = rendered.container.querySelectorAll(
+        '[data-testid="set-name"]'
+      );
+      act(() => {
+        (setBtns[1] as HTMLButtonElement).click();
+      });
 
-      const values = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const values = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect((values[0] as HTMLElement).textContent).toBe('init');
       expect((values[1] as HTMLElement).textContent).toBe('edited-name');
       rendered.unmount();
     });
 
     it('84: scope falls back to templateDefaults for missing keys', () => {
-      const view = makeCollectionView({ minItems: 0, defaultValue: 'fallback-val' });
+      const view = makeCollectionView({
+        minItems: 0,
+        defaultValue: 'fallback-val',
+      });
       const { rendered } = renderApp(view, collectionMap());
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
 
-      const val = rendered.container.querySelector('[data-testid="value-name"]');
+      const val = rendered.container.querySelector(
+        '[data-testid="value-name"]'
+      );
       expect((val as HTMLElement).textContent).toBe('fallback-val');
       rendered.unmount();
     });
 
     it('85: scope returns undefined for non-matching prefix', () => {
-      let capturedValue: NodeValue | undefined = { value: 'should-be-undefined' };
+      let capturedValue: NodeValue | undefined = {
+        value: 'should-be-undefined',
+      };
       const view: ViewDefinition = {
         viewId: 'prefix-test',
         version: '1',
@@ -1186,7 +1404,13 @@ describe('renderer', () => {
         ],
       };
       const map = collectionMap({
-        field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
+        field: ({
+          value,
+          definition,
+        }: {
+          value: NodeValue | undefined;
+          definition: { id: string };
+        }) => {
           if (definition.id === 'col') capturedValue = value;
           return <div data-testid={`field-${definition.id}`} />;
         },
@@ -1200,14 +1424,22 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 3, defaultValue: 'orig' });
       const { rendered, getSession } = renderApp(view, collectionMap());
 
-      const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-      act(() => { (setBtns[1] as HTMLButtonElement).click(); });
+      const setBtns = rendered.container.querySelectorAll(
+        '[data-testid="set-name"]'
+      );
+      act(() => {
+        (setBtns[1] as HTMLButtonElement).click();
+      });
 
       const snapshot = getSession().getSnapshot();
       const cv = snapshot?.data.values['items'] as CollectionValue | undefined;
-      expect(cv?.value.items[0].values['row/name']?.value ?? 'orig').toBe('orig');
+      expect(cv?.value.items[0].values['row/name']?.value ?? 'orig').toBe(
+        'orig'
+      );
       expect(cv?.value.items[1].values['row/name']?.value).toBe('edited-name');
-      expect(cv?.value.items[2].values['row/name']?.value ?? 'orig').toBe('orig');
+      expect(cv?.value.items[2].values['row/name']?.value ?? 'orig').toBe(
+        'orig'
+      );
       rendered.unmount();
     });
 
@@ -1221,30 +1453,51 @@ describe('renderer', () => {
         });
       });
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
-      act(() => { addBtn.click(); });
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
+      act(() => {
+        addBtn.click();
+      });
 
-      const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-      act(() => { (setBtns[1] as HTMLButtonElement).click(); });
+      const setBtns = rendered.container.querySelectorAll(
+        '[data-testid="set-name"]'
+      );
+      act(() => {
+        (setBtns[1] as HTMLButtonElement).click();
+      });
 
       const snapshot = getSession().getSnapshot();
       const cv = snapshot?.data.values['items'] as CollectionValue | undefined;
       expect(cv?.value.items).toHaveLength(2);
-      expect(cv?.value.items[1].values['row/name']).toEqual({ value: 'edited-name' });
+      expect(cv?.value.items[1].values['row/name']).toEqual({
+        value: 'edited-name',
+      });
       rendered.unmount();
     });
   });
 
   describe('CollectionNodeRenderer', () => {
     it('88: addItem appends new item with deep-cloned template defaults', () => {
-      const view = makeCollectionView({ minItems: 1, defaultValue: 'tmpl-val' });
+      const view = makeCollectionView({
+        minItems: 1,
+        defaultValue: 'tmpl-val',
+      });
       const { rendered, getSession } = renderApp(view, collectionMap());
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
 
-      const values = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const values = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(values).toHaveLength(2);
       expect((values[1] as HTMLElement).textContent).toBe('tmpl-val');
 
@@ -1258,13 +1511,21 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 2, maxItems: 2 });
       const { rendered } = renderApp(view, collectionMap());
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
 
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(2);
 
-      const canAdd = rendered.container.querySelector('[data-testid="canAdd-items"]');
+      const canAdd = rendered.container.querySelector(
+        '[data-testid="canAdd-items"]'
+      );
       expect((canAdd as HTMLElement).textContent).toBe('false');
       rendered.unmount();
     });
@@ -1273,16 +1534,30 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 0, defaultValue: 'rm' });
       const { rendered } = renderApp(view, collectionMap());
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-      act(() => { addBtn.click(); });
-      act(() => { addBtn.click(); });
-      act(() => { addBtn.click(); });
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        addBtn.click();
+      });
+      act(() => {
+        addBtn.click();
+      });
+      act(() => {
+        addBtn.click();
+      });
 
-      let removeBtns = rendered.container.querySelectorAll('[data-testid="remove-item"]');
+      let removeBtns = rendered.container.querySelectorAll(
+        '[data-testid="remove-item"]'
+      );
       expect(removeBtns.length).toBeGreaterThan(0);
-      act(() => { (removeBtns[0] as HTMLButtonElement).click(); });
+      act(() => {
+        (removeBtns[0] as HTMLButtonElement).click();
+      });
 
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(2);
       rendered.unmount();
     });
@@ -1291,10 +1566,14 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 2 });
       const { rendered } = renderApp(view, collectionMap());
 
-      const fields = rendered.container.querySelectorAll('[data-testid="value-name"]');
+      const fields = rendered.container.querySelectorAll(
+        '[data-testid="value-name"]'
+      );
       expect(fields).toHaveLength(2);
 
-      const canRemove = rendered.container.querySelector('[data-testid="canRemove-items"]');
+      const canRemove = rendered.container.querySelector(
+        '[data-testid="canRemove-items"]'
+      );
       expect((canRemove as HTMLElement).textContent).toBe('false');
       rendered.unmount();
     });
@@ -1303,10 +1582,14 @@ describe('renderer', () => {
       const view = makeCollectionView({ minItems: 3, maxItems: 3 });
       const { rendered } = renderApp(view, collectionMap());
 
-      const canAdd = rendered.container.querySelector('[data-testid="canAdd-items"]');
+      const canAdd = rendered.container.querySelector(
+        '[data-testid="canAdd-items"]'
+      );
       expect((canAdd as HTMLElement).textContent).toBe('false');
 
-      const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
+      const addBtn = rendered.container.querySelector(
+        '[data-testid="add-items"]'
+      ) as HTMLButtonElement;
       expect(addBtn.disabled).toBe(true);
       rendered.unmount();
     });
@@ -1316,7 +1599,9 @@ describe('renderer', () => {
     it('93: renders CollectionNodeRenderer for type collection', () => {
       const view = makeCollectionView({ minItems: 1 });
       const { rendered } = renderApp(view, collectionMap());
-      expect(rendered.container.querySelector('[data-testid="collection-items"]')).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-testid="collection-items"]')
+      ).toBeTruthy();
       rendered.unmount();
     });
 
@@ -1343,10 +1628,12 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <ContinuumRenderer view={view} />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(containerRendered).toBe(true);
-      expect(rendered.container.querySelector('[data-testid="leaf-in-container"]')).toBeTruthy();
+      expect(
+        rendered.container.querySelector('[data-testid="leaf-in-container"]')
+      ).toBeTruthy();
       rendered.unmount();
     });
 
@@ -1358,11 +1645,20 @@ describe('renderer', () => {
       };
       let leafRendered = false;
       const map = {
-        field: ({ value, onChange }: { value: NodeValue | undefined; onChange: (v: NodeValue) => void }) => {
+        field: ({
+          value,
+          onChange,
+        }: {
+          value: NodeValue | undefined;
+          onChange: (v: NodeValue) => void;
+        }) => {
           leafRendered = true;
           return (
             <div data-testid="stateful-leaf">
-              <button data-testid="leaf-set" onClick={() => onChange({ value: 'clicked' })}>
+              <button
+                data-testid="leaf-set"
+                onClick={() => onChange({ value: 'clicked' })}
+              >
                 set
               </button>
             </div>
@@ -1381,12 +1677,16 @@ describe('renderer', () => {
       const rendered = renderIntoDom(
         <ContinuumProvider components={map}>
           <App />
-        </ContinuumProvider>,
+        </ContinuumProvider>
       );
       expect(leafRendered).toBe(true);
 
-      const btn = rendered.container.querySelector('[data-testid="leaf-set"]') as HTMLButtonElement;
-      act(() => { btn.click(); });
+      const btn = rendered.container.querySelector(
+        '[data-testid="leaf-set"]'
+      ) as HTMLButtonElement;
+      act(() => {
+        btn.click();
+      });
 
       const session = requireSession(capturedSession);
       const snapshot = session.getSnapshot();

@@ -1,5 +1,5 @@
-import type { ViewDefinition, DetachedValue } from '@continuum/contract';
-import { reconcile } from '@continuum/runtime';
+import type { ViewDefinition, DetachedValue } from '@continuum-dev/contract';
+import { reconcile } from '@continuum-dev/runtime';
 import type { SessionState } from './session-state.js';
 import { autoCheckpoint } from './checkpoint-manager.js';
 import { markAllPendingIntentsAsStale } from './intent-manager.js';
@@ -75,7 +75,10 @@ function runDetachedValueGC(internal: SessionState): void {
     const { detachedValues: _, ...rest } = internal.currentData!;
     internal.currentData = rest;
   } else {
-    internal.currentData = { ...internal.currentData!, detachedValues: updated };
+    internal.currentData = {
+      ...internal.currentData!,
+      detachedValues: updated,
+    };
   }
 }
 
@@ -96,12 +99,10 @@ export function pushView(internal: SessionState, view: ViewDefinition): void {
   internal.priorView = internal.currentView;
   internal.currentView = view;
 
-  const result = reconcile(
-    view,
-    internal.priorView,
-    internal.currentData,
-    { clock: internal.clock, ...(internal.reconciliationOptions ?? {}) }
-  );
+  const result = reconcile(view, internal.priorView, internal.currentData, {
+    clock: internal.clock,
+    ...(internal.reconciliationOptions ?? {}),
+  });
 
   internal.currentData = {
     ...result.reconciledState,

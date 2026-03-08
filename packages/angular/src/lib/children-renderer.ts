@@ -1,5 +1,5 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
-import type { ViewNode } from '@continuum/contract';
+import type { ViewNode } from '@continuum-dev/contract';
 import { ContinuumViewNodeComponent } from './renderer.js';
 
 @Component({
@@ -8,7 +8,7 @@ import { ContinuumViewNodeComponent } from './renderer.js';
   imports: [ContinuumViewNodeComponent],
   template: `
     @for (child of definitions; track child.id) {
-      <continuum-view-node [definition]="child" />
+    <continuum-view-node [definition]="child" />
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

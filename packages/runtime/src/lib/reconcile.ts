@@ -6,15 +6,34 @@ import type {
   NodeValue,
   ViewDefinition,
   ViewNode,
-} from '@continuum/contract';
-import { getChildNodes } from '@continuum/contract';
-import { DATA_RESOLUTIONS } from '@continuum/contract';
-import type { NodeResolutionAccumulator, ReconciliationOptions, ReconciliationResult, StateDiff } from './types.js';
+} from '@continuum-dev/contract';
+import { getChildNodes } from '@continuum-dev/contract';
+import { DATA_RESOLUTIONS } from '@continuum-dev/contract';
+import type {
+  NodeResolutionAccumulator,
+  ReconciliationOptions,
+  ReconciliationResult,
+  StateDiff,
+} from './types.js';
 import type { ReconciliationContext } from './context.js';
-import { buildReconciliationContext, buildPriorValueLookupByIdAndKey } from './context.js';
-import { buildFreshSessionResult, buildBlindCarryResult, assembleReconciliationResult } from './reconciliation/state-builder.js';
-import { resolveAllNodes, detectRemovedNodes } from './reconciliation/node-resolver.js';
-import { migratedDiff, restoredDiff, restoredResolution } from './reconciliation/differ.js';
+import {
+  buildReconciliationContext,
+  buildPriorValueLookupByIdAndKey,
+} from './context.js';
+import {
+  buildFreshSessionResult,
+  buildBlindCarryResult,
+  assembleReconciliationResult,
+} from './reconciliation/state-builder.js';
+import {
+  resolveAllNodes,
+  detectRemovedNodes,
+} from './reconciliation/node-resolver.js';
+import {
+  migratedDiff,
+  restoredDiff,
+  restoredResolution,
+} from './reconciliation/differ.js';
 import { createInitialCollectionValue } from './reconciliation/collection-resolver.js';
 
 /**
@@ -39,8 +58,8 @@ export function reconcile(
   const now = options.clock
     ? options.clock()
     : priorData
-      ? priorData.lineage.timestamp + 1
-      : Date.now();
+    ? priorData.lineage.timestamp + 1
+    : Date.now();
 
   if (!priorData) {
     return buildFreshSessionResult(newView, now);
@@ -61,7 +80,10 @@ export function reconcile(
  */
 function restoreFromSamePushDetachments(
   resolved: NodeResolutionAccumulator,
-  removals: { diffs: StateDiff[]; detachedValues?: Record<string, DetachedValue> },
+  removals: {
+    diffs: StateDiff[];
+    detachedValues?: Record<string, DetachedValue>;
+  },
   ctx: ReconciliationContext
 ): void {
   const justDetached = removals.detachedValues;
@@ -107,7 +129,11 @@ function restoreFromSamePushDetachments(
       resolved.diffs.splice(addedDiffIndex, 1);
     }
     resolved.diffs.push(restoredDiff(nodeId, detachedEntry.value));
-    resolved.resolutions[i] = restoredResolution(nodeId, newNode.type, detachedEntry.value);
+    resolved.resolutions[i] = restoredResolution(
+      nodeId,
+      newNode.type,
+      detachedEntry.value
+    );
   }
 }
 
@@ -124,7 +150,13 @@ function reconcileViewTransition(
   const removals = detectRemovedNodes(ctx, priorData, options, now);
   restoreFromSamePushDetachments(resolved, removals, ctx);
   resolveCrossLevelMigrations(ctx, priorData, resolved);
-  const result = assembleReconciliationResult(resolved, removals, priorData, newView, now);
+  const result = assembleReconciliationResult(
+    resolved,
+    removals,
+    priorData,
+    newView,
+    now
+  );
   result.issues.unshift(...ctx.issues);
   return result;
 }
@@ -158,10 +190,38 @@ function resolveCrossLevelMigrations(
 ): void {
   const priorLocations = collectLocations(ctx.priorView?.nodes ?? []);
   const newLocations = collectLocations(ctx.newView.nodes);
-  applyTopToCollection('semantic', priorLocations, newLocations, priorData, ctx, resolved);
-  applyCollectionToTop('semantic', priorLocations, newLocations, priorData, ctx, resolved);
-  applyTopToCollection('key', priorLocations, newLocations, priorData, ctx, resolved);
-  applyCollectionToTop('key', priorLocations, newLocations, priorData, ctx, resolved);
+  applyTopToCollection(
+    'semantic',
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
+  applyCollectionToTop(
+    'semantic',
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
+  applyTopToCollection(
+    'key',
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
+  applyCollectionToTop(
+    'key',
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
 }
 
 function collectLocations(nodes: ViewNode[]): NodeLocation[] {
@@ -193,7 +253,9 @@ function collectLocations(nodes: ViewNode[]): NodeLocation[] {
       const child = children[i];
       const childNodeId = `${frame.nodeId}/${child.id}`;
       if (frame.node.type === 'collection') {
-        const outerCollectionId = frame.inCollection ? frame.outerCollectionId : frame.nodeId;
+        const outerCollectionId = frame.inCollection
+          ? frame.outerCollectionId
+          : frame.nodeId;
         const relativePath = frame.inCollection
           ? `${frame.relativePath}/${child.id}`
           : child.id;
@@ -213,9 +275,10 @@ function collectLocations(nodes: ViewNode[]): NodeLocation[] {
 
       if (frame.inCollection) {
         const relativePath = `${frame.relativePath}/${child.id}`;
-        const collectionPathStack = child.type === 'collection'
-          ? [...frame.collectionPathStack, relativePath]
-          : frame.collectionPathStack;
+        const collectionPathStack =
+          child.type === 'collection'
+            ? [...frame.collectionPathStack, relativePath]
+            : frame.collectionPathStack;
         stack.push({
           node: child,
           nodeId: childNodeId,
@@ -237,7 +300,11 @@ function collectLocations(nodes: ViewNode[]): NodeLocation[] {
   return locations;
 }
 
-function buildLocation(frame: TraverseFrame, mode: CrossLevelMode, token: string): NodeLocation {
+function buildLocation(
+  frame: TraverseFrame,
+  mode: CrossLevelMode,
+  token: string
+): NodeLocation {
   if (!frame.inCollection) {
     return {
       mode,
@@ -247,7 +314,10 @@ function buildLocation(frame: TraverseFrame, mode: CrossLevelMode, token: string
       level: 'top',
     };
   }
-  const chain = buildPathChain(frame.relativePath ?? '', frame.collectionPathStack);
+  const chain = buildPathChain(
+    frame.relativePath ?? '',
+    frame.collectionPathStack
+  );
   return {
     mode,
     token,
@@ -259,15 +329,22 @@ function buildLocation(frame: TraverseFrame, mode: CrossLevelMode, token: string
   };
 }
 
-function buildPathChain(relativePath: string, collectionPathStack: string[]): string[] {
+function buildPathChain(
+  relativePath: string,
+  collectionPathStack: string[]
+): string[] {
   const chain: string[] = [];
   for (const path of collectionPathStack.slice(1)) {
     chain.push(path);
   }
-  const anchor = collectionPathStack.length > 0 ? collectionPathStack[collectionPathStack.length - 1] : '';
-  const finalPath = anchor.length > 0 && relativePath.startsWith(`${anchor}/`)
-    ? relativePath.slice(anchor.length + 1)
-    : relativePath;
+  const anchor =
+    collectionPathStack.length > 0
+      ? collectionPathStack[collectionPathStack.length - 1]
+      : '';
+  const finalPath =
+    anchor.length > 0 && relativePath.startsWith(`${anchor}/`)
+      ? relativePath.slice(anchor.length + 1)
+      : relativePath;
   if (finalPath.length > 0 && chain[chain.length - 1] !== finalPath) {
     chain.push(finalPath);
   }
@@ -282,16 +359,26 @@ function applyTopToCollection(
   ctx: ReconciliationContext,
   resolved: NodeResolutionAccumulator
 ): void {
-  const priorTop = priorLocations.filter((loc) => loc.mode === mode && loc.level === 'top');
-  const newTop = newLocations.filter((loc) => loc.mode === mode && loc.level === 'top');
-  const newCollection = newLocations.filter((loc) => loc.mode === mode && loc.level === 'collection');
+  const priorTop = priorLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'top'
+  );
+  const newTop = newLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'top'
+  );
+  const newCollection = newLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'collection'
+  );
   const alreadyMigrated = new Set<string>();
 
   for (const source of priorTop) {
     if (!isRemovedFromLevel(source, newTop)) {
       continue;
     }
-    const sourceValue = readTopLevelValue(priorData, source.nodeId, source.node.id);
+    const sourceValue = readTopLevelValue(
+      priorData,
+      source.nodeId,
+      source.node.id
+    );
     if (!sourceValue) {
       continue;
     }
@@ -299,7 +386,11 @@ function applyTopToCollection(
       .filter((loc) => loc.token === source.token)
       .sort((a, b) => a.nodeId.localeCompare(b.nodeId));
     for (const target of targets) {
-      if (!target.outerCollectionId || !target.pathChain || target.pathChain.length === 0) {
+      if (
+        !target.outerCollectionId ||
+        !target.pathChain ||
+        target.pathChain.length === 0
+      ) {
         continue;
       }
       const outerCollection = ctx.newById.get(target.outerCollectionId);
@@ -330,7 +421,9 @@ function applyTopToCollection(
       resolved.values[target.outerCollectionId] = updated;
       if (!alreadyMigrated.has(target.outerCollectionId)) {
         alreadyMigrated.add(target.outerCollectionId);
-        resolved.diffs.push(migratedDiff(target.outerCollectionId, undefined, updated));
+        resolved.diffs.push(
+          migratedDiff(target.outerCollectionId, undefined, updated)
+        );
       }
       if (mode === 'semantic') {
         delete resolved.values[source.nodeId];
@@ -348,24 +441,39 @@ function applyCollectionToTop(
   ctx: ReconciliationContext,
   resolved: NodeResolutionAccumulator
 ): void {
-  const priorCollection = priorLocations.filter((loc) => loc.mode === mode && loc.level === 'collection');
-  const newCollection = newLocations.filter((loc) => loc.mode === mode && loc.level === 'collection');
-  const newTop = newLocations.filter((loc) => loc.mode === mode && loc.level === 'top');
+  const priorCollection = priorLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'collection'
+  );
+  const newCollection = newLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'collection'
+  );
+  const newTop = newLocations.filter(
+    (loc) => loc.mode === mode && loc.level === 'top'
+  );
   const alreadyMigrated = new Set<string>();
   if (mode === 'key') {
     for (const topTarget of newTop) {
       if (resolved.values[topTarget.nodeId] !== undefined) {
         continue;
       }
-      if (!('defaultValue' in topTarget.node) || topTarget.node.defaultValue === undefined) {
+      if (
+        !('defaultValue' in topTarget.node) ||
+        topTarget.node.defaultValue === undefined
+      ) {
         continue;
       }
-      resolved.values[topTarget.nodeId] = { value: topTarget.node.defaultValue };
+      resolved.values[topTarget.nodeId] = {
+        value: topTarget.node.defaultValue,
+      };
     }
   }
 
   for (const source of priorCollection) {
-    if (!source.outerCollectionId || !source.pathChain || source.pathChain.length === 0) {
+    if (
+      !source.outerCollectionId ||
+      !source.pathChain ||
+      source.pathChain.length === 0
+    ) {
       continue;
     }
     if (!isRemovedFromLevel(source, newCollection)) {
@@ -375,7 +483,12 @@ function applyCollectionToTop(
     if (!priorCollectionNode || priorCollectionNode.type !== 'collection') {
       continue;
     }
-    const extracted = readCollectionFirstItemValue(priorData, source.outerCollectionId, priorCollectionNode, source.pathChain);
+    const extracted = readCollectionFirstItemValue(
+      priorData,
+      source.outerCollectionId,
+      priorCollectionNode,
+      source.pathChain
+    );
     if (!extracted) {
       continue;
     }
@@ -396,19 +509,30 @@ function applyCollectionToTop(
       }
       if (!alreadyMigrated.has(target.nodeId)) {
         alreadyMigrated.add(target.nodeId);
-        resolved.diffs.push(migratedDiff(target.nodeId, undefined, resolved.values[target.nodeId]));
+        resolved.diffs.push(
+          migratedDiff(target.nodeId, undefined, resolved.values[target.nodeId])
+        );
       }
     }
   }
 }
 
-function isRemovedFromLevel(source: NodeLocation, nextSameLevel: NodeLocation[]): boolean {
+function isRemovedFromLevel(
+  source: NodeLocation,
+  nextSameLevel: NodeLocation[]
+): boolean {
   return !nextSameLevel.some(
-    (candidate) => candidate.token === source.token && candidate.node.type === source.node.type
+    (candidate) =>
+      candidate.token === source.token &&
+      candidate.node.type === source.node.type
   );
 }
 
-function readTopLevelValue(priorData: DataSnapshot, nodeId: string, rawId: string): NodeValue | undefined {
+function readTopLevelValue(
+  priorData: DataSnapshot,
+  nodeId: string,
+  rawId: string
+): NodeValue | undefined {
   const byScoped = priorData.values[nodeId];
   if (byScoped !== undefined) {
     return byScoped as NodeValue;
@@ -429,7 +553,13 @@ function updateCollectionTargetValue(
 ): NodeValue<CollectionNodeState> | null {
   const normalized = normalizeCollectionState(currentValue, collectionNode);
   const items = normalized.value.items.map((item) => ({
-    values: writePathChain(item.values ?? {}, collectionNode.template, pathChain, sourceValue, mode),
+    values: writePathChain(
+      item.values ?? {},
+      collectionNode.template,
+      pathChain,
+      sourceValue,
+      mode
+    ),
   }));
   const nextValue: NodeValue<CollectionNodeState> = {
     ...normalized,
@@ -452,9 +582,10 @@ function writePathChain(
     const key = pathChain[0];
     const existing = values[key];
     const targetNode = findNodeByPath(template, key);
-    const nextValue = mode === 'semantic'
-      ? cloneNodeValue(sourceValue)
-      : mergeAsSuggestion(existing, sourceValue, targetNode);
+    const nextValue =
+      mode === 'semantic'
+        ? cloneNodeValue(sourceValue)
+        : mergeAsSuggestion(existing, sourceValue, targetNode);
     return {
       ...values,
       [key]: nextValue,
@@ -469,7 +600,13 @@ function writePathChain(
   const existingNested = values[nestedPath];
   const normalizedNested = normalizeCollectionState(existingNested, nestedNode);
   const nestedItems = normalizedNested.value.items.map((item) => ({
-    values: writePathChain(item.values ?? {}, nestedNode.template, pathChain.slice(1), sourceValue, mode),
+    values: writePathChain(
+      item.values ?? {},
+      nestedNode.template,
+      pathChain.slice(1),
+      sourceValue,
+      mode
+    ),
   }));
   const nextNested: NodeValue<CollectionNodeState> = {
     ...normalizedNested,
@@ -488,7 +625,11 @@ function clearCollectionTargetValue(
 ): NodeValue<CollectionNodeState> {
   const normalized = normalizeCollectionState(currentValue, collectionNode);
   const items = normalized.value.items.map((item) => ({
-    values: clearPathChain(item.values ?? {}, collectionNode.template, pathChain),
+    values: clearPathChain(
+      item.values ?? {},
+      collectionNode.template,
+      pathChain
+    ),
   }));
   return {
     ...normalized,
@@ -520,7 +661,11 @@ function clearPathChain(
   }
   const normalizedNested = normalizeCollectionState(existingNested, nestedNode);
   const nestedItems = normalizedNested.value.items.map((item) => ({
-    values: clearPathChain(item.values ?? {}, nestedNode.template, pathChain.slice(1)),
+    values: clearPathChain(
+      item.values ?? {},
+      nestedNode.template,
+      pathChain.slice(1)
+    ),
   }));
   return {
     ...values,
@@ -545,7 +690,11 @@ function readCollectionFirstItemValue(
   if (!Array.isArray(state) || state.length === 0) {
     return undefined;
   }
-  return readPathFromItem(state[0].values ?? {}, outerCollectionNode.template, pathChain);
+  return readPathFromItem(
+    state[0].values ?? {},
+    outerCollectionNode.template,
+    pathChain
+  );
 }
 
 function readPathFromItem(
@@ -564,12 +713,18 @@ function readPathFromItem(
   if (!nestedNode || nestedNode.type !== 'collection') {
     return undefined;
   }
-  const nestedValue = values[nestedPath] as NodeValue<CollectionNodeState> | undefined;
+  const nestedValue = values[nestedPath] as
+    | NodeValue<CollectionNodeState>
+    | undefined;
   const nestedItems = nestedValue?.value?.items;
   if (!Array.isArray(nestedItems) || nestedItems.length === 0) {
     return undefined;
   }
-  return readPathFromItem(nestedItems[0].values ?? {}, nestedNode.template, pathChain.slice(1));
+  return readPathFromItem(
+    nestedItems[0].values ?? {},
+    nestedNode.template,
+    pathChain.slice(1)
+  );
 }
 
 function normalizeCollectionState(
@@ -579,16 +734,22 @@ function normalizeCollectionState(
   if (!value || typeof value !== 'object' || !('value' in value)) {
     return createInitialCollectionValue(collectionNode);
   }
-  const items = ((value as NodeValue<CollectionNodeState>).value?.items ?? [])
-    .map((item) => ({ values: { ...(item?.values ?? {}) } }));
+  const items = (
+    (value as NodeValue<CollectionNodeState>).value?.items ?? []
+  ).map((item) => ({ values: { ...(item?.values ?? {}) } }));
   return {
     ...(value as NodeValue<CollectionNodeState>),
     value: { items },
   };
 }
 
-function findNodeByPath(template: ViewNode, relativePath: string): ViewNode | null {
-  const segments = relativePath.split('/').filter((segment) => segment.length > 0);
+function findNodeByPath(
+  template: ViewNode,
+  relativePath: string
+): ViewNode | null {
+  const segments = relativePath
+    .split('/')
+    .filter((segment) => segment.length > 0);
   if (segments.length === 0 || segments[0] !== template.id) {
     return null;
   }

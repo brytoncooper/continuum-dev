@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { ViewNode, NodeValue } from '@continuum/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import type { ViewNode, NodeValue } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import { validateNodeValue } from './validator.js';
 
 function makeField(overrides: Partial<ViewNode>): ViewNode {

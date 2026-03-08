@@ -3,7 +3,7 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-These modules are internal to `@continuum/runtime`. They are imported only by the top-level `reconcile.ts` orchestrator and are not re-exported through the package's public API.
+These modules are internal to `@continuum-dev/runtime`. They are imported only by the top-level `reconcile.ts` orchestrator and are not re-exported through the package's public API.
 
 ## Data Flow
 

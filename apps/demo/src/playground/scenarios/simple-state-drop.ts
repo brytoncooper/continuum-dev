@@ -1,4 +1,4 @@
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import type { PlaygroundStateDropScenario } from '../types';
 
 const initialView: ViewDefinition = {
@@ -69,7 +69,8 @@ export const simpleStateDropScenario: PlaygroundStateDropScenario = {
     {
       id: 'initial-form',
       title: 'Step 1: User enters data',
-      description: 'The first view renders a single field with a stable semantic key.',
+      description:
+        'The first view renders a single field with a stable semantic key.',
       view: initialView,
     },
     {
