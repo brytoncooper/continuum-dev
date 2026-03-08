@@ -1,17 +1,115 @@
 import type {
   AssembleSystemPromptArgs,
   BuildUserMessageArgs,
+  JsonSchema,
   PromptAddon,
   PromptLibrary,
   PromptMode,
+  PromptOutputContract,
 } from './types.js';
 
-export const PROMPT_LIBRARY_VERSION = '2026-03-06.1';
+export const PROMPT_LIBRARY_VERSION = '2026-03-08.1';
+
+const GENERIC_CHILD_NODE_SCHEMA: JsonSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: { type: 'string' },
+    type: { type: 'string' },
+    key: { type: 'string' },
+    label: { type: 'string' },
+    description: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
+const OPTION_ITEM_SCHEMA: JsonSchema = {
+  type: 'object',
+  required: ['value', 'label'],
+  properties: {
+    value: { type: 'string' },
+    label: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
+const VIEW_NODE_SCHEMA: JsonSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: { type: 'string' },
+    type: {
+      enum: [
+        'field',
+        'textarea',
+        'date',
+        'select',
+        'radio-group',
+        'slider',
+        'toggle',
+        'action',
+        'group',
+        'row',
+        'grid',
+        'collection',
+        'presentation',
+      ],
+    },
+    key: { type: 'string' },
+    label: { type: 'string' },
+    description: { type: 'string' },
+    placeholder: { type: 'string' },
+    dataType: { enum: ['string', 'number', 'boolean'] },
+    contentType: { enum: ['text', 'markdown'] },
+    content: { type: 'string' },
+    intentId: { type: 'string' },
+    min: { type: 'number' },
+    max: { type: 'number' },
+    step: { type: 'number' },
+    columns: { type: 'number' },
+    defaultValue: {},
+    defaultValues: {
+      type: 'array',
+      items: { type: 'object', additionalProperties: true },
+    },
+    options: {
+      type: 'array',
+      items: OPTION_ITEM_SCHEMA,
+    },
+    children: {
+      type: 'array',
+      items: GENERIC_CHILD_NODE_SCHEMA,
+    },
+    template: GENERIC_CHILD_NODE_SCHEMA,
+  },
+  additionalProperties: true,
+};
+
+export const VIEW_DEFINITION_RESPONSE_SCHEMA: JsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['viewId', 'version', 'nodes'],
+  properties: {
+    viewId: { type: 'string' },
+    version: { type: 'string' },
+    nodes: {
+      type: 'array',
+      items: VIEW_NODE_SCHEMA,
+    },
+  },
+};
+
+export const VIEW_DEFINITION_OUTPUT_CONTRACT: PromptOutputContract = {
+  name: 'continuum_view_definition',
+  schema: VIEW_DEFINITION_RESPONSE_SCHEMA,
+  strict: true,
+};
 
 export const SYSTEM_CORE = `You generate Continuum ViewDefinition JSON.
 
 Output requirements:
 - Return JSON only (no markdown, no commentary).
+- The response MUST satisfy the provided output contract schema.
 - Top-level shape:
   {
     "viewId": string,
@@ -28,6 +126,7 @@ Core continuity rules:
 
 Rendering constraints:
 - Only use node types that this app explicitly supports.
+- Never emit unsupported aliases like "form", "text", or "number". Use "group" and "field" with dataType instead.
 - Include required fields for each node type.
 - For option-based nodes, include options as [{ "value": string, "label": string }].
 - For collection nodes, include a valid template node.`;
@@ -165,17 +264,36 @@ export const PROMPT_LIBRARY: PromptLibrary = {
     attachments: ADDON_ATTACHMENTS,
     'strict-continuity': ADDON_STRICT_CONTINUITY,
   },
+  outputContract: VIEW_DEFINITION_OUTPUT_CONTRACT,
 };
 
 function uniqueAddons(addons: PromptAddon[] = []): PromptAddon[] {
   return Array.from(new Set(addons));
 }
 
+export function buildOutputContractInstructions(
+  outputContract: PromptOutputContract
+): string {
+  return [
+    'Output contract (must be satisfied exactly):',
+    `schema name: ${outputContract.name}`,
+    `strict: ${outputContract.strict === false ? 'false' : 'true'}`,
+    JSON.stringify(outputContract.schema, null, 2),
+  ].join('\n');
+}
+
 export function assembleSystemPrompt(args: AssembleSystemPromptArgs): string {
-  const sections = [PROMPT_LIBRARY.base, PROMPT_LIBRARY.modes[args.mode]];
+  const outputContract = args.outputContract ?? PROMPT_LIBRARY.outputContract;
+  const sections = [
+    PROMPT_LIBRARY.base,
+    PROMPT_LIBRARY.modes[args.mode],
+    buildOutputContractInstructions(outputContract),
+  ];
+
   for (const addon of uniqueAddons(args.addons)) {
     sections.push(PROMPT_LIBRARY.addons[addon]);
   }
+
   return sections.join('\n\n');
 }
 
@@ -218,4 +336,8 @@ export function getModePrompt(mode: PromptMode): string {
 
 export function getAddonPrompt(addon: PromptAddon): string {
   return PROMPT_LIBRARY.addons[addon];
+}
+
+export function getDefaultOutputContract(): PromptOutputContract {
+  return PROMPT_LIBRARY.outputContract;
 }

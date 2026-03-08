@@ -18,6 +18,7 @@ npm install @continuum-dev/prompts
 - A production-ready base system prompt
 - Mode prompts for create, evolve, and correction loops
 - Optional addons for attachment extraction and strict continuity
+- A default JSON schema output contract for `ViewDefinition`
 - Typed helpers to assemble system prompts and build user messages
 
 ## Quick usage
@@ -26,6 +27,7 @@ npm install @continuum-dev/prompts
 import {
   assembleSystemPrompt,
   buildEvolveUserMessage,
+  getDefaultOutputContract,
   type PromptMode,
 } from '@continuum-dev/prompts';
 
@@ -34,6 +36,7 @@ const mode: PromptMode = 'evolve-view';
 const systemPrompt = assembleSystemPrompt({
   mode,
   addons: ['strict-continuity'],
+  outputContract: getDefaultOutputContract(),
 });
 
 const userMessage = buildEvolveUserMessage({
@@ -41,6 +44,13 @@ const userMessage = buildEvolveUserMessage({
   instruction: 'Add co-borrower employment and preserve semantic keys.',
 });
 ```
+
+## Output contract helpers
+
+- `VIEW_DEFINITION_RESPONSE_SCHEMA`: default JSON schema for Continuum `ViewDefinition`
+- `VIEW_DEFINITION_OUTPUT_CONTRACT`: named default contract object
+- `buildOutputContractInstructions`: renders explicit schema instructions for system prompts
+- `getDefaultOutputContract`: returns the default contract from `PROMPT_LIBRARY`
 
 ## Exports
 
@@ -52,10 +62,14 @@ const userMessage = buildEvolveUserMessage({
 - `MODE_CORRECTION_LOOP`
 - `ADDON_ATTACHMENTS`
 - `ADDON_STRICT_CONTINUITY`
+- `VIEW_DEFINITION_RESPONSE_SCHEMA`
+- `VIEW_DEFINITION_OUTPUT_CONTRACT`
 - `assembleSystemPrompt`
 - `buildCreateUserMessage`
 - `buildEvolveUserMessage`
 - `buildCorrectionUserMessage`
+- `buildOutputContractInstructions`
+- `getDefaultOutputContract`
 - `getModePrompt`
 - `getAddonPrompt`
 
@@ -66,5 +80,6 @@ Store this with each model request:
 - `promptVersion`
 - `mode`
 - enabled addons list
+- output contract name/version
 
 This makes prompt behavior auditable and easier to tune.
