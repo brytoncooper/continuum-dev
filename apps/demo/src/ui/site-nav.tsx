@@ -48,6 +48,9 @@ export function SiteNav() {
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit
         </NavLink>
+        <NavLink to="/live-ai" style={navLinkStyle}>
+          Live AI
+        </NavLink>
         <NavLink to="/docs" style={navLinkStyle}>
           Docs
         </NavLink>

@@ -12,6 +12,10 @@ export default defineConfig({
         __dirname,
         '../../packages/adapters/src/index.ts'
       ),
+      '@continuum-dev/ai-connect': resolve(
+        __dirname,
+        '../../packages/ai-connect/src/index.ts'
+      ),
       '@continuum-dev/contract': resolve(
         __dirname,
         '../../packages/contract/src/index.ts'
