@@ -1,5 +1,4 @@
-import type { ViewNode, NodeValue } from '@continuum/contract';
-import type { SessionOptions } from '@continuum/session';
+import type { NodeValue, SessionOptions, ViewNode } from '@continuum/core';
 import type { ComponentType } from 'react';
 
 /**
@@ -71,7 +70,7 @@ export interface ContinuumProviderProps {
   maxPersistBytes?: number;
   /** Callback invoked when persistence errors occur. */
   onPersistError?: (error: ContinuumPersistError) => void;
-  /** Options forwarded to `@continuum/session`. */
+  /** Options forwarded to `@continuum-dev/core`. */
   sessionOptions?: SessionOptions;
   /** React subtree that consumes Continuum context. */
   children: React.ReactNode;

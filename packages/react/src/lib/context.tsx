@@ -1,7 +1,6 @@
 import { createContext, useRef, useMemo, useEffect } from 'react';
-import { hydrateOrCreate } from '@continuum/session';
-import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/contract';
+import { hydrateOrCreate } from '@continuum/core';
+import type { Session, ContinuitySnapshot, NodeValue, ViewportState } from '@continuum/core';
 import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
 
 type Listener = () => void;

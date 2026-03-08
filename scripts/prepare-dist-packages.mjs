@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const packageNames = ['contract', 'runtime', 'session', 'react', 'prompts'];
+const packageNames = ['contract', 'runtime', 'session', 'core', 'react', 'prompts', 'starter-kit'];
 
 const INTERNAL_SCOPE = '@continuum/';
 const PUBLIC_SCOPE = '@continuum-dev/';

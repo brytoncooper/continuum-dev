@@ -8,6 +8,7 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum/react';
+import { ConflictBanner } from '@continuum/starter-kit';
 import { useEffect, useMemo } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
@@ -20,7 +21,6 @@ import type {
 import { replayNaiveOverwriteScenario } from '../state/naive-overwrite-engine';
 import { buildSeedValues } from '../state/scenario-inputs';
 import { findScopedNodeIdByKey } from '../state/view-helpers';
-import { ConflictBanner } from './conflict-banner';
 import { createHighlightedComponentMap } from './highlighted-node-map';
 import { StateSummaryCard } from './state-summary-card';
 import { StaticViewRenderer } from './static-view-renderer';
