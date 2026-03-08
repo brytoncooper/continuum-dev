@@ -1,4 +1,4 @@
-import type { NodeValue } from '@continuum/contract';
+import type { NodeValue } from '@continuum/core';
 import type { ContinuumNodeProps } from './types.js';
 
 /**
