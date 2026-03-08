@@ -28,6 +28,9 @@
       "path": "../prompts/tsconfig.lib.json"
     },
     {
+      "path": "../ai-connect/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     }
   ]
