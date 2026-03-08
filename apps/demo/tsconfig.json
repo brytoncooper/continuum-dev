@@ -13,15 +13,5 @@
     "noEmit": true
   },
   "include": ["src/**/*"],
-  "references": [
-    {
-      "path": "../../packages/contract"
-    },
-    {
-      "path": "../../packages/session"
-    },
-    {
-      "path": "../../packages/react"
-    }
-  ]
+  "references": []
 }

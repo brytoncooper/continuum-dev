@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/react';
-import type { SessionOptions } from '@continuum/session';
+import type { SessionOptions } from '@continuum/core';
+import { ContinuumProvider, ContinuumRenderer, useContinuumSession } from '@continuum/starter-kit';
 import { componentMap } from '../component-map';
 import { color, radius, space } from '../ui/tokens';
 import type { DemoExample } from './schemas';

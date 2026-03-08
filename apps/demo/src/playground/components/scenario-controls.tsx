@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { FieldFrame, inputLikeStyle } from '../../primitives/shared/field-frame';
+import { FieldFrame, inputLikeStyle } from '@continuum/starter-kit';
 import { color, radius, space, type } from '../../ui/tokens';
 
 const wrapStyle: CSSProperties = {
