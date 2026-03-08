@@ -2,6 +2,9 @@
 
 **Build interfaces that can change at runtime without hand-building the continuity layer yourself.**
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 Most React apps are written with one giant assumption: **the UI shape is basically fixed.**
 
 That works great right up until your app starts doing things like:
@@ -24,9 +27,9 @@ The hard part becomes:
 
 That is the hole Continuum fills.
 
-`@continuum-dev/react` is the React layer for **Continuum**: a system for building interfaces that evolve at runtime while still feeling stable, stateful, and production-grade.
+`@continuum-dev/react` is the headless React layer for **Continuum**: a system for building interfaces that evolve at runtime while still feeling stable, stateful, and production-grade.
 
-It is the point where the structural logic of `@continuum-dev/runtime` and the session model of `@continuum-dev/session` turn into a real user experience.
+It is the point where the lower-level Continuum model exposed through `@continuum-dev/core` turns into a real user experience.
 
 You bring your own components.  
 Continuum handles the continuity layer underneath.
@@ -71,10 +74,8 @@ Way less glue code.
 
 Continuum splits the problem into clear layers:
 
-- `@continuum-dev/contract` defines shared types
-- `@continuum-dev/runtime` reconciles evolving views and state
-- `@continuum-dev/session` owns live state, history, persistence, and proposals
-- `@continuum-dev/react` renders all of that into React
+- `@continuum-dev/core` bundles the lower-level contract, runtime, and session layers
+- `@continuum-dev/react` renders that model into React
 
 This package is the React binding.
 
@@ -116,7 +117,7 @@ You keep full control over components, branding, styling, and UX.
 ## Install
 
 ```bash
-npm install @continuum-dev/react @continuum-dev/session @continuum-dev/contract
+npm install @continuum-dev/react @continuum-dev/core react
 ```
 
 Peer dependency: `react >= 18`.
@@ -127,7 +128,7 @@ This example maps your design system components to dynamic node types and render
 
 ```tsx
 import { useEffect } from 'react';
-import type { NodeValue, ViewDefinition } from '@continuum-dev/contract';
+import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
 import {
   ContinuumProvider,
   ContinuumRenderer,
@@ -384,7 +385,7 @@ function SubmitButton({ definition }: ContinuumNodeProps) {
 Each component in your `components` map receives this prop shape:
 
 ```ts
-import type { NodeValue, ViewNode } from '@continuum-dev/contract';
+import type { NodeValue, ViewNode } from '@continuum-dev/core';
 
 interface ContinuumNodeProps<T = NodeValue> {
   value: T | undefined;
@@ -569,10 +570,9 @@ If your UI is fully static and your state model is simple, you may not need Cont
 
 Continuum packages:
 
-- `@continuum-dev/contract`: shared types and view/data contracts
-- `@continuum-dev/runtime`: stateless reconciliation engine
-- `@continuum-dev/session`: live session, persistence, proposals, checkpoints, history
+- `@continuum-dev/core`: lower-level contract, runtime, and session facade
 - `@continuum-dev/react`: React bindings and renderer
+- `@continuum-dev/starter-kit`: opinionated primitives and proposal UI built on top of React
 
 ---
 
