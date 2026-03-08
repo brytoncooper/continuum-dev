@@ -15,6 +15,7 @@ const packageNames = [
   'core',
   'react',
   'prompts',
+  'ai-connect',
   'starter-kit',
 ];
 

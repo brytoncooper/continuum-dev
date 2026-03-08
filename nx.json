@@ -71,6 +71,7 @@
                                                                            "@continuum-dev/session",
                                                                            "@continuum-dev/react",
                                                                            "prompts",
+                                                                           "@continuum-dev/ai-connect",
                                                                            "@continuum-dev/core",
                                                                            "@continuum-dev/starter-kit"
                                                                        ],
