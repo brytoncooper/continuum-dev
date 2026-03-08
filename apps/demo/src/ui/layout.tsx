@@ -18,6 +18,14 @@ const navRowStyle: CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   gap: space.lg,
+  position: 'sticky',
+  top: space.sm,
+  zIndex: 30,
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.md,
+  border: `1px solid ${color.border}`,
+  background: 'rgba(255, 255, 255, 0.92)',
+  backdropFilter: 'blur(6px)',
 };
 
 const heroStyle: CSSProperties = {
