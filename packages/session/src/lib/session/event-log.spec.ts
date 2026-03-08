@@ -1,11 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { recordIntent } from './event-log.js';
-import { ISSUE_CODES } from '@continuum/contract';
+import { ISSUE_CODES } from '@continuum-dev/contract';
 
 function setupWithView(internal: ReturnType<typeof createEmptySessionState>) {
-  internal.currentView = { viewId: 's1', version: '1.0', nodes: [{ id: 'a', type: 'field' as const, dataType: 'string' as const }] };
-  internal.currentData = { values: {}, lineage: { timestamp: 1000, sessionId: 's' } };
+  internal.currentView = {
+    viewId: 's1',
+    version: '1.0',
+    nodes: [{ id: 'a', type: 'field' as const, dataType: 'string' as const }],
+  };
+  internal.currentData = {
+    values: {},
+    lineage: { timestamp: 1000, sessionId: 's' },
+  };
 }
 
 describe('recordIntent', () => {
@@ -13,7 +20,11 @@ describe('recordIntent', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'hello' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'hello' },
+    });
 
     expect(internal.eventLog).toHaveLength(1);
     expect(internal.eventLog[0].nodeId).toBe('a');
@@ -24,7 +35,11 @@ describe('recordIntent', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'updated' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'updated' },
+    });
 
     expect(internal.currentData!.values['a']).toEqual({ value: 'updated' });
   });
@@ -33,11 +48,17 @@ describe('recordIntent', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'hello' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'hello' },
+    });
 
     expect(internal.currentData!.valueLineage!['a']).toBeDefined();
     expect(internal.currentData!.valueLineage!['a'].lastUpdated).toBeDefined();
-    expect(internal.currentData!.valueLineage!['a'].lastInteractionId).toBeDefined();
+    expect(
+      internal.currentData!.valueLineage!['a'].lastInteractionId
+    ).toBeDefined();
   });
 
   it('notifies snapshot listeners', () => {
@@ -46,7 +67,11 @@ describe('recordIntent', () => {
     const listener = vi.fn();
     internal.snapshotListeners.add(listener);
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'hello' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'hello' },
+    });
 
     expect(listener).toHaveBeenCalledOnce();
   });
@@ -56,7 +81,11 @@ describe('recordIntent', () => {
     setupWithView(internal);
     internal.destroyed = true;
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'hello' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'hello' },
+    });
 
     expect(internal.eventLog).toHaveLength(0);
   });
@@ -64,7 +93,11 @@ describe('recordIntent', () => {
   it('does nothing when no data exists', () => {
     const internal = createEmptySessionState('s', () => 5000);
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: 'hello' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: 'hello' },
+    });
 
     expect(internal.eventLog).toHaveLength(0);
   });
@@ -73,11 +106,13 @@ describe('recordIntent', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
 
-    expect(() => recordIntent(internal, {
-      nodeId: 'a',
-      type: 'invalid-type' as never,
-      payload: { value: 'hello' },
-    })).toThrow('Invalid interaction type');
+    expect(() =>
+      recordIntent(internal, {
+        nodeId: 'a',
+        type: 'invalid-type' as never,
+        payload: { value: 'hello' },
+      })
+    ).toThrow('Invalid interaction type');
   });
 
   it('stores a cloned payload value', () => {
@@ -88,18 +123,30 @@ describe('recordIntent', () => {
     recordIntent(internal, { nodeId: 'a', type: 'value-change', payload });
     payload.value = 'changed-after';
 
-    expect(internal.currentData?.values['a']).toEqual({ value: 'hello', isDirty: true });
+    expect(internal.currentData?.values['a']).toEqual({
+      value: 'hello',
+      isDirty: true,
+    });
   });
 
   it('deduplicates unknown-node issues by nodeId and code', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
 
-    recordIntent(internal, { nodeId: 'missing', type: 'value-change', payload: { value: 'x' } });
-    recordIntent(internal, { nodeId: 'missing', type: 'value-change', payload: { value: 'y' } });
+    recordIntent(internal, {
+      nodeId: 'missing',
+      type: 'value-change',
+      payload: { value: 'x' },
+    });
+    recordIntent(internal, {
+      nodeId: 'missing',
+      type: 'value-change',
+      payload: { value: 'y' },
+    });
 
     const unknownNodeIssues = internal.issues.filter(
-      (issue) => issue.code === ISSUE_CODES.UNKNOWN_NODE && issue.nodeId === 'missing'
+      (issue) =>
+        issue.code === ISSUE_CODES.UNKNOWN_NODE && issue.nodeId === 'missing'
     );
     expect(unknownNodeIssues).toHaveLength(1);
   });
@@ -109,21 +156,35 @@ describe('recordIntent', () => {
     internal.currentView = {
       viewId: 's1',
       version: '1.0',
-      nodes: [{
-        id: 'a',
-        type: 'field',
-        dataType: 'string',
-        constraints: { required: true },
-      }],
+      nodes: [
+        {
+          id: 'a',
+          type: 'field',
+          dataType: 'string',
+          constraints: { required: true },
+        },
+      ],
     };
-    internal.currentData = { values: {}, lineage: { timestamp: 1000, sessionId: 's' } };
+    internal.currentData = {
+      values: {},
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
     internal.validateOnUpdate = true;
 
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: '' } });
-    recordIntent(internal, { nodeId: 'a', type: 'value-change', payload: { value: '' } });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: '' },
+    });
+    recordIntent(internal, {
+      nodeId: 'a',
+      type: 'value-change',
+      payload: { value: '' },
+    });
 
     const validationIssues = internal.issues.filter(
-      (issue) => issue.code === ISSUE_CODES.VALIDATION_FAILED && issue.nodeId === 'a'
+      (issue) =>
+        issue.code === ISSUE_CODES.VALIDATION_FAILED && issue.nodeId === 'a'
     );
     expect(validationIssues).toHaveLength(1);
   });

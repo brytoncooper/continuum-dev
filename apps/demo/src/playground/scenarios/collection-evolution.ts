@@ -1,11 +1,18 @@
-import type { CollectionNodeState, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  CollectionNodeState,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import type { PlaygroundCollectionScenario } from '../types';
 
 function node(definition: Record<string, unknown>): ViewNode {
   return definition as unknown as ViewNode;
 }
 
-function collectionValue(items: Array<{ values: Record<string, NodeValue> }>): NodeValue<CollectionNodeState> {
+function collectionValue(
+  items: Array<{ values: Record<string, NodeValue> }>
+): NodeValue<CollectionNodeState> {
   return {
     value: {
       items,
@@ -106,7 +113,8 @@ const evolvedView: ViewDefinition = {
 export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
   id: 'collection-evolution',
   kind: 'collection-evolution',
-  title: 'Collection items should keep the user data they already hold when each repeated item evolves.',
+  title:
+    'Collection items should keep the user data they already hold when each repeated item evolves.',
   selectorLabel: 'Collection evolution',
   problem:
     'The user fills in two repeated contact rows. Then the AI upgrades each collection item into a richer card layout with a new container path. Without continuity, those repeated values fall off because the item field ids no longer line up.',
@@ -119,10 +127,26 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
     helperText: '',
   },
   inputFields: [
-    { key: 'contact.0.name', label: 'First contact name', placeholder: 'Enter Name' },
-    { key: 'contact.0.company', label: 'First contact company', placeholder: 'Enter Company' },
-    { key: 'contact.1.name', label: 'Second contact name', placeholder: 'Enter Name' },
-    { key: 'contact.1.company', label: 'Second contact company', placeholder: 'Enter Company' },
+    {
+      key: 'contact.0.name',
+      label: 'First contact name',
+      placeholder: 'Enter Name',
+    },
+    {
+      key: 'contact.0.company',
+      label: 'First contact company',
+      placeholder: 'Enter Company',
+    },
+    {
+      key: 'contact.1.name',
+      label: 'Second contact name',
+      placeholder: 'Enter Name',
+    },
+    {
+      key: 'contact.1.company',
+      label: 'Second contact company',
+      placeholder: 'Enter Company',
+    },
   ],
   defaultInputValues: {
     'contact.0.name': 'Bryton Cooper',
@@ -136,14 +160,26 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
     return collectionValue([
       {
         values: {
-          'contact_row/contact_name': { value: inputValues['contact.0.name'], isDirty: true },
-          'contact_row/contact_company': { value: inputValues['contact.0.company'], isDirty: true },
+          'contact_row/contact_name': {
+            value: inputValues['contact.0.name'],
+            isDirty: true,
+          },
+          'contact_row/contact_company': {
+            value: inputValues['contact.0.company'],
+            isDirty: true,
+          },
         },
       },
       {
         values: {
-          'contact_row/contact_name': { value: inputValues['contact.1.name'], isDirty: true },
-          'contact_row/contact_company': { value: inputValues['contact.1.company'], isDirty: true },
+          'contact_row/contact_name': {
+            value: inputValues['contact.1.name'],
+            isDirty: true,
+          },
+          'contact_row/contact_company': {
+            value: inputValues['contact.1.company'],
+            isDirty: true,
+          },
         },
       },
     ]);
@@ -157,7 +193,8 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
     {
       id: 'collection-initial',
       title: 'Step 1: The user fills repeated rows',
-      description: 'Both panes start with the same two collection items already filled in.',
+      description:
+        'Both panes start with the same two collection items already filled in.',
       view: initialView,
     },
     {

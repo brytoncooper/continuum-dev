@@ -3,7 +3,7 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-These modules are internal to `@continuum/session`. They are imported only by the top-level `session.ts` orchestrator and are not re-exported through the package's public API.
+These modules are internal to `@continuum-dev/session`. They are imported only by the top-level `session.ts` orchestrator and are not re-exported through the package's public API.
 
 ## Data Flow
 
@@ -15,7 +15,7 @@ session.ts (orchestrator)
   assembleSessionFromInternalState wires the Session interface:
     pushView:
       view-pusher.pushView
-        reconcile(...)                      @continuum/runtime
+        reconcile(...)                      @continuum-dev/runtime
         intent-manager.markAllPendingIntentsAsStale  mark stale on version change
         checkpoint-manager.autoCheckpoint   snapshot after each push
         listeners.notifySnapshotAndIssueListeners        broadcast to subscribers

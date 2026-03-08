@@ -1,10 +1,10 @@
-# `@continuum/session` Comprehensive Library Reference
+# `@continuum-dev/session` Comprehensive Library Reference
 
 This document is a deep reference for `packages/session`, intended for both humans and AI agents. It explains every file and every method/function present in the package, including internal helpers and tests.
 
 ## 1) Package Purpose and Boundary
 
-`@continuum/session` manages the lifecycle of a Continuum session:
+`@continuum-dev/session` manages the lifecycle of a Continuum session:
 
 - tracks current view and data
 - reconciles data when view versions change
@@ -19,8 +19,8 @@ Boundary:
 - Public API is exported from `src/index.ts`.
 - Internal modules under `src/lib/session/` are not exported from package root.
 - Runtime behavior depends on:
-  - `@continuum/contract` for shared domain types/constants
-  - `@continuum/runtime` for reconciliation and optional value validation
+  - `@continuum-dev/contract` for shared domain types/constants
+  - `@continuum-dev/runtime` for reconciliation and optional value validation
 
 ## 2) File Inventory
 
@@ -100,10 +100,10 @@ Operational lifecycle:
 
 Role:
 
-- defines package identity (`@continuum/session`)
+- defines package identity (`@continuum-dev/session`)
 - marks ESM (`"type": "module"`)
 - points `main`, `types`, and `exports` to `src/index.ts`
-- declares dependencies on `@continuum/contract` and `@continuum/runtime`
+- declares dependencies on `@continuum-dev/contract` and `@continuum-dev/runtime`
 - includes Nx tag (`scope:session`)
 
 Methods/functions:

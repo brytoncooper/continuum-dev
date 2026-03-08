@@ -1,4 +1,4 @@
-import type { NodeValue, ViewDefinition } from '@continuum/contract';
+import type { NodeValue, ViewDefinition } from '@continuum-dev/contract';
 
 export interface PlaygroundScenarioStep {
   id: string;

@@ -5,7 +5,7 @@ import {
   type FieldNode,
   type GroupNode,
   type NodeValue,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 import type { ProtocolAdapter } from '../adapter.js';
 import type { A2UIForm, A2UIField } from './types.js';
 
@@ -186,7 +186,4 @@ export const a2uiAdapter: ProtocolAdapter<A2UIForm, Record<string, unknown>> = {
   },
 };
 
-export {
-  createDefaultNodeValue,
-  createDefaultNodeValue as valueForDataType,
-};
+export { createDefaultNodeValue, createDefaultNodeValue as valueForDataType };

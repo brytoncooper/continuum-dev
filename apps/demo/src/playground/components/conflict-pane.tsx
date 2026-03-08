@@ -1,4 +1,4 @@
-import type { NodeValue } from '@continuum/contract';
+import type { NodeValue } from '@continuum-dev/contract';
 import {
   ContinuumProvider,
   ContinuumRenderer,
@@ -7,8 +7,8 @@ import {
   useContinuumConflict,
   useContinuumSession,
   useContinuumSnapshot,
-} from '@continuum/react';
-import { ConflictBanner } from '@continuum/starter-kit';
+} from '@continuum-dev/react';
+import { ConflictBanner } from '@continuum-dev/starter-kit';
 import { useEffect, useMemo } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
@@ -46,13 +46,14 @@ const statusChipStyle = (status: string) => ({
   background: color.surface,
 });
 
-const previewStyle = (interactive: boolean) => ({
-  padding: space.lg,
-  borderRadius: radius.md,
-  border: `1px solid ${color.borderSoft}`,
-  background: color.surfaceMuted,
-  pointerEvents: interactive ? 'auto' : 'none',
-}) as const;
+const previewStyle = (interactive: boolean) =>
+  ({
+    padding: space.lg,
+    borderRadius: radius.md,
+    border: `1px solid ${color.borderSoft}`,
+    background: color.surfaceMuted,
+    pointerEvents: interactive ? 'auto' : 'none',
+  } as const);
 
 const summaryGridStyle = {
   display: 'grid',
@@ -222,7 +223,9 @@ function ConflictPaneCard({
         <div style={summaryGridStyle}>
           <div style={fullRowStyle}>
             <div style={explanationCardStyle}>
-              <div style={explanationTitleStyle}>Why this pane behaves this way</div>
+              <div style={explanationTitleStyle}>
+                Why this pane behaves this way
+              </div>
               <div style={explanationBodyStyle}>{modelDescription}</div>
             </div>
           </div>
@@ -236,7 +239,9 @@ function ConflictPaneCard({
                 },
                 {
                   label: 'Fields present now',
-                  value: String(trackedFields.filter((field) => field.nodeId).length),
+                  value: String(
+                    trackedFields.filter((field) => field.nodeId).length
+                  ),
                 },
               ]}
             />
@@ -269,8 +274,12 @@ function createConflictAwareComponentMap(): ContinuumNodeMap {
             <div style={inlineFieldPopupStyle}>
               <ConflictBanner
                 title="Suggested update"
-                currentValue={stringifyValue((props.value as NodeValue | undefined)?.value)}
-                nextValue={stringifyValue(conflict.proposal?.proposedValue.value)}
+                currentValue={stringifyValue(
+                  (props.value as NodeValue | undefined)?.value
+                )}
+                nextValue={stringifyValue(
+                  conflict.proposal?.proposedValue.value
+                )}
                 tone="proposal"
                 variant="popover"
                 onAccept={conflict.accept}
@@ -299,8 +308,12 @@ function createConflictAwareComponentMap(): ContinuumNodeMap {
             <div style={inlineFieldPopupStyle}>
               <ConflictBanner
                 title="Suggested update"
-                currentValue={stringifyValue((props.value as NodeValue | undefined)?.value)}
-                nextValue={stringifyValue(conflict.proposal?.proposedValue.value)}
+                currentValue={stringifyValue(
+                  (props.value as NodeValue | undefined)?.value
+                )}
+                nextValue={stringifyValue(
+                  conflict.proposal?.proposedValue.value
+                )}
                 tone="proposal"
                 variant="popover"
                 onAccept={conflict.accept}
@@ -363,7 +376,10 @@ function ContinuumConflictRuntime({
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
@@ -405,8 +421,8 @@ function ContinuumConflictRuntime({
     boundedStepIndex === 0
       ? 'User data staged'
       : pendingCount > 0
-        ? `${pendingCount} proposals pending`
-        : 'Proposals resolved';
+      ? `${pendingCount} proposals pending`
+      : 'Proposals resolved';
 
   const acceptAll = () => {
     for (const nodeId of Object.keys(session.getPendingProposals())) {
@@ -437,9 +453,7 @@ function ContinuumConflictRuntime({
           />
         ) : undefined
       }
-      preview={
-        <ContinuumRenderer view={currentView} />
-      }
+      preview={<ContinuumRenderer view={currentView} />}
       previewInteractive
     />
   );
@@ -482,12 +496,20 @@ export function ConflictPane({
   if (mode === 'continuum') {
     return (
       <ContinuumProvider components={conflictComponentMap} persist={false}>
-        <ContinuumConflictRuntime scenario={scenario} stepIndex={stepIndex} initialValues={initialValues} />
+        <ContinuumConflictRuntime
+          scenario={scenario}
+          stepIndex={stepIndex}
+          initialValues={initialValues}
+        />
       </ContinuumProvider>
     );
   }
 
-  const replay = replayNaiveOverwriteScenario(scenario, stepIndex, initialValues);
+  const replay = replayNaiveOverwriteScenario(
+    scenario,
+    stepIndex,
+    initialValues
+  );
 
   return (
     <ConflictPaneCard

@@ -1,5 +1,5 @@
-import type { NodeValue } from '@continuum/contract';
-import { useContinuumConflict, useContinuumState } from '@continuum/react';
+import type { NodeValue } from '@continuum-dev/contract';
+import { useContinuumConflict, useContinuumState } from '@continuum-dev/react';
 import { ConflictBanner } from './conflict-banner.js';
 
 function stringifyValue(value: unknown): string {

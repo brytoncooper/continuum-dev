@@ -1,4 +1,4 @@
-import type { Checkpoint } from '@continuum/contract';
+import type { Checkpoint } from '@continuum-dev/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 import {
@@ -39,7 +39,9 @@ export function autoCheckpoint(internal: SessionState): void {
   if (internal.checkpoints.length > internal.maxCheckpoints) {
     const overflow = internal.checkpoints.length - internal.maxCheckpoints;
     for (let index = 0; index < overflow; index += 1) {
-      const removableIndex = internal.checkpoints.findIndex((checkpoint) => checkpoint.trigger === 'auto');
+      const removableIndex = internal.checkpoints.findIndex(
+        (checkpoint) => checkpoint.trigger === 'auto'
+      );
       if (removableIndex === -1) break;
       internal.checkpoints.splice(removableIndex, 1);
     }
@@ -69,7 +71,9 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
   if (internal.checkpoints.length > internal.maxCheckpoints) {
     const overflow = internal.checkpoints.length - internal.maxCheckpoints;
     for (let index = 0; index < overflow; index += 1) {
-      const removableIndex = internal.checkpoints.findIndex((cp) => cp.trigger === 'manual');
+      const removableIndex = internal.checkpoints.findIndex(
+        (cp) => cp.trigger === 'manual'
+      );
       if (removableIndex === -1) {
         break;
       }
@@ -85,7 +89,10 @@ export function createManualCheckpoint(internal: SessionState): Checkpoint {
  * @param internal Mutable internal session state.
  * @param cp Checkpoint to restore from.
  */
-export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): void {
+export function restoreFromCheckpoint(
+  internal: SessionState,
+  cp: Checkpoint
+): void {
   if (internal.destroyed) return;
 
   internal.currentView = cloneCheckpointSnapshot(cp.snapshot.view);
@@ -108,7 +115,9 @@ export function restoreFromCheckpoint(internal: SessionState, cp: Checkpoint): v
  */
 export function rewind(internal: SessionState, checkpointId: string): void {
   if (internal.destroyed) return;
-  const idx = internal.checkpoints.findIndex((cp) => cp.checkpointId === checkpointId);
+  const idx = internal.checkpoints.findIndex(
+    (cp) => cp.checkpointId === checkpointId
+  );
   if (idx === -1) throw new Error(`Checkpoint ${checkpointId} not found`);
 
   const cp = internal.checkpoints[idx];

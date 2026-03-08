@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { ViewDefinition, ViewNode } from '@continuum/contract';
+import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
 
@@ -66,7 +66,9 @@ describe('Session Ledger', () => {
 
       expect(session.isDestroyed).toBe(true);
       expect(() => session.getSnapshot()).toThrow('Session has been destroyed');
-      expect(() => session.pushView(view)).toThrow('Session has been destroyed');
+      expect(() => session.pushView(view)).toThrow(
+        'Session has been destroyed'
+      );
       expect(snapshotCallCount).toBe(0);
     });
 
@@ -81,11 +83,7 @@ describe('Session Ledger', () => {
       session.updateState('a', { value: 'hello' });
       session.updateState('b', { checked: true });
 
-      const viewV2 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '2.0'
-      );
+      const viewV2 = makeView([makeNode({ id: 'a' })], 'view-1', '2.0');
       session.pushView(viewV2);
 
       const issuesBefore = session.getIssues();
@@ -141,19 +139,11 @@ describe('Session Ledger', () => {
 
     it('second pushView triggers reconciliation and preserves matching data', () => {
       const session = createSession();
-      const viewV1 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '1.0'
-      );
+      const viewV1 = makeView([makeNode({ id: 'a' })], 'view-1', '1.0');
       session.pushView(viewV1);
       session.updateState('a', { value: 'hello' });
 
-      const viewV2 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '2.0'
-      );
+      const viewV2 = makeView([makeNode({ id: 'a' })], 'view-1', '2.0');
       session.pushView(viewV2);
 
       const snapshot = session.getSnapshot();
@@ -185,11 +175,7 @@ describe('Session Ledger', () => {
 
     it('view version tracked in data lineage', () => {
       const session = createSession();
-      const view = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '3.0'
-      );
+      const view = makeView([makeNode({ id: 'a' })], 'view-1', '3.0');
 
       session.pushView(view);
 
@@ -200,10 +186,7 @@ describe('Session Ledger', () => {
     it('exposes detached values after node removal', () => {
       const session = createSession();
       const viewV1 = makeView(
-        [
-          makeNode({ id: 'a', key: 'a' }),
-          makeNode({ id: 'b', key: 'b' }),
-        ],
+        [makeNode({ id: 'a', key: 'a' }), makeNode({ id: 'b', key: 'b' })],
         'view-1',
         '1.0'
       );
@@ -337,11 +320,7 @@ describe('Session Ledger', () => {
 
   describe('pending intents', () => {
     let session: Session;
-    const view = makeView(
-      [makeNode({ id: 'a' })],
-      'view-1',
-      '1.0'
-    );
+    const view = makeView([makeNode({ id: 'a' })], 'view-1', '1.0');
 
     beforeEach(() => {
       session = createSession();
@@ -385,11 +364,7 @@ describe('Session Ledger', () => {
         payload: { value: 'data' },
       });
 
-      const viewV2 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '2.0'
-      );
+      const viewV2 = makeView([makeNode({ id: 'a' })], 'view-1', '2.0');
       session.pushView(viewV2);
 
       const intents = session.getPendingIntents();
@@ -403,11 +378,7 @@ describe('Session Ledger', () => {
         payload: { value: 'data' },
       });
 
-      const viewV2 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '2.0'
-      );
+      const viewV2 = makeView([makeNode({ id: 'a' })], 'view-1', '2.0');
       session.pushView(viewV2);
 
       const intentId = session.getPendingIntents()[0].intentId;
@@ -432,11 +403,7 @@ describe('Session Ledger', () => {
 
   describe('pending proposals', () => {
     let session: Session;
-    const view = makeView(
-      [makeNode({ id: 'a' })],
-      'view-1',
-      '1.0'
-    );
+    const view = makeView([makeNode({ id: 'a' })], 'view-1', '1.0');
 
     beforeEach(() => {
       session = createSession();
@@ -446,7 +413,9 @@ describe('Session Ledger', () => {
     it('proposeValue applies immediately when existing value is not dirty', () => {
       session.proposeValue('a', { value: 'ai-next' }, 'ai');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next' });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'ai-next',
+      });
       expect(session.getPendingProposals()).toEqual({});
     });
 
@@ -460,7 +429,10 @@ describe('Session Ledger', () => {
       expect(proposal?.proposedValue).toEqual({ value: 'ai-next' });
       expect(proposal?.currentValue).toEqual({ value: 'typed', isDirty: true });
       expect(proposal?.source).toBe('ai');
-      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'typed', isDirty: true });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'typed',
+        isDirty: true,
+      });
     });
 
     it('acceptProposal applies proposed value and clears proposal', () => {
@@ -469,7 +441,10 @@ describe('Session Ledger', () => {
 
       session.acceptProposal('a');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'ai-next', isDirty: true });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'ai-next',
+        isDirty: true,
+      });
       expect(session.getPendingProposals()).toEqual({});
     });
 
@@ -479,7 +454,10 @@ describe('Session Ledger', () => {
 
       session.rejectProposal('a');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({ value: 'typed', isDirty: true });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'typed',
+        isDirty: true,
+      });
       expect(session.getPendingProposals()).toEqual({});
     });
   });
@@ -556,7 +534,8 @@ describe('Session Ledger', () => {
 
       expect(snapshots).toHaveLength(1);
       expect(
-        (snapshots[0] as { data: { values: Record<string, unknown> } }).data.values['a']
+        (snapshots[0] as { data: { values: Record<string, unknown> } }).data
+          .values['a']
       ).toEqual({ value: 'hello' });
     });
 
@@ -574,10 +553,7 @@ describe('Session Ledger', () => {
 
     it('restoreFromCheckpoint clears diffs, issues, and resolutions', () => {
       const viewV2 = makeView(
-        [
-          makeNode({ id: 'a' }),
-          makeNode({ id: 'b', type: 'action' }),
-        ],
+        [makeNode({ id: 'a' }), makeNode({ id: 'b', type: 'action' })],
         'view-1',
         '2.0'
       );
@@ -617,23 +593,13 @@ describe('Session Ledger', () => {
     });
 
     it('restoreFromCheckpoint sets priorView to null', () => {
-      const viewV2 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '2.0'
-      );
+      const viewV2 = makeView([makeNode({ id: 'a' })], 'view-1', '2.0');
       session.pushView(viewV2);
       const cp = session.checkpoint();
 
       session.restoreFromCheckpoint(cp);
 
-      session.pushView(
-        makeView(
-          [makeNode({ id: 'a' })],
-          'view-1',
-          '3.0'
-        )
-      );
+      session.pushView(makeView([makeNode({ id: 'a' })], 'view-1', '3.0'));
       const issues = session.getIssues();
       const noPriorView = issues.find((i) => i.code === 'NO_PRIOR_VIEW');
       expect(noPriorView).toBeUndefined();
@@ -678,9 +644,7 @@ describe('Session Ledger', () => {
       expect(calls).toHaveLength(1);
 
       unsub();
-      session.pushView(
-        makeView([makeNode({ id: 'a' })], 'view-1', '2.0')
-      );
+      session.pushView(makeView([makeNode({ id: 'a' })], 'view-1', '2.0'));
       expect(calls).toHaveLength(1);
     });
   });
@@ -732,19 +696,12 @@ describe('Session Ledger', () => {
   describe('reconciliation resolutions', () => {
     it('getResolutions returns resolutions from the last reconciliation', () => {
       const session = createSession();
-      const viewV1 = makeView(
-        [makeNode({ id: 'a' })],
-        'view-1',
-        '1.0'
-      );
+      const viewV1 = makeView([makeNode({ id: 'a' })], 'view-1', '1.0');
       session.pushView(viewV1);
       session.updateState('a', { value: 'hello' });
 
       const viewV2 = makeView(
-        [
-          makeNode({ id: 'a' }),
-          makeNode({ id: 'b', type: 'action' }),
-        ],
+        [makeNode({ id: 'a' }), makeNode({ id: 'b', type: 'action' })],
         'view-1',
         '2.0'
       );
@@ -819,7 +776,10 @@ describe('Session Ledger', () => {
     it('deserialize rejects unknown formatVersion', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
-      const blob = { ...(session.serialize() as Record<string, unknown>), formatVersion: 999 };
+      const blob = {
+        ...(session.serialize() as Record<string, unknown>),
+        formatVersion: 999,
+      };
       expect(() => deserialize(blob)).toThrow();
     });
 
@@ -828,7 +788,9 @@ describe('Session Ledger', () => {
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'hello' });
       const restored = deserialize(session.serialize());
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'hello' });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({
+        value: 'hello',
+      });
     });
 
     it('deserialize handles legacy blobs without formatVersion', () => {
@@ -838,7 +800,9 @@ describe('Session Ledger', () => {
       const blob = session.serialize() as Record<string, unknown>;
       delete blob.formatVersion;
       const restored = deserialize(blob);
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'legacy' });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({
+        value: 'legacy',
+      });
     });
   });
 
@@ -862,13 +826,17 @@ describe('Session Ledger', () => {
 
       const checkpoints = session.getCheckpoints();
       expect(checkpoints).toHaveLength(1);
-      expect(checkpoints[0].snapshot.data.values['a']).toEqual({ value: 'typed' });
+      expect(checkpoints[0].snapshot.data.values['a']).toEqual({
+        value: 'typed',
+      });
     });
 
     it('each pushView adds a new checkpoint', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2')
+      );
       expect(session.getCheckpoints()).toHaveLength(2);
     });
 
@@ -876,26 +844,34 @@ describe('Session Ledger', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'hello' });
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2')
+      );
 
       const checkpoints = session.getCheckpoints();
       expect(checkpoints[0].snapshot.view.viewId).toBe('s1');
       expect(checkpoints[1].snapshot.view.viewId).toBe('s2');
-      expect(checkpoints[1].snapshot.data.values['a']).toEqual({ value: 'hello' });
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual({
+        value: 'hello',
+      });
     });
 
     it('rewind restores session to a prior checkpoint', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'hello' });
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2')
+      );
       session.updateState('b', { value: 'world' });
 
       const checkpoints = session.getCheckpoints();
       session.rewind(checkpoints[1].checkpointId);
 
       expect(session.getSnapshot()!.view.viewId).toBe('s2');
-      expect(session.getSnapshot()!.data.values['a']).toEqual({ value: 'hello' });
+      expect(session.getSnapshot()!.data.values['a']).toEqual({
+        value: 'hello',
+      });
 
       session.rewind(session.getCheckpoints()[0].checkpointId);
       expect(session.getSnapshot()!.view.viewId).toBe('s1');
@@ -903,9 +879,13 @@ describe('Session Ledger', () => {
 
     it('rewind restores typed values from checkpoint even if a later type change dropped them', () => {
       const session = createSession();
-      session.pushView(makeView([makeNode({ id: 'loan_type', type: 'field' })], 's1', '1'));
+      session.pushView(
+        makeView([makeNode({ id: 'loan_type', type: 'field' })], 's1', '1')
+      );
       session.updateState('loan_type', { value: 'mortgage' });
-      session.pushView(makeView([makeNode({ id: 'loan_type', type: 'action' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'loan_type', type: 'action' })], 's2', '2')
+      );
 
       expect(session.getSnapshot()!.data.values['loan_type']).toBeUndefined();
 
@@ -913,7 +893,9 @@ describe('Session Ledger', () => {
       session.rewind(checkpoints[0].checkpointId);
 
       expect(session.getSnapshot()!.view.viewId).toBe('s1');
-      expect(session.getSnapshot()!.data.values['loan_type']).toEqual({ value: 'mortgage' });
+      expect(session.getSnapshot()!.data.values['loan_type']).toEqual({
+        value: 'mortgage',
+      });
     });
 
     it('rewind trims the checkpoint stack to the rewound point', () => {
@@ -946,14 +928,18 @@ describe('Session Ledger', () => {
 
       session.rewind(session.getCheckpoints()[0].checkpointId);
       expect(snapshots).toHaveLength(1);
-      expect((snapshots[0] as { view: { viewId: string } }).view.viewId).toBe('s1');
+      expect((snapshots[0] as { view: { viewId: string } }).view.viewId).toBe(
+        's1'
+      );
     });
 
     it('checkpoints survive serialize/deserialize round-trip', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'persisted' });
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2')
+      );
 
       const restored = deserialize(session.serialize());
       expect(restored.getCheckpoints()).toHaveLength(2);
@@ -964,7 +950,9 @@ describe('Session Ledger', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })], 's1', '1'));
       session.updateState('a', { value: 'before' });
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2'));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })], 's2', '2')
+      );
       session.updateState('b', { value: 'after' });
 
       const restored = deserialize(session.serialize());
@@ -972,8 +960,12 @@ describe('Session Ledger', () => {
       restored.rewind(checkpoints[1].checkpointId);
 
       expect(restored.getSnapshot()!.view.viewId).toBe('s2');
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({ value: 'before' });
-      expect(restored.getSnapshot()!.data.values['b']).toEqual({ value: 'after' });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual({
+        value: 'before',
+      });
+      expect(restored.getSnapshot()!.data.values['b']).toEqual({
+        value: 'after',
+      });
     });
 
     it('auto-checkpoint captures data updates made before next pushView', () => {
@@ -983,7 +975,9 @@ describe('Session Ledger', () => {
       session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       const checkpoints = session.getCheckpoints();
-      expect(checkpoints[1].snapshot.data.values['a']).toEqual({ value: 'typed' });
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual({
+        value: 'typed',
+      });
     });
   });
 
@@ -1050,13 +1044,7 @@ describe('Session Ledger', () => {
     it('handles rapid successive view pushes', () => {
       const session = createSession();
       for (let i = 0; i < 50; i++) {
-        session.pushView(
-          makeView(
-            [makeNode({ id: 'a' })],
-            `s${i}`,
-            `${i}`
-          )
-        );
+        session.pushView(makeView([makeNode({ id: 'a' })], `s${i}`, `${i}`));
       }
 
       const snapshot = session.getSnapshot();
@@ -1075,7 +1063,9 @@ describe('Session Ledger', () => {
 
       session.pushView(makeView([root], 's2', '2'));
 
-      expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({ value: 'nested' });
+      expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({
+        value: 'nested',
+      });
     });
 
     it('updateState and recordIntent throw after destroy', () => {
@@ -1083,9 +1073,15 @@ describe('Session Ledger', () => {
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.destroy();
 
-      expect(() => session.updateState('a', { value: 'nope' })).toThrow('Session has been destroyed');
+      expect(() => session.updateState('a', { value: 'nope' })).toThrow(
+        'Session has been destroyed'
+      );
       expect(() =>
-        session.recordIntent({ nodeId: 'a', type: 'value-change', payload: { value: 'nope' } })
+        session.recordIntent({
+          nodeId: 'a',
+          type: 'value-change',
+          payload: { value: 'nope' },
+        })
       ).toThrow('Session has been destroyed');
     });
   });
@@ -1110,7 +1106,7 @@ describe('Session Ledger', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'test' });
-      
+
       const listener = vi.fn();
       session.onSnapshot(listener);
 
@@ -1146,7 +1142,7 @@ describe('Session Ledger', () => {
       // Push valid view
       session.pushView(makeView([makeNode({ id: 'a', type: 'field' })]));
       expect(listener).toHaveBeenCalledWith([
-        expect.objectContaining({ code: 'NO_PRIOR_DATA' })
+        expect.objectContaining({ code: 'NO_PRIOR_DATA' }),
       ]);
 
       // Push view with type mismatch

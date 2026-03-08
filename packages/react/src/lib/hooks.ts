@@ -1,4 +1,11 @@
-import { createContext, useContext, useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type {
   ActionResult,
   ContinuitySnapshot,
@@ -6,7 +13,7 @@ import type {
   ProposedValue,
   Session,
   ViewportState,
-} from '@continuum/core';
+} from '@continuum-dev/core';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
@@ -215,9 +222,9 @@ export function useContinuumViewport(
     );
   }
   if (
-    scope
-    && typeof process !== 'undefined'
-    && process.env.NODE_ENV !== 'production'
+    scope &&
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production'
   ) {
     console.warn(
       `useContinuumViewport("${nodeId}") called inside a collection scope. Viewport state is not supported for collection item nodes.`
@@ -270,31 +277,34 @@ export function useContinuumDiagnostics() {
     checkpoints: ReturnType<Session['getCheckpoints']>;
   } | null>(null);
 
-  const getSnapshot = useCallback(
-    () => {
-      const nextDiagnostics = {
-        issues: session.getIssues(),
-        diffs: session.getDiffs(),
-        resolutions: session.getResolutions(),
-        checkpoints: session.getCheckpoints(),
-      };
-      const cachedDiagnostics = diagnosticsCacheRef.current;
+  const getSnapshot = useCallback(() => {
+    const nextDiagnostics = {
+      issues: session.getIssues(),
+      diffs: session.getDiffs(),
+      resolutions: session.getResolutions(),
+      checkpoints: session.getCheckpoints(),
+    };
+    const cachedDiagnostics = diagnosticsCacheRef.current;
 
-      if (
-        cachedDiagnostics &&
-        shallowArrayEqual(cachedDiagnostics.issues, nextDiagnostics.issues) &&
-        shallowArrayEqual(cachedDiagnostics.diffs, nextDiagnostics.diffs) &&
-        shallowArrayEqual(cachedDiagnostics.resolutions, nextDiagnostics.resolutions) &&
-        shallowArrayEqual(cachedDiagnostics.checkpoints, nextDiagnostics.checkpoints)
-      ) {
-        return cachedDiagnostics;
-      }
+    if (
+      cachedDiagnostics &&
+      shallowArrayEqual(cachedDiagnostics.issues, nextDiagnostics.issues) &&
+      shallowArrayEqual(cachedDiagnostics.diffs, nextDiagnostics.diffs) &&
+      shallowArrayEqual(
+        cachedDiagnostics.resolutions,
+        nextDiagnostics.resolutions
+      ) &&
+      shallowArrayEqual(
+        cachedDiagnostics.checkpoints,
+        nextDiagnostics.checkpoints
+      )
+    ) {
+      return cachedDiagnostics;
+    }
 
-      diagnosticsCacheRef.current = nextDiagnostics;
-      return nextDiagnostics;
-    },
-    [session]
-  );
+    diagnosticsCacheRef.current = nextDiagnostics;
+    return nextDiagnostics;
+  }, [session]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribeDiagnostics(onStoreChange),
@@ -401,7 +411,11 @@ export function useContinuumSuggestions(): {
     return found;
   }, [store]);
 
-  const hasSuggestions = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const hasSuggestions = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getSnapshot
+  );
 
   const acceptAll = useCallback(() => {
     const snap = store.getSnapshot();
@@ -413,7 +427,7 @@ export function useContinuumSuggestions(): {
           ...nodeVal,
           value: nodeVal.suggestion,
           suggestion: undefined,
-          isDirty: true
+          isDirty: true,
         } as NodeValue);
       }
     }
@@ -427,7 +441,7 @@ export function useContinuumSuggestions(): {
       if (nodeVal?.suggestion !== undefined) {
         session.updateState(key, {
           ...nodeVal,
-          suggestion: undefined
+          suggestion: undefined,
         } as NodeValue);
       }
     }

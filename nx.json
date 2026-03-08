@@ -46,11 +46,11 @@
         "projects": [
           "contract",
           "runtime",
-          "@continuum/session",
-          "@continuum/react",
+          "@continuum-dev/session",
+          "@continuum-dev/react",
           "prompts",
-          "@continuum/core",
-          "@continuum/starter-kit"
+          "@continuum-dev/core",
+          "@continuum-dev/starter-kit"
         ],
         "projectsRelationship": "fixed"
       }
@@ -58,6 +58,7 @@
     "version": {
       "preVersionCommand": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages",
       "manifestRootsToUpdate": [
+        "{workspaceRoot}",
         "{projectRoot}",
         {
           "path": "dist/{projectRoot}",

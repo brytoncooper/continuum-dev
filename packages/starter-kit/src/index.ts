@@ -1,11 +1,11 @@
-export { ContinuumProvider, ContinuumRenderer } from '@continuum/react';
-export * from '@continuum/core';
+export { ContinuumProvider, ContinuumRenderer } from '@continuum-dev/react';
+export * from '@continuum-dev/core';
 export type {
   ContinuumNodeMap,
   ContinuumNodeProps,
   ContinuumProviderProps,
   ContinuumPersistError,
-} from '@continuum/react';
+} from '@continuum-dev/react';
 export {
   useContinuumAction,
   useContinuumConflict,
@@ -16,11 +16,14 @@ export {
   useContinuumState,
   useContinuumSuggestions,
   useContinuumViewport,
-} from '@continuum/react';
-export * from '@continuum/prompts';
+} from '@continuum-dev/react';
+export * from '@continuum-dev/prompts';
 export { starterKitComponentMap } from './lib/component-map.js';
 export * from './lib/primitives/index.js';
-export { FieldFrame, inputLikeStyle } from './lib/primitives/shared/field-frame.js';
+export {
+  FieldFrame,
+  inputLikeStyle,
+} from './lib/primitives/shared/field-frame.js';
 export {
   nodeDescription,
   nodeLabel,

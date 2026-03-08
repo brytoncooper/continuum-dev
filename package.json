@@ -1,6 +1,6 @@
 {
-  "name": "@continuum/source",
-  "version": "0.0.0",
+  "name": "@continuum-dev/source",
+  "version": "0.1.5",
   "license": "MIT",
   "scripts": {
     "demo": "nx run demo:serve",

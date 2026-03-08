@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react';
-import type { ContinuumNodeProps } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { space } from '../../tokens.js';
 import { ContainerShell } from '../shared/container-shell.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
-function layoutStyle(definition: ContinuumNodeProps['definition']): CSSProperties {
+function layoutStyle(
+  definition: ContinuumNodeProps['definition']
+): CSSProperties {
   const layout = readNodeProp<string>(definition, 'layout') ?? 'vertical';
   const columns = readNodeProp<number>(definition, 'columns') ?? 2;
 

@@ -1,5 +1,5 @@
-import type { ContinuumNodeProps } from '@continuum/react';
-import { useContinuumAction } from '@continuum/react';
+import type { ContinuumNodeProps } from '@continuum-dev/react';
+import { useContinuumAction } from '@continuum-dev/react';
 import { color, control, radius, space, type } from '../../tokens.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
@@ -39,10 +39,16 @@ export function ActionButton({ definition }: ContinuumNodeProps) {
         {isDispatching ? 'Working…' : nodeLabel(definition)}
       </button>
       {nodeDescription(definition) ? (
-        <div style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}>{nodeDescription(definition)}</div>
+        <div
+          style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}
+        >
+          {nodeDescription(definition)}
+        </div>
       ) : null}
       {lastResult ? (
-        <div style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}>
+        <div
+          style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}
+        >
           {lastResult.success ? 'Action completed' : 'Action failed'}
         </div>
       ) : null}

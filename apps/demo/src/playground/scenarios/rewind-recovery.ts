@@ -1,4 +1,4 @@
-import type { ViewDefinition } from '@continuum/contract';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import type { PlaygroundRecoveryScenario } from '../types';
 
 const initialView: ViewDefinition = {
@@ -51,7 +51,8 @@ const badView: ViewDefinition = {
           id: 'bad_pitch',
           type: 'presentation',
           contentType: 'text',
-          content: 'AI replaced the working draft with a generated summary view.',
+          content:
+            'AI replaced the working draft with a generated summary view.',
         },
         {
           id: 'recovery_summary',
@@ -69,7 +70,8 @@ const badView: ViewDefinition = {
 export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
   id: 'rewind-recovery',
   kind: 'rewind-recovery',
-  title: 'When an AI update goes bad, the user should be able to get the exact last good draft back.',
+  title:
+    'When an AI update goes bad, the user should be able to get the exact last good draft back.',
   selectorLabel: 'Rewind recovery',
   problem:
     'The user already has a working draft. Then a deterministic AI update replaces that form with the wrong screen. Without checkpoints, the user can only look at a broken rewrite. With Continuum, the session can rewind to the exact prior draft state.',
@@ -90,7 +92,8 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
     'profile.name': { value: 'Bryton Cooper', isDirty: true },
     'profile.title': { value: 'Founder', isDirty: true },
     'profile.notes': {
-      value: 'This draft should survive a bad AI rewrite and come back exactly as entered.',
+      value:
+        'This draft should survive a bad AI rewrite and come back exactly as entered.',
       isDirty: true,
     },
   },
@@ -103,7 +106,8 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
     {
       id: 'recovery-start',
       title: 'Step 1: The user has a working draft',
-      description: 'Both panes begin with the same filled-in draft before anything goes wrong.',
+      description:
+        'Both panes begin with the same filled-in draft before anything goes wrong.',
       view: initialView,
     },
     {

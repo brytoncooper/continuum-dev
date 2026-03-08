@@ -1,12 +1,35 @@
-import React, { act, StrictMode, useContext, useState, type ReactElement, type ReactNode } from 'react';
+import React, {
+  act,
+  StrictMode,
+  useContext,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { createRoot } from 'react-dom/client';
-import type { ContinuitySnapshot, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
-import { createSession } from '@continuum/session';
-import type { Session } from '@continuum/session';
+import type {
+  ContinuitySnapshot,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
+import { createSession } from '@continuum-dev/session';
+import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumContext, ContinuumProvider } from './context.js';
-import { NodeStateScopeContext, useContinuumAction, useContinuumConflict, useContinuumDiagnostics, useContinuumHydrated, useContinuumSession, useContinuumSnapshot, useContinuumState, useContinuumSuggestions, useContinuumViewport } from './hooks.js';
-import type { ViewportState } from '@continuum/contract';
+import {
+  NodeStateScopeContext,
+  useContinuumAction,
+  useContinuumConflict,
+  useContinuumDiagnostics,
+  useContinuumHydrated,
+  useContinuumSession,
+  useContinuumSnapshot,
+  useContinuumState,
+  useContinuumSuggestions,
+  useContinuumViewport,
+} from './hooks.js';
+import type { ViewportState } from '@continuum-dev/contract';
 import { ContinuumRenderer } from './renderer.js';
 
 const viewDef: ViewDefinition = {
@@ -36,10 +59,14 @@ const componentMap = {
       onChange={(e) => onChange({ value: e.target.value })}
     />
   ),
-  default: ({ definition }: { definition: { type: string } }) => <div data-testid="default">{definition.type}</div>,
+  default: ({ definition }: { definition: { type: string } }) => (
+    <div data-testid="default">{definition.type}</div>
+  ),
 };
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 function renderIntoDom(element: ReactElement) {
   const container = document.createElement('div');
@@ -97,7 +124,9 @@ describe('react integration', () => {
 
     expect(hydrated).toBe(true);
     const hydratedSnapshot = snapshot as ContinuitySnapshot | null;
-    expect(hydratedSnapshot?.data.values['field']).toEqual({ value: 'from-storage' });
+    expect(hydratedSnapshot?.data.values['field']).toEqual({
+      value: 'from-storage',
+    });
     view.unmount();
   });
 
@@ -124,7 +153,9 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const button = view.container.querySelector('[data-testid="button"]') as HTMLButtonElement;
+    const button = view.container.querySelector(
+      '[data-testid="button"]'
+    ) as HTMLButtonElement;
     act(() => {
       button.click();
     });
@@ -149,7 +180,8 @@ describe('react integration', () => {
               zoom: 1.2,
               offsetX: 4,
               offsetY: 7,
-            })}
+            })
+          }
         >
           {viewport?.zoom ?? 0}
         </button>
@@ -162,7 +194,9 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const button = view.container.querySelector('[data-testid="viewport-button"]') as HTMLButtonElement;
+    const button = view.container.querySelector(
+      '[data-testid="viewport-button"]'
+    ) as HTMLButtonElement;
     act(() => {
       button.click();
     });
@@ -171,7 +205,11 @@ describe('react integration', () => {
   });
 
   it('renders views and tolerates null node arrays', () => {
-    const badView = { viewId: 's', version: '1', nodes: null } as unknown as ViewDefinition;
+    const badView = {
+      viewId: 's',
+      version: '1',
+      nodes: null,
+    } as unknown as ViewDefinition;
     const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
         <ContinuumRenderer view={badView} />
@@ -185,21 +223,29 @@ describe('react integration', () => {
     const hiddenView: ViewDefinition = {
       viewId: 'hidden-view',
       version: '1',
-      nodes: [{ id: 'hidden-field', type: 'field', dataType: 'string', hidden: true }],
+      nodes: [
+        { id: 'hidden-field', type: 'field', dataType: 'string', hidden: true },
+      ],
     };
     const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
         <ContinuumRenderer view={hiddenView} />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-testid="input"]')).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="input"]')
+    ).toBeNull();
     rendered.unmount();
   });
 
   it('forwards definition properties to rendered component', () => {
     let receivedPlaceholder = '';
     const propsMap = {
-      field: ({ definition }: { definition: { id: string; placeholder?: string } }) => {
+      field: ({
+        definition,
+      }: {
+        definition: { id: string; placeholder?: string };
+      }) => {
         receivedPlaceholder = definition.placeholder ?? '';
         return <div data-testid={`field-${definition.id}`} />;
       },
@@ -247,8 +293,12 @@ describe('react integration', () => {
         <ContinuumRenderer view={errorView} />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="ok-safe"]')).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="boom"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="ok-safe"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
@@ -283,15 +333,23 @@ describe('react integration', () => {
         <App />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-continuum-render-error="field"]')).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="field"]')
+    ).toBeTruthy();
 
     shouldThrow = false;
     act(() => {
-      requireSession(capturedSession).updateState('field', { value: 'trigger' });
+      requireSession(capturedSession).updateState('field', {
+        value: 'trigger',
+      });
     });
 
-    expect(rendered.container.querySelector('[data-continuum-render-error="field"]')).toBeNull();
-    expect(rendered.container.querySelector('[data-testid="recovered-node"]')).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="field"]')
+    ).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="recovered-node"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
@@ -329,7 +387,9 @@ describe('react integration', () => {
       throw new Error('Expected session to be captured');
     }
     expect(finalizedSession.isDestroyed).toBe(true);
-    expect(() => finalizedSession.getSnapshot()).toThrow('Session has been destroyed');
+    expect(() => finalizedSession.getSnapshot()).toThrow(
+      'Session has been destroyed'
+    );
     vi.useRealTimers();
   });
 
@@ -357,7 +417,9 @@ describe('react integration', () => {
         </ContinuumProvider>
       </StrictMode>
     );
-    const button = rendered.container.querySelector('[data-testid="strict-button"]') as HTMLButtonElement;
+    const button = rendered.container.querySelector(
+      '[data-testid="strict-button"]'
+    ) as HTMLButtonElement;
     act(() => {
       button.click();
     });
@@ -382,7 +444,10 @@ describe('react integration', () => {
       }
       return (
         <>
-          <button data-testid="parent-rerender" onClick={() => setTick((value) => value + 1)}>
+          <button
+            data-testid="parent-rerender"
+            onClick={() => setTick((value) => value + 1)}
+          >
             {tick}
           </button>
           <ContinuumRenderer view={viewDef} />
@@ -395,7 +460,9 @@ describe('react integration', () => {
         <App />
       </ContinuumProvider>
     );
-    const button = rendered.container.querySelector('[data-testid="parent-rerender"]') as HTMLButtonElement;
+    const button = rendered.container.querySelector(
+      '[data-testid="parent-rerender"]'
+    ) as HTMLButtonElement;
     expect(renderCounts.field).toBe(1);
     act(() => {
       button.click();
@@ -486,7 +553,9 @@ describe('react integration', () => {
       if (!patched) {
         patched = true;
         const original = session.onSnapshot.bind(session);
-        (session as Session & { onSnapshot: Session['onSnapshot'] }).onSnapshot = ((listener) => {
+        (
+          session as Session & { onSnapshot: Session['onSnapshot'] }
+        ).onSnapshot = ((listener) => {
           onSnapshotRegistrations += 1;
           return original(listener);
         }) as Session['onSnapshot'];
@@ -563,7 +632,10 @@ describe('react integration', () => {
       const [tick, setTick] = useState(0);
       return (
         <>
-          <button data-testid="provider-rerender" onClick={() => setTick((value) => value + 1)}>
+          <button
+            data-testid="provider-rerender"
+            onClick={() => setTick((value) => value + 1)}
+          >
             {tick}
           </button>
           <ContinuumProvider components={{ field: fieldComponent }}>
@@ -582,7 +654,9 @@ describe('react integration', () => {
     }
 
     const rendered = renderIntoDom(<ProviderShell />);
-    const button = rendered.container.querySelector('[data-testid="provider-rerender"]') as HTMLButtonElement;
+    const button = rendered.container.querySelector(
+      '[data-testid="provider-rerender"]'
+    ) as HTMLButtonElement;
     expect(renderCounts.field).toBe(1);
     act(() => {
       button.click();
@@ -628,7 +702,11 @@ describe('react integration', () => {
       }) => (
         <div data-testid="collection-root">
           {children}
-          <button data-testid="collection-add" onClick={onAdd} disabled={!canAdd}>
+          <button
+            data-testid="collection-add"
+            onClick={onAdd}
+            disabled={!canAdd}
+          >
             add
           </button>
         </div>
@@ -683,7 +761,9 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const initialInputs = rendered.container.querySelectorAll('[data-testid="collection-field"]');
+    const initialInputs = rendered.container.querySelectorAll(
+      '[data-testid="collection-field"]'
+    );
     expect(initialInputs).toHaveLength(1);
     expect((initialInputs[0] as HTMLButtonElement).textContent).toBe('Paris');
 
@@ -699,7 +779,9 @@ describe('react integration', () => {
       addButton.click();
     });
 
-    const twoInputs = rendered.container.querySelectorAll('[data-testid="collection-field"]');
+    const twoInputs = rendered.container.querySelectorAll(
+      '[data-testid="collection-field"]'
+    );
     expect(twoInputs).toHaveLength(3);
     act(() => {
       (twoInputs[2] as HTMLButtonElement).click();
@@ -729,15 +811,15 @@ describe('react integration', () => {
     act(() => {
       removeButton.click();
     });
-    const addressesNode = activeSession.getSnapshot()?.data.values['addresses'] as
+    const addressesNode = activeSession.getSnapshot()?.data.values[
+      'addresses'
+    ] as
       | NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>
       | undefined;
     if (!addressesNode) {
       throw new Error('Expected addresses node to exist');
     }
-    expect(
-      addressesNode.value.items
-    ).toHaveLength(2);
+    expect(addressesNode.value.items).toHaveLength(2);
     rendered.unmount();
   });
 
@@ -789,14 +871,21 @@ describe('react integration', () => {
         const conflict = useContinuumConflict(nodeId ?? '');
         return (
           <div>
-            <button data-testid="mark-dirty" onClick={() => onChange({ value: 'typed', isDirty: true })}>
+            <button
+              data-testid="mark-dirty"
+              onClick={() => onChange({ value: 'typed', isDirty: true })}
+            >
               dirty
             </button>
             <span data-testid="current-value">{value?.value ?? ''}</span>
             {conflict.hasConflict ? (
               <div>
-                <button data-testid="accept" onClick={conflict.accept}>Accept</button>
-                <button data-testid="reject" onClick={conflict.reject}>Reject</button>
+                <button data-testid="accept" onClick={conflict.accept}>
+                  Accept
+                </button>
+                <button data-testid="reject" onClick={conflict.reject}>
+                  Reject
+                </button>
               </div>
             ) : null}
           </div>
@@ -818,7 +907,9 @@ describe('react integration', () => {
         <App />
       </ContinuumProvider>
     );
-    const dirtyButton = rendered.container.querySelector('[data-testid="mark-dirty"]') as HTMLButtonElement;
+    const dirtyButton = rendered.container.querySelector(
+      '[data-testid="mark-dirty"]'
+    ) as HTMLButtonElement;
     act(() => {
       dirtyButton.click();
     });
@@ -828,28 +919,43 @@ describe('react integration', () => {
       activeSession.proposeValue('field', { value: 'ai-suggested' }, 'ai');
     });
 
-    const acceptButton = rendered.container.querySelector('[data-testid="accept"]') as HTMLButtonElement;
+    const acceptButton = rendered.container.querySelector(
+      '[data-testid="accept"]'
+    ) as HTMLButtonElement;
     expect(acceptButton).toBeTruthy();
     act(() => {
       acceptButton.click();
     });
-    const valueAfterAccept = rendered.container.querySelector('[data-testid="current-value"]') as HTMLSpanElement;
+    const valueAfterAccept = rendered.container.querySelector(
+      '[data-testid="current-value"]'
+    ) as HTMLSpanElement;
     expect(valueAfterAccept.textContent).toBe('ai-suggested');
-    expect(rendered.container.querySelector('[data-testid="accept"]')).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="accept"]')
+    ).toBeNull();
 
     act(() => {
-      activeSession.updateState('field', { value: 'typed-again', isDirty: true });
+      activeSession.updateState('field', {
+        value: 'typed-again',
+        isDirty: true,
+      });
       activeSession.proposeValue('field', { value: 'ai-new' }, 'ai');
     });
-    const rejectButton = rendered.container.querySelector('[data-testid="reject"]') as HTMLButtonElement;
+    const rejectButton = rendered.container.querySelector(
+      '[data-testid="reject"]'
+    ) as HTMLButtonElement;
     expect(rejectButton).toBeTruthy();
     act(() => {
       rejectButton.click();
     });
 
-    const valueAfterReject = rendered.container.querySelector('[data-testid="current-value"]') as HTMLSpanElement;
+    const valueAfterReject = rendered.container.querySelector(
+      '[data-testid="current-value"]'
+    ) as HTMLSpanElement;
     expect(valueAfterReject.textContent).toBe('typed-again');
-    expect(rendered.container.querySelector('[data-testid="reject"]')).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="reject"]')
+    ).toBeNull();
     rendered.unmount();
   });
 
@@ -906,9 +1012,7 @@ describe('react integration', () => {
           </button>
         </div>
       ),
-      group: ({ children }: { children?: ReactNode }) => (
-        <div>{children}</div>
-      ),
+      group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
       field: ({
         value,
         onChange,
@@ -951,10 +1055,16 @@ describe('react integration', () => {
     ) as HTMLButtonElement;
     expect(weeksAddButton).toBeTruthy();
 
-    act(() => { weeksAddButton.click(); });
-    act(() => { weeksAddButton.click(); });
+    act(() => {
+      weeksAddButton.click();
+    });
+    act(() => {
+      weeksAddButton.click();
+    });
 
-    const buttons = rendered.container.querySelectorAll('[data-testid="nested-field"]');
+    const buttons = rendered.container.querySelectorAll(
+      '[data-testid="nested-field"]'
+    );
     expect(buttons).toHaveLength(2);
 
     const week1DayButton = buttons[0] as HTMLButtonElement;
@@ -962,17 +1072,33 @@ describe('react integration', () => {
     expect(week1DayButton.textContent).toBe('Untitled');
     expect(week2DayButton.textContent).toBe('Untitled');
 
-    act(() => { week1DayButton.click(); });
+    act(() => {
+      week1DayButton.click();
+    });
 
-    const buttonsAfterEdit = rendered.container.querySelectorAll('[data-testid="nested-field"]');
-    expect((buttonsAfterEdit[0] as HTMLButtonElement).textContent).toBe('Edited-1');
-    expect((buttonsAfterEdit[1] as HTMLButtonElement).textContent).toBe('Untitled');
+    const buttonsAfterEdit = rendered.container.querySelectorAll(
+      '[data-testid="nested-field"]'
+    );
+    expect((buttonsAfterEdit[0] as HTMLButtonElement).textContent).toBe(
+      'Edited-1'
+    );
+    expect((buttonsAfterEdit[1] as HTMLButtonElement).textContent).toBe(
+      'Untitled'
+    );
 
-    act(() => { (buttonsAfterEdit[1] as HTMLButtonElement).click(); });
+    act(() => {
+      (buttonsAfterEdit[1] as HTMLButtonElement).click();
+    });
 
-    const buttonsAfterBothEdits = rendered.container.querySelectorAll('[data-testid="nested-field"]');
-    expect((buttonsAfterBothEdits[0] as HTMLButtonElement).textContent).toBe('Edited-1');
-    expect((buttonsAfterBothEdits[1] as HTMLButtonElement).textContent).toBe('Edited-2');
+    const buttonsAfterBothEdits = rendered.container.querySelectorAll(
+      '[data-testid="nested-field"]'
+    );
+    expect((buttonsAfterBothEdits[0] as HTMLButtonElement).textContent).toBe(
+      'Edited-1'
+    );
+    expect((buttonsAfterBothEdits[1] as HTMLButtonElement).textContent).toBe(
+      'Edited-2'
+    );
 
     const snapshot = activeSession.getSnapshot();
     const weeksNode = snapshot?.data.values['weeks'] as
@@ -1036,7 +1162,11 @@ describe('react integration', () => {
       }) => (
         <div data-collection={definition.id}>
           {children}
-          <button data-testid={`add-${definition.id}`} onClick={onAdd} disabled={!canAdd}>
+          <button
+            data-testid={`add-${definition.id}`}
+            onClick={onAdd}
+            disabled={!canAdd}
+          >
             add
           </button>
         </div>
@@ -1075,20 +1205,32 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const taskFields = rendered.container.querySelectorAll('[data-testid="task-field"]');
+    const taskFields = rendered.container.querySelectorAll(
+      '[data-testid="task-field"]'
+    );
     expect(taskFields).toHaveLength(2);
 
-    act(() => { (taskFields[0] as HTMLButtonElement).click(); });
+    act(() => {
+      (taskFields[0] as HTMLButtonElement).click();
+    });
 
-    const fieldsAfter = rendered.container.querySelectorAll('[data-testid="task-field"]');
+    const fieldsAfter = rendered.container.querySelectorAll(
+      '[data-testid="task-field"]'
+    );
     expect((fieldsAfter[0] as HTMLButtonElement).textContent).toBe('Task-1');
     expect((fieldsAfter[1] as HTMLButtonElement).textContent).toBe('');
 
-    const addDaysButtons = rendered.container.querySelectorAll('[data-testid="add-days"]');
+    const addDaysButtons = rendered.container.querySelectorAll(
+      '[data-testid="add-days"]'
+    );
     expect(addDaysButtons.length).toBeGreaterThanOrEqual(2);
-    act(() => { (addDaysButtons[0] as HTMLButtonElement).click(); });
+    act(() => {
+      (addDaysButtons[0] as HTMLButtonElement).click();
+    });
 
-    const fieldsAfterAdd = rendered.container.querySelectorAll('[data-testid="task-field"]');
+    const fieldsAfterAdd = rendered.container.querySelectorAll(
+      '[data-testid="task-field"]'
+    );
     expect(fieldsAfterAdd).toHaveLength(3);
     expect((fieldsAfterAdd[0] as HTMLButtonElement).textContent).toBe('Task-1');
     expect((fieldsAfterAdd[1] as HTMLButtonElement).textContent).toBe('');
@@ -1142,7 +1284,11 @@ describe('react integration', () => {
       }) => (
         <div data-col={definition.id}>
           {children}
-          <button data-testid={`add-${definition.id}`} onClick={onAdd} disabled={!canAdd}>
+          <button
+            data-testid={`add-${definition.id}`}
+            onClick={onAdd}
+            disabled={!canAdd}
+          >
             +
           </button>
         </div>
@@ -1181,27 +1327,43 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const singleLeaf = rendered.container.querySelectorAll('[data-testid="deep-leaf"]');
+    const singleLeaf = rendered.container.querySelectorAll(
+      '[data-testid="deep-leaf"]'
+    );
     expect(singleLeaf).toHaveLength(1);
     expect((singleLeaf[0] as HTMLButtonElement).textContent).toBe('');
 
-    act(() => { (singleLeaf[0] as HTMLButtonElement).click(); });
+    act(() => {
+      (singleLeaf[0] as HTMLButtonElement).click();
+    });
 
-    const leafAfterEdit = rendered.container.querySelectorAll('[data-testid="deep-leaf"]');
+    const leafAfterEdit = rendered.container.querySelectorAll(
+      '[data-testid="deep-leaf"]'
+    );
     expect((leafAfterEdit[0] as HTMLButtonElement).textContent).toBe('v1');
 
-    const topCollectionAdd = rendered.container.querySelector(`[data-testid="add-col_${DEPTH}"]`) as HTMLButtonElement;
+    const topCollectionAdd = rendered.container.querySelector(
+      `[data-testid="add-col_${DEPTH}"]`
+    ) as HTMLButtonElement;
     expect(topCollectionAdd).toBeTruthy();
-    act(() => { topCollectionAdd.click(); });
+    act(() => {
+      topCollectionAdd.click();
+    });
 
-    const leavesAfterAdd = rendered.container.querySelectorAll('[data-testid="deep-leaf"]');
+    const leavesAfterAdd = rendered.container.querySelectorAll(
+      '[data-testid="deep-leaf"]'
+    );
     expect(leavesAfterAdd).toHaveLength(2);
     expect((leavesAfterAdd[0] as HTMLButtonElement).textContent).toBe('v1');
     expect((leavesAfterAdd[1] as HTMLButtonElement).textContent).toBe('');
 
-    act(() => { (leavesAfterAdd[1] as HTMLButtonElement).click(); });
+    act(() => {
+      (leavesAfterAdd[1] as HTMLButtonElement).click();
+    });
 
-    const leavesFinal = rendered.container.querySelectorAll('[data-testid="deep-leaf"]');
+    const leavesFinal = rendered.container.querySelectorAll(
+      '[data-testid="deep-leaf"]'
+    );
     expect((leavesFinal[0] as HTMLButtonElement).textContent).toBe('v1');
     expect((leavesFinal[1] as HTMLButtonElement).textContent).toBe('v2');
 
@@ -1237,7 +1399,12 @@ describe('react integration', () => {
             id: 'row',
             type: 'group',
             children: [
-              { id: 'status_in_item', type: 'field', key: 'status', dataType: 'string' },
+              {
+                id: 'status_in_item',
+                type: 'field',
+                key: 'status',
+                dataType: 'string',
+              },
               { id: 'title', type: 'field', dataType: 'string' },
             ],
           },
@@ -1246,10 +1413,14 @@ describe('react integration', () => {
     };
 
     const map = {
-      collection: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+      collection: ({ children }: { children?: ReactNode }) => (
+        <div>{children}</div>
+      ),
       group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
       field: ({ value }: { value: NodeValue | undefined }) => (
-        <div data-testid="suggestion-field">{`${String(value?.value)}|${String(value?.suggestion)}`}</div>
+        <div data-testid="suggestion-field">{`${String(value?.value)}|${String(
+          value?.suggestion
+        )}`}</div>
       ),
     };
 
@@ -1262,12 +1433,15 @@ describe('react integration', () => {
       }
       return (
         <div>
-          <button data-testid="next-step" onClick={() => {
-            if (step === 0) {
-              session.pushView(nextView);
-              setStep(1);
-            }
-          }}>
+          <button
+            data-testid="next-step"
+            onClick={() => {
+              if (step === 0) {
+                session.pushView(nextView);
+                setStep(1);
+              }
+            }}
+          >
             next
           </button>
           <ContinuumRenderer view={step === 0 ? priorView : nextView} />
@@ -1281,12 +1455,20 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
 
-    const nextButton = rendered.container.querySelector('[data-testid="next-step"]') as HTMLButtonElement;
-    act(() => { nextButton.click(); });
+    const nextButton = rendered.container.querySelector(
+      '[data-testid="next-step"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      nextButton.click();
+    });
 
-    const fields = rendered.container.querySelectorAll('[data-testid="suggestion-field"]');
+    const fields = rendered.container.querySelectorAll(
+      '[data-testid="suggestion-field"]'
+    );
     expect(fields.length).toBeGreaterThanOrEqual(1);
-    expect((fields[0] as HTMLDivElement).textContent).toBe('undefined|archived');
+    expect((fields[0] as HTMLDivElement).textContent).toBe(
+      'undefined|archived'
+    );
 
     rendered.unmount();
   });
@@ -1306,7 +1488,13 @@ describe('react integration', () => {
     let acceptAll: (() => void) | null = null;
 
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => (
         <div
           data-testid={`field-${definition.id}`}
           data-value={String(value?.value ?? '')}
@@ -1338,14 +1526,26 @@ describe('react integration', () => {
     expect(hasSuggestions).toBe(false);
 
     act(() => {
-      requireSession(capturedSession).updateState('title', { value: 'Old Title', suggestion: 'New Title', isDirty: true });
-      requireSession(capturedSession).updateState('author', { value: 'Old Author', suggestion: 'New Author', isDirty: true });
+      requireSession(capturedSession).updateState('title', {
+        value: 'Old Title',
+        suggestion: 'New Title',
+        isDirty: true,
+      });
+      requireSession(capturedSession).updateState('author', {
+        value: 'Old Author',
+        suggestion: 'New Author',
+        isDirty: true,
+      });
     });
 
     expect(hasSuggestions).toBe(true);
 
-    const titleEl = rendered.container.querySelector('[data-testid="field-title"]') as HTMLElement;
-    const authorEl = rendered.container.querySelector('[data-testid="field-author"]') as HTMLElement;
+    const titleEl = rendered.container.querySelector(
+      '[data-testid="field-title"]'
+    ) as HTMLElement;
+    const authorEl = rendered.container.querySelector(
+      '[data-testid="field-author"]'
+    ) as HTMLElement;
     expect(titleEl.getAttribute('data-value')).toBe('Old Title');
     expect(titleEl.getAttribute('data-suggestion')).toBe('New Title');
 
@@ -1355,10 +1555,18 @@ describe('react integration', () => {
 
     expect(hasSuggestions).toBe(false);
     const snapshot = requireSession(capturedSession).getSnapshot();
-    expect((snapshot?.data.values['title'] as NodeValue | undefined)?.value).toBe('New Title');
-    expect((snapshot?.data.values['title'] as NodeValue | undefined)?.suggestion).toBeUndefined();
-    expect((snapshot?.data.values['author'] as NodeValue | undefined)?.value).toBe('New Author');
-    expect((snapshot?.data.values['author'] as NodeValue | undefined)?.suggestion).toBeUndefined();
+    expect(
+      (snapshot?.data.values['title'] as NodeValue | undefined)?.value
+    ).toBe('New Title');
+    expect(
+      (snapshot?.data.values['title'] as NodeValue | undefined)?.suggestion
+    ).toBeUndefined();
+    expect(
+      (snapshot?.data.values['author'] as NodeValue | undefined)?.value
+    ).toBe('New Author');
+    expect(
+      (snapshot?.data.values['author'] as NodeValue | undefined)?.suggestion
+    ).toBeUndefined();
 
     rendered.unmount();
   });
@@ -1368,7 +1576,12 @@ describe('react integration', () => {
       viewId: 'semantic-view',
       version: '1',
       nodes: [
-        { id: 'owner', type: 'field', semanticKey: 'task.owner', dataType: 'string' },
+        {
+          id: 'owner',
+          type: 'field',
+          semanticKey: 'task.owner',
+          dataType: 'string',
+        },
       ],
     };
     const nextView: ViewDefinition = {
@@ -1382,16 +1595,27 @@ describe('react integration', () => {
           template: {
             id: 'row',
             type: 'group',
-            children: [{ id: 'owner', type: 'field', semanticKey: 'task.owner', dataType: 'string' }],
+            children: [
+              {
+                id: 'owner',
+                type: 'field',
+                semanticKey: 'task.owner',
+                dataType: 'string',
+              },
+            ],
           },
         },
       ],
     };
     const map = {
-      collection: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+      collection: ({ children }: { children?: ReactNode }) => (
+        <div>{children}</div>
+      ),
       group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
       field: ({ value }: { value: NodeValue | undefined }) => (
-        <div data-testid="semantic-field">{`${String(value?.value)}|${String(value?.suggestion)}`}</div>
+        <div data-testid="semantic-field">{`${String(value?.value)}|${String(
+          value?.suggestion
+        )}`}</div>
       ),
     };
     function App() {
@@ -1403,12 +1627,15 @@ describe('react integration', () => {
       }
       return (
         <div>
-          <button data-testid="next-step-semantic" onClick={() => {
-            if (step === 0) {
-              session.pushView(nextView);
-              setStep(1);
-            }
-          }}>
+          <button
+            data-testid="next-step-semantic"
+            onClick={() => {
+              if (step === 0) {
+                session.pushView(nextView);
+                setStep(1);
+              }
+            }}
+          >
             next
           </button>
           <ContinuumRenderer view={step === 0 ? priorView : nextView} />
@@ -1421,9 +1648,15 @@ describe('react integration', () => {
         <App />
       </ContinuumProvider>
     );
-    const nextButton = rendered.container.querySelector('[data-testid="next-step-semantic"]') as HTMLButtonElement;
-    act(() => { nextButton.click(); });
-    const fields = rendered.container.querySelectorAll('[data-testid="semantic-field"]');
+    const nextButton = rendered.container.querySelector(
+      '[data-testid="next-step-semantic"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      nextButton.click();
+    });
+    const fields = rendered.container.querySelectorAll(
+      '[data-testid="semantic-field"]'
+    );
     expect(fields.length).toBeGreaterThanOrEqual(1);
     expect((fields[0] as HTMLDivElement).textContent).toBe('Casey|undefined');
     rendered.unmount();
@@ -1433,7 +1666,9 @@ describe('react integration', () => {
     const priorView: ViewDefinition = {
       viewId: 'deep-suggestion-view',
       version: '1',
-      nodes: [{ id: 'status', type: 'field', key: 'status', dataType: 'string' }],
+      nodes: [
+        { id: 'status', type: 'field', key: 'status', dataType: 'string' },
+      ],
     };
     const nextView: ViewDefinition = {
       viewId: 'deep-suggestion-view',
@@ -1454,7 +1689,14 @@ describe('react integration', () => {
                 template: {
                   id: 'item_1',
                   type: 'group',
-                  children: [{ id: 'leaf', type: 'field', key: 'status', dataType: 'string' }],
+                  children: [
+                    {
+                      id: 'leaf',
+                      type: 'field',
+                      key: 'status',
+                      dataType: 'string',
+                    },
+                  ],
                 },
               },
             ],
@@ -1463,10 +1705,14 @@ describe('react integration', () => {
       ],
     };
     const map = {
-      collection: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+      collection: ({ children }: { children?: ReactNode }) => (
+        <div>{children}</div>
+      ),
       group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
       field: ({ value }: { value: NodeValue | undefined }) => (
-        <div data-testid="deep-suggestion">{`${String(value?.value)}|${String(value?.suggestion)}`}</div>
+        <div data-testid="deep-suggestion">{`${String(value?.value)}|${String(
+          value?.suggestion
+        )}`}</div>
       ),
     };
     function App() {
@@ -1478,12 +1724,15 @@ describe('react integration', () => {
       }
       return (
         <div>
-          <button data-testid="next-step-deep" onClick={() => {
-            if (step === 0) {
-              session.pushView(nextView);
-              setStep(1);
-            }
-          }}>
+          <button
+            data-testid="next-step-deep"
+            onClick={() => {
+              if (step === 0) {
+                session.pushView(nextView);
+                setStep(1);
+              }
+            }}
+          >
             next
           </button>
           <ContinuumRenderer view={step === 0 ? priorView : nextView} />
@@ -1496,9 +1745,15 @@ describe('react integration', () => {
         <App />
       </ContinuumProvider>
     );
-    const nextButton = rendered.container.querySelector('[data-testid="next-step-deep"]') as HTMLButtonElement;
-    act(() => { nextButton.click(); });
-    const fields = rendered.container.querySelectorAll('[data-testid="deep-suggestion"]');
+    const nextButton = rendered.container.querySelector(
+      '[data-testid="next-step-deep"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      nextButton.click();
+    });
+    const fields = rendered.container.querySelectorAll(
+      '[data-testid="deep-suggestion"]'
+    );
     expect(fields.length).toBeGreaterThanOrEqual(1);
     expect((fields[0] as HTMLDivElement).textContent).toBe('undefined|ready');
     rendered.unmount();
@@ -1507,8 +1762,16 @@ describe('react integration', () => {
 
 describe('provider lifecycle integration', () => {
   const componentMap = {
-    field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-      <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>
+    field: ({
+      value,
+      definition,
+    }: {
+      value: NodeValue | undefined;
+      definition: { id: string };
+    }) => (
+      <div data-testid={`field-${definition.id}`}>
+        {typeof value?.value === 'string' ? value.value : ''}
+      </div>
     ),
   };
 
@@ -1524,7 +1787,11 @@ describe('provider lifecycle integration', () => {
       session = useContinuumSession();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(session).not.toBeNull();
     expect(typeof requireSession(session).pushView).toBe('function');
     rendered.unmount();
@@ -1540,13 +1807,21 @@ describe('provider lifecycle integration', () => {
       const [, setTick] = useState(0);
       return (
         <div>
-          <button data-testid="tick" onClick={() => setTick(t => t + 1)} />
-          <ContinuumProvider components={componentMap}><App /></ContinuumProvider>
+          <button data-testid="tick" onClick={() => setTick((t) => t + 1)} />
+          <ContinuumProvider components={componentMap}>
+            <App />
+          </ContinuumProvider>
         </div>
       );
     }
     const rendered = renderIntoDom(<Shell />);
-    act(() => { (rendered.container.querySelector('[data-testid="tick"]') as HTMLButtonElement).click(); });
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="tick"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
     expect(sessions.length).toBeGreaterThanOrEqual(2);
     expect(sessions[0]).toBe(sessions[sessions.length - 1]);
     rendered.unmount();
@@ -1559,7 +1834,11 @@ describe('provider lifecycle integration', () => {
       capturedSession = useContinuumSession();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const sess = requireSession(capturedSession);
     expect(sess.isDestroyed).toBe(false);
     rendered.unmount();
@@ -1575,7 +1854,11 @@ describe('provider lifecycle integration', () => {
       capturedSession = useContinuumSession();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     rendered.unmount();
     expect(requireSession(capturedSession).isDestroyed).toBe(false);
     vi.runAllTimers();
@@ -1591,7 +1874,11 @@ describe('provider lifecycle integration', () => {
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="localStorage" storageKey="no-such-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="localStorage"
+        storageKey="no-such-key"
+      >
         <App />
       </ContinuumProvider>
     );
@@ -1603,14 +1890,21 @@ describe('provider lifecycle integration', () => {
     const seed = createSession();
     seed.pushView(simpleView);
     seed.updateState('f1', { value: 'persisted-val' });
-    localStorage.setItem('provider-lifecycle-key', JSON.stringify(seed.serialize()));
+    localStorage.setItem(
+      'provider-lifecycle-key',
+      JSON.stringify(seed.serialize())
+    );
     let wasHydrated = false;
     function App() {
       wasHydrated = useContinuumHydrated();
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="localStorage" storageKey="provider-lifecycle-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="localStorage"
+        storageKey="provider-lifecycle-key"
+      >
         <App />
       </ContinuumProvider>
     );
@@ -1623,18 +1917,27 @@ describe('provider lifecycle integration', () => {
     const seed = createSession();
     seed.pushView(simpleView);
     seed.updateState('f1', { value: 'from-ls' });
-    localStorage.setItem('hydration-test-key', JSON.stringify(seed.serialize()));
+    localStorage.setItem(
+      'hydration-test-key',
+      JSON.stringify(seed.serialize())
+    );
     let snapshot: ContinuitySnapshot | null = null;
     function App() {
       snapshot = useContinuumSnapshot();
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="localStorage" storageKey="hydration-test-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="localStorage"
+        storageKey="hydration-test-key"
+      >
         <App />
       </ContinuumProvider>
     );
-    expect((snapshot?.data.values['f1'] as NodeValue | undefined)?.value).toBe('from-ls');
+    expect((snapshot?.data.values['f1'] as NodeValue | undefined)?.value).toBe(
+      'from-ls'
+    );
     localStorage.removeItem('hydration-test-key');
     rendered.unmount();
   });
@@ -1643,18 +1946,27 @@ describe('provider lifecycle integration', () => {
     const seed = createSession();
     seed.pushView(simpleView);
     seed.updateState('f1', { value: 'from-ss' });
-    sessionStorage.setItem('ss-hydration-key', JSON.stringify(seed.serialize()));
+    sessionStorage.setItem(
+      'ss-hydration-key',
+      JSON.stringify(seed.serialize())
+    );
     let snapshot: ContinuitySnapshot | null = null;
     function App() {
       snapshot = useContinuumSnapshot();
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="sessionStorage" storageKey="ss-hydration-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="sessionStorage"
+        storageKey="ss-hydration-key"
+      >
         <App />
       </ContinuumProvider>
     );
-    expect((snapshot?.data.values['f1'] as NodeValue | undefined)?.value).toBe('from-ss');
+    expect((snapshot?.data.values['f1'] as NodeValue | undefined)?.value).toBe(
+      'from-ss'
+    );
     sessionStorage.removeItem('ss-hydration-key');
     rendered.unmount();
   });
@@ -1668,12 +1980,18 @@ describe('provider lifecycle integration', () => {
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist={false} storageKey="no-persist-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist={false}
+        storageKey="no-persist-key"
+      >
         <App />
       </ContinuumProvider>
     );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'should-not-persist' });
+      requireSession(capturedSession).updateState('f1', {
+        value: 'should-not-persist',
+      });
       vi.runAllTimers();
     });
     expect(localStorage.getItem('no-persist-key')).toBeNull();
@@ -1691,12 +2009,18 @@ describe('provider lifecycle integration', () => {
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="localStorage" storageKey="persist-timer-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="localStorage"
+        storageKey="persist-timer-key"
+      >
         <App />
       </ContinuumProvider>
     );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'written-val' });
+      requireSession(capturedSession).updateState('f1', {
+        value: 'written-val',
+      });
       vi.runAllTimers();
     });
     expect(localStorage.getItem('persist-timer-key')).not.toBeNull();
@@ -1716,8 +2040,16 @@ describe('provider lifecycle integration', () => {
       sessionB = useContinuumSession();
       return null;
     }
-    const renderedA = renderIntoDom(<ContinuumProvider components={componentMap}><AppA /></ContinuumProvider>);
-    const renderedB = renderIntoDom(<ContinuumProvider components={componentMap}><AppB /></ContinuumProvider>);
+    const renderedA = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <AppA />
+      </ContinuumProvider>
+    );
+    const renderedB = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <AppB />
+      </ContinuumProvider>
+    );
     expect(requireSession(sessionA)).not.toBe(requireSession(sessionB));
     act(() => {
       requireSession(sessionA).pushView(simpleView);
@@ -1735,11 +2067,19 @@ describe('provider lifecycle integration', () => {
       return null;
     }
     function Middle() {
-      return <div><Deep /></div>;
+      return (
+        <div>
+          <Deep />
+        </div>
+      );
     }
     const rendered = renderIntoDom(
       <ContinuumProvider components={componentMap}>
-        <div><div><Middle /></div></div>
+        <div>
+          <div>
+            <Middle />
+          </div>
+        </div>
       </ContinuumProvider>
     );
     expect(deepSession).not.toBeNull();
@@ -1752,7 +2092,11 @@ describe('provider lifecycle integration', () => {
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(snapshot).toBeNull();
     rendered.unmount();
   });
@@ -1765,9 +2109,15 @@ describe('provider lifecycle integration', () => {
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(snapshot).toBeNull();
-    act(() => { requireSession(capturedSession).pushView(simpleView); });
+    act(() => {
+      requireSession(capturedSession).pushView(simpleView);
+    });
     expect(snapshot).not.toBeNull();
     expect(snapshot?.view.viewId).toBe('lifecycle-view');
     rendered.unmount();
@@ -1779,13 +2129,22 @@ describe('provider lifecycle integration', () => {
     let hasPushed = false;
     function App() {
       capturedSession = useContinuumSession();
-      if (!hasPushed) { capturedSession.pushView(simpleView); hasPushed = true; }
+      if (!hasPushed) {
+        capturedSession.pushView(simpleView);
+        hasPushed = true;
+      }
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(snapshot).not.toBeNull();
-    act(() => { requireSession(capturedSession).reset(); });
+    act(() => {
+      requireSession(capturedSession).reset();
+    });
     expect(snapshot).toBeNull();
     rendered.unmount();
   });
@@ -1834,11 +2193,25 @@ describe('provider lifecycle integration', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => { root.render(<ContinuumProvider components={{ field: compA }}><App /></ContinuumProvider>); });
-    act(() => { root.render(<ContinuumProvider components={{ field: compB }}><App /></ContinuumProvider>); });
+    act(() => {
+      root.render(
+        <ContinuumProvider components={{ field: compA }}>
+          <App />
+        </ContinuumProvider>
+      );
+    });
+    act(() => {
+      root.render(
+        <ContinuumProvider components={{ field: compB }}>
+          <App />
+        </ContinuumProvider>
+      );
+    });
     expect(maps.length).toBeGreaterThanOrEqual(2);
     expect(maps[0]).not.toBe(maps[maps.length - 1]);
-    act(() => { root.unmount(); });
+    act(() => {
+      root.unmount();
+    });
     container.remove();
   });
 
@@ -1854,13 +2227,21 @@ describe('provider lifecycle integration', () => {
       const [, setTick] = useState(0);
       return (
         <div>
-          <button data-testid="tick" onClick={() => setTick(t => t + 1)} />
-          <ContinuumProvider components={{ field: fieldComp }}><App /></ContinuumProvider>
+          <button data-testid="tick" onClick={() => setTick((t) => t + 1)} />
+          <ContinuumProvider components={{ field: fieldComp }}>
+            <App />
+          </ContinuumProvider>
         </div>
       );
     }
     const rendered = renderIntoDom(<Shell />);
-    act(() => { (rendered.container.querySelector('[data-testid="tick"]') as HTMLButtonElement).click(); });
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="tick"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
     const unique = new Set(maps);
     expect(unique.size).toBe(1);
     rendered.unmount();
@@ -1871,7 +2252,9 @@ describe('provider lifecycle integration', () => {
     const actionView: ViewDefinition = {
       viewId: 'action-view',
       version: '1',
-      nodes: [{ id: 'btn', type: 'action', intentId: 'say_hello', label: 'Go' }],
+      nodes: [
+        { id: 'btn', type: 'action', intentId: 'say_hello', label: 'Go' },
+      ],
     };
     function App() {
       capturedSession = useContinuumSession();
@@ -1880,13 +2263,25 @@ describe('provider lifecycle integration', () => {
     }
     const rendered = renderIntoDom(
       <ContinuumProvider
-        components={{ ...componentMap, action: () => <button data-testid="action-btn" /> }}
-        sessionOptions={{ actions: { say_hello: { registration: { label: 'Hello' }, handler: () => ({ success: true, data: 'hello' }) } } }}
+        components={{
+          ...componentMap,
+          action: () => <button data-testid="action-btn" />,
+        }}
+        sessionOptions={{
+          actions: {
+            say_hello: {
+              registration: { label: 'Hello' },
+              handler: () => ({ success: true, data: 'hello' }),
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
     );
-    const result = await act(async () => requireSession(capturedSession).dispatchAction('say_hello', 'btn'));
+    const result = await act(async () =>
+      requireSession(capturedSession).dispatchAction('say_hello', 'btn')
+    );
     expect(result.success).toBe(true);
     expect(result.data).toBe('hello');
     rendered.unmount();
@@ -1895,37 +2290,89 @@ describe('provider lifecycle integration', () => {
 
 describe('renderer node routing integration', () => {
   const fieldMap = {
-    field: ({ value, definition, nodeId }: { value: NodeValue | undefined; definition: { id: string }; nodeId?: string }) => (
-      <div data-testid={`field-${definition.id}`} data-nodeid={nodeId}>{typeof value?.value === 'string' ? value.value : ''}</div>
+    field: ({
+      value,
+      definition,
+      nodeId,
+    }: {
+      value: NodeValue | undefined;
+      definition: { id: string };
+      nodeId?: string;
+    }) => (
+      <div data-testid={`field-${definition.id}`} data-nodeid={nodeId}>
+        {typeof value?.value === 'string' ? value.value : ''}
+      </div>
     ),
-    group: ({ children, nodeId }: { children?: ReactNode; nodeId?: string }) => (
-      <div data-testid={`group-${nodeId ?? 'unknown'}`} data-nodeid={nodeId}>{children}</div>
+    group: ({
+      children,
+      nodeId,
+    }: {
+      children?: ReactNode;
+      nodeId?: string;
+    }) => (
+      <div data-testid={`group-${nodeId ?? 'unknown'}`} data-nodeid={nodeId}>
+        {children}
+      </div>
     ),
     default: ({ definition }: { definition: { type: string; id: string } }) => (
-      <div data-testid={`default-${definition.id}`} data-type={definition.type} />
+      <div
+        data-testid={`default-${definition.id}`}
+        data-type={definition.type}
+      />
     ),
   };
 
   it('renders leaf field node', () => {
-    const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [{ id: 'name', type: 'field', dataType: 'string' } as ViewNode] };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-name"]')).toBeTruthy();
+    const view: ViewDefinition = {
+      viewId: 'v',
+      version: '1',
+      nodes: [{ id: 'name', type: 'field', dataType: 'string' } as ViewNode],
+    };
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-name"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('renders group node with children', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'section', type: 'group', children: [{ id: 'inner', type: 'field', dataType: 'string' }] } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'section',
+          type: 'group',
+          children: [{ id: 'inner', type: 'field', dataType: 'string' }],
+        } as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-inner"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-inner"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('passes correct canonical nodeId for top-level field', () => {
-    const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [{ id: 'top', type: 'field', dataType: 'string' } as ViewNode] };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const view: ViewDefinition = {
+      viewId: 'v',
+      version: '1',
+      nodes: [{ id: 'top', type: 'field', dataType: 'string' } as ViewNode],
+    };
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     const el = rendered.container.querySelector('[data-testid="field-top"]');
     expect(el?.getAttribute('data-nodeid')).toBe('top');
     rendered.unmount();
@@ -1933,10 +2380,21 @@ describe('renderer node routing integration', () => {
 
   it('passes correct canonical nodeId for nested field', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'parent', type: 'group', children: [{ id: 'child', type: 'field', dataType: 'string' }] } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'parent',
+          type: 'group',
+          children: [{ id: 'child', type: 'field', dataType: 'string' }],
+        } as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     const el = rendered.container.querySelector('[data-testid="field-child"]');
     expect(el?.getAttribute('data-nodeid')).toBe('parent/child');
     rendered.unmount();
@@ -1944,10 +2402,27 @@ describe('renderer node routing integration', () => {
 
   it('passes correct canonical nodeId for deeply nested field', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'a', type: 'group', children: [{ id: 'b', type: 'group', children: [{ id: 'c', type: 'field', dataType: 'string' }] }] } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'a',
+          type: 'group',
+          children: [
+            {
+              id: 'b',
+              type: 'group',
+              children: [{ id: 'c', type: 'field', dataType: 'string' }],
+            },
+          ],
+        } as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     const el = rendered.container.querySelector('[data-testid="field-c"]');
     expect(el?.getAttribute('data-nodeid')).toBe('a/b/c');
     rendered.unmount();
@@ -1955,95 +2430,203 @@ describe('renderer node routing integration', () => {
 
   it('does not render hidden leaf field', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'hidden-f', type: 'field', dataType: 'string', hidden: true } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'hidden-f',
+          type: 'field',
+          dataType: 'string',
+          hidden: true,
+        } as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-hidden-f"]')).toBeNull();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-hidden-f"]')
+    ).toBeNull();
     rendered.unmount();
   });
 
   it('does not render hidden group node or its children', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'hidden-g', type: 'group', hidden: true, children: [{ id: 'child-of-hidden', type: 'field', dataType: 'string' }] } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'hidden-g',
+          type: 'group',
+          hidden: true,
+          children: [
+            { id: 'child-of-hidden', type: 'field', dataType: 'string' },
+          ],
+        } as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-child-of-hidden"]')).toBeNull();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-child-of-hidden"]')
+    ).toBeNull();
     rendered.unmount();
   });
 
   it('renders multiple sibling nodes', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
+      viewId: 'v',
+      version: '1',
       nodes: [
         { id: 'f1', type: 'field', dataType: 'string' } as ViewNode,
         { id: 'f2', type: 'field', dataType: 'string' } as ViewNode,
         { id: 'f3', type: 'field', dataType: 'string' } as ViewNode,
       ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-f1"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="field-f2"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="field-f3"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-f1"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="field-f2"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="field-f3"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('uses FallbackComponent when type not in componentMap', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'widget', type: 'custom_widget', dataType: 'string' } as unknown as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'widget',
+          type: 'custom_widget',
+          dataType: 'string',
+        } as unknown as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={{}}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-continuum-fallback="custom_widget"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={{}}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector(
+        '[data-continuum-fallback="custom_widget"]'
+      )
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('uses default component when type not in map but default provided', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'mystery', type: 'custom_type', dataType: 'string' } as unknown as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'mystery',
+          type: 'custom_type',
+          dataType: 'string',
+        } as unknown as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    const el = rendered.container.querySelector('[data-testid="default-mystery"]');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    const el = rendered.container.querySelector(
+      '[data-testid="default-mystery"]'
+    );
     expect(el).toBeTruthy();
     expect(el?.getAttribute('data-type')).toBe('custom_type');
     rendered.unmount();
   });
 
   it('renders view with null nodes gracefully', () => {
-    const view = { viewId: 'v', version: '1', nodes: null } as unknown as ViewDefinition;
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const view = {
+      viewId: 'v',
+      version: '1',
+      nodes: null,
+    } as unknown as ViewDefinition;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     expect(rendered.container.childElementCount).toBe(0);
     rendered.unmount();
   });
 
   it('renders empty view without errors', () => {
     const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [] };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     expect(rendered.container.childElementCount).toBe(0);
     rendered.unmount();
   });
 
   it('leaf node reads state from session via useContinuumState', () => {
-    const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [{ id: 'val', type: 'field', dataType: 'string' } as ViewNode] };
+    const view: ViewDefinition = {
+      viewId: 'v',
+      version: '1',
+      nodes: [{ id: 'val', type: 'field', dataType: 'string' } as ViewNode],
+    };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     function App() {
       capturedSession = useContinuumSession();
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('val', { value: 'hello' }); });
-    expect(rendered.container.querySelector('[data-testid="field-val"]')?.textContent).toBe('hello');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('val', { value: 'hello' });
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="field-val"]')?.textContent
+    ).toBe('hello');
     rendered.unmount();
   });
 
   it('leaf node onChange calls session.updateState', () => {
-    const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [{ id: 'editme', type: 'field', dataType: 'string' } as ViewNode] };
+    const view: ViewDefinition = {
+      viewId: 'v',
+      version: '1',
+      nodes: [{ id: 'editme', type: 'field', dataType: 'string' } as ViewNode],
+    };
     const map = {
-      field: ({ onChange, definition }: { onChange: (v: NodeValue) => void; definition: { id: string } }) => (
-        <button data-testid={`btn-${definition.id}`} onClick={() => onChange({ value: 'clicked', isDirty: true })}>click</button>
+      field: ({
+        onChange,
+        definition,
+      }: {
+        onChange: (v: NodeValue) => void;
+        definition: { id: string };
+      }) => (
+        <button
+          data-testid={`btn-${definition.id}`}
+          onClick={() => onChange({ value: 'clicked', isDirty: true })}
+        >
+          click
+        </button>
       ),
     };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
@@ -2052,9 +2635,21 @@ describe('renderer node routing integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    act(() => { (rendered.container.querySelector('[data-testid="btn-editme"]') as HTMLButtonElement).click(); });
-    expect(requireSession(capturedSession).getSnapshot()?.data.values['editme']).toEqual({ value: 'clicked', isDirty: true });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="btn-editme"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    expect(
+      requireSession(capturedSession).getSnapshot()?.data.values['editme']
+    ).toEqual({ value: 'clicked', isDirty: true });
     rendered.unmount();
   });
 
@@ -2062,18 +2657,37 @@ describe('renderer node routing integration', () => {
     let receivedValue: unknown = 'unset';
     let receivedOnChange: unknown = null;
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'grp', type: 'group', children: [{ id: 'f', type: 'field', dataType: 'string' }] } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'grp',
+          type: 'group',
+          children: [{ id: 'f', type: 'field', dataType: 'string' }],
+        } as ViewNode,
+      ],
     };
     const map = {
-      group: ({ value, onChange, children }: { value: unknown; onChange: unknown; children?: ReactNode }) => {
+      group: ({
+        value,
+        onChange,
+        children,
+      }: {
+        value: unknown;
+        onChange: unknown;
+        children?: ReactNode;
+      }) => {
         receivedValue = value;
         receivedOnChange = onChange;
         return <div>{children}</div>;
       },
       field: () => <div />,
     };
-    renderIntoDom(<ContinuumProvider components={map}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    renderIntoDom(
+      <ContinuumProvider components={map}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     expect(receivedValue).toBeUndefined();
     expect(typeof receivedOnChange).toBe('function');
   });
@@ -2081,8 +2695,16 @@ describe('renderer node routing integration', () => {
   it('definition props are forwarded to rendered component', () => {
     let capturedPlaceholder = '';
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{ id: 'ph', type: 'field', dataType: 'string', placeholder: 'Enter here' } as unknown as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'ph',
+          type: 'field',
+          dataType: 'string',
+          placeholder: 'Enter here',
+        } as unknown as ViewNode,
+      ],
     };
     const map = {
       field: ({ definition }: { definition: { placeholder?: string } }) => {
@@ -2090,13 +2712,25 @@ describe('renderer node routing integration', () => {
         return <div />;
       },
     };
-    renderIntoDom(<ContinuumProvider components={map}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    renderIntoDom(
+      <ContinuumProvider components={map}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     expect(capturedPlaceholder).toBe('Enter here');
   });
 
   it('view can be swapped and new nodes render correctly', () => {
-    const viewA: ViewDefinition = { viewId: 'va', version: '1', nodes: [{ id: 'fa', type: 'field', dataType: 'string' } as ViewNode] };
-    const viewB: ViewDefinition = { viewId: 'vb', version: '1', nodes: [{ id: 'fb', type: 'field', dataType: 'string' } as ViewNode] };
+    const viewA: ViewDefinition = {
+      viewId: 'va',
+      version: '1',
+      nodes: [{ id: 'fa', type: 'field', dataType: 'string' } as ViewNode],
+    };
+    const viewB: ViewDefinition = {
+      viewId: 'vb',
+      version: '1',
+      nodes: [{ id: 'fb', type: 'field', dataType: 'string' } as ViewNode],
+    };
     function App() {
       const [step, setStep] = useState(0);
       return (
@@ -2106,97 +2740,227 @@ describe('renderer node routing integration', () => {
         </div>
       );
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><App /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-fa"]')).toBeTruthy();
-    act(() => { (rendered.container.querySelector('[data-testid="swap"]') as HTMLButtonElement).click(); });
-    expect(rendered.container.querySelector('[data-testid="field-fa"]')).toBeNull();
-    expect(rendered.container.querySelector('[data-testid="field-fb"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-fa"]')
+    ).toBeTruthy();
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="swap"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="field-fa"]')
+    ).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="field-fb"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('multiple ContinuumRenderer instances in same provider render independently', () => {
-    const viewA: ViewDefinition = { viewId: 'va', version: '1', nodes: [{ id: 'r1', type: 'field', dataType: 'string' } as ViewNode] };
-    const viewB: ViewDefinition = { viewId: 'vb', version: '1', nodes: [{ id: 'r2', type: 'field', dataType: 'string' } as ViewNode] };
+    const viewA: ViewDefinition = {
+      viewId: 'va',
+      version: '1',
+      nodes: [{ id: 'r1', type: 'field', dataType: 'string' } as ViewNode],
+    };
+    const viewB: ViewDefinition = {
+      viewId: 'vb',
+      version: '1',
+      nodes: [{ id: 'r2', type: 'field', dataType: 'string' } as ViewNode],
+    };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     function App() {
       capturedSession = useContinuumSession();
       if (!capturedSession.getSnapshot()) capturedSession.pushView(viewA);
-      return <div><ContinuumRenderer view={viewA} /><ContinuumRenderer view={viewB} /></div>;
+      return (
+        <div>
+          <ContinuumRenderer view={viewA} />
+          <ContinuumRenderer view={viewB} />
+        </div>
+      );
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><App /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-r1"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="field-r2"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-r1"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="field-r2"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('hidden node mixed with visible siblings only hides the hidden one', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
+      viewId: 'v',
+      version: '1',
       nodes: [
         { id: 'visible', type: 'field', dataType: 'string' } as ViewNode,
-        { id: 'invisible', type: 'field', dataType: 'string', hidden: true } as ViewNode,
+        {
+          id: 'invisible',
+          type: 'field',
+          dataType: 'string',
+          hidden: true,
+        } as ViewNode,
         { id: 'also-visible', type: 'field', dataType: 'string' } as ViewNode,
       ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={fieldMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-visible"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="field-invisible"]')).toBeNull();
-    expect(rendered.container.querySelector('[data-testid="field-also-visible"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={fieldMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-visible"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="field-invisible"]')
+    ).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="field-also-visible"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('throws when ContinuumRenderer used outside provider', () => {
-    const view: ViewDefinition = { viewId: 'v', version: '1', nodes: [{ id: 'f', type: 'field', dataType: 'string' } as ViewNode] };
-    expect(() => renderIntoDom(<ContinuumRenderer view={view} />)).toThrow('<ContinuumProvider>');
+    const view: ViewDefinition = {
+      viewId: 'v',
+      version: '1',
+      nodes: [{ id: 'f', type: 'field', dataType: 'string' } as ViewNode],
+    };
+    expect(() => renderIntoDom(<ContinuumRenderer view={view} />)).toThrow(
+      '<ContinuumProvider>'
+    );
   });
 });
 
 describe('collection integration', () => {
-  type CollectionValue = NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>;
+  type CollectionValue = NodeValue<{
+    items: Array<{ values: Record<string, NodeValue> }>;
+  }>;
 
   function makeColMap(overrides?: Record<string, React.ComponentType<any>>) {
     return {
-      collection: ({ children, onAdd, onRemove, canAdd, canRemove, definition }: {
-        children?: ReactNode; onAdd?: () => void; onRemove?: (i: number) => void;
-        canAdd?: boolean; canRemove?: boolean; definition: { id: string };
+      collection: ({
+        children,
+        onAdd,
+        onRemove,
+        canAdd,
+        canRemove,
+        definition,
+      }: {
+        children?: ReactNode;
+        onAdd?: () => void;
+        onRemove?: (i: number) => void;
+        canAdd?: boolean;
+        canRemove?: boolean;
+        definition: { id: string };
       }) => (
         <div data-testid={`col-${definition.id}`}>
           {children}
-          <button data-testid={`add-${definition.id}`} onClick={onAdd} disabled={!canAdd}>add</button>
+          <button
+            data-testid={`add-${definition.id}`}
+            onClick={onAdd}
+            disabled={!canAdd}
+          >
+            add
+          </button>
           <span data-testid={`can-add-${definition.id}`}>{String(canAdd)}</span>
-          <span data-testid={`can-remove-${definition.id}`}>{String(canRemove)}</span>
+          <span data-testid={`can-remove-${definition.id}`}>
+            {String(canRemove)}
+          </span>
         </div>
       ),
-      group: ({ children, onRemove, canRemove, itemIndex }: {
-        children?: ReactNode; onRemove?: () => void; canRemove?: boolean; itemIndex?: number;
+      group: ({
+        children,
+        onRemove,
+        canRemove,
+        itemIndex,
+      }: {
+        children?: ReactNode;
+        onRemove?: () => void;
+        canRemove?: boolean;
+        itemIndex?: number;
       }) => (
         <div data-testid="item-group" data-item-index={itemIndex}>
           {children}
-          {canRemove && <button data-testid="remove-item" onClick={onRemove}>remove</button>}
+          {canRemove && (
+            <button data-testid="remove-item" onClick={onRemove}>
+              remove
+            </button>
+          )}
         </div>
       ),
-      field: ({ value, onChange, definition }: { value: NodeValue | undefined; onChange: (v: NodeValue) => void; definition: { id: string } }) => (
+      field: ({
+        value,
+        onChange,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        onChange: (v: NodeValue) => void;
+        definition: { id: string };
+      }) => (
         <div data-testid={`field-${definition.id}`}>
-          <span data-testid={`val-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</span>
-          <button data-testid={`set-${definition.id}`} onClick={() => onChange({ value: `edited-${definition.id}`, isDirty: true })}>set</button>
+          <span data-testid={`val-${definition.id}`}>
+            {typeof value?.value === 'string' ? value.value : ''}
+          </span>
+          <button
+            data-testid={`set-${definition.id}`}
+            onClick={() =>
+              onChange({ value: `edited-${definition.id}`, isDirty: true })
+            }
+          >
+            set
+          </button>
         </div>
       ),
       ...overrides,
     };
   }
 
-  function makeColView(opts: { id?: string; min?: number; max?: number; fieldId?: string; defaultVal?: string }) {
+  function makeColView(opts: {
+    id?: string;
+    min?: number;
+    max?: number;
+    fieldId?: string;
+    defaultVal?: string;
+  }) {
     const { id = 'items', min, max, fieldId = 'name', defaultVal } = opts;
     return {
       viewId: 'col-view',
       version: '1',
-      nodes: [{
-        id,
-        type: 'collection',
-        ...(min !== undefined ? { minItems: min } : {}),
-        ...(max !== undefined ? { maxItems: max } : {}),
-        template: { id: 'row', type: 'group', children: [{ id: fieldId, type: 'field', dataType: 'string', ...(defaultVal !== undefined ? { defaultValue: defaultVal } : {}) }] },
-      }],
+      nodes: [
+        {
+          id,
+          type: 'collection',
+          ...(min !== undefined ? { minItems: min } : {}),
+          ...(max !== undefined ? { maxItems: max } : {}),
+          template: {
+            id: 'row',
+            type: 'group',
+            children: [
+              {
+                id: fieldId,
+                type: 'field',
+                dataType: 'string',
+                ...(defaultVal !== undefined
+                  ? { defaultValue: defaultVal }
+                  : {}),
+              },
+            ],
+          },
+        },
+      ],
     } as ViewDefinition;
   }
 
@@ -2207,99 +2971,182 @@ describe('collection integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={makeColMap()}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={makeColMap()}>
+        <App />
+      </ContinuumProvider>
+    );
     return { rendered, getSession: () => requireSession(capturedSession) };
   }
 
   it('renders minItems items on initial render', () => {
     const { rendered } = renderColApp(makeColView({ min: 3, defaultVal: 'x' }));
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(3);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(3);
     rendered.unmount();
   });
 
   it('renders 0 items when minItems is 0', () => {
     const { rendered } = renderColApp(makeColView({ min: 0 }));
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(0);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(0);
     rendered.unmount();
   });
 
   it('renders 0 items when minItems is undefined', () => {
     const { rendered } = renderColApp(makeColView({}));
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(0);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(0);
     rendered.unmount();
   });
 
   it('adds item when add button clicked', () => {
     const { rendered } = renderColApp(makeColView({ min: 1 }));
-    act(() => { (rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement).click(); });
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(2);
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="add-items"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
   it('new item shows template default value', () => {
-    const { rendered } = renderColApp(makeColView({ min: 0, defaultVal: 'my-default' }));
-    act(() => { (rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement).click(); });
-    expect(rendered.container.querySelector('[data-testid="val-name"]')?.textContent).toBe('my-default');
+    const { rendered } = renderColApp(
+      makeColView({ min: 0, defaultVal: 'my-default' })
+    );
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="add-items"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="val-name"]')?.textContent
+    ).toBe('my-default');
     rendered.unmount();
   });
 
   it('add button is disabled when maxItems reached', () => {
     const { rendered } = renderColApp(makeColView({ min: 2, max: 2 }));
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
     expect(addBtn.disabled).toBe(true);
-    expect(rendered.container.querySelector('[data-testid="can-add-items"]')?.textContent).toBe('false');
+    expect(
+      rendered.container.querySelector('[data-testid="can-add-items"]')
+        ?.textContent
+    ).toBe('false');
     rendered.unmount();
   });
 
   it('add button is enabled when below maxItems', () => {
     const { rendered } = renderColApp(makeColView({ min: 1, max: 3 }));
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
     expect(addBtn.disabled).toBe(false);
-    expect(rendered.container.querySelector('[data-testid="can-add-items"]')?.textContent).toBe('true');
+    expect(
+      rendered.container.querySelector('[data-testid="can-add-items"]')
+        ?.textContent
+    ).toBe('true');
     rendered.unmount();
   });
 
   it('add stops at maxItems', () => {
     const { rendered } = renderColApp(makeColView({ min: 0, max: 2 }));
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-    act(() => { addBtn.click(); addBtn.click(); addBtn.click(); });
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(2);
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      addBtn.click();
+      addBtn.click();
+      addBtn.click();
+    });
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
   it('remove button is absent when at minItems', () => {
     const { rendered } = renderColApp(makeColView({ min: 2 }));
-    expect(rendered.container.querySelector('[data-testid="remove-item"]')).toBeNull();
-    expect(rendered.container.querySelector('[data-testid="can-remove-items"]')?.textContent).toBe('false');
+    expect(
+      rendered.container.querySelector('[data-testid="remove-item"]')
+    ).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="can-remove-items"]')
+        ?.textContent
+    ).toBe('false');
     rendered.unmount();
   });
 
   it('remove button appears when above minItems', () => {
     const { rendered } = renderColApp(makeColView({ min: 1 }));
-    act(() => { (rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement).click(); });
-    expect(rendered.container.querySelector('[data-testid="remove-item"]')).toBeTruthy();
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="add-items"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="remove-item"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('clicking remove removes the correct item', () => {
     const { rendered, getSession } = renderColApp(makeColView({ min: 0 }));
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-    act(() => { addBtn.click(); addBtn.click(); addBtn.click(); });
-    const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-    act(() => { (setBtns[1] as HTMLButtonElement).click(); });
-    const removeBtns = rendered.container.querySelectorAll('[data-testid="remove-item"]');
-    act(() => { (removeBtns[0] as HTMLButtonElement).click(); });
-    const cv = getSession().getSnapshot()?.data.values['items'] as CollectionValue | undefined;
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      addBtn.click();
+      addBtn.click();
+      addBtn.click();
+    });
+    const setBtns = rendered.container.querySelectorAll(
+      '[data-testid="set-name"]'
+    );
+    act(() => {
+      (setBtns[1] as HTMLButtonElement).click();
+    });
+    const removeBtns = rendered.container.querySelectorAll(
+      '[data-testid="remove-item"]'
+    );
+    act(() => {
+      (removeBtns[0] as HTMLButtonElement).click();
+    });
+    const cv = getSession().getSnapshot()?.data.values['items'] as
+      | CollectionValue
+      | undefined;
     expect(cv?.value.items).toHaveLength(2);
     expect(cv?.value.items[0].values['row/name']?.value).toBe('edited-name');
     rendered.unmount();
   });
 
   it('editing item does not affect other items', () => {
-    const { rendered, getSession } = renderColApp(makeColView({ min: 3, defaultVal: 'orig' }));
-    const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-    act(() => { (setBtns[1] as HTMLButtonElement).click(); });
-    const cv = getSession().getSnapshot()?.data.values['items'] as CollectionValue | undefined;
+    const { rendered, getSession } = renderColApp(
+      makeColView({ min: 3, defaultVal: 'orig' })
+    );
+    const setBtns = rendered.container.querySelectorAll(
+      '[data-testid="set-name"]'
+    );
+    act(() => {
+      (setBtns[1] as HTMLButtonElement).click();
+    });
+    const cv = getSession().getSnapshot()?.data.values['items'] as
+      | CollectionValue
+      | undefined;
     expect(cv?.value.items[0].values['row/name']?.value ?? 'orig').toBe('orig');
     expect(cv?.value.items[1].values['row/name']?.value).toBe('edited-name');
     expect(cv?.value.items[2].values['row/name']?.value ?? 'orig').toBe('orig');
@@ -2307,7 +3154,9 @@ describe('collection integration', () => {
   });
 
   it('collection state is persisted in session snapshot', () => {
-    const { rendered, getSession } = renderColApp(makeColView({ min: 1, defaultVal: 'snap-val' }));
+    const { rendered, getSession } = renderColApp(
+      makeColView({ min: 1, defaultVal: 'snap-val' })
+    );
     const snap = getSession().getSnapshot();
     const cv = snap?.data.values['items'] as CollectionValue | undefined;
     expect(cv?.value.items).toHaveLength(1);
@@ -2317,7 +3166,13 @@ describe('collection integration', () => {
   it('each item receives correct itemIndex prop', () => {
     const indices: number[] = [];
     const map = makeColMap({
-      group: ({ children, itemIndex }: { children?: ReactNode; itemIndex?: number }) => {
+      group: ({
+        children,
+        itemIndex,
+      }: {
+        children?: ReactNode;
+        itemIndex?: number;
+      }) => {
         if (itemIndex !== undefined) indices.push(itemIndex);
         return <div data-testid="item-group">{children}</div>;
       },
@@ -2328,45 +3183,95 @@ describe('collection integration', () => {
       if (!session.getSnapshot()) session.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(indices).toEqual([0, 1, 2]);
     rendered.unmount();
   });
 
   it('item 0 and item 1 have independent state after both edited', () => {
-    const { rendered } = renderColApp(makeColView({ min: 2, defaultVal: 'start' }));
-    const vals = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    const { rendered } = renderColApp(
+      makeColView({ min: 2, defaultVal: 'start' })
+    );
+    const vals = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((vals[0] as HTMLElement).textContent).toBe('start');
     expect((vals[1] as HTMLElement).textContent).toBe('start');
-    const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-    act(() => { (setBtns[0] as HTMLButtonElement).click(); });
-    const valsAfter0 = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    const setBtns = rendered.container.querySelectorAll(
+      '[data-testid="set-name"]'
+    );
+    act(() => {
+      (setBtns[0] as HTMLButtonElement).click();
+    });
+    const valsAfter0 = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((valsAfter0[0] as HTMLElement).textContent).toBe('edited-name');
     expect((valsAfter0[1] as HTMLElement).textContent).toBe('start');
-    act(() => { (rendered.container.querySelectorAll('[data-testid="set-name"]')[1] as HTMLButtonElement).click(); });
-    const valsFinal = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    act(() => {
+      (
+        rendered.container.querySelectorAll(
+          '[data-testid="set-name"]'
+        )[1] as HTMLButtonElement
+      ).click();
+    });
+    const valsFinal = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((valsFinal[0] as HTMLElement).textContent).toBe('edited-name');
     expect((valsFinal[1] as HTMLElement).textContent).toBe('edited-name');
     rendered.unmount();
   });
 
   it('adding item after editing preserves existing item values', () => {
-    const { rendered } = renderColApp(makeColView({ min: 1, defaultVal: 'default' }));
-    const setBtn = rendered.container.querySelector('[data-testid="set-name"]') as HTMLButtonElement;
-    act(() => { setBtn.click(); });
-    act(() => { (rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement).click(); });
-    const vals = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    const { rendered } = renderColApp(
+      makeColView({ min: 1, defaultVal: 'default' })
+    );
+    const setBtn = rendered.container.querySelector(
+      '[data-testid="set-name"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      setBtn.click();
+    });
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="add-items"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    const vals = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((vals[0] as HTMLElement).textContent).toBe('edited-name');
     expect((vals[1] as HTMLElement).textContent).toBe('default');
     rendered.unmount();
   });
 
   it('new item added after editing does not share reference with existing', () => {
-    const { rendered } = renderColApp(makeColView({ min: 1, defaultVal: 'shared' }));
-    act(() => { (rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement).click(); });
-    const setBtns = rendered.container.querySelectorAll('[data-testid="set-name"]');
-    act(() => { (setBtns[0] as HTMLButtonElement).click(); });
-    const vals = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    const { rendered } = renderColApp(
+      makeColView({ min: 1, defaultVal: 'shared' })
+    );
+    act(() => {
+      (
+        rendered.container.querySelector(
+          '[data-testid="add-items"]'
+        ) as HTMLButtonElement
+      ).click();
+    });
+    const setBtns = rendered.container.querySelectorAll(
+      '[data-testid="set-name"]'
+    );
+    act(() => {
+      (setBtns[0] as HTMLButtonElement).click();
+    });
+    const vals = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((vals[0] as HTMLElement).textContent).toBe('edited-name');
     expect((vals[1] as HTMLElement).textContent).toBe('shared');
     rendered.unmount();
@@ -2376,10 +3281,14 @@ describe('collection integration', () => {
     const { rendered, getSession } = renderColApp(makeColView({}));
     act(() => {
       getSession().updateState('items', {
-        value: { items: [{ values: { 'row/name': { value: 'external-val' } } }] },
+        value: {
+          items: [{ values: { 'row/name': { value: 'external-val' } } }],
+        },
       });
     });
-    expect(rendered.container.querySelector('[data-testid="val-name"]')?.textContent).toBe('external-val');
+    expect(
+      rendered.container.querySelector('[data-testid="val-name"]')?.textContent
+    ).toBe('external-val');
     rendered.unmount();
   });
 
@@ -2388,58 +3297,118 @@ describe('collection integration', () => {
     act(() => {
       getSession().updateState('items', { value: { items: 'not-an-array' } });
     });
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(0);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(0);
     rendered.unmount();
   });
 
   it('nested collection inside collection renders items correctly', () => {
     const nestedView: ViewDefinition = {
-      viewId: 'nested', version: '1',
-      nodes: [{
-        id: 'outer', type: 'collection', minItems: 1,
-        template: {
-          id: 'outer_row', type: 'group',
-          children: [{
-            id: 'inner', type: 'collection', minItems: 1,
-            template: { id: 'inner_row', type: 'group', children: [{ id: 'leaf', type: 'field', dataType: 'string', defaultValue: 'leaf-val' } as ViewNode] },
-          } as ViewNode],
-        },
-      } as ViewNode],
+      viewId: 'nested',
+      version: '1',
+      nodes: [
+        {
+          id: 'outer',
+          type: 'collection',
+          minItems: 1,
+          template: {
+            id: 'outer_row',
+            type: 'group',
+            children: [
+              {
+                id: 'inner',
+                type: 'collection',
+                minItems: 1,
+                template: {
+                  id: 'inner_row',
+                  type: 'group',
+                  children: [
+                    {
+                      id: 'leaf',
+                      type: 'field',
+                      dataType: 'string',
+                      defaultValue: 'leaf-val',
+                    } as ViewNode,
+                  ],
+                },
+              } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(nestedView);
       return <ContinuumRenderer view={nestedView} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={makeColMap()}><App /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="val-leaf"]')?.textContent).toBe('leaf-val');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={makeColMap()}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="val-leaf"]')?.textContent
+    ).toBe('leaf-val');
     rendered.unmount();
   });
 
   it('nested collection siblings have independent state', () => {
     const nestedView: ViewDefinition = {
-      viewId: 'nested-iso', version: '1',
-      nodes: [{
-        id: 'outer', type: 'collection', minItems: 2,
-        template: {
-          id: 'outer_row', type: 'group',
-          children: [{
-            id: 'inner', type: 'collection', minItems: 1,
-            template: { id: 'inner_row', type: 'group', children: [{ id: 'task', type: 'field', dataType: 'string', defaultValue: '' } as ViewNode] },
-          } as ViewNode],
-        },
-      } as ViewNode],
+      viewId: 'nested-iso',
+      version: '1',
+      nodes: [
+        {
+          id: 'outer',
+          type: 'collection',
+          minItems: 2,
+          template: {
+            id: 'outer_row',
+            type: 'group',
+            children: [
+              {
+                id: 'inner',
+                type: 'collection',
+                minItems: 1,
+                template: {
+                  id: 'inner_row',
+                  type: 'group',
+                  children: [
+                    {
+                      id: 'task',
+                      type: 'field',
+                      dataType: 'string',
+                      defaultValue: '',
+                    } as ViewNode,
+                  ],
+                },
+              } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(nestedView);
       return <ContinuumRenderer view={nestedView} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={makeColMap()}><App /></ContinuumProvider>);
-    const setTaskBtns = rendered.container.querySelectorAll('[data-testid="set-task"]');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={makeColMap()}>
+        <App />
+      </ContinuumProvider>
+    );
+    const setTaskBtns = rendered.container.querySelectorAll(
+      '[data-testid="set-task"]'
+    );
     expect(setTaskBtns).toHaveLength(2);
-    act(() => { (setTaskBtns[0] as HTMLButtonElement).click(); });
-    const vals = rendered.container.querySelectorAll('[data-testid="val-task"]');
+    act(() => {
+      (setTaskBtns[0] as HTMLButtonElement).click();
+    });
+    const vals = rendered.container.querySelectorAll(
+      '[data-testid="val-task"]'
+    );
     expect((vals[0] as HTMLElement).textContent).toBe('edited-task');
     expect((vals[1] as HTMLElement).textContent).toBe('');
     rendered.unmount();
@@ -2447,30 +3416,65 @@ describe('collection integration', () => {
 
   it('adding to nested collection does not affect sibling outer item', () => {
     const nestedView: ViewDefinition = {
-      viewId: 'nested-add-iso', version: '1',
-      nodes: [{
-        id: 'weeks', type: 'collection', minItems: 2,
-        template: {
-          id: 'week', type: 'group',
-          children: [{
-            id: 'days', type: 'collection', minItems: 0,
-            template: { id: 'day', type: 'group', children: [{ id: 'name', type: 'field', dataType: 'string', defaultValue: 'Day' } as ViewNode] },
-          } as ViewNode],
-        },
-      } as ViewNode],
+      viewId: 'nested-add-iso',
+      version: '1',
+      nodes: [
+        {
+          id: 'weeks',
+          type: 'collection',
+          minItems: 2,
+          template: {
+            id: 'week',
+            type: 'group',
+            children: [
+              {
+                id: 'days',
+                type: 'collection',
+                minItems: 0,
+                template: {
+                  id: 'day',
+                  type: 'group',
+                  children: [
+                    {
+                      id: 'name',
+                      type: 'field',
+                      dataType: 'string',
+                      defaultValue: 'Day',
+                    } as ViewNode,
+                  ],
+                },
+              } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(nestedView);
       return <ContinuumRenderer view={nestedView} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={makeColMap()}><App /></ContinuumProvider>);
-    const addDaysBtns = rendered.container.querySelectorAll('[data-testid="add-days"]');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={makeColMap()}>
+        <App />
+      </ContinuumProvider>
+    );
+    const addDaysBtns = rendered.container.querySelectorAll(
+      '[data-testid="add-days"]'
+    );
     expect(addDaysBtns).toHaveLength(2);
-    act(() => { (addDaysBtns[0] as HTMLButtonElement).click(); });
-    const week1Days = rendered.container.querySelectorAll('[data-testid="col-days"]');
-    const week1Fields = week1Days[0].querySelectorAll('[data-testid="val-name"]');
-    const week2Fields = week1Days[1].querySelectorAll('[data-testid="val-name"]');
+    act(() => {
+      (addDaysBtns[0] as HTMLButtonElement).click();
+    });
+    const week1Days = rendered.container.querySelectorAll(
+      '[data-testid="col-days"]'
+    );
+    const week1Fields = week1Days[0].querySelectorAll(
+      '[data-testid="val-name"]'
+    );
+    const week2Fields = week1Days[1].querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect(week1Fields).toHaveLength(1);
     expect(week2Fields).toHaveLength(0);
     rendered.unmount();
@@ -2478,9 +3482,15 @@ describe('collection integration', () => {
 
   it('collection isDirty propagates to snapshot', () => {
     const { rendered, getSession } = renderColApp(makeColView({ min: 1 }));
-    const setBtn = rendered.container.querySelector('[data-testid="set-name"]') as HTMLButtonElement;
-    act(() => { setBtn.click(); });
-    const cv = getSession().getSnapshot()?.data.values['items'] as CollectionValue | undefined;
+    const setBtn = rendered.container.querySelector(
+      '[data-testid="set-name"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      setBtn.click();
+    });
+    const cv = getSession().getSnapshot()?.data.values['items'] as
+      | CollectionValue
+      | undefined;
     expect(cv?.value.items[0].values['row/name']?.isDirty).toBe(true);
     rendered.unmount();
   });
@@ -2488,9 +3498,15 @@ describe('collection integration', () => {
   it('template defaults are isolated per item on initial render', () => {
     const view = makeColView({ min: 3, defaultVal: 'shared-risk' });
     const { rendered } = renderColApp(view);
-    const setBtn = rendered.container.querySelectorAll('[data-testid="set-name"]');
-    act(() => { (setBtn[0] as HTMLButtonElement).click(); });
-    const vals = rendered.container.querySelectorAll('[data-testid="val-name"]');
+    const setBtn = rendered.container.querySelectorAll(
+      '[data-testid="set-name"]'
+    );
+    act(() => {
+      (setBtn[0] as HTMLButtonElement).click();
+    });
+    const vals = rendered.container.querySelectorAll(
+      '[data-testid="val-name"]'
+    );
     expect((vals[0] as HTMLElement).textContent).toBe('edited-name');
     expect((vals[1] as HTMLElement).textContent).toBe('shared-risk');
     expect((vals[2] as HTMLElement).textContent).toBe('shared-risk');
@@ -2500,23 +3516,35 @@ describe('collection integration', () => {
   it('collection with negative minItems renders 0 items', () => {
     const view = makeColView({ min: -5, defaultVal: 'x' });
     const { rendered } = renderColApp(view);
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(0);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(0);
     rendered.unmount();
   });
 
   it('collection with fractional minItems floors to integer', () => {
     const view = makeColView({ min: 2.7, defaultVal: 'f' });
     const { rendered } = renderColApp(view);
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(2);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
   it('collection with fractional maxItems stops adding at floor', () => {
     const view = makeColView({ min: 0, max: 2.9 });
     const { rendered } = renderColApp(view);
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-    act(() => { addBtn.click(); addBtn.click(); addBtn.click(); });
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(2);
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      addBtn.click();
+      addBtn.click();
+      addBtn.click();
+    });
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
@@ -2524,7 +3552,15 @@ describe('collection integration', () => {
     let receivedOnAdd: (() => void) | undefined;
     let receivedOnRemove: ((i: number) => void) | undefined;
     const map = makeColMap({
-      collection: ({ onAdd, onRemove, children }: { onAdd?: () => void; onRemove?: (i: number) => void; children?: ReactNode }) => {
+      collection: ({
+        onAdd,
+        onRemove,
+        children,
+      }: {
+        onAdd?: () => void;
+        onRemove?: (i: number) => void;
+        children?: ReactNode;
+      }) => {
         receivedOnAdd = onAdd;
         receivedOnRemove = onRemove;
         return <div>{children}</div>;
@@ -2536,52 +3572,112 @@ describe('collection integration', () => {
       if (!session.getSnapshot()) session.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
+    renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(typeof receivedOnAdd).toBe('function');
     expect(typeof receivedOnRemove).toBe('function');
   });
 
   it('collection does not render when hidden', () => {
     const view: ViewDefinition = {
-      viewId: 'v', version: '1',
-      nodes: [{
-        id: 'hidden-col', type: 'collection', hidden: true, minItems: 2,
-        template: { id: 'row', type: 'group', children: [{ id: 'name', type: 'field', dataType: 'string' } as ViewNode] },
-      } as ViewNode],
+      viewId: 'v',
+      version: '1',
+      nodes: [
+        {
+          id: 'hidden-col',
+          type: 'collection',
+          hidden: true,
+          minItems: 2,
+          template: {
+            id: 'row',
+            type: 'group',
+            children: [
+              { id: 'name', type: 'field', dataType: 'string' } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     const { rendered } = renderColApp(view);
-    expect(rendered.container.querySelector('[data-testid="col-hidden-col"]')).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="col-hidden-col"]')
+    ).toBeNull();
     rendered.unmount();
   });
 
   it('multiple collections in same view are independent', () => {
     const view: ViewDefinition = {
-      viewId: 'multi-col', version: '1',
+      viewId: 'multi-col',
+      version: '1',
       nodes: [
         {
-          id: 'col_a', type: 'collection', minItems: 2,
-          template: { id: 'row_a', type: 'group', children: [{ id: 'fa', type: 'field', dataType: 'string', defaultValue: 'a' } as ViewNode] },
+          id: 'col_a',
+          type: 'collection',
+          minItems: 2,
+          template: {
+            id: 'row_a',
+            type: 'group',
+            children: [
+              {
+                id: 'fa',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'a',
+              } as ViewNode,
+            ],
+          },
         } as ViewNode,
         {
-          id: 'col_b', type: 'collection', minItems: 1,
-          template: { id: 'row_b', type: 'group', children: [{ id: 'fb', type: 'field', dataType: 'string', defaultValue: 'b' } as ViewNode] },
+          id: 'col_b',
+          type: 'collection',
+          minItems: 1,
+          template: {
+            id: 'row_b',
+            type: 'group',
+            children: [
+              {
+                id: 'fb',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'b',
+              } as ViewNode,
+            ],
+          },
         } as ViewNode,
       ],
     };
     const { rendered } = renderColApp(view);
-    expect(rendered.container.querySelectorAll('[data-testid="val-fa"]')).toHaveLength(2);
-    expect(rendered.container.querySelectorAll('[data-testid="val-fb"]')).toHaveLength(1);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="val-fa"]')
+    ).toHaveLength(2);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="val-fb"]')
+    ).toHaveLength(1);
     rendered.unmount();
   });
 
   it('remove does not go below minItems', () => {
     const view = makeColView({ min: 2 });
     const { rendered } = renderColApp(view);
-    const addBtn = rendered.container.querySelector('[data-testid="add-items"]') as HTMLButtonElement;
-    act(() => { addBtn.click(); });
-    const removeBtns = rendered.container.querySelectorAll('[data-testid="remove-item"]');
-    act(() => { (removeBtns[0] as HTMLButtonElement).click(); (removeBtns[0] as HTMLButtonElement).click(); });
-    expect(rendered.container.querySelectorAll('[data-testid="item-group"]')).toHaveLength(2);
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add-items"]'
+    ) as HTMLButtonElement;
+    act(() => {
+      addBtn.click();
+    });
+    const removeBtns = rendered.container.querySelectorAll(
+      '[data-testid="remove-item"]'
+    );
+    act(() => {
+      (removeBtns[0] as HTMLButtonElement).click();
+      (removeBtns[0] as HTMLButtonElement).click();
+    });
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item-group"]')
+    ).toHaveLength(2);
     rendered.unmount();
   });
 
@@ -2589,10 +3685,20 @@ describe('collection integration', () => {
     const view = makeColView({ min: 1 });
     let capturedNodeIds: string[] = [];
     const map = makeColMap({
-      collection: ({ children, definition }: { children?: ReactNode; definition: { id: string } }) => (
-        <div data-testid={`col-${definition.id}`}>{children}</div>
-      ),
-      field: ({ nodeId, definition }: { nodeId?: string; definition: { id: string } }) => {
+      collection: ({
+        children,
+        definition,
+      }: {
+        children?: ReactNode;
+        definition: { id: string };
+      }) => <div data-testid={`col-${definition.id}`}>{children}</div>,
+      field: ({
+        nodeId,
+        definition,
+      }: {
+        nodeId?: string;
+        definition: { id: string };
+      }) => {
         if (nodeId) capturedNodeIds.push(nodeId);
         return <div />;
       },
@@ -2602,15 +3708,27 @@ describe('collection integration', () => {
       if (!session.getSnapshot()) session.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
+    renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(capturedNodeIds).toContain('items/row/name');
   });
 });
 
 describe('hook flows integration', () => {
   const componentMap = {
-    field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-      <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>
+    field: ({
+      value,
+      definition,
+    }: {
+      value: NodeValue | undefined;
+      definition: { id: string };
+    }) => (
+      <div data-testid={`field-${definition.id}`}>
+        {typeof value?.value === 'string' ? value.value : ''}
+      </div>
     ),
   };
 
@@ -2632,7 +3750,11 @@ describe('hook flows integration', () => {
       stateVal = state;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(stateVal).toBeUndefined();
     rendered.unmount();
   });
@@ -2646,8 +3768,16 @@ describe('hook flows integration', () => {
       [stateVal] = useContinuumState('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'set-by-session' }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'set-by-session',
+      });
+    });
     expect(stateVal?.value).toBe('set-by-session');
     rendered.unmount();
   });
@@ -2661,9 +3791,17 @@ describe('hook flows integration', () => {
       [, setVal] = useContinuumState('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(setVal)({ value: 'written', isDirty: true }); });
-    expect(requireSession(capturedSession).getSnapshot()?.data.values['f1']).toEqual({ value: 'written', isDirty: true });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(setVal)({ value: 'written', isDirty: true });
+    });
+    expect(
+      requireSession(capturedSession).getSnapshot()?.data.values['f1']
+    ).toEqual({ value: 'written', isDirty: true });
     rendered.unmount();
   });
 
@@ -2677,9 +3815,15 @@ describe('hook flows integration', () => {
       renderCount++;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const before = renderCount;
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'trigger' }); });
+    act(() => {
+      requireSession(capturedSession).updateState('f1', { value: 'trigger' });
+    });
     expect(renderCount).toBeGreaterThan(before);
     rendered.unmount();
   });
@@ -2694,9 +3838,15 @@ describe('hook flows integration', () => {
       renderCount++;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const before = renderCount;
-    act(() => { requireSession(capturedSession).updateState('f2', { value: 'other' }); });
+    act(() => {
+      requireSession(capturedSession).updateState('f2', { value: 'other' });
+    });
     expect(renderCount).toBe(before);
     rendered.unmount();
   });
@@ -2711,10 +3861,24 @@ describe('hook flows integration', () => {
       refs.push(state);
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'same', isDirty: true }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'same',
+        isDirty: true,
+      });
+    });
     const afterFirst = refs[refs.length - 1];
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'same', isDirty: true }); });
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'same',
+        isDirty: true,
+      });
+    });
     expect(refs[refs.length - 1]).toBe(afterFirst);
     expect(refs[refs.length - 1]?.value).toBe('same');
     rendered.unmount();
@@ -2728,7 +3892,11 @@ describe('hook flows integration', () => {
       [vp] = useContinuumViewport('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(vp).toBeUndefined();
     rendered.unmount();
   });
@@ -2742,8 +3910,14 @@ describe('hook flows integration', () => {
       [vp, setVp] = useContinuumViewport('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(setVp)({ zoom: 3, isFocused: true }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(setVp)({ zoom: 3, isFocused: true });
+    });
     expect(vp?.zoom).toBe(3);
     expect(vp?.isFocused).toBe(true);
     rendered.unmount();
@@ -2759,9 +3933,17 @@ describe('hook flows integration', () => {
       renderCount++;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const before = renderCount;
-    act(() => { requireSession(capturedSession).updateViewportState('f2', { isFocused: true }); });
+    act(() => {
+      requireSession(capturedSession).updateViewportState('f2', {
+        isFocused: true,
+      });
+    });
     expect(renderCount).toBe(before);
     rendered.unmount();
   });
@@ -2776,10 +3958,24 @@ describe('hook flows integration', () => {
       refs.push(vp);
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateViewportState('f1', { zoom: 1, isFocused: false }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateViewportState('f1', {
+        zoom: 1,
+        isFocused: false,
+      });
+    });
     const afterFirst = refs[refs.length - 1];
-    act(() => { requireSession(capturedSession).updateViewportState('f1', { zoom: 1, isFocused: false }); });
+    act(() => {
+      requireSession(capturedSession).updateViewportState('f1', {
+        zoom: 1,
+        isFocused: false,
+      });
+    });
     expect(refs[refs.length - 1]).toBe(afterFirst);
     expect(refs[refs.length - 1]?.zoom).toBe(1);
     rendered.unmount();
@@ -2791,7 +3987,11 @@ describe('hook flows integration', () => {
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(snapshot).toBeNull();
     rendered.unmount();
   });
@@ -2804,8 +4004,14 @@ describe('hook flows integration', () => {
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).pushView(simpleView); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).pushView(simpleView);
+    });
     expect(snapshot?.view.viewId).toBe('hook-view');
     rendered.unmount();
   });
@@ -2819,11 +4025,20 @@ describe('hook flows integration', () => {
       snaps.push(useContinuumSnapshot());
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const before = snaps[snaps.length - 1];
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'changed' }); });
+    act(() => {
+      requireSession(capturedSession).updateState('f1', { value: 'changed' });
+    });
     expect(snaps[snaps.length - 1]).not.toBe(before);
-    expect((snaps[snaps.length - 1]?.data.values['f1'] as NodeValue | undefined)?.value).toBe('changed');
+    expect(
+      (snaps[snaps.length - 1]?.data.values['f1'] as NodeValue | undefined)
+        ?.value
+    ).toBe('changed');
     rendered.unmount();
   });
 
@@ -2836,8 +4051,14 @@ describe('hook flows integration', () => {
       snapshot = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'x' }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', { value: 'x' });
+    });
     expect(Object.isFrozen(snapshot)).toBe(true);
     rendered.unmount();
   });
@@ -2848,7 +4069,11 @@ describe('hook flows integration', () => {
       diags = useContinuumDiagnostics();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(requireSession(diags).issues).toEqual([]);
     rendered.unmount();
   });
@@ -2859,7 +4084,11 @@ describe('hook flows integration', () => {
       diags = useContinuumDiagnostics();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(requireSession(diags).checkpoints).toEqual([]);
     rendered.unmount();
   });
@@ -2873,7 +4102,11 @@ describe('hook flows integration', () => {
       diags = useContinuumDiagnostics();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(requireSession(diags).checkpoints.length).toBeGreaterThan(0);
     rendered.unmount();
   });
@@ -2887,7 +4120,11 @@ describe('hook flows integration', () => {
       diags = useContinuumDiagnostics();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(Array.isArray(requireSession(diags).diffs)).toBe(true);
     rendered.unmount();
   });
@@ -2898,7 +4135,11 @@ describe('hook flows integration', () => {
       hydrated = useContinuumHydrated();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(hydrated).toBe(false);
     rendered.unmount();
   });
@@ -2913,7 +4154,11 @@ describe('hook flows integration', () => {
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap} persist="localStorage" storageKey="hydrated-hook-key">
+      <ContinuumProvider
+        components={componentMap}
+        persist="localStorage"
+        storageKey="hydrated-hook-key"
+      >
         <App />
       </ContinuumProvider>
     );
@@ -2930,7 +4175,11 @@ describe('hook flows integration', () => {
       conflict = useContinuumConflict('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(requireSession(conflict).hasConflict).toBe(false);
     expect(requireSession(conflict).proposal).toBeNull();
     rendered.unmount();
@@ -2945,13 +4194,22 @@ describe('hook flows integration', () => {
       conflict = useContinuumConflict('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'typed', isDirty: true });
+      requireSession(capturedSession).updateState('f1', {
+        value: 'typed',
+        isDirty: true,
+      });
       requireSession(capturedSession).proposeValue('f1', { value: 'ai' }, 'ai');
     });
     expect(requireSession(conflict).hasConflict).toBe(true);
-    expect(requireSession(conflict).proposal?.proposedValue).toEqual({ value: 'ai' });
+    expect(requireSession(conflict).proposal?.proposedValue).toEqual({
+      value: 'ai',
+    });
     rendered.unmount();
   });
 
@@ -2964,15 +4222,36 @@ describe('hook flows integration', () => {
       conflict = useContinuumConflict('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'typed', isDirty: true });
-      requireSession(capturedSession).proposeValue('f1', { value: 'ai-val' }, 'ai');
+      requireSession(capturedSession).updateState('f1', {
+        value: 'typed',
+        isDirty: true,
+      });
+      requireSession(capturedSession).proposeValue(
+        'f1',
+        { value: 'ai-val' },
+        'ai'
+      );
     });
     expect(requireSession(conflict).hasConflict).toBe(true);
-    act(() => { requireSession(conflict).accept(); });
-    expect((requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined)?.value).toBe('ai-val');
-    expect(requireSession(capturedSession).getPendingProposals()['f1']).toBeUndefined();
+    act(() => {
+      requireSession(conflict).accept();
+    });
+    expect(
+      (
+        requireSession(capturedSession).getSnapshot()?.data.values['f1'] as
+          | NodeValue
+          | undefined
+      )?.value
+    ).toBe('ai-val');
+    expect(
+      requireSession(capturedSession).getPendingProposals()['f1']
+    ).toBeUndefined();
     rendered.unmount();
   });
 
@@ -2985,14 +4264,33 @@ describe('hook flows integration', () => {
       conflict = useContinuumConflict('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'mine', isDirty: true });
-      requireSession(capturedSession).proposeValue('f1', { value: 'ai-val' }, 'ai');
+      requireSession(capturedSession).updateState('f1', {
+        value: 'mine',
+        isDirty: true,
+      });
+      requireSession(capturedSession).proposeValue(
+        'f1',
+        { value: 'ai-val' },
+        'ai'
+      );
     });
-    act(() => { requireSession(conflict).reject(); });
+    act(() => {
+      requireSession(conflict).reject();
+    });
     expect(requireSession(conflict).hasConflict).toBe(false);
-    expect((requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined)?.value).toBe('mine');
+    expect(
+      (
+        requireSession(capturedSession).getSnapshot()?.data.values['f1'] as
+          | NodeValue
+          | undefined
+      )?.value
+    ).toBe('mine');
     rendered.unmount();
   });
 
@@ -3006,13 +4304,26 @@ describe('hook flows integration', () => {
       proposals.push(conflict.proposal);
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'typed', isDirty: true });
-      requireSession(capturedSession).proposeValue('f1', { value: 'prop' }, 'ai');
+      requireSession(capturedSession).updateState('f1', {
+        value: 'typed',
+        isDirty: true,
+      });
+      requireSession(capturedSession).proposeValue(
+        'f1',
+        { value: 'prop' },
+        'ai'
+      );
     });
     const afterProposal = proposals[proposals.length - 1];
-    act(() => { requireSession(capturedSession).updateState('f2', { value: 'unrelated' }); });
+    act(() => {
+      requireSession(capturedSession).updateState('f2', { value: 'unrelated' });
+    });
     expect(proposals[proposals.length - 1]).toBe(afterProposal);
     rendered.unmount();
   });
@@ -3025,7 +4336,11 @@ describe('hook flows integration', () => {
       hasSuggestions = useContinuumSuggestions().hasSuggestions;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(hasSuggestions).toBe(false);
     rendered.unmount();
   });
@@ -3039,8 +4354,18 @@ describe('hook flows integration', () => {
       hasSuggestions = useContinuumSuggestions().hasSuggestions;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'old', suggestion: 'new', isDirty: true }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'old',
+        suggestion: 'new',
+        isDirty: true,
+      });
+    });
     expect(hasSuggestions).toBe(true);
     rendered.unmount();
   });
@@ -3055,10 +4380,24 @@ describe('hook flows integration', () => {
       acceptAll = s.acceptAll;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'old', suggestion: 'suggested', isDirty: true }); });
-    act(() => { requireSession(acceptAll)(); });
-    const f1 = requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'old',
+        suggestion: 'suggested',
+        isDirty: true,
+      });
+    });
+    act(() => {
+      requireSession(acceptAll)();
+    });
+    const f1 = requireSession(capturedSession).getSnapshot()?.data.values[
+      'f1'
+    ] as NodeValue | undefined;
     expect(f1?.value).toBe('suggested');
     expect(f1?.suggestion).toBeUndefined();
     expect(f1?.isDirty).toBe(true);
@@ -3075,10 +4414,24 @@ describe('hook flows integration', () => {
       rejectAll = s.rejectAll;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'original', suggestion: 'unwanted', isDirty: true }); });
-    act(() => { requireSession(rejectAll)(); });
-    const f1 = requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'original',
+        suggestion: 'unwanted',
+        isDirty: true,
+      });
+    });
+    act(() => {
+      requireSession(rejectAll)();
+    });
+    const f1 = requireSession(capturedSession).getSnapshot()?.data.values[
+      'f1'
+    ] as NodeValue | undefined;
     expect(f1?.value).toBe('original');
     expect(f1?.suggestion).toBeUndefined();
     rendered.unmount();
@@ -3093,21 +4446,40 @@ describe('hook flows integration', () => {
       acceptAll = useContinuumSuggestions().acceptAll;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
-      requireSession(capturedSession).updateState('f1', { value: 'old1', suggestion: 'new1', isDirty: true });
-      requireSession(capturedSession).updateState('f2', { value: 'old2', suggestion: 'new2', isDirty: true });
+      requireSession(capturedSession).updateState('f1', {
+        value: 'old1',
+        suggestion: 'new1',
+        isDirty: true,
+      });
+      requireSession(capturedSession).updateState('f2', {
+        value: 'old2',
+        suggestion: 'new2',
+        isDirty: true,
+      });
     });
-    act(() => { requireSession(acceptAll)(); });
+    act(() => {
+      requireSession(acceptAll)();
+    });
     const snap = requireSession(capturedSession).getSnapshot();
-    expect((snap?.data.values['f1'] as NodeValue | undefined)?.value).toBe('new1');
-    expect((snap?.data.values['f2'] as NodeValue | undefined)?.value).toBe('new2');
+    expect((snap?.data.values['f1'] as NodeValue | undefined)?.value).toBe(
+      'new1'
+    );
+    expect((snap?.data.values['f2'] as NodeValue | undefined)?.value).toBe(
+      'new2'
+    );
     rendered.unmount();
   });
 
   it('useContinuumAction returns correct initial state', () => {
     const actionView: ViewDefinition = {
-      viewId: 'action-hook-view', version: '1',
+      viewId: 'action-hook-view',
+      version: '1',
       nodes: [{ id: 'btn', type: 'action', intentId: 'do_it', label: 'Go' }],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
@@ -3118,7 +4490,9 @@ describe('hook flows integration', () => {
       return null;
     }
     const rendered = renderIntoDom(
-      <ContinuumProvider components={{ ...componentMap, action: () => <div /> }}>
+      <ContinuumProvider
+        components={{ ...componentMap, action: () => <div /> }}
+      >
         <App />
       </ContinuumProvider>
     );
@@ -3130,8 +4504,11 @@ describe('hook flows integration', () => {
 
   it('useContinuumAction dispatch calls registered handler', async () => {
     const actionView: ViewDefinition = {
-      viewId: 'action-dispatch-view', version: '1',
-      nodes: [{ id: 'btn', type: 'action', intentId: 'exec', label: 'Execute' }],
+      viewId: 'action-dispatch-view',
+      version: '1',
+      nodes: [
+        { id: 'btn', type: 'action', intentId: 'exec', label: 'Execute' },
+      ],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
@@ -3144,12 +4521,21 @@ describe('hook flows integration', () => {
     const rendered = renderIntoDom(
       <ContinuumProvider
         components={{ ...componentMap, action: () => <div /> }}
-        sessionOptions={{ actions: { exec: { registration: { label: 'Exec' }, handler: () => ({ success: true, data: 'executed' }) } } }}
+        sessionOptions={{
+          actions: {
+            exec: {
+              registration: { label: 'Exec' },
+              handler: () => ({ success: true, data: 'executed' }),
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
     );
-    await act(async () => { await requireSession(hookResult).dispatch('btn'); });
+    await act(async () => {
+      await requireSession(hookResult).dispatch('btn');
+    });
     expect(requireSession(hookResult).lastResult?.success).toBe(true);
     expect(requireSession(hookResult).lastResult?.data).toBe('executed');
     expect(requireSession(hookResult).isDispatching).toBe(false);
@@ -3158,7 +4544,8 @@ describe('hook flows integration', () => {
 
   it('useContinuumAction isDispatching resets to false after dispatch completes', async () => {
     const actionView: ViewDefinition = {
-      viewId: 'action-dispatching-view', version: '1',
+      viewId: 'action-dispatching-view',
+      version: '1',
       nodes: [{ id: 'btn', type: 'action', intentId: 'slow', label: 'Slow' }],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
@@ -3166,26 +4553,46 @@ describe('hook flows integration', () => {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(actionView);
       hookResult = useContinuumAction('slow');
-      return <div data-testid="dispatching">{requireSession(hookResult).isDispatching ? 'yes' : 'no'}</div>;
+      return (
+        <div data-testid="dispatching">
+          {requireSession(hookResult).isDispatching ? 'yes' : 'no'}
+        </div>
+      );
     }
     const rendered = renderIntoDom(
       <ContinuumProvider
         components={{ ...componentMap, action: () => <div /> }}
-        sessionOptions={{ actions: { slow: { registration: { label: 'Slow' }, handler: async () => ({ success: true, data: 'done' }) } } }}
+        sessionOptions={{
+          actions: {
+            slow: {
+              registration: { label: 'Slow' },
+              handler: async () => ({ success: true, data: 'done' }),
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
     );
-    expect(rendered.container.querySelector('[data-testid="dispatching"]')?.textContent).toBe('no');
-    await act(async () => { await requireSession(hookResult).dispatch('btn'); });
-    expect(rendered.container.querySelector('[data-testid="dispatching"]')?.textContent).toBe('no');
+    expect(
+      rendered.container.querySelector('[data-testid="dispatching"]')
+        ?.textContent
+    ).toBe('no');
+    await act(async () => {
+      await requireSession(hookResult).dispatch('btn');
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="dispatching"]')
+        ?.textContent
+    ).toBe('no');
     expect(requireSession(hookResult).lastResult?.data).toBe('done');
     rendered.unmount();
   });
 
   it('useContinuumAction last result is from most-recently-resolved dispatch', async () => {
     const actionView: ViewDefinition = {
-      viewId: 'action-sequential-view', version: '1',
+      viewId: 'action-sequential-view',
+      version: '1',
       nodes: [{ id: 'btn', type: 'action', intentId: 'seq', label: 'Seq' }],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
@@ -3199,13 +4606,27 @@ describe('hook flows integration', () => {
     const rendered = renderIntoDom(
       <ContinuumProvider
         components={{ ...componentMap, action: () => <div /> }}
-        sessionOptions={{ actions: { seq: { registration: { label: 'Seq' }, handler: async () => { callCount++; return { success: true, data: `call-${callCount}` }; } } } }}
+        sessionOptions={{
+          actions: {
+            seq: {
+              registration: { label: 'Seq' },
+              handler: async () => {
+                callCount++;
+                return { success: true, data: `call-${callCount}` };
+              },
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
     );
-    await act(async () => { await requireSession(hookResult).dispatch('btn'); });
-    await act(async () => { await requireSession(hookResult).dispatch('btn'); });
+    await act(async () => {
+      await requireSession(hookResult).dispatch('btn');
+    });
+    await act(async () => {
+      await requireSession(hookResult).dispatch('btn');
+    });
     expect(requireSession(hookResult).lastResult?.data).toBe('call-2');
     rendered.unmount();
   });
@@ -3219,12 +4640,20 @@ describe('hook flows integration', () => {
   });
 
   it('useContinuumViewport warns when used inside collection scope', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(simpleView);
       return (
-        <NodeStateScopeContext.Provider value={{ subscribeNode: () => () => undefined, getNodeValue: () => undefined, setNodeValue: () => undefined }}>
+        <NodeStateScopeContext.Provider
+          value={{
+            subscribeNode: () => () => undefined,
+            getNodeValue: () => undefined,
+            setNodeValue: () => undefined,
+          }}
+        >
           <InnerVpApp />
         </NodeStateScopeContext.Provider>
       );
@@ -3233,7 +4662,11 @@ describe('hook flows integration', () => {
       useContinuumViewport('f1');
       return null;
     }
-    renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('f1'));
     warnSpy.mockRestore();
   });
@@ -3259,7 +4692,11 @@ describe('hook flows integration', () => {
         </NodeStateScopeContext.Provider>
       );
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><ScopeApp /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <ScopeApp />
+      </ContinuumProvider>
+    );
     expect(receivedValue?.value).toBe('from-scope');
     rendered.unmount();
   });
@@ -3267,8 +4704,16 @@ describe('hook flows integration', () => {
 
 describe('error boundary and stress integration', () => {
   const componentMap = {
-    field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-      <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>
+    field: ({
+      value,
+      definition,
+    }: {
+      value: NodeValue | undefined;
+      definition: { id: string };
+    }) => (
+      <div data-testid={`field-${definition.id}`}>
+        {typeof value?.value === 'string' ? value.value : ''}
+      </div>
     ),
   };
 
@@ -3284,9 +4729,20 @@ describe('error boundary and stress integration', () => {
   it('NodeErrorBoundary catches render error and shows fallback', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
-        if (definition.id === 'boom' && value?.value === 'explode') throw new Error('Boom!');
-        return <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>;
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => {
+        if (definition.id === 'boom' && value?.value === 'explode')
+          throw new Error('Boom!');
+        return (
+          <div data-testid={`field-${definition.id}`}>
+            {typeof value?.value === 'string' ? value.value : ''}
+          </div>
+        );
       },
     };
     function App() {
@@ -3294,10 +4750,20 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(errorView);
       return <ContinuumRenderer view={errorView} />;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('boom', { value: 'explode' }); });
-    expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('boom', { value: 'explode' });
+    });
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="boom"]')
+    ).toBeTruthy();
     consoleSpy.mockRestore();
     rendered.unmount();
   });
@@ -3305,8 +4771,15 @@ describe('error boundary and stress integration', () => {
   it('NodeErrorBoundary shows error message in fallback', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
-        if (definition.id === 'boom' && value?.value === 'throw') throw new Error('Custom error message');
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => {
+        if (definition.id === 'boom' && value?.value === 'throw')
+          throw new Error('Custom error message');
         return <div data-testid={`field-${definition.id}`} />;
       },
     };
@@ -3315,10 +4788,20 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(errorView);
       return <ContinuumRenderer view={errorView} />;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('boom', { value: 'throw' }); });
-    const boundary = rendered.container.querySelector('[data-continuum-render-error="boom"]');
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('boom', { value: 'throw' });
+    });
+    const boundary = rendered.container.querySelector(
+      '[data-continuum-render-error="boom"]'
+    );
     expect(boundary?.textContent).toContain('Custom error message');
     consoleSpy.mockRestore();
     rendered.unmount();
@@ -3327,9 +4810,20 @@ describe('error boundary and stress integration', () => {
   it('NodeErrorBoundary does not affect sibling nodes', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
-        if (definition.id === 'boom' && value?.value === 'throw') throw new Error('Isolated!');
-        return <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>;
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => {
+        if (definition.id === 'boom' && value?.value === 'throw')
+          throw new Error('Isolated!');
+        return (
+          <div data-testid={`field-${definition.id}`}>
+            {typeof value?.value === 'string' ? value.value : ''}
+          </div>
+        );
       },
     };
     function App() {
@@ -3337,13 +4831,24 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(errorView);
       return <ContinuumRenderer view={errorView} />;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
       requireSession(capturedSession).updateState('boom', { value: 'throw' });
-      requireSession(capturedSession).updateState('safe', { value: 'still-works' });
+      requireSession(capturedSession).updateState('safe', {
+        value: 'still-works',
+      });
     });
-    expect(rendered.container.querySelector('[data-testid="field-safe"]')?.textContent).toBe('still-works');
+    expect(
+      rendered.container.querySelector('[data-testid="field-safe"]')
+        ?.textContent
+    ).toBe('still-works');
     consoleSpy.mockRestore();
     rendered.unmount();
   });
@@ -3351,9 +4856,20 @@ describe('error boundary and stress integration', () => {
   it('NodeErrorBoundary recovers when children change (new value clears error)', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
-        if (definition.id === 'boom' && value?.value === 'throw') throw new Error('Recoverable!');
-        return <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>;
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => {
+        if (definition.id === 'boom' && value?.value === 'throw')
+          throw new Error('Recoverable!');
+        return (
+          <div data-testid={`field-${definition.id}`}>
+            {typeof value?.value === 'string' ? value.value : ''}
+          </div>
+        );
       },
     };
     function App() {
@@ -3361,13 +4877,32 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(errorView);
       return <ContinuumRenderer view={errorView} />;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('boom', { value: 'throw' }); });
-    expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeTruthy();
-    act(() => { requireSession(capturedSession).updateState('boom', { value: 'recovered' }); });
-    expect(rendered.container.querySelector('[data-continuum-render-error="boom"]')).toBeNull();
-    expect(rendered.container.querySelector('[data-testid="field-boom"]')?.textContent).toBe('recovered');
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('boom', { value: 'throw' });
+    });
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="boom"]')
+    ).toBeTruthy();
+    act(() => {
+      requireSession(capturedSession).updateState('boom', {
+        value: 'recovered',
+      });
+    });
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="boom"]')
+    ).toBeNull();
+    expect(
+      rendered.container.querySelector('[data-testid="field-boom"]')
+        ?.textContent
+    ).toBe('recovered');
     consoleSpy.mockRestore();
     rendered.unmount();
   });
@@ -3375,7 +4910,8 @@ describe('error boundary and stress integration', () => {
   it('multiple errors in different nodes are each isolated', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     const threeNodeView: ViewDefinition = {
-      viewId: 'three-node-view', version: '1',
+      viewId: 'three-node-view',
+      version: '1',
       nodes: [
         { id: 'n1', type: 'field', dataType: 'string' } as ViewNode,
         { id: 'n2', type: 'field', dataType: 'string' } as ViewNode,
@@ -3383,36 +4919,73 @@ describe('error boundary and stress integration', () => {
       ],
     };
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => {
-        if (value?.value === 'throw') throw new Error(`Error in ${definition.id}`);
-        return <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : 'ok'}</div>;
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => {
+        if (value?.value === 'throw')
+          throw new Error(`Error in ${definition.id}`);
+        return (
+          <div data-testid={`field-${definition.id}`}>
+            {typeof value?.value === 'string' ? value.value : 'ok'}
+          </div>
+        );
       },
     };
     function App() {
       capturedSession = useContinuumSession();
-      if (!capturedSession.getSnapshot()) capturedSession.pushView(threeNodeView);
+      if (!capturedSession.getSnapshot())
+        capturedSession.pushView(threeNodeView);
       return <ContinuumRenderer view={threeNodeView} />;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
       requireSession(capturedSession).updateState('n1', { value: 'throw' });
       requireSession(capturedSession).updateState('n3', { value: 'throw' });
     });
-    expect(rendered.container.querySelector('[data-continuum-render-error="n1"]')).toBeTruthy();
-    expect(rendered.container.querySelector('[data-testid="field-n2"]')?.textContent).toBe('ok');
-    expect(rendered.container.querySelector('[data-continuum-render-error="n3"]')).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="n1"]')
+    ).toBeTruthy();
+    expect(
+      rendered.container.querySelector('[data-testid="field-n2"]')?.textContent
+    ).toBe('ok');
+    expect(
+      rendered.container.querySelector('[data-continuum-render-error="n3"]')
+    ).toBeTruthy();
     consoleSpy.mockRestore();
     rendered.unmount();
   });
 
   it('FallbackComponent renders for unknown node type with definition info', () => {
     const view: ViewDefinition = {
-      viewId: 'fallback-view', version: '1',
-      nodes: [{ id: 'unk', type: 'unknown_type', dataType: 'string' } as unknown as ViewNode],
+      viewId: 'fallback-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'unk',
+          type: 'unknown_type',
+          dataType: 'string',
+        } as unknown as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={{}}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    const fallback = rendered.container.querySelector('[data-continuum-fallback="unknown_type"]');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={{}}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    const fallback = rendered.container.querySelector(
+      '[data-continuum-fallback="unknown_type"]'
+    );
     expect(fallback).toBeTruthy();
     expect(fallback?.textContent).toContain('unk');
     rendered.unmount();
@@ -3420,17 +4993,34 @@ describe('error boundary and stress integration', () => {
 
   it('FallbackComponent shows display name when label is present', () => {
     const view: ViewDefinition = {
-      viewId: 'fallback-label-view', version: '1',
-      nodes: [{ id: 'f1', type: 'custom', label: 'My Label', dataType: 'string' } as unknown as ViewNode],
+      viewId: 'fallback-label-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'f1',
+          type: 'custom',
+          label: 'My Label',
+          dataType: 'string',
+        } as unknown as ViewNode,
+      ],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={{}}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    const fallback = rendered.container.querySelector('[data-continuum-fallback="custom"]');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={{}}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    const fallback = rendered.container.querySelector(
+      '[data-continuum-fallback="custom"]'
+    );
     expect(fallback?.textContent).toContain('My Label');
     rendered.unmount();
   });
 
   it('session with 50 nodes renders without errors', () => {
-    const nodes: ViewNode[] = Array.from({ length: 50 }, (_, i) => ({ id: `f${i}`, type: 'field', dataType: 'string' } as ViewNode));
+    const nodes: ViewNode[] = Array.from(
+      { length: 50 },
+      (_, i) => ({ id: `f${i}`, type: 'field', dataType: 'string' } as ViewNode)
+    );
     const view: ViewDefinition = { viewId: 'big-view', version: '1', nodes };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     function App() {
@@ -3438,26 +5028,45 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    expect(rendered.container.querySelectorAll('[data-testid^="field-"]')).toHaveLength(50);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelectorAll('[data-testid^="field-"]')
+    ).toHaveLength(50);
     rendered.unmount();
   });
 
   it('rapid state updates on same node are all applied in order', () => {
-    const view: ViewDefinition = { viewId: 'rapid-view', version: '1', nodes: [{ id: 'counter', type: 'field', dataType: 'string' } as ViewNode] };
+    const view: ViewDefinition = {
+      viewId: 'rapid-view',
+      version: '1',
+      nodes: [{ id: 'counter', type: 'field', dataType: 'string' } as ViewNode],
+    };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     function App() {
       capturedSession = useContinuumSession();
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
       for (let i = 0; i < 20; i++) {
-        requireSession(capturedSession).updateState('counter', { value: `val-${i}` });
+        requireSession(capturedSession).updateState('counter', {
+          value: `val-${i}`,
+        });
       }
     });
-    expect(rendered.container.querySelector('[data-testid="field-counter"]')?.textContent).toBe('val-19');
+    expect(
+      rendered.container.querySelector('[data-testid="field-counter"]')
+        ?.textContent
+    ).toBe('val-19');
     rendered.unmount();
   });
 
@@ -3467,11 +5076,16 @@ describe('error boundary and stress integration', () => {
       capturedSession = useContinuumSession();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
       for (let i = 0; i < 10; i++) {
         requireSession(capturedSession).pushView({
-          viewId: `v${i}`, version: `${i}`,
+          viewId: `v${i}`,
+          version: `${i}`,
           nodes: [{ id: 'f', type: 'field', dataType: 'string' } as ViewNode],
         });
       }
@@ -3483,19 +5097,58 @@ describe('error boundary and stress integration', () => {
 
   it('collection with 100 items renders correctly', () => {
     const view: ViewDefinition = {
-      viewId: 'large-col-view', version: '1',
-      nodes: [{
-        id: 'items', type: 'collection', minItems: 10,
-        template: { id: 'row', type: 'group', children: [{ id: 'name', type: 'field', dataType: 'string', defaultValue: 'item' } as ViewNode] },
-      } as ViewNode],
+      viewId: 'large-col-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'items',
+          type: 'collection',
+          minItems: 10,
+          template: {
+            id: 'row',
+            type: 'group',
+            children: [
+              {
+                id: 'name',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'item',
+              } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     const map = {
-      collection: ({ children, onAdd, definition }: { children?: ReactNode; onAdd?: () => void; definition: { id: string } }) => (
-        <div data-testid={`col-${definition.id}`}><button data-testid="add" onClick={onAdd}>add</button>{children}</div>
+      collection: ({
+        children,
+        onAdd,
+        definition,
+      }: {
+        children?: ReactNode;
+        onAdd?: () => void;
+        definition: { id: string };
+      }) => (
+        <div data-testid={`col-${definition.id}`}>
+          <button data-testid="add" onClick={onAdd}>
+            add
+          </button>
+          {children}
+        </div>
       ),
-      group: ({ children }: { children?: ReactNode }) => <div data-testid="item">{children}</div>,
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-        <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>
+      group: ({ children }: { children?: ReactNode }) => (
+        <div data-testid="item">{children}</div>
+      ),
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => (
+        <div data-testid={`field-${definition.id}`}>
+          {typeof value?.value === 'string' ? value.value : ''}
+        </div>
       ),
     };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
@@ -3504,32 +5157,90 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    const addBtn = rendered.container.querySelector('[data-testid="add"]') as HTMLButtonElement;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add"]'
+    ) as HTMLButtonElement;
     act(() => {
       for (let i = 0; i < 90; i++) addBtn.click();
     });
-    expect(rendered.container.querySelectorAll('[data-testid="item"]')).toHaveLength(100);
+    expect(
+      rendered.container.querySelectorAll('[data-testid="item"]')
+    ).toHaveLength(100);
     rendered.unmount();
   });
 
   it('collection items at item 0 and item 99 are independent', () => {
     const view: ViewDefinition = {
-      viewId: 'isolation-view', version: '1',
-      nodes: [{
-        id: 'list', type: 'collection', minItems: 0,
-        template: { id: 'row', type: 'group', children: [{ id: 'val', type: 'field', dataType: 'string', defaultValue: 'default' } as ViewNode] },
-      } as ViewNode],
+      viewId: 'isolation-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'list',
+          type: 'collection',
+          minItems: 0,
+          template: {
+            id: 'row',
+            type: 'group',
+            children: [
+              {
+                id: 'val',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'default',
+              } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     const map = {
-      collection: ({ children, onAdd, definition }: { children?: ReactNode; onAdd?: () => void; definition: { id: string } }) => (
-        <div data-testid={`col-${definition.id}`}><button data-testid="add" onClick={onAdd}>add</button>{children}</div>
+      collection: ({
+        children,
+        onAdd,
+        definition,
+      }: {
+        children?: ReactNode;
+        onAdd?: () => void;
+        definition: { id: string };
+      }) => (
+        <div data-testid={`col-${definition.id}`}>
+          <button data-testid="add" onClick={onAdd}>
+            add
+          </button>
+          {children}
+        </div>
       ),
-      group: ({ children, onChange, itemIndex }: { children?: ReactNode; onChange?: (v: NodeValue) => void; itemIndex?: number }) => (
-        <div data-testid="item" data-index={itemIndex}>{children}</div>
+      group: ({
+        children,
+        onChange,
+        itemIndex,
+      }: {
+        children?: ReactNode;
+        onChange?: (v: NodeValue) => void;
+        itemIndex?: number;
+      }) => (
+        <div data-testid="item" data-index={itemIndex}>
+          {children}
+        </div>
       ),
-      field: ({ onChange, definition }: { onChange: (v: NodeValue) => void; definition: { id: string } }) => (
-        <button data-testid={`set-${definition.id}`} onClick={() => onChange({ value: 'changed', isDirty: true })}>set</button>
+      field: ({
+        onChange,
+        definition,
+      }: {
+        onChange: (v: NodeValue) => void;
+        definition: { id: string };
+      }) => (
+        <button
+          data-testid={`set-${definition.id}`}
+          onClick={() => onChange({ value: 'changed', isDirty: true })}
+        >
+          set
+        </button>
       ),
     };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
@@ -3538,51 +5249,96 @@ describe('error boundary and stress integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(view);
       return <ContinuumRenderer view={view} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    const addBtn = rendered.container.querySelector('[data-testid="add"]') as HTMLButtonElement;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    const addBtn = rendered.container.querySelector(
+      '[data-testid="add"]'
+    ) as HTMLButtonElement;
     act(() => {
       for (let i = 0; i < 100; i++) addBtn.click();
     });
-    const setButtons = rendered.container.querySelectorAll('[data-testid="set-val"]');
-    act(() => { (setButtons[0] as HTMLButtonElement).click(); });
-    type ColVal = NodeValue<{ items: Array<{ values: Record<string, NodeValue> }> }>;
-    const cv = requireSession(capturedSession).getSnapshot()?.data.values['list'] as ColVal | undefined;
+    const setButtons = rendered.container.querySelectorAll(
+      '[data-testid="set-val"]'
+    );
+    act(() => {
+      (setButtons[0] as HTMLButtonElement).click();
+    });
+    type ColVal = NodeValue<{
+      items: Array<{ values: Record<string, NodeValue> }>;
+    }>;
+    const cv = requireSession(capturedSession).getSnapshot()?.data.values[
+      'list'
+    ] as ColVal | undefined;
     expect(cv?.value.items[0].values['row/val']?.value).toBe('changed');
-    expect(cv?.value.items[99].values['row/val']?.value ?? 'default').toBe('default');
+    expect(cv?.value.items[99].values['row/val']?.value ?? 'default').toBe(
+      'default'
+    );
     rendered.unmount();
   });
 
   it('provider handles component map with no entries gracefully', () => {
     const view: ViewDefinition = {
-      viewId: 'empty-map-view', version: '1',
+      viewId: 'empty-map-view',
+      version: '1',
       nodes: [{ id: 'f', type: 'field', dataType: 'string' } as ViewNode],
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={{}}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-continuum-fallback="field"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={{}}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-continuum-fallback="field"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('session with deeply nested groups renders all levels', () => {
     function makeDeepGroup(depth: number): ViewNode {
-      if (depth === 0) return { id: 'leaf', type: 'field', dataType: 'string' } as ViewNode;
-      return { id: `g${depth}`, type: 'group', children: [makeDeepGroup(depth - 1)] } as ViewNode;
+      if (depth === 0)
+        return { id: 'leaf', type: 'field', dataType: 'string' } as ViewNode;
+      return {
+        id: `g${depth}`,
+        type: 'group',
+        children: [makeDeepGroup(depth - 1)],
+      } as ViewNode;
     }
     const view: ViewDefinition = {
-      viewId: 'deep-group-view', version: '1',
+      viewId: 'deep-group-view',
+      version: '1',
       nodes: [makeDeepGroup(10)],
     };
     const map = {
       group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-      field: ({ definition }: { definition: { id: string } }) => <div data-testid={`leaf-${definition.id}`} />,
+      field: ({ definition }: { definition: { id: string } }) => (
+        <div data-testid={`leaf-${definition.id}`} />
+      ),
     };
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><ContinuumRenderer view={view} /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="leaf-leaf"]')).toBeTruthy();
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="leaf-leaf"]')
+    ).toBeTruthy();
     rendered.unmount();
   });
 
   it('ContinuumRenderer with undefined view nodes does not throw', () => {
-    const view = { viewId: 'v', version: '1', nodes: undefined } as unknown as ViewDefinition;
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><ContinuumRenderer view={view} /></ContinuumProvider>);
+    const view = {
+      viewId: 'v',
+      version: '1',
+      nodes: undefined,
+    } as unknown as ViewDefinition;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <ContinuumRenderer view={view} />
+      </ContinuumProvider>
+    );
     expect(rendered.container.childElementCount).toBe(0);
     rendered.unmount();
   });
@@ -3590,8 +5346,16 @@ describe('error boundary and stress integration', () => {
 
 describe('adversarial and edge-case integration', () => {
   const componentMap = {
-    field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-      <div data-testid={`field-${definition.id}`}>{typeof value?.value === 'string' ? value.value : ''}</div>
+    field: ({
+      value,
+      definition,
+    }: {
+      value: NodeValue | undefined;
+      definition: { id: string };
+    }) => (
+      <div data-testid={`field-${definition.id}`}>
+        {typeof value?.value === 'string' ? value.value : ''}
+      </div>
     ),
   };
 
@@ -3603,29 +5367,54 @@ describe('adversarial and edge-case integration', () => {
 
   it('useContinuumAction isDispatching resets to false when action handler throws', async () => {
     const actionView: ViewDefinition = {
-      viewId: 'action-throw-view', version: '1',
-      nodes: [{ id: 'btn', type: 'action', intentId: 'fail_action', label: 'Fail' }],
+      viewId: 'action-throw-view',
+      version: '1',
+      nodes: [
+        { id: 'btn', type: 'action', intentId: 'fail_action', label: 'Fail' },
+      ],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(actionView);
       hookResult = useContinuumAction('fail_action');
-      return <div data-testid="dispatching">{requireSession(hookResult).isDispatching ? 'yes' : 'no'}</div>;
+      return (
+        <div data-testid="dispatching">
+          {requireSession(hookResult).isDispatching ? 'yes' : 'no'}
+        </div>
+      );
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
     const rendered = renderIntoDom(
       <ContinuumProvider
         components={{ ...componentMap, action: () => <div /> }}
-        sessionOptions={{ actions: { fail_action: { registration: { label: 'Fail' }, handler: async () => { throw new Error('Action failed!'); } } } }}
+        sessionOptions={{
+          actions: {
+            fail_action: {
+              registration: { label: 'Fail' },
+              handler: async () => {
+                throw new Error('Action failed!');
+              },
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
     );
     await act(async () => {
-      try { await requireSession(hookResult).dispatch('btn'); } catch { /* ignored */ }
+      try {
+        await requireSession(hookResult).dispatch('btn');
+      } catch {
+        /* ignored */
+      }
     });
-    expect(rendered.container.querySelector('[data-testid="dispatching"]')?.textContent).toBe('no');
+    expect(
+      rendered.container.querySelector('[data-testid="dispatching"]')
+        ?.textContent
+    ).toBe('no');
     consoleSpy.mockRestore();
     rendered.unmount();
   });
@@ -3636,9 +5425,15 @@ describe('adversarial and edge-case integration', () => {
         if (value && typeof value === 'object') {
           try {
             (value as Record<string, unknown>).hackedProp = 'injected';
-          } catch { /* frozen — expected */ }
+          } catch {
+            /* frozen — expected */
+          }
         }
-        return <div data-testid="f1">{typeof value?.value === 'string' ? value.value : ''}</div>;
+        return (
+          <div data-testid="f1">
+            {typeof value?.value === 'string' ? value.value : ''}
+          </div>
+        );
       },
     };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
@@ -3647,11 +5442,29 @@ describe('adversarial and edge-case integration', () => {
       if (!capturedSession.getSnapshot()) capturedSession.pushView(simpleView);
       return <ContinuumRenderer view={simpleView} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'original', isDirty: true }); });
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'second', isDirty: true }); });
-    expect(rendered.container.querySelector('[data-testid="f1"]')?.textContent).toBe('second');
-    const f1 = requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'original',
+        isDirty: true,
+      });
+    });
+    act(() => {
+      requireSession(capturedSession).updateState('f1', {
+        value: 'second',
+        isDirty: true,
+      });
+    });
+    expect(
+      rendered.container.querySelector('[data-testid="f1"]')?.textContent
+    ).toBe('second');
+    const f1 = requireSession(capturedSession).getSnapshot()?.data.values[
+      'f1'
+    ] as NodeValue | undefined;
     expect(f1?.value).toBe('second');
     expect(f1?.isDirty).toBe(true);
     rendered.unmount();
@@ -3666,25 +5479,46 @@ describe('adversarial and edge-case integration', () => {
       capturedSnap = useContinuumSnapshot();
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(capturedSession).updateState('f1', { value: 'v' }); });
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(capturedSession).updateState('f1', { value: 'v' });
+    });
     if (capturedSnap) {
       expect(Object.isFrozen(capturedSnap)).toBe(true);
       try {
         (capturedSnap as Record<string, unknown>).injected = 'evil';
-      } catch { /* expected in strict mode */ }
-      expect((capturedSnap as Record<string, unknown>).injected).toBeUndefined();
+      } catch {
+        /* expected in strict mode */
+      }
+      expect(
+        (capturedSnap as Record<string, unknown>).injected
+      ).toBeUndefined();
     }
     rendered.unmount();
   });
 
   it('useContinuumSuggestions handles collection values with nested suggestion fields', () => {
     const colView: ViewDefinition = {
-      viewId: 'col-sug-view', version: '1',
-      nodes: [{
-        id: 'items', type: 'collection', minItems: 1,
-        template: { id: 'row', type: 'group', children: [{ id: 'status', type: 'field', dataType: 'string' } as ViewNode] },
-      } as ViewNode],
+      viewId: 'col-sug-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'items',
+          type: 'collection',
+          minItems: 1,
+          template: {
+            id: 'row',
+            type: 'group',
+            children: [
+              { id: 'status', type: 'field', dataType: 'string' } as ViewNode,
+            ],
+          },
+        } as ViewNode,
+      ],
     };
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     let hasSuggestions = false;
@@ -3694,15 +5528,25 @@ describe('adversarial and edge-case integration', () => {
       hasSuggestions = useContinuumSuggestions().hasSuggestions;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     act(() => {
       requireSession(capturedSession).updateState('items', {
         value: {
-          items: [{
-            values: {
-              'row/status': { value: 'old', suggestion: 'new', isDirty: true },
+          items: [
+            {
+              values: {
+                'row/status': {
+                  value: 'old',
+                  suggestion: 'new',
+                  isDirty: true,
+                },
+              },
             },
-          }],
+          ],
         },
       });
     });
@@ -3713,8 +5557,11 @@ describe('adversarial and edge-case integration', () => {
   it('dispatching action after session is destroyed does not crash', async () => {
     vi.useFakeTimers();
     const actionView: ViewDefinition = {
-      viewId: 'destroy-action-view', version: '1',
-      nodes: [{ id: 'btn', type: 'action', intentId: 'ok_action', label: 'OK' }],
+      viewId: 'destroy-action-view',
+      version: '1',
+      nodes: [
+        { id: 'btn', type: 'action', intentId: 'ok_action', label: 'OK' },
+      ],
     };
     let hookResult: ReturnType<typeof useContinuumAction> | null = null;
     function App() {
@@ -3723,11 +5570,20 @@ describe('adversarial and edge-case integration', () => {
       hookResult = useContinuumAction('ok_action');
       return null;
     }
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
     const rendered = renderIntoDom(
       <ContinuumProvider
         components={{ ...componentMap, action: () => <div /> }}
-        sessionOptions={{ actions: { ok_action: { registration: { label: 'OK' }, handler: async () => ({ success: true, data: 'ok' }) } } }}
+        sessionOptions={{
+          actions: {
+            ok_action: {
+              registration: { label: 'OK' },
+              handler: async () => ({ success: true, data: 'ok' }),
+            },
+          },
+        }}
       >
         <App />
       </ContinuumProvider>
@@ -3735,7 +5591,11 @@ describe('adversarial and edge-case integration', () => {
     rendered.unmount();
     vi.runAllTimers();
     await act(async () => {
-      try { await requireSession(hookResult).dispatch('btn'); } catch { /* graceful failure */ }
+      try {
+        await requireSession(hookResult).dispatch('btn');
+      } catch {
+        /* graceful failure */
+      }
     });
     consoleSpy.mockRestore();
     vi.useRealTimers();
@@ -3750,11 +5610,21 @@ describe('adversarial and edge-case integration', () => {
       [, setVal] = useContinuumState('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     rendered.unmount();
     vi.runAllTimers();
     expect(() => {
-      act(() => { try { requireSession(setVal)({ value: 'after-destroy' }); } catch { /* ok */ } });
+      act(() => {
+        try {
+          requireSession(setVal)({ value: 'after-destroy' });
+        } catch {
+          /* ok */
+        }
+      });
     }).not.toThrow();
     vi.useRealTimers();
   });
@@ -3769,7 +5639,11 @@ describe('adversarial and edge-case integration', () => {
       renderCount++;
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
     const beforeBatch = renderCount;
     act(() => {
       requireSession(capturedSession).updateState('f1', { value: 'a' });
@@ -3777,15 +5651,25 @@ describe('adversarial and edge-case integration', () => {
       requireSession(capturedSession).updateState('f1', { value: 'c' });
     });
     expect(renderCount - beforeBatch).toBeLessThanOrEqual(3);
-    const f1 = requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined;
+    const f1 = requireSession(capturedSession).getSnapshot()?.data.values[
+      'f1'
+    ] as NodeValue | undefined;
     expect(f1?.value).toBe('c');
     rendered.unmount();
   });
 
   it('component receiving undefined value does not crash', () => {
     const map = {
-      field: ({ value, definition }: { value: NodeValue | undefined; definition: { id: string } }) => (
-        <div data-testid={`field-${definition.id}`}>{value === undefined ? 'no-value' : 'has-value'}</div>
+      field: ({
+        value,
+        definition,
+      }: {
+        value: NodeValue | undefined;
+        definition: { id: string };
+      }) => (
+        <div data-testid={`field-${definition.id}`}>
+          {value === undefined ? 'no-value' : 'has-value'}
+        </div>
       ),
     };
     function App() {
@@ -3793,8 +5677,14 @@ describe('adversarial and edge-case integration', () => {
       if (!session.getSnapshot()) session.pushView(simpleView);
       return <ContinuumRenderer view={simpleView} />;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={map}><App /></ContinuumProvider>);
-    expect(rendered.container.querySelector('[data-testid="field-f1"]')?.textContent).toBe('no-value');
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={map}>
+        <App />
+      </ContinuumProvider>
+    );
+    expect(
+      rendered.container.querySelector('[data-testid="field-f1"]')?.textContent
+    ).toBe('no-value');
     rendered.unmount();
   });
 
@@ -3807,9 +5697,17 @@ describe('adversarial and edge-case integration', () => {
       [, setVal] = useContinuumState('f1');
       return null;
     }
-    const rendered = renderIntoDom(<ContinuumProvider components={componentMap}><App /></ContinuumProvider>);
-    act(() => { requireSession(setVal)({ value: undefined }); });
-    const f1 = requireSession(capturedSession).getSnapshot()?.data.values['f1'] as NodeValue | undefined;
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+    act(() => {
+      requireSession(setVal)({ value: undefined });
+    });
+    const f1 = requireSession(capturedSession).getSnapshot()?.data.values[
+      'f1'
+    ] as NodeValue | undefined;
     expect(f1?.value).toBeUndefined();
     rendered.unmount();
   });

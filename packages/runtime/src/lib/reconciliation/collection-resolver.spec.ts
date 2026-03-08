@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { DataSnapshot, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  DataSnapshot,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { reconcile } from '../reconcile.js';
 
-function makeView(nodes: ViewNode[], viewId = 'view-1', version = '1.0'): ViewDefinition {
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
+  version = '1.0'
+): ViewDefinition {
   return { viewId, version, nodes };
 }
 
@@ -20,7 +29,13 @@ function makeNode(
     ...(type === 'field' ? { dataType: 'string' } : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
     ...(type === 'collection'
-      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
     ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
@@ -46,7 +61,11 @@ function collectionNode(id: string, overrides?: Partial<ViewNode>): ViewNode {
   return makeNode({
     id,
     type: 'collection',
-    template: makeNode({ id: `${id}-item-value`, type: 'field', dataType: 'string' }),
+    template: makeNode({
+      id: `${id}-item-value`,
+      type: 'field',
+      dataType: 'string',
+    }),
     ...(overrides ?? {}),
   });
 }
@@ -55,13 +74,17 @@ describe('collection reconciliation', () => {
   it('creates empty items state for collection on fresh session', () => {
     const view = makeView([collectionNode('addresses')]);
     const result = reconcile(view, null, null);
-    expect(result.reconciledState.values['addresses']).toEqual({ value: { items: [] } });
+    expect(result.reconciledState.values['addresses']).toEqual({
+      value: { items: [] },
+    });
   });
 
   it('honors minItems on fresh session and creates seeded items', () => {
     const view = makeView([collectionNode('addresses', { minItems: 2 })]);
     const result = reconcile(view, null, null);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({
       items: [{ values: {} }, { values: {} }],
     });
   });
@@ -91,7 +114,9 @@ describe('collection reconciliation', () => {
       }),
     ]);
     const result = reconcile(view, null, null);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({
       items: [
         {
           values: {
@@ -120,7 +145,9 @@ describe('collection reconciliation', () => {
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({
       items: [{ values: { 'addresses-item-value': { value: 'home' } } }],
     });
   });
@@ -139,14 +166,28 @@ describe('collection reconciliation', () => {
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'first' });
-    expect(items[1].values['addresses-item-value']).toEqual({ value: 'second' });
+    expect(items[1].values['addresses-item-value']).toEqual({
+      value: 'second',
+    });
   });
 
   it('enforces maxItems by truncating overflow items', () => {
-    const priorView = makeView([collectionNode('addresses', { maxItems: 2 })], 'view-1', '1.0');
-    const newView = makeView([collectionNode('addresses', { maxItems: 2 })], 'view-1', '2.0');
+    const priorView = makeView(
+      [collectionNode('addresses', { maxItems: 2 })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [collectionNode('addresses', { maxItems: 2 })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       addresses: {
         value: {
@@ -159,57 +200,85 @@ describe('collection reconciliation', () => {
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(2);
   });
 
   it('enforces minItems by seeding missing items on carry', () => {
-    const priorView = makeView([collectionNode('addresses', { minItems: 3 })], 'view-1', '1.0');
-    const newView = makeView([collectionNode('addresses', { minItems: 3 })], 'view-1', '2.0');
+    const priorView = makeView(
+      [collectionNode('addresses', { minItems: 3 })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [collectionNode('addresses', { minItems: 3 })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
-      addresses: { value: { items: [{ values: { 'addresses-item-value': { value: 'a' } } }] } },
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'a' } } }],
+        },
+      },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(3);
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'a' });
   });
 
   it('seeds minItems carry padding with template defaults', () => {
-    const priorView = makeView([
-      collectionNode('addresses', {
-        minItems: 3,
-        template: makeNode({
-          id: 'address-item',
-          type: 'group',
-          children: [
-            makeNode({
-              id: 'city',
-              type: 'field',
-              dataType: 'string',
-              defaultValue: 'Paris',
-            }),
-          ],
+    const priorView = makeView(
+      [
+        collectionNode('addresses', {
+          minItems: 3,
+          template: makeNode({
+            id: 'address-item',
+            type: 'group',
+            children: [
+              makeNode({
+                id: 'city',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'Paris',
+              }),
+            ],
+          }),
         }),
-      }),
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      collectionNode('addresses', {
-        minItems: 3,
-        template: makeNode({
-          id: 'address-item',
-          type: 'group',
-          children: [
-            makeNode({
-              id: 'city',
-              type: 'field',
-              dataType: 'string',
-              defaultValue: 'Paris',
-            }),
-          ],
+      ],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [
+        collectionNode('addresses', {
+          minItems: 3,
+          template: makeNode({
+            id: 'address-item',
+            type: 'group',
+            children: [
+              makeNode({
+                id: 'city',
+                type: 'field',
+                dataType: 'string',
+                defaultValue: 'Paris',
+              }),
+            ],
+          }),
         }),
-      }),
-    ], 'view-1', '2.0');
+      ],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       addresses: {
         value: {
@@ -219,9 +288,11 @@ describe('collection reconciliation', () => {
     });
 
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as {
-      items: Array<{ values: Record<string, NodeValue> }>;
-    }).items;
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
 
     expect(items).toHaveLength(3);
     expect(items[0].values['address-item/city']).toEqual({ value: 'Rome' });
@@ -230,11 +301,23 @@ describe('collection reconciliation', () => {
   });
 
   it('preserves collection by key when id changes', () => {
-    const priorView = makeView([collectionNode('addresses-old', { key: 'addresses-key' })], 'view-1', '1.0');
-    const newView = makeView([collectionNode('addresses-new', { key: 'addresses-key' })], 'view-1', '2.0');
+    const priorView = makeView(
+      [collectionNode('addresses-old', { key: 'addresses-key' })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [collectionNode('addresses-new', { key: 'addresses-key' })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       'addresses-old': {
-        value: { items: [{ values: { 'addresses-old-item-value': { value: 'persisted' } } }] },
+        value: {
+          items: [
+            { values: { 'addresses-old-item-value': { value: 'persisted' } } },
+          ],
+        },
       },
     });
     const result = reconcile(newView, priorView, priorData);
@@ -244,7 +327,11 @@ describe('collection reconciliation', () => {
   it('applies migration to each item when template hash changes', () => {
     const priorView = makeView([
       collectionNode('addresses', {
-        template: makeNode({ id: 'addresses-item-value', type: 'field', hash: 'v1' }),
+        template: makeNode({
+          id: 'addresses-item-value',
+          type: 'field',
+          hash: 'v1',
+        }),
         hash: 'collection-v1',
       }),
     ]);
@@ -254,7 +341,9 @@ describe('collection reconciliation', () => {
           id: 'addresses-item-value',
           type: 'field',
           hash: 'v2',
-          migrations: [{ fromHash: 'v1', toHash: 'v2', strategyId: 'to-upper' }],
+          migrations: [
+            { fromHash: 'v1', toHash: 'v2', strategyId: 'to-upper' },
+          ],
         }),
         hash: 'collection-v2',
       }),
@@ -274,7 +363,11 @@ describe('collection reconciliation', () => {
         },
       },
     });
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'MAIN' });
   });
 
@@ -290,11 +383,19 @@ describe('collection reconciliation', () => {
       }),
     ]);
     const priorData = makeData({
-      addresses: { value: { items: [{ values: { 'addresses-item-value': { value: 'main' } } }] } },
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'main' } } }],
+        },
+      },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.issues.some((issue) => issue.code === 'TYPE_MISMATCH')).toBe(true);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({ items: [] });
+    expect(result.issues.some((issue) => issue.code === 'TYPE_MISMATCH')).toBe(
+      true
+    );
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({ items: [] });
   });
 
   it('supports nested collections in collection templates', () => {
@@ -309,7 +410,9 @@ describe('collection reconciliation', () => {
       }),
     ]);
     const result = reconcile(view, null, null);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({ items: [] });
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({ items: [] });
   });
 
   it('supports empty collection state as valid input', () => {
@@ -317,7 +420,9 @@ describe('collection reconciliation', () => {
     const newView = makeView([collectionNode('addresses')]);
     const priorData = makeData({ addresses: { value: { items: [] } } });
     const result = reconcile(newView, priorView, priorData);
-    expect((result.reconciledState.values['addresses'] as NodeValue).value).toEqual({ items: [] });
+    expect(
+      (result.reconciledState.values['addresses'] as NodeValue).value
+    ).toEqual({ items: [] });
   });
 
   it('remaps item values when template container id changes but key stays', () => {
@@ -353,26 +458,36 @@ describe('collection reconciliation', () => {
         }),
       ],
     });
-    const priorView = makeView([
-      makeNode({ id: 'sets', type: 'collection', template: priorTpl }),
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      makeNode({ id: 'sets', type: 'collection', template: newTpl }),
-    ], 'view-1', '2.0');
+    const priorView = makeView(
+      [makeNode({ id: 'sets', type: 'collection', template: priorTpl })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [makeNode({ id: 'sets', type: 'collection', template: newTpl })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       sets: {
         value: {
-          items: [{
-            values: {
-              'tpl/row_old/weight': { value: 225 },
-              'tpl/row_old/reps': { value: 8 },
+          items: [
+            {
+              values: {
+                'tpl/row_old/weight': { value: 225 },
+                'tpl/row_old/reps': { value: 8 },
+              },
             },
-          }],
+          ],
         },
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['sets'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['sets'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(1);
     expect(items[0].values['tpl/row_new/weight']).toEqual({ value: 225 });
     expect(items[0].values['tpl/row_new/reps']).toEqual({ value: 8 });
@@ -384,12 +499,16 @@ describe('collection reconciliation', () => {
       type: 'group',
       children: [makeNode({ id: 'name', key: 'name' })],
     });
-    const priorView = makeView([
-      makeNode({ id: 'col', type: 'collection', template: tpl }),
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      makeNode({ id: 'col', type: 'collection', template: tpl }),
-    ], 'view-1', '2.0');
+    const priorView = makeView(
+      [makeNode({ id: 'col', type: 'collection', template: tpl })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [makeNode({ id: 'col', type: 'collection', template: tpl })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       col: {
         value: {
@@ -398,7 +517,11 @@ describe('collection reconciliation', () => {
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['col'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['col'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items[0].values['tpl/name']).toEqual({ value: 'Alice' });
   });
 
@@ -415,12 +538,16 @@ describe('collection reconciliation', () => {
       key: 'tpl_key',
       children: [makeNode({ id: 'f', key: 'field_key' })],
     });
-    const priorView = makeView([
-      makeNode({ id: 'col', type: 'collection', template: priorTpl }),
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      makeNode({ id: 'col', type: 'collection', template: newTpl }),
-    ], 'view-1', '2.0');
+    const priorView = makeView(
+      [makeNode({ id: 'col', type: 'collection', template: priorTpl })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [makeNode({ id: 'col', type: 'collection', template: newTpl })],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       col: {
         value: {
@@ -429,66 +556,84 @@ describe('collection reconciliation', () => {
       },
     });
     const result = reconcile(newView, priorView, priorData);
-    const items = ((result.reconciledState.values['col'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+    const items = (
+      (result.reconciledState.values['col'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(1);
     // Value path changes from tpl/f to card/f
     expect(items[0].values['card/f']).toEqual({ value: 'data' });
   });
 
   it('resets items when template root type changes (field→group)', () => {
-    const priorView = makeView([
-      collectionNode('col', { template: makeNode({ id: 'item', type: 'field' }) }),
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      makeNode({
-        id: 'col',
-        type: 'collection',
-        template: makeNode({ id: 'item', type: 'group', children: [] }),
-      }),
-    ], 'view-1', '2.0');
+    const priorView = makeView(
+      [
+        collectionNode('col', {
+          template: makeNode({ id: 'item', type: 'field' }),
+        }),
+      ],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [
+        makeNode({
+          id: 'col',
+          type: 'collection',
+          template: makeNode({ id: 'item', type: 'group', children: [] }),
+        }),
+      ],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       col: { value: { items: [{ values: { item: { value: 'old' } } }] } },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.issues.some(i => i.code === 'TYPE_MISMATCH')).toBe(true);
+    expect(result.issues.some((i) => i.code === 'TYPE_MISMATCH')).toBe(true);
   });
 
   it('populates initial items from defaultValues array on fresh session', () => {
     const view = makeView([
       collectionNode('addresses', {
         template: makeNode({ id: 'val', type: 'field' }),
-        defaultValues: [
-          { val: 'first' },
-          { val: 'second' }
-        ]
-      })
+        defaultValues: [{ val: 'first' }, { val: 'second' }],
+      }),
     ]);
     const result = reconcile(view, null, null);
-    
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(2);
     expect(items[0].values['val']).toEqual({ value: 'first' });
     expect(items[1].values['val']).toEqual({ value: 'second' });
   });
 
   it('keeps dirty collection items as value and moves new defaultValues into suggestion', () => {
-    const priorView = makeView([
-      collectionNode('addresses', {
-        template: makeNode({ id: 'val', type: 'field' }),
-        defaultValues: [
-          { val: 'first' },
-        ]
-      })
-    ], 'view-1', '1.0');
-    const newView = makeView([
-      collectionNode('addresses', {
-        template: makeNode({ id: 'val', type: 'field' }),
-        defaultValues: [
-          { val: 'replacement-1' },
-          { val: 'replacement-2' }
-        ]
-      })
-    ], 'view-1', '2.0');
+    const priorView = makeView(
+      [
+        collectionNode('addresses', {
+          template: makeNode({ id: 'val', type: 'field' }),
+          defaultValues: [{ val: 'first' }],
+        }),
+      ],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [
+        collectionNode('addresses', {
+          template: makeNode({ id: 'val', type: 'field' }),
+          defaultValues: [{ val: 'replacement-1' }, { val: 'replacement-2' }],
+        }),
+      ],
+      'view-1',
+      '2.0'
+    );
     const priorData = makeData({
       addresses: {
         value: {
@@ -523,21 +668,34 @@ describe('collection reconciliation', () => {
   it('retains dirty state on existing collection items during carry', () => {
     const priorView = makeView([collectionNode('addresses')]);
     const newView = makeView([collectionNode('addresses')]);
-    
+
     // Simulate user editing an item
     const priorData = makeData({
       addresses: {
         value: {
-          items: [{ values: { 'addresses-item-value': { value: 'dirty-value', isDirty: true } } }],
+          items: [
+            {
+              values: {
+                'addresses-item-value': { value: 'dirty-value', isDirty: true },
+              },
+            },
+          ],
         },
       },
     });
-    
+
     const result = reconcile(newView, priorView, priorData);
-    
-    const items = ((result.reconciledState.values['addresses'] as NodeValue).value as { items: Array<{ values: Record<string, NodeValue> }> }).items;
+
+    const items = (
+      (result.reconciledState.values['addresses'] as NodeValue).value as {
+        items: Array<{ values: Record<string, NodeValue> }>;
+      }
+    ).items;
     expect(items).toHaveLength(1);
-    expect(items[0].values['addresses-item-value']).toEqual({ value: 'dirty-value', isDirty: true });
+    expect(items[0].values['addresses-item-value']).toEqual({
+      value: 'dirty-value',
+      isDirty: true,
+    });
   });
 
   it('preserves top-level collection metadata during unchanged carry', () => {
@@ -572,44 +730,68 @@ describe('collection reconciliation', () => {
 
   describe('cross-level key migration', () => {
     it('injects prior top-level value into first collection item when node moves into collection via key', () => {
-      const priorView = makeView([
-        makeNode({ id: 'user_name', type: 'field', key: 'user_name', defaultValue: '' }),
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          template: makeNode({
-            id: 'task_item',
-            type: 'group',
-            children: [
-              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-            ],
+      const priorView = makeView(
+        [
+          makeNode({
+            id: 'user_name',
+            type: 'field',
+            key: 'user_name',
+            defaultValue: '',
           }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          minItems: 1,
-          template: makeNode({
-            id: 'task_item',
-            type: 'group',
-            children: [
-              makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string' }),
-              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-            ],
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
           }),
-        }),
-      ], 'view-1', '2.0');
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            minItems: 1,
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({
+                  id: 'assignee',
+                  type: 'field',
+                  key: 'user_name',
+                  dataType: 'string',
+                }),
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
         user_name: { value: 'Alice', isDirty: true },
-        tasks: { value: { items: [{ values: { 'task_item/title': { value: 'Task 1' } } }] } },
+        tasks: {
+          value: {
+            items: [{ values: { 'task_item/title': { value: 'Task 1' } } }],
+          },
+        },
       });
 
       const result = reconcile(newView, priorView, priorData);
-      const items = ((result.reconciledState.values['tasks'] as NodeValue).value as {
-        items: Array<{ values: Record<string, NodeValue> }>;
-      }).items;
+      const items = (
+        (result.reconciledState.values['tasks'] as NodeValue).value as {
+          items: Array<{ values: Record<string, NodeValue> }>;
+        }
+      ).items;
 
       expect(items).toHaveLength(1);
       expect(items[0].values['task_item/assignee']).toEqual({
@@ -622,44 +804,65 @@ describe('collection reconciliation', () => {
     });
 
     it('preserves moved top-level user data as the seeded item value', () => {
-      const priorView = makeView([
-        makeNode({ id: 'user_name', type: 'field', key: 'user_name', defaultValue: '' }),
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          template: makeNode({
-            id: 'task_item',
-            type: 'group',
-            children: [
-              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-            ],
+      const priorView = makeView(
+        [
+          makeNode({
+            id: 'user_name',
+            type: 'field',
+            key: 'user_name',
+            defaultValue: '',
           }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          minItems: 1,
-          template: makeNode({
-            id: 'task_item',
-            type: 'group',
-            children: [
-              makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string', defaultValue: '' }),
-              makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-            ],
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
           }),
-        }),
-      ], 'view-1', '2.0');
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            minItems: 1,
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({
+                  id: 'assignee',
+                  type: 'field',
+                  key: 'user_name',
+                  dataType: 'string',
+                  defaultValue: '',
+                }),
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
         user_name: { value: 'Alice', isDirty: true },
         tasks: { value: { items: [] } },
       });
 
       const result = reconcile(newView, priorView, priorData);
-      const items = ((result.reconciledState.values['tasks'] as NodeValue).value as {
-        items: Array<{ values: Record<string, NodeValue> }>;
-      }).items;
+      const items = (
+        (result.reconciledState.values['tasks'] as NodeValue).value as {
+          items: Array<{ values: Record<string, NodeValue> }>;
+        }
+      ).items;
 
       expect(items).toHaveLength(1);
       expect(items[0].values['task_item/assignee']).toEqual({
@@ -670,38 +873,70 @@ describe('collection reconciliation', () => {
     });
 
     it('injects prior top-level value into all existing collection items when node moves into collection', () => {
-      const priorView = makeView([
-        makeNode({ id: 'status', type: 'field', key: 'status', defaultValue: 'active' }),
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          template: makeNode({ id: 'row', type: 'group', children: [
-            makeNode({ id: 'name', type: 'field', dataType: 'string' }),
-          ] }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          template: makeNode({ id: 'row', type: 'group', children: [
-            makeNode({ id: 'name', type: 'field', dataType: 'string' }),
-            makeNode({ id: 'item_status', type: 'field', key: 'status', dataType: 'string' }),
-          ] }),
-        }),
-      ], 'view-1', '2.0');
+      const priorView = makeView(
+        [
+          makeNode({
+            id: 'status',
+            type: 'field',
+            key: 'status',
+            defaultValue: 'active',
+          }),
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            template: makeNode({
+              id: 'row',
+              type: 'group',
+              children: [
+                makeNode({ id: 'name', type: 'field', dataType: 'string' }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            template: makeNode({
+              id: 'row',
+              type: 'group',
+              children: [
+                makeNode({ id: 'name', type: 'field', dataType: 'string' }),
+                makeNode({
+                  id: 'item_status',
+                  type: 'field',
+                  key: 'status',
+                  dataType: 'string',
+                }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
         status: { value: 'archived', isDirty: true },
-        items: { value: { items: [
-          { values: { 'row/name': { value: 'First' } } },
-          { values: { 'row/name': { value: 'Second' } } },
-        ] } },
+        items: {
+          value: {
+            items: [
+              { values: { 'row/name': { value: 'First' } } },
+              { values: { 'row/name': { value: 'Second' } } },
+            ],
+          },
+        },
       });
 
       const result = reconcile(newView, priorView, priorData);
-      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
-        items: Array<{ values: Record<string, NodeValue> }>;
-      }).items;
+      const items = (
+        (result.reconciledState.values['items'] as NodeValue).value as {
+          items: Array<{ values: Record<string, NodeValue> }>;
+        }
+      ).items;
 
       expect(items).toHaveLength(2);
       expect(items[0].values['row/item_status']).toEqual({
@@ -720,37 +955,71 @@ describe('collection reconciliation', () => {
     });
 
     it('extracts value from first collection item when node moves from collection to top-level via key', () => {
-      const priorView = makeView([
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          template: makeNode({ id: 'task_item', type: 'group', children: [
-            makeNode({ id: 'assignee', type: 'field', key: 'user_name', dataType: 'string' }),
-            makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-          ] }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({ id: 'user_name', type: 'field', key: 'user_name', dataType: 'string' }),
-        makeNode({
-          id: 'tasks',
-          type: 'collection',
-          template: makeNode({ id: 'task_item', type: 'group', children: [
-            makeNode({ id: 'title', type: 'field', dataType: 'string' }),
-          ] }),
-        }),
-      ], 'view-1', '2.0');
+      const priorView = makeView(
+        [
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({
+                  id: 'assignee',
+                  type: 'field',
+                  key: 'user_name',
+                  dataType: 'string',
+                }),
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'user_name',
+            type: 'field',
+            key: 'user_name',
+            dataType: 'string',
+          }),
+          makeNode({
+            id: 'tasks',
+            type: 'collection',
+            template: makeNode({
+              id: 'task_item',
+              type: 'group',
+              children: [
+                makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
-        tasks: { value: { items: [
-          { values: {
-            'task_item/assignee': { value: 'Bob', isDirty: true },
-            'task_item/title': { value: 'Do stuff' },
-          } },
-          { values: {
-            'task_item/assignee': { value: 'Carol' },
-            'task_item/title': { value: 'More stuff' },
-          } },
-        ] } },
+        tasks: {
+          value: {
+            items: [
+              {
+                values: {
+                  'task_item/assignee': { value: 'Bob', isDirty: true },
+                  'task_item/title': { value: 'Do stuff' },
+                },
+              },
+              {
+                values: {
+                  'task_item/assignee': { value: 'Carol' },
+                  'task_item/title': { value: 'More stuff' },
+                },
+              },
+            ],
+          },
+        },
       });
 
       const result = reconcile(newView, priorView, priorData);
@@ -762,70 +1031,119 @@ describe('collection reconciliation', () => {
     });
 
     it('does not inject cross-level value when types do not match', () => {
-      const priorView = makeView([
-        makeNode({ id: 'counter', type: 'field', key: 'counter', dataType: 'number' }),
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          template: makeNode({ id: 'row', type: 'group', children: [] }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          minItems: 1,
-          template: makeNode({ id: 'row', type: 'group', children: [
-            makeNode({ id: 'counter', type: 'collection', key: 'counter',
-              template: makeNode({ id: 'c_item', type: 'field', dataType: 'string' }),
+      const priorView = makeView(
+        [
+          makeNode({
+            id: 'counter',
+            type: 'field',
+            key: 'counter',
+            dataType: 'number',
+          }),
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            template: makeNode({ id: 'row', type: 'group', children: [] }),
+          }),
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            minItems: 1,
+            template: makeNode({
+              id: 'row',
+              type: 'group',
+              children: [
+                makeNode({
+                  id: 'counter',
+                  type: 'collection',
+                  key: 'counter',
+                  template: makeNode({
+                    id: 'c_item',
+                    type: 'field',
+                    dataType: 'string',
+                  }),
+                }),
+              ],
             }),
-          ] }),
-        }),
-      ], 'view-1', '2.0');
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
         counter: { value: 42 },
         items: { value: { items: [] } },
       });
 
       const result = reconcile(newView, priorView, priorData);
-      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
-        items: Array<{ values: Record<string, NodeValue> }>;
-      }).items;
+      const items = (
+        (result.reconciledState.values['items'] as NodeValue).value as {
+          items: Array<{ values: Record<string, NodeValue> }>;
+        }
+      ).items;
 
       expect(items).toHaveLength(1);
       expect(items[0].values['row/counter']).toBeUndefined();
-      expect(result.diffs.find((diff) => diff.nodeId === 'items' && diff.type === 'migrated')).toBeUndefined();
+      expect(
+        result.diffs.find(
+          (diff) => diff.nodeId === 'items' && diff.type === 'migrated'
+        )
+      ).toBeUndefined();
       expect(result.reconciledState.values['counter']).toEqual({ value: 42 });
     });
 
     it('emits a migrated diff when cross-level injection occurs', () => {
-      const priorView = makeView([
-        makeNode({ id: 'tag', type: 'field', key: 'tag', defaultValue: '' }),
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          template: makeNode({ id: 'row', type: 'group', children: [] }),
-        }),
-      ], 'view-1', '1.0');
-      const newView = makeView([
-        makeNode({
-          id: 'items',
-          type: 'collection',
-          minItems: 1,
-          template: makeNode({ id: 'row', type: 'group', children: [
-            makeNode({ id: 'row_tag', type: 'field', key: 'tag', dataType: 'string' }),
-          ] }),
-        }),
-      ], 'view-1', '2.0');
+      const priorView = makeView(
+        [
+          makeNode({ id: 'tag', type: 'field', key: 'tag', defaultValue: '' }),
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            template: makeNode({ id: 'row', type: 'group', children: [] }),
+          }),
+        ],
+        'view-1',
+        '1.0'
+      );
+      const newView = makeView(
+        [
+          makeNode({
+            id: 'items',
+            type: 'collection',
+            minItems: 1,
+            template: makeNode({
+              id: 'row',
+              type: 'group',
+              children: [
+                makeNode({
+                  id: 'row_tag',
+                  type: 'field',
+                  key: 'tag',
+                  dataType: 'string',
+                }),
+              ],
+            }),
+          }),
+        ],
+        'view-1',
+        '2.0'
+      );
       const priorData = makeData({
         tag: { value: 'urgent', isDirty: true },
         items: { value: { items: [] } },
       });
 
       const result = reconcile(newView, priorView, priorData);
-      const items = ((result.reconciledState.values['items'] as NodeValue).value as {
-        items: Array<{ values: Record<string, NodeValue> }>;
-      }).items;
+      const items = (
+        (result.reconciledState.values['items'] as NodeValue).value as {
+          items: Array<{ values: Record<string, NodeValue> }>;
+        }
+      ).items;
 
       expect(items).toHaveLength(1);
       expect(items[0].values['row/row_tag']).toEqual({
@@ -834,10 +1152,11 @@ describe('collection reconciliation', () => {
         isDirty: true,
       });
 
-      const migrated = result.diffs.filter(d => d.type === 'migrated' && d.nodeId === 'items');
+      const migrated = result.diffs.filter(
+        (d) => d.type === 'migrated' && d.nodeId === 'items'
+      );
       expect(migrated).toHaveLength(1);
       expect(result.reconciledState.values['tag']).toBeUndefined();
     });
   });
 });
-

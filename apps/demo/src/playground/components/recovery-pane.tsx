@@ -1,5 +1,10 @@
-import type { NodeValue } from '@continuum/contract';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession, useContinuumSnapshot } from '@continuum/react';
+import type { NodeValue } from '@continuum-dev/contract';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
 import { useEffect, useMemo } from 'react';
 import { componentMap } from '../../component-map';
 import { ExampleCard } from '../../ui/layout';
@@ -23,14 +28,19 @@ const statusRowStyle = {
   flexWrap: 'wrap',
 } as const;
 
-const statusChipStyle = (status: string) => ({
-  ...type.small,
-  color: color.text,
-  padding: `${space.sm}px ${space.md}px`,
-  borderRadius: radius.pill,
-  border: `1px solid ${status.toLowerCase().includes('no recovery') ? color.borderStrong : color.border}`,
-  background: color.surface,
-} as const);
+const statusChipStyle = (status: string) =>
+  ({
+    ...type.small,
+    color: color.text,
+    padding: `${space.sm}px ${space.md}px`,
+    borderRadius: radius.pill,
+    border: `1px solid ${
+      status.toLowerCase().includes('no recovery')
+        ? color.borderStrong
+        : color.border
+    }`,
+    background: color.surface,
+  } as const);
 
 const previewStyle = {
   padding: space.lg,
@@ -140,7 +150,10 @@ function replayNaiveRecoveryScenario(
   stepIndex: number,
   inputValues: Record<string, string>
 ): PlaygroundRecoveryReplayState {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
   const seededValues = buildSeedValues(scenario.initialValues, inputValues);
   const initialValues = Object.fromEntries(
     scenario.trackedFields.flatMap((field) => {
@@ -154,7 +167,11 @@ function replayNaiveRecoveryScenario(
     return {
       view: scenario.steps[0].view,
       values: initialValues,
-      trackedFields: buildTrackedFieldStates(scenario, initialValues, scenario.steps[0].view),
+      trackedFields: buildTrackedFieldStates(
+        scenario,
+        initialValues,
+        scenario.steps[0].view
+      ),
       status: 'User data staged',
     };
   }
@@ -162,7 +179,11 @@ function replayNaiveRecoveryScenario(
   return {
     view: scenario.steps[1].view,
     values: {},
-    trackedFields: buildTrackedFieldStates(scenario, {}, scenario.steps[1].view),
+    trackedFields: buildTrackedFieldStates(
+      scenario,
+      {},
+      scenario.steps[1].view
+    ),
     status: 'Bad update replaced the draft',
   };
 }
@@ -199,7 +220,9 @@ function RecoveryPaneCard({
         <div style={summaryGridStyle}>
           <div style={fullRowStyle}>
             <div style={explanationCardStyle}>
-              <div style={explanationTitleStyle}>Why this pane behaves this way</div>
+              <div style={explanationTitleStyle}>
+                Why this pane behaves this way
+              </div>
               <div style={explanationBodyStyle}>{modelDescription}</div>
             </div>
           </div>
@@ -207,16 +230,26 @@ function RecoveryPaneCard({
             <StateSummaryCard
               title="Recovery state"
               rows={[
-                { label: 'Tracked fields', value: String(trackedFields.length) },
+                {
+                  label: 'Tracked fields',
+                  value: String(trackedFields.length),
+                },
                 {
                   label: 'Fields visible now',
-                  value: String(trackedFields.filter((field) => field.nodeId).length),
+                  value: String(
+                    trackedFields.filter((field) => field.nodeId).length
+                  ),
                 },
                 {
                   label: 'Fields carrying values now',
-                  value: String(trackedFields.filter((field) => field.value).length),
+                  value: String(
+                    trackedFields.filter((field) => field.value).length
+                  ),
                 },
-                { label: 'Checkpoints available', value: String(checkpointCount) },
+                {
+                  label: 'Checkpoints available',
+                  value: String(checkpointCount),
+                },
               ]}
             />
           </div>
@@ -242,7 +275,10 @@ function ContinuumRecoveryRuntime({
     () => buildSeedValues(scenario.initialValues, inputValues),
     [inputValues, scenario.initialValues]
   );
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
@@ -271,8 +307,12 @@ function ContinuumRecoveryRuntime({
   const values = snapshot?.data.values ?? {};
   const trackedFields = buildTrackedFieldStates(scenario, values, currentView);
   const checkpoints = session.getCheckpoints();
-  const latestManualCheckpoint = checkpoints.filter((checkpoint) => checkpoint.trigger === 'manual').at(-1);
-  const hasBadViewActive = currentView.viewId === scenario.steps[1].view.viewId && currentView.version === scenario.steps[1].view.version;
+  const latestManualCheckpoint = checkpoints
+    .filter((checkpoint) => checkpoint.trigger === 'manual')
+    .at(-1);
+  const hasBadViewActive =
+    currentView.viewId === scenario.steps[1].view.viewId &&
+    currentView.version === scenario.steps[1].view.version;
   const restoreLatestCheckpoint = () => {
     if (latestManualCheckpoint) {
       session.restoreFromCheckpoint(latestManualCheckpoint);
@@ -290,8 +330,8 @@ function ContinuumRecoveryRuntime({
         boundedStepIndex === 0
           ? 'User data staged'
           : hasBadViewActive
-            ? 'Bad update applied'
-            : 'Recovered from checkpoint'
+          ? 'Bad update applied'
+          : 'Recovered from checkpoint'
       }
       modelDescription="Continuum keeps checkpointed versions of the session timeline. The user can restore any earlier checkpoint, and each one brings back the exact view and user data captured in that version."
       trackedFields={trackedFields}
@@ -302,15 +342,25 @@ function ContinuumRecoveryRuntime({
           <div style={toolStyle}>
             <div style={explanationTitleStyle}>Snapshot tool</div>
             <div style={explanationBodyStyle}>
-              Continuum can restore any earlier checkpoint. In this demo, the control restores the saved checkpoint the session kept before the bad AI update.
+              Continuum can restore any earlier checkpoint. In this demo, the
+              control restores the saved checkpoint the session kept before the
+              bad AI update.
             </div>
             <div style={toolActionsStyle}>
               {hasBadViewActive ? (
-                <button type="button" style={toolButtonStyle} onClick={restoreLatestCheckpoint}>
+                <button
+                  type="button"
+                  style={toolButtonStyle}
+                  onClick={restoreLatestCheckpoint}
+                >
                   Restore saved snapshot
                 </button>
               ) : (
-                <button type="button" style={toolButtonStyle} onClick={reapplyBadUpdate}>
+                <button
+                  type="button"
+                  style={toolButtonStyle}
+                  onClick={reapplyBadUpdate}
+                >
                   Reapply bad update
                 </button>
               )}
@@ -338,7 +388,12 @@ export function RecoveryPane({
     () =>
       createHighlightedComponentMap(
         stepIndex > 0
-          ? Object.fromEntries(scenario.trackedFields.map((field) => [field.key, { tone: 'error' } as const]))
+          ? Object.fromEntries(
+              scenario.trackedFields.map((field) => [
+                field.key,
+                { tone: 'error' } as const,
+              ])
+            )
           : {}
       ),
     [scenario.trackedFields, stepIndex]
@@ -347,7 +402,11 @@ export function RecoveryPane({
   if (mode === 'continuum') {
     return (
       <ContinuumProvider components={componentMap} persist={false}>
-        <ContinuumRecoveryRuntime scenario={scenario} stepIndex={stepIndex} inputValues={inputValues} />
+        <ContinuumRecoveryRuntime
+          scenario={scenario}
+          stepIndex={stepIndex}
+          inputValues={inputValues}
+        />
       </ContinuumProvider>
     );
   }
@@ -368,7 +427,8 @@ export function RecoveryPane({
           <div style={toolStyle}>
             <div style={explanationTitleStyle}>Snapshot tool</div>
             <div style={explanationBodyStyle}>
-              There is no saved snapshot here, so the broken update cannot be rolled back.
+              There is no saved snapshot here, so the broken update cannot be
+              rolled back.
             </div>
           </div>
         ) : undefined

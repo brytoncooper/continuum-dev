@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import type { ViewDefinition, ViewNode, DataSnapshot, NodeValue } from '@continuum/contract';
-import { ISSUE_CODES } from '@continuum/contract';
+import type {
+  ViewDefinition,
+  ViewNode,
+  DataSnapshot,
+  NodeValue,
+} from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/contract';
 import { reconcile } from './reconcile.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -38,9 +43,7 @@ function makeNode(
         }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
-    ...(type === 'presentation'
-      ? { contentType: 'text', content: '' }
-      : {}),
+    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
     ...overrides,
   } as ViewNode;
 }
@@ -116,12 +119,8 @@ describe('collection template path remapping', () => {
       ],
     });
 
-    const priorView = makeView([
-      collectionNode('sets', priorTemplate),
-    ]);
-    const newView = makeView([
-      collectionNode('sets', newTemplate),
-    ]);
+    const priorView = makeView([collectionNode('sets', priorTemplate)]);
+    const newView = makeView([collectionNode('sets', newTemplate)]);
     const priorData = makeData({
       sets: {
         value: {
@@ -141,8 +140,12 @@ describe('collection template path remapping', () => {
     const items = getItems(result, 'sets');
 
     expect(items).toHaveLength(1);
-    expect(items[0].values['set_tpl/grid_set_numbers/fld_weight']).toEqual({ value: 225 });
-    expect(items[0].values['set_tpl/grid_set_numbers/fld_reps']).toEqual({ value: 8 });
+    expect(items[0].values['set_tpl/grid_set_numbers/fld_weight']).toEqual({
+      value: 225,
+    });
+    expect(items[0].values['set_tpl/grid_set_numbers/fld_reps']).toEqual({
+      value: 8,
+    });
     // Old path keys should be gone
     expect(items[0].values['set_tpl/grid_main/fld_weight']).toBeUndefined();
   });
@@ -152,17 +155,13 @@ describe('collection template path remapping', () => {
       id: 'grp_tpl',
       type: 'group',
       key: 'tpl',
-      children: [
-        makeNode({ id: 'fld_name', key: 'name' }),
-      ],
+      children: [makeNode({ id: 'fld_name', key: 'name' })],
     });
     const newTemplate = makeNode({
       id: 'grp_set_card',
       type: 'group',
       key: 'tpl',
-      children: [
-        makeNode({ id: 'fld_name', key: 'name' }),
-      ],
+      children: [makeNode({ id: 'fld_name', key: 'name' })],
     });
 
     const priorView = makeView([collectionNode('items', priorTemplate)]);
@@ -177,7 +176,9 @@ describe('collection template path remapping', () => {
 
     const result = reconcile(newView, priorView, priorData);
     const items = getItems(result, 'items');
-    expect(items[0].values['grp_set_card/fld_name']).toEqual({ value: 'Alice' });
+    expect(items[0].values['grp_set_card/fld_name']).toEqual({
+      value: 'Alice',
+    });
   });
 
   it('remaps nested 3-deep template paths', () => {
@@ -190,9 +191,7 @@ describe('collection template path remapping', () => {
           id: 'row_a',
           type: 'row',
           key: 'section',
-          children: [
-            makeNode({ id: 'fld_x', key: 'x_val' }),
-          ],
+          children: [makeNode({ id: 'fld_x', key: 'x_val' })],
         }),
       ],
     });
@@ -205,9 +204,7 @@ describe('collection template path remapping', () => {
           id: 'grid_b',
           type: 'grid',
           key: 'section',
-          children: [
-            makeNode({ id: 'fld_x', key: 'x_val' }),
-          ],
+          children: [makeNode({ id: 'fld_x', key: 'x_val' })],
         }),
       ],
     });
@@ -215,7 +212,9 @@ describe('collection template path remapping', () => {
     const priorView = makeView([collectionNode('c', priorTemplate)]);
     const newView = makeView([collectionNode('c', newTemplate)]);
     const priorData = makeData({
-      c: { value: { items: [{ values: { 'tpl/row_a/fld_x': { value: 42 } } }] } },
+      c: {
+        value: { items: [{ values: { 'tpl/row_a/fld_x': { value: 42 } } }] },
+      },
     });
 
     const result = reconcile(newView, priorView, priorData);
@@ -249,12 +248,14 @@ describe('collection template path remapping', () => {
     const priorData = makeData({
       c: {
         value: {
-          items: [{
-            values: {
-              'tpl/stable': { value: 'kept' },
-              'tpl/old_id': { value: 'moved' },
+          items: [
+            {
+              values: {
+                'tpl/stable': { value: 'kept' },
+                'tpl/old_id': { value: 'moved' },
+              },
             },
-          }],
+          ],
         },
       },
     });
@@ -319,13 +320,15 @@ describe('collection template path remapping', () => {
     const priorData = makeData({
       col: {
         value: {
-          items: [{
-            values: {
-              'tpl/a': { value: 'A' },
-              'tpl/b': { value: 'B' },
-              'tpl/c': { value: 'C' },
+          items: [
+            {
+              values: {
+                'tpl/a': { value: 'A' },
+                'tpl/b': { value: 'B' },
+                'tpl/c': { value: 'C' },
+              },
             },
-          }],
+          ],
         },
       },
     });
@@ -384,10 +387,14 @@ describe('multi-push restructure sequences', () => {
     const data1 = makeData({ old_email: { value: 'a@b.com' } });
 
     const r1 = reconcile(v2, v1, data1);
-    expect(r1.reconciledState.values['fld_email']).toEqual({ value: 'a@b.com' });
+    expect(r1.reconciledState.values['fld_email']).toEqual({
+      value: 'a@b.com',
+    });
 
     const r2 = reconcile(v3, v2, r1.reconciledState);
-    expect(r2.reconciledState.values['input_email']).toEqual({ value: 'a@b.com' });
+    expect(r2.reconciledState.values['input_email']).toEqual({
+      value: 'a@b.com',
+    });
   });
 
   it('round-trip v1→v2→v1 preserves original values', () => {
@@ -436,9 +443,15 @@ describe('multi-push restructure sequences', () => {
     });
 
     const result = reconcile(v2, v1, data);
-    expect(result.reconciledState.values['root/section_1/field_a']).toEqual({ value: 'A' });
-    expect(result.reconciledState.values['root/section_1/field_b']).toEqual({ value: 'B' });
-    expect(result.reconciledState.values['root/field_c']).toEqual({ value: 'C' });
+    expect(result.reconciledState.values['root/section_1/field_a']).toEqual({
+      value: 'A',
+    });
+    expect(result.reconciledState.values['root/section_1/field_b']).toEqual({
+      value: 'B',
+    });
+    expect(result.reconciledState.values['root/field_c']).toEqual({
+      value: 'C',
+    });
   });
 
   it('field removed in v2, re-added in v3 — restored from detachedValues', () => {
@@ -516,9 +529,7 @@ describe('same-push detach + restore', () => {
         id: 'grp1',
         type: 'group',
         key: 'section',
-        children: [
-          makeNode({ id: 'child_old', key: 'child_key' }),
-        ],
+        children: [makeNode({ id: 'child_old', key: 'child_key' })],
       }),
     ]);
     const newView = makeView([
@@ -526,15 +537,15 @@ describe('same-push detach + restore', () => {
         id: 'grp2',
         type: 'group',
         key: 'section',
-        children: [
-          makeNode({ id: 'child_new', key: 'child_key' }),
-        ],
+        children: [makeNode({ id: 'child_new', key: 'child_key' })],
       }),
     ]);
     const priorData = makeData({ 'grp1/child_old': { value: 'restored' } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['grp2/child_new']).toEqual({ value: 'restored' });
+    expect(result.reconciledState.values['grp2/child_new']).toEqual({
+      value: 'restored',
+    });
   });
 
   it('restores by key when type matches, skips when type differs', () => {
@@ -586,7 +597,9 @@ describe('collection constraint edge cases', () => {
   });
 
   it('minItems increased — pads with defaults, existing untouched', () => {
-    const priorView = makeView([collectionNode('c', simpleTpl, { minItems: 1 })]);
+    const priorView = makeView([
+      collectionNode('c', simpleTpl, { minItems: 1 }),
+    ]);
     const newView = makeView([collectionNode('c', simpleTpl, { minItems: 3 })]);
     const priorData = makeData({
       c: { value: { items: [{ values: { item: { value: 'existing' } } }] } },
@@ -612,7 +625,9 @@ describe('collection constraint edge cases', () => {
 
   it('negative minItems/maxItems treated as zero/undefined', () => {
     const priorView = makeView([collectionNode('c', simpleTpl)]);
-    const newView = makeView([collectionNode('c', simpleTpl, { minItems: -5, maxItems: -3 })]);
+    const newView = makeView([
+      collectionNode('c', simpleTpl, { minItems: -5, maxItems: -3 }),
+    ]);
     const priorData = makeData({
       c: { value: { items: [{ values: { item: { value: 'kept' } } }] } },
     });
@@ -663,7 +678,11 @@ describe('collection constraint edge cases', () => {
 
 describe('nested collections', () => {
   it('inner collection preserved when outer template structure changes', () => {
-    const innerTpl = makeNode({ id: 'phone_val', type: 'field', dataType: 'string' });
+    const innerTpl = makeNode({
+      id: 'phone_val',
+      type: 'field',
+      dataType: 'string',
+    });
     const priorOuter = makeNode({
       id: 'addr_tpl',
       type: 'group',
@@ -688,14 +707,18 @@ describe('nested collections', () => {
     const priorData = makeData({
       addrs: {
         value: {
-          items: [{
-            values: {
-              'addr_tpl/street': { value: '123 Main' },
-              'addr_tpl/phones': {
-                value: { items: [{ values: { phone_val: { value: '555-1234' } } }] },
+          items: [
+            {
+              values: {
+                'addr_tpl/street': { value: '123 Main' },
+                'addr_tpl/phones': {
+                  value: {
+                    items: [{ values: { phone_val: { value: '555-1234' } } }],
+                  },
+                },
               },
             },
-          }],
+          ],
         },
       },
     });
@@ -719,13 +742,24 @@ describe('nested collections', () => {
     const items = getItems(result, 'outer');
     expect(items).toHaveLength(1);
     expect(items[0].values['tpl/inner']).toBeDefined();
-    const innerVal = items[0].values['tpl/inner'] as NodeValue<{ items: unknown[] }>;
+    const innerVal = items[0].values['tpl/inner'] as NodeValue<{
+      items: unknown[];
+    }>;
     expect(innerVal.value.items).toEqual([]);
   });
 
   it('type mismatch in inner collection template — inner reset, outer preserved', () => {
-    const innerTplOld = makeNode({ id: 'val', type: 'field', dataType: 'string' });
-    const innerTplNew = makeNode({ id: 'val', type: 'action', intentId: 'x', label: 'Go' });
+    const innerTplOld = makeNode({
+      id: 'val',
+      type: 'field',
+      dataType: 'string',
+    });
+    const innerTplNew = makeNode({
+      id: 'val',
+      type: 'action',
+      intentId: 'x',
+      label: 'Go',
+    });
     const outerTplOld = makeNode({
       id: 'tpl',
       type: 'group',
@@ -749,14 +783,16 @@ describe('nested collections', () => {
     const priorData = makeData({
       c: {
         value: {
-          items: [{
-            values: {
-              'tpl/title': { value: 'Keep me' },
-              'tpl/inner': {
-                value: { items: [{ values: { val: { value: 'old' } } }] },
+          items: [
+            {
+              values: {
+                'tpl/title': { value: 'Keep me' },
+                'tpl/inner': {
+                  value: { items: [{ values: { val: { value: 'old' } } }] },
+                },
               },
             },
-          }],
+          ],
         },
       },
     });
@@ -778,7 +814,7 @@ describe('type change scenarios', () => {
 
     const result = reconcile(newView, priorView, priorData);
     expect(result.reconciledState.values['a']).toBeUndefined();
-    expect(result.diffs.some(d => d.type === 'type-changed')).toBe(true);
+    expect(result.diffs.some((d) => d.type === 'type-changed')).toBe(true);
   });
 
   it('action→field: field gets defaultValue if present', () => {
@@ -806,7 +842,7 @@ describe('type change scenarios', () => {
 
     const result = reconcile(newView, priorView, priorData);
     expect(result.reconciledState.values['a/child']).toBeUndefined();
-    expect(result.diffs.some(d => d.type === 'type-changed')).toBe(true);
+    expect(result.diffs.some((d) => d.type === 'type-changed')).toBe(true);
   });
 
   it('field→collection: collection initialized fresh', () => {
@@ -816,19 +852,25 @@ describe('type change scenarios', () => {
     const priorData = makeData({ a: { value: 'was a field' } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.issues.some(i => i.code === ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+    expect(
+      result.issues.some((i) => i.code === ISSUE_CODES.TYPE_MISMATCH)
+    ).toBe(true);
   });
 
   it('collection→field: field initialized, collection detached', () => {
     const tpl = makeNode({ id: 'item', type: 'field', dataType: 'string' });
     const priorView = makeView([collectionNode('a', tpl)]);
-    const newView = makeView([makeNode({ id: 'a', type: 'field', defaultValue: 'new' })]);
+    const newView = makeView([
+      makeNode({ id: 'a', type: 'field', defaultValue: 'new' }),
+    ]);
     const priorData = makeData({
       a: { value: { items: [{ values: { item: { value: 'old' } } }] } },
     });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.issues.some(i => i.code === ISSUE_CODES.TYPE_MISMATCH)).toBe(true);
+    expect(
+      result.issues.some((i) => i.code === ISSUE_CODES.TYPE_MISMATCH)
+    ).toBe(true);
   });
 
   it('row→grid container swap preserves children via key', () => {
@@ -861,9 +903,15 @@ describe('type change scenarios', () => {
 
     const result = reconcile(newView, priorView, priorData);
     // row→grid is now treated as compatible — values should be preserved
-    expect(result.reconciledState.values['container/f1']).toEqual({ value: 'one' });
-    expect(result.reconciledState.values['container/f2']).toEqual({ value: 'two' });
-    expect(result.diffs.filter(d => d.type === 'type-changed')).toHaveLength(0);
+    expect(result.reconciledState.values['container/f1']).toEqual({
+      value: 'one',
+    });
+    expect(result.reconciledState.values['container/f2']).toEqual({
+      value: 'two',
+    });
+    expect(result.diffs.filter((d) => d.type === 'type-changed')).toHaveLength(
+      0
+    );
   });
 
   it('presentation→field: field gets no state from presentation', () => {
@@ -974,7 +1022,9 @@ describe('key matching edge cases', () => {
     ]);
 
     const result = reconcile(view, null, null);
-    expect(result.issues.some(i => i.code === 'DUPLICATE_NODE_KEY')).toBe(true);
+    expect(result.issues.some((i) => i.code === 'DUPLICATE_NODE_KEY')).toBe(
+      true
+    );
   });
 
   it('key changes: prior had key "weight", new has key "mass" — treated as new', () => {
@@ -1034,8 +1084,12 @@ describe('key matching edge cases', () => {
     });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['billing/name']).toEqual({ value: 'Bill' });
-    expect(result.reconciledState.values['shipping/name']).toEqual({ value: 'Ship' });
+    expect(result.reconciledState.values['billing/name']).toEqual({
+      value: 'Bill',
+    });
+    expect(result.reconciledState.values['shipping/name']).toEqual({
+      value: 'Ship',
+    });
   });
 });
 
@@ -1120,7 +1174,9 @@ describe('deep nesting & large trees', () => {
     const resultItems = getItems(result, 'people');
     expect(resultItems).toHaveLength(50);
     expect(resultItems[0].values['card/inp_name']).toEqual({ value: 'Name_0' });
-    expect(resultItems[49].values['card/inp_city']).toEqual({ value: 'City_49' });
+    expect(resultItems[49].values['card/inp_city']).toEqual({
+      value: 'City_49',
+    });
   });
 
   it('fan-out: group with 50 children, half renamed — all values preserved', () => {
@@ -1148,10 +1204,14 @@ describe('deep nesting & large trees', () => {
     const result = reconcile(newView, priorView, priorData);
     // First 25 by ID, last 25 by key
     for (let i = 0; i < 25; i++) {
-      expect(result.reconciledState.values[`root/f${i}`]).toEqual({ value: `v${i}` });
+      expect(result.reconciledState.values[`root/f${i}`]).toEqual({
+        value: `v${i}`,
+      });
     }
     for (let i = 25; i < 50; i++) {
-      expect(result.reconciledState.values[`root/renamed_${i}`]).toEqual({ value: `v${i}` });
+      expect(result.reconciledState.values[`root/renamed_${i}`]).toEqual({
+        value: `v${i}`,
+      });
     }
   });
 });
@@ -1160,9 +1220,7 @@ describe('deep nesting & large trees', () => {
 
 describe('presentation & action node lifecycle', () => {
   it('presentation nodes never hold values in reconciled state', () => {
-    const view = makeView([
-      makeNode({ id: 'prs', type: 'presentation' }),
-    ]);
+    const view = makeView([makeNode({ id: 'prs', type: 'presentation' })]);
     const result = reconcile(view, null, null);
     expect(result.reconciledState.values['prs']).toBeUndefined();
   });
@@ -1185,17 +1243,14 @@ describe('presentation & action node lifecycle', () => {
     const priorData = makeData({ btn: { value: { clicked: true } } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.diffs.some(d => d.type === 'migrated')).toBe(true);
+    expect(result.diffs.some((d) => d.type === 'migrated')).toBe(true);
   });
 
   it('row nodes carry all children values independently', () => {
     const row = makeNode({
       id: 'row',
       type: 'row',
-      children: [
-        makeNode({ id: 'left' }),
-        makeNode({ id: 'right' }),
-      ],
+      children: [makeNode({ id: 'left' }), makeNode({ id: 'right' })],
     });
     const view = makeView([row]);
     const priorData = makeData({
@@ -1214,8 +1269,12 @@ describe('presentation & action node lifecycle', () => {
 describe('value lineage through collections', () => {
   it('valueLineage carries through collection node rename', () => {
     const tpl = makeNode({ id: 'item', type: 'field', dataType: 'string' });
-    const priorView = makeView([collectionNode('old_col', tpl, { key: 'col_key' })]);
-    const newView = makeView([collectionNode('new_col', tpl, { key: 'col_key' })]);
+    const priorView = makeView([
+      collectionNode('old_col', tpl, { key: 'col_key' }),
+    ]);
+    const newView = makeView([
+      collectionNode('new_col', tpl, { key: 'col_key' }),
+    ]);
     const priorData: DataSnapshot = {
       values: {
         old_col: { value: { items: [{ values: { item: { value: 'x' } } }] } },
@@ -1280,7 +1339,11 @@ describe('determinism & idempotency', () => {
     const result = reconcile(view, view, priorData);
     expect(result.reconciledState.values['x']).toEqual({ value: 'original' });
     expect(result.reconciledState.values['y']).toEqual({ value: true });
-    expect(result.diffs.every(d => d.type !== 'removed' && d.type !== 'type-changed')).toBe(true);
+    expect(
+      result.diffs.every(
+        (d) => d.type !== 'removed' && d.type !== 'type-changed'
+      )
+    ).toBe(true);
   });
 
   it('reconcile(A→B) then reconcile(B→B) = stable state', () => {
@@ -1292,7 +1355,7 @@ describe('determinism & idempotency', () => {
     const r2 = reconcile(viewB, viewB, r1.reconciledState);
 
     expect(r2.reconciledState.values['new']).toEqual({ value: 'value' });
-    expect(r2.diffs.filter(d => d.type === 'removed')).toHaveLength(0);
+    expect(r2.diffs.filter((d) => d.type === 'removed')).toHaveLength(0);
   });
 
   it('order of nodes in view does not affect value carry', () => {
@@ -1358,9 +1421,13 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
 
     const result = reconcile(newView, priorView, priorData);
     expect(result.reconciledState.values['box/f1']).toEqual({ value: 'Alice' });
-    expect(result.reconciledState.values['box/f2']).toEqual({ value: 'alice@test.com' });
+    expect(result.reconciledState.values['box/f2']).toEqual({
+      value: 'alice@test.com',
+    });
     // Should NOT produce type-changed diff
-    expect(result.diffs.filter(d => d.type === 'type-changed')).toHaveLength(0);
+    expect(result.diffs.filter((d) => d.type === 'type-changed')).toHaveLength(
+      0
+    );
   });
 
   it('grid→group preserves all child values', () => {
@@ -1381,7 +1448,9 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
     const priorData = makeData({ 'container/inner': { value: 'safe' } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['container/inner']).toEqual({ value: 'safe' });
+    expect(result.reconciledState.values['container/inner']).toEqual({
+      value: 'safe',
+    });
   });
 
   it('group→row preserves all child values', () => {
@@ -1389,20 +1458,14 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
       makeNode({
         id: 'section',
         type: 'group',
-        children: [
-          makeNode({ id: 'a' }),
-          makeNode({ id: 'b' }),
-        ],
+        children: [makeNode({ id: 'a' }), makeNode({ id: 'b' })],
       }),
     ]);
     const newView = makeView([
       makeNode({
         id: 'section',
         type: 'row',
-        children: [
-          makeNode({ id: 'a' }),
-          makeNode({ id: 'b' }),
-        ],
+        children: [makeNode({ id: 'a' }), makeNode({ id: 'b' })],
       }),
     ]);
     const priorData = makeData({
@@ -1416,14 +1479,15 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
   });
 
   it('three-way swap group→row→grid in sequence preserves data', () => {
-    const makeLayout = (type: 'group' | 'row' | 'grid') => makeView([
-      makeNode({
-        id: 'layout',
-        type,
-        key: 'layout',
-        children: [makeNode({ id: 'fld', key: 'fld' })],
-      }),
-    ]);
+    const makeLayout = (type: 'group' | 'row' | 'grid') =>
+      makeView([
+        makeNode({
+          id: 'layout',
+          type,
+          key: 'layout',
+          children: [makeNode({ id: 'fld', key: 'fld' })],
+        }),
+      ]);
 
     const v1 = makeLayout('group');
     const v2 = makeLayout('row');
@@ -1431,10 +1495,14 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
     const data = makeData({ 'layout/fld': { value: 'survives' } });
 
     const r1 = reconcile(v2, v1, data);
-    expect(r1.reconciledState.values['layout/fld']).toEqual({ value: 'survives' });
+    expect(r1.reconciledState.values['layout/fld']).toEqual({
+      value: 'survives',
+    });
 
     const r2 = reconcile(v3, v2, r1.reconciledState);
-    expect(r2.reconciledState.values['layout/fld']).toEqual({ value: 'survives' });
+    expect(r2.reconciledState.values['layout/fld']).toEqual({
+      value: 'survives',
+    });
   });
 
   it('container swap with simultaneous child rename preserves by key', () => {
@@ -1455,7 +1523,9 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
     const priorData = makeData({ 'panel/old_name': { value: 'Bob' } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['panel/new_name']).toEqual({ value: 'Bob' });
+    expect(result.reconciledState.values['panel/new_name']).toEqual({
+      value: 'Bob',
+    });
   });
 
   it('container swap inside collection template preserves items', () => {
@@ -1501,7 +1571,7 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
 
     const result = reconcile(newView, priorView, priorData);
     // field→row IS a real type mismatch
-    expect(result.diffs.some(d => d.type === 'type-changed')).toBe(true);
+    expect(result.diffs.some((d) => d.type === 'type-changed')).toBe(true);
   });
 
   it('collection→group is still a real type mismatch', () => {
@@ -1515,7 +1585,7 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
     });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.issues.some(i => i.code === 'TYPE_MISMATCH')).toBe(true);
+    expect(result.issues.some((i) => i.code === 'TYPE_MISMATCH')).toBe(true);
   });
 });
 
@@ -1527,7 +1597,9 @@ describe('default value behavior', () => {
       makeNode({ id: 'name', defaultValue: 'Anonymous' }),
     ]);
     const result = reconcile(view, null, null);
-    expect(result.reconciledState.values['name']).toEqual({ value: 'Anonymous' });
+    expect(result.reconciledState.values['name']).toEqual({
+      value: 'Anonymous',
+    });
   });
 
   it('defaultValue is NOT overwritten on carry', () => {
@@ -1549,7 +1621,9 @@ describe('default value behavior', () => {
 
     const result = reconcile(newView, priorView, priorData);
     expect(result.reconciledState.values['a']).toEqual({ value: 'existing' });
-    expect(result.reconciledState.values['b']).toEqual({ value: 'new-default' });
+    expect(result.reconciledState.values['b']).toEqual({
+      value: 'new-default',
+    });
   });
 
   it('collection template defaults are applied to minItems seed', () => {
@@ -1603,7 +1677,11 @@ describe('hidden node behavior', () => {
 
 describe('multiple collections in same view', () => {
   it('two collections with different templates reconcile independently', () => {
-    const tplA = makeNode({ id: 'name_tpl', type: 'field', dataType: 'string' });
+    const tplA = makeNode({
+      id: 'name_tpl',
+      type: 'field',
+      dataType: 'string',
+    });
     const tplB = makeNode({ id: 'num_tpl', type: 'field', dataType: 'number' });
 
     const view = makeView([
@@ -1631,12 +1709,28 @@ describe('multiple collections in same view', () => {
   });
 
   it('restructuring one collection does not affect the other', () => {
-    const priorTplA = makeNode({ id: 'tpl_a', type: 'field', key: 'a_tpl', dataType: 'string' });
-    const newTplA = makeNode({ id: 'tpl_a_v2', type: 'field', key: 'a_tpl', dataType: 'string' });
+    const priorTplA = makeNode({
+      id: 'tpl_a',
+      type: 'field',
+      key: 'a_tpl',
+      dataType: 'string',
+    });
+    const newTplA = makeNode({
+      id: 'tpl_a_v2',
+      type: 'field',
+      key: 'a_tpl',
+      dataType: 'string',
+    });
     const tplB = makeNode({ id: 'tpl_b', type: 'field', dataType: 'number' });
 
-    const priorView = makeView([collectionNode('a', priorTplA), collectionNode('b', tplB)]);
-    const newView = makeView([collectionNode('a', newTplA), collectionNode('b', tplB)]);
+    const priorView = makeView([
+      collectionNode('a', priorTplA),
+      collectionNode('b', tplB),
+    ]);
+    const newView = makeView([
+      collectionNode('a', newTplA),
+      collectionNode('b', tplB),
+    ]);
     const priorData = makeData({
       a: { value: { items: [{ values: { tpl_a: { value: 'data' } } }] } },
       b: { value: { items: [{ values: { tpl_b: { value: 42 } } }] } },
@@ -1658,16 +1752,28 @@ describe('validator edge cases', () => {
     // Use carry path (prior view + prior data) so validator runs
     const priorData = makeData({});
     const result = reconcile(view, view, priorData);
-    expect(result.issues.some(i => i.code === 'VALIDATION_FAILED' && i.nodeId === 'req')).toBe(true);
+    expect(
+      result.issues.some(
+        (i) => i.code === 'VALIDATION_FAILED' && i.nodeId === 'req'
+      )
+    ).toBe(true);
   });
 
   it('min/max number constraints produce warnings for out-of-range', () => {
     const view = makeView([
-      makeNode({ id: 'age', dataType: 'number', constraints: { min: 0, max: 120 } }),
+      makeNode({
+        id: 'age',
+        dataType: 'number',
+        constraints: { min: 0, max: 120 },
+      }),
     ]);
     const priorData = makeData({ age: { value: 150 } });
     const result = reconcile(view, view, priorData);
-    expect(result.issues.some(i => i.code === 'VALIDATION_FAILED' && i.nodeId === 'age')).toBe(true);
+    expect(
+      result.issues.some(
+        (i) => i.code === 'VALIDATION_FAILED' && i.nodeId === 'age'
+      )
+    ).toBe(true);
   });
 
   it('pattern constraint validates string fields', () => {
@@ -1676,15 +1782,24 @@ describe('validator edge cases', () => {
     ]);
     const priorData = makeData({ zip: { value: 'not-a-zip' } });
     const result = reconcile(view, view, priorData);
-    expect(result.issues.some(i => i.code === 'VALIDATION_FAILED' && i.nodeId === 'zip')).toBe(true);
+    expect(
+      result.issues.some(
+        (i) => i.code === 'VALIDATION_FAILED' && i.nodeId === 'zip'
+      )
+    ).toBe(true);
   });
 
   it('valid values produce no validation issues', () => {
     const view = makeView([
-      makeNode({ id: 'name', constraints: { required: true, minLength: 1, maxLength: 50 } }),
+      makeNode({
+        id: 'name',
+        constraints: { required: true, minLength: 1, maxLength: 50 },
+      }),
     ]);
     const priorData = makeData({ name: { value: 'Bryton' } });
     const result = reconcile(view, view, priorData);
-    expect(result.issues.filter(i => i.code === 'VALIDATION_FAILED')).toHaveLength(0);
+    expect(
+      result.issues.filter((i) => i.code === 'VALIDATION_FAILED')
+    ).toHaveLength(0);
   });
 });

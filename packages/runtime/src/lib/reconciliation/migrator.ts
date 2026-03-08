@@ -1,4 +1,4 @@
-import type { ViewNode } from '@continuum/contract';
+import type { ViewNode } from '@continuum-dev/contract';
 import type { ReconciliationOptions } from '../types.js';
 
 export type MigrationAttemptResult =
@@ -83,7 +83,12 @@ export function attemptMigration(
         const strategy = options.strategyRegistry[step.strategyId];
         const stepPriorNode = { ...priorNode, hash: currentHash };
         const stepNewNode = { ...newNode, hash: step.toHash };
-        currentValue = strategy(nodeId, stepPriorNode, stepNewNode, currentValue);
+        currentValue = strategy(
+          nodeId,
+          stepPriorNode,
+          stepNewNode,
+          currentValue
+        );
         currentHash = step.toHash;
       }
       return { kind: 'migrated', value: currentValue };
@@ -102,7 +107,15 @@ function findMigrationPath(
   rules: Array<{ fromHash: string; toHash: string; strategyId?: string }>,
   fromHash: string,
   toHash: string,
-  strategyRegistry: Record<string, (nodeId: string, priorNode: ViewNode, newNode: ViewNode, priorValue: unknown) => unknown>
+  strategyRegistry: Record<
+    string,
+    (
+      nodeId: string,
+      priorNode: ViewNode,
+      newNode: ViewNode,
+      priorValue: unknown
+    ) => unknown
+  >
 ): RuleEdge[] | null {
   const edges: RuleEdge[] = rules
     .filter((rule) => !!rule.strategyId && !!strategyRegistry[rule.strategyId!])
@@ -119,7 +132,9 @@ function findMigrationPath(
     byFrom.set(edge.fromHash, existing);
   }
 
-  const queue: Array<{ hash: string; path: RuleEdge[] }> = [{ hash: fromHash, path: [] }];
+  const queue: Array<{ hash: string; path: RuleEdge[] }> = [
+    { hash: fromHash, path: [] },
+  ];
   const seen = new Set<string>([fromHash]);
 
   while (queue.length > 0) {

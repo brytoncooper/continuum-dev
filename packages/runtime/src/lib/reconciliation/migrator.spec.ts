@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { ViewNode } from '@continuum/contract';
+import type { ViewNode } from '@continuum-dev/contract';
 import type { MigrationStrategy } from '../types.js';
 import { attemptMigration } from './migrator.js';
 
@@ -50,7 +50,9 @@ describe('attemptMigration', () => {
         id: 'node-1',
         type: 'field',
         hash: 'v2',
-        migrations: [{ fromHash: 'v1', toHash: 'v2', strategyId: 'my-strategy' }],
+        migrations: [
+          { fromHash: 'v1', toHash: 'v2', strategyId: 'my-strategy' },
+        ],
       }),
       { value: 'hello' },
       { strategyRegistry: { 'my-strategy': registry } }

@@ -1,4 +1,8 @@
-import type { NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { describe, expect, it } from 'vitest';
 import { a2uiAdapter, createDefaultNodeValue } from './adapter.js';
 

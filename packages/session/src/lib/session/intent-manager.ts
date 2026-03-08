@@ -1,5 +1,5 @@
-import type { PendingIntent } from '@continuum/contract';
-import { INTENT_STATUS } from '@continuum/contract';
+import type { PendingIntent } from '@continuum-dev/contract';
+import { INTENT_STATUS } from '@continuum-dev/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 
@@ -11,7 +11,10 @@ import { generateId } from './session-state.js';
  */
 export function submitIntent(
   internal: SessionState,
-  partial: Omit<PendingIntent, 'intentId' | 'queuedAt' | 'status' | 'viewVersion'>
+  partial: Omit<
+    PendingIntent,
+    'intentId' | 'queuedAt' | 'status' | 'viewVersion'
+  >
 ): void {
   if (internal.destroyed || !internal.currentView) return;
 
@@ -27,7 +30,10 @@ export function submitIntent(
 
   internal.pendingIntents.push(intent);
   if (internal.pendingIntents.length > internal.maxPendingIntents) {
-    internal.pendingIntents.splice(0, internal.pendingIntents.length - internal.maxPendingIntents);
+    internal.pendingIntents.splice(
+      0,
+      internal.pendingIntents.length - internal.maxPendingIntents
+    );
   }
 }
 
@@ -38,7 +44,10 @@ export function submitIntent(
  * @param intentId Target intent id.
  * @returns True when the intent exists.
  */
-export function validateIntent(internal: SessionState, intentId: string): boolean {
+export function validateIntent(
+  internal: SessionState,
+  intentId: string
+): boolean {
   const intent = internal.pendingIntents.find((a) => a.intentId === intentId);
   if (!intent) return false;
   intent.status = INTENT_STATUS.VALIDATED;
@@ -52,7 +61,10 @@ export function validateIntent(internal: SessionState, intentId: string): boolea
  * @param intentId Target intent id.
  * @returns True when the intent exists.
  */
-export function cancelIntent(internal: SessionState, intentId: string): boolean {
+export function cancelIntent(
+  internal: SessionState,
+  intentId: string
+): boolean {
   const intent = internal.pendingIntents.find((a) => a.intentId === intentId);
   if (!intent) return false;
   intent.status = INTENT_STATUS.CANCELLED;

@@ -11,7 +11,7 @@ Continuum is a state continuity layer for view-driven UIs. Given a view definiti
 3. Auto-checkpoints on every view push (user can rewind to any prior version)
 4. Logs a full audit trail (diffs, resolutions, issues, interactions)
 
-## Core Data Types (`@continuum/contract`)
+## Core Data Types (`@continuum-dev/contract`)
 
 ```typescript
 interface ViewDefinition {
@@ -146,10 +146,10 @@ interface Checkpoint {
 }
 ```
 
-## Session API (`@continuum/session`)
+## Session API (`@continuum-dev/session`)
 
 ```typescript
-import { createSession, deserialize } from '@continuum/session';
+import { createSession, deserialize } from '@continuum-dev/session';
 
 const session = createSession(); // or createSession({ clock: Date.now })
 const restored = deserialize(blob); // reconstruct from session.serialize() output
@@ -199,7 +199,7 @@ const unsub2 = session.onIssues(callback); // fires after pushView, rewind
 session.destroy(); // teardown, returns { issues }
 ```
 
-## React Integration (`@continuum/react`)
+## React Integration (`@continuum-dev/react`)
 
 ```tsx
 import {
@@ -210,7 +210,7 @@ import {
   useContinuumSnapshot,
   useContinuumDiagnostics,
   useContinuumHydrated,
-} from '@continuum/react';
+} from '@continuum-dev/react';
 
 // Provider wraps your app, handles persistence
 <ContinuumProvider
@@ -240,15 +240,18 @@ const { issues, diffs, resolutions, checkpoints } = useContinuumDiagnostics();
 const wasHydrated = useContinuumHydrated(); // boolean
 ```
 
-## Angular Integration (`@continuum/angular`)
+## Angular Integration (`@continuum-dev/angular`)
 
 ```typescript
 import {
   provideContinuum,
   injectContinuumSession,
   ContinuumRendererComponent,
-} from '@continuum/angular';
-import type { ContinuumNodeProps, ContinuumNodeMap } from '@continuum/angular';
+} from '@continuum-dev/angular';
+import type {
+  ContinuumNodeProps,
+  ContinuumNodeMap,
+} from '@continuum-dev/angular';
 
 // Provide in your app config
 bootstrapApplication(AppComponent, {
@@ -267,13 +270,13 @@ const session = injectContinuumSession();
 // <continuum-renderer [view]="snapshot.view" />
 ```
 
-## Protocol Adapters (`@continuum/adapters`)
+## Protocol Adapters (`@continuum-dev/adapters`)
 
 Transform external UI formats into Continuum's `ViewDefinition`:
 
 ```typescript
-import { a2uiAdapter } from '@continuum/adapters';
-import type { ProtocolAdapter, A2UIForm } from '@continuum/adapters';
+import { a2uiAdapter } from '@continuum-dev/adapters';
+import type { ProtocolAdapter, A2UIForm } from '@continuum-dev/adapters';
 
 // Convert A2UI JSON → ViewDefinition
 const view = a2uiAdapter.toView(a2uiForm);
@@ -340,7 +343,7 @@ When `pushView(newView)` is called with existing data:
 7. **New nodes** -- nodes in new view with no match are added with empty state
 8. **Removed nodes** -- nodes in prior view with no match in new view are logged as removed
 
-## Constants (`@continuum/contract`)
+## Constants (`@continuum-dev/contract`)
 
 ```typescript
 import {
@@ -349,7 +352,7 @@ import {
   VIEW_DIFFS,
   ISSUE_SEVERITY,
   INTENT_STATUS,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 
 ISSUE_CODES.NO_PRIOR_DATA;
 ISSUE_CODES.NO_PRIOR_VIEW;
@@ -411,8 +414,8 @@ apps/playground/     - Demo application (protocol toggle, hallucination animatio
 All code uses Vitest. Tests are co-located (`*.spec.ts`). Run with:
 
 ```bash
-npx nx run @continuum/adapters:test
-npx nx run @continuum/session:test
+npx nx run @continuum-dev/adapters:test
+npx nx run @continuum-dev/session:test
 npx nx run runtime:test
 npx nx run-many -t test
 ```

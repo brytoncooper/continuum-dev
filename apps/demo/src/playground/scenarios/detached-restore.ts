@@ -1,4 +1,8 @@
-import type { NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import type { PlaygroundDetachedScenario } from '../types';
 
 function node(definition: Record<string, unknown>): ViewNode {
@@ -135,7 +139,8 @@ const restoredView: ViewDefinition = {
 export const detachedRestoreScenario: PlaygroundDetachedScenario = {
   id: 'detached-restore',
   kind: 'detached-restore',
-  title: 'Removed or incompatible fields should come back with their prior user data intact.',
+  title:
+    'Removed or incompatible fields should come back with their prior user data intact.',
   selectorLabel: 'Detached restore',
   problem:
     'The user already entered values. Then the AI removes one field entirely and changes another into an incompatible node type. Without Continuum, that data is gone or reset. With Continuum, the values are detached, preserved, and restored automatically when compatible fields return.',
@@ -174,12 +179,14 @@ export const detachedRestoreScenario: PlaygroundDetachedScenario = {
     {
       id: 'detached-initial-values',
       title: 'Step 1: The user already filled out the original fields',
-      description: 'Both panes start from the same dirty user data before the view evolves.',
+      description:
+        'Both panes start from the same dirty user data before the view evolves.',
       view: initialView,
     },
     {
       id: 'detached-and-type-changed',
-      title: 'Step 2: One field disappears and another changes to an incompatible type',
+      title:
+        'Step 2: One field disappears and another changes to an incompatible type',
       description:
         'Location is removed entirely while notes becomes a generated presentation node. Continuum detaches those prior values instead of losing them.',
       view: detachedView,

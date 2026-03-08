@@ -1,4 +1,9 @@
-import { getChildNodes, ISSUE_CODES, ISSUE_SEVERITY, type ViewNode } from '@continuum/contract';
+import {
+  getChildNodes,
+  ISSUE_CODES,
+  ISSUE_SEVERITY,
+  type ViewNode,
+} from '@continuum-dev/contract';
 import type { ReconciliationIssue } from '../types.js';
 
 const DEFAULT_MAX_VIEW_DEPTH = 128;
