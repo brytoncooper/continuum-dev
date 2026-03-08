@@ -32,6 +32,9 @@
       "@continuum/session": [
         "./packages/session/src/index.ts"
       ],
+      "@continuum/core": [
+        "./packages/core/src/index.ts"
+      ],
       "@continuum/adapters": [
         "./packages/adapters/src/index.ts"
       ],
@@ -43,6 +46,9 @@
       ],
       "@continuum/prompts": [
         "./packages/prompts/src/index.ts"
+      ],
+      "@continuum/starter-kit": [
+        "./packages/starter-kit/src/index.ts"
       ]
     }
   }
