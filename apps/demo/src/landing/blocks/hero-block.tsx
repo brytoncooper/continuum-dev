@@ -46,16 +46,20 @@ export function HeroBlock() {
           coherent while the UI keeps changing.
         </div>
         <div style={actionsStyle}>
-          <a href="/playground" style={actionStyle(true)}>
-            Open playground
+          <a href="/live-ai" style={actionStyle(true)}>
+            Try Live AI
           </a>
-          <a href="/docs" style={actionStyle()}>
-            Read quick start
+          <a href="/starter-kit" style={actionStyle()}>
+            Explore starter kit
+          </a>
+          <a href="/playground" style={actionStyle()}>
+            Open playground
           </a>
         </div>
         <LandingFeatureList
           items={[
             'Regenerate the interface without wiping in-progress user input.',
+            'See a full starter-kit experience instantly in the Live AI Studio.',
             'Let AI, schemas, and workflows restructure the screen without rewriting your state model.',
             'Get reconciliation, persistence, proposals, and diagnostics in one continuity layer.',
           ]}

@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { ExampleGrid, PageSection, PageShell } from '../ui/layout';
-import { page, space } from '../ui/tokens';
+import { color, page, radius, space, type } from '../ui/tokens';
 import { SiteNav } from '../ui/site-nav';
 import { playgroundContent } from './content/playground-content';
 import { CollectionPane } from './components/collection-pane';
@@ -45,6 +45,29 @@ const stickyRailStyle: CSSProperties = {
 const responsiveLayoutStyle: CSSProperties = {
   width: '100%',
   maxWidth: page.width,
+};
+
+const liveAiCalloutStyle: CSSProperties = {
+  marginTop: space.md,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: space.md,
+  flexWrap: 'wrap',
+  padding: space.md,
+  borderRadius: radius.md,
+  border: `1px solid ${color.border}`,
+  background: color.surfaceMuted,
+};
+
+const liveAiLinkStyle: CSSProperties = {
+  ...type.small,
+  color: color.surface,
+  textDecoration: 'none',
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.pill,
+  border: `1px solid ${color.borderStrong}`,
+  background: color.accent,
 };
 
 export function PlaygroundPage() {
@@ -111,6 +134,14 @@ export function PlaygroundPage() {
           onSelect={setScenarioId}
           queuedScenarios={[...playgroundContent.queuedScenarios]}
         />
+        <div style={liveAiCalloutStyle}>
+          <div style={{ ...type.small, color: color.text }}>
+            Want the fastest real-world starter-kit demo? Try the Live AI Studio.
+          </div>
+          <a href="/live-ai" style={liveAiLinkStyle}>
+            Open Live AI
+          </a>
+        </div>
       </PageSection>
       <PageSection title={scenario.title} description={scenario.problem}>
         <div style={{ ...scenarioLayoutStyle, ...responsiveLayoutStyle }}>
