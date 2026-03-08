@@ -43,10 +43,20 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:core',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:runtime',
+                'scope:session',
+                'scope:core',
+              ],
+            },
+            {
               sourceTag: 'scope:react',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
                 'scope:session',
+                'scope:core',
                 'scope:react',
               ],
             },
@@ -60,12 +70,32 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:adapters',
+              onlyDependOnLibsWithTags: ['scope:contract', 'scope:adapters'],
+            },
+            {
+              sourceTag: 'scope:prompts',
+              onlyDependOnLibsWithTags: ['scope:prompts'],
+            },
+            {
+              sourceTag: 'scope:starter-kit',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:core',
+                'scope:react',
+                'scope:prompts',
+                'scope:starter-kit',
+              ],
+            },
+            {
               sourceTag: 'scope:playground',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
                 'scope:runtime',
                 'scope:session',
+                'scope:core',
                 'scope:react',
+                'scope:starter-kit',
               ],
             },
             {
@@ -73,7 +103,9 @@ export default [
               onlyDependOnLibsWithTags: [
                 'scope:contract',
                 'scope:session',
+                'scope:core',
                 'scope:react',
+                'scope:starter-kit',
               ],
             },
             {

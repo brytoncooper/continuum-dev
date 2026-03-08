@@ -1,74 +1,107 @@
 {
-  "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "production": [
-      "default",
-      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
-      "!{projectRoot}/tsconfig.spec.json",
-      "!{projectRoot}/src/test-setup.[jt]s"
-    ],
-    "sharedGlobals": []
-  },
-  "plugins": [
-    {
-      "plugin": "@nx/js/typescript",
-      "options": {
-        "typecheck": { "targetName": "typecheck" },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json",
-          "buildDepsName": "build-deps",
-          "watchDepsName": "watch-deps"
-        }
-      }
-    },
-    {
-      "plugin": "@nx/vite/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "serveTargetName": "serve",
-        "devTargetName": "dev",
-        "previewTargetName": "preview",
-        "serveStaticTargetName": "serve-static",
-        "typecheckTargetName": "typecheck",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
-      }
-    },
-    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
-    { "plugin": "@nx/vitest", "options": { "testTargetName": "test" } },
-    { "plugin": "@nx/playwright/plugin", "options": { "targetName": "e2e" } }
-  ],
-  "release": {
-    "groups": {
-      "publicPackages": {
-        "projects": [
-          "contract",
-          "runtime",
-          "@continuum-dev/session",
-          "@continuum-dev/react",
-          "prompts",
-          "@continuum-dev/core",
-          "@continuum-dev/starter-kit"
-        ],
-        "projectsRelationship": "fixed"
-      }
-    },
-    "version": {
-      "preVersionCommand": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages",
-      "manifestRootsToUpdate": [
-        "{workspaceRoot}",
-        "{projectRoot}",
-        {
-          "path": "dist/{projectRoot}",
-          "preserveLocalDependencyProtocols": false
-        }
-      ]
-    }
-  },
-  "sync": {
-    "applyChanges": true
-  },
-  "targetDefaults": { "test": { "dependsOn": ["^build"] } }
+    "$schema":  "./node_modules/nx/schemas/nx-schema.json",
+    "namedInputs":  {
+                        "default":  [
+                                        "{projectRoot}/**/*",
+                                        "sharedGlobals"
+                                    ],
+                        "production":  [
+                                           "default",
+                                           "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+                                           "!{projectRoot}/tsconfig.spec.json",
+                                           "!{projectRoot}/src/test-setup.[jt]s"
+                                       ],
+                        "sharedGlobals":  [
+
+                                          ]
+                    },
+    "plugins":  [
+                    {
+                        "plugin":  "@nx/js/typescript",
+                        "options":  {
+                                        "typecheck":  {
+                                                          "targetName":  "typecheck"
+                                                      },
+                                        "build":  {
+                                                      "targetName":  "build",
+                                                      "configName":  "tsconfig.lib.json",
+                                                      "buildDepsName":  "build-deps",
+                                                      "watchDepsName":  "watch-deps"
+                                                  }
+                                    }
+                    },
+                    {
+                        "plugin":  "@nx/vite/plugin",
+                        "options":  {
+                                        "buildTargetName":  "build",
+                                        "serveTargetName":  "serve",
+                                        "devTargetName":  "dev",
+                                        "previewTargetName":  "preview",
+                                        "serveStaticTargetName":  "serve-static",
+                                        "typecheckTargetName":  "typecheck",
+                                        "buildDepsTargetName":  "build-deps",
+                                        "watchDepsTargetName":  "watch-deps"
+                                    }
+                    },
+                    {
+                        "plugin":  "@nx/eslint/plugin",
+                        "options":  {
+                                        "targetName":  "lint"
+                                    }
+                    },
+                    {
+                        "plugin":  "@nx/vitest",
+                        "options":  {
+                                        "testTargetName":  "test"
+                                    }
+                    },
+                    {
+                        "plugin":  "@nx/playwright/plugin",
+                        "options":  {
+                                        "targetName":  "e2e"
+                                    }
+                    }
+                ],
+    "release":  {
+                    "groups":  {
+                                   "publicPackages":  {
+                                                          "projects":  [
+                                                                           "contract",
+                                                                           "runtime",
+                                                                           "@continuum-dev/session",
+                                                                           "@continuum-dev/react",
+                                                                           "prompts",
+                                                                           "@continuum-dev/core",
+                                                                           "@continuum-dev/starter-kit"
+                                                                       ],
+                                                          "projectsRelationship":  "fixed"
+                                                      }
+                               },
+                    "version":  {
+                                    "preVersionCommand":  "npm run build:release-packages \u0026\u0026 npm run prepare:dist-packages \u0026\u0026 npm run verify:release-packages",
+                                    "manifestRootsToUpdate":  [
+                                                                  "{projectRoot}",
+                                                                  {
+                                                                      "preserveLocalDependencyProtocols":  false,
+                                                                      "path":  "dist/{projectRoot}"
+                                                                  }
+                                                              ]
+                                }
+                },
+    "sync":  {
+                 "applyChanges":  true
+             },
+    "targetDefaults":  {
+                           "test":  {
+                                        "dependsOn":  [
+                                                          "^build"
+                                                      ]
+                                    },
+                           "typecheck":  {
+                                             "dependsOn":  [
+                                                               "^build"
+                                                           ]
+                                         }
+                       }
 }
+

@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/runtime/src",
   "projectType": "library",
-  "tags": ["scope:shared"],
+  "tags": ["scope:runtime"],
   "targets": {
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
