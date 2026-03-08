@@ -1,5 +1,8 @@
 # Session Internals
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 These modules are internal to `@continuum/session`. They are imported only by the top-level `session.ts` orchestrator and are not re-exported through the package's public API.
 
 ## Data Flow

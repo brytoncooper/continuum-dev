@@ -2,6 +2,9 @@
 
 **The State Reconciliation Engine for Generative UI.** Saving state is easy. Reconciling state across unpredictable AI mutations is hard.
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 [![npm version](https://badge.fury.io/js/@continuum-dev%2Fruntime.svg)](https://badge.fury.io/js/@continuum-dev%2Fruntime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

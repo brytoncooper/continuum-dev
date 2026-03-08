@@ -1,5 +1,8 @@
 # @continuum-dev/angular
 
+Website: [continuumstack.dev](https://continuumstack.dev)
+GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+
 > ⚠️ Internal preview package.
 >
 > This package is not published for public use yet, APIs are unstable, and there are no compatibility guarantees. Do not use in production.
