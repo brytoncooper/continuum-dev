@@ -5,8 +5,8 @@ import type {
   NodeValue,
   ViewDefinition,
   ViewNode,
-} from '@continuum/contract';
-import { getChildNodes } from '@continuum/contract';
+} from '@continuum/core';
+import { getChildNodes } from '@continuum/core';
 import { ContinuumContext } from './context.js';
 import { NodeStateScopeContext, useContinuumState } from './hooks.js';
 import { FallbackComponent } from './fallback.js';

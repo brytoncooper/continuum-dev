@@ -1,6 +1,12 @@
 import { createContext, useContext, useCallback, useRef, useState, useSyncExternalStore } from 'react';
-import type { Session } from '@continuum/session';
-import type { ContinuitySnapshot, NodeValue, ViewportState, ProposedValue, ActionResult } from '@continuum/contract';
+import type {
+  ActionResult,
+  ContinuitySnapshot,
+  NodeValue,
+  ProposedValue,
+  Session,
+  ViewportState,
+} from '@continuum/core';
 import { ContinuumContext } from './context.js';
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
