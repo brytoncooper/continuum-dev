@@ -1,12 +1,21 @@
 import { useEffect } from 'react';
-import { ContinuumProvider, ContinuumRenderer, useContinuumSession, useContinuumSnapshot } from '@continuum/react';
-import type { NodeValue } from '@continuum/contract';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
+import type { NodeValue } from '@continuum-dev/contract';
 import { componentMap } from '../../component-map';
 import type { PlaygroundStateDropScenario } from '../types';
 import { findScopedNodeIdByKey } from '../state/view-helpers';
 import { ComparisonPane } from './comparison-pane';
 
-function buildStatus(stepIndex: number, inputValue: string, currentValue: NodeValue | undefined): string {
+function buildStatus(
+  stepIndex: number,
+  inputValue: string,
+  currentValue: NodeValue | undefined
+): string {
   if (!inputValue) {
     return 'Waiting for input';
   }
@@ -29,13 +38,19 @@ function ContinuityPaneRuntime({
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, scenario.steps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, scenario.steps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
 
     const initialView = scenario.steps[0].view;
-    const initialNodeId = findScopedNodeIdByKey(initialView, scenario.trackedField.key);
+    const initialNodeId = findScopedNodeIdByKey(
+      initialView,
+      scenario.trackedField.key
+    );
 
     session.pushView(initialView);
 
@@ -52,8 +67,13 @@ function ContinuityPaneRuntime({
   }, [boundedStepIndex, scenario, session, userValue]);
 
   const currentView = snapshot?.view ?? scenario.steps[boundedStepIndex].view;
-  const currentNodeId = findScopedNodeIdByKey(currentView, scenario.trackedField.key);
-  const currentValue = currentNodeId ? snapshot?.data.values[currentNodeId] : undefined;
+  const currentNodeId = findScopedNodeIdByKey(
+    currentView,
+    scenario.trackedField.key
+  );
+  const currentValue = currentNodeId
+    ? snapshot?.data.values[currentNodeId]
+    : undefined;
 
   return (
     <ComparisonPane
@@ -81,7 +101,11 @@ export function ContinuityPane({
 }) {
   return (
     <ContinuumProvider components={componentMap} persist={false}>
-      <ContinuityPaneRuntime scenario={scenario} stepIndex={stepIndex} userValue={userValue} />
+      <ContinuityPaneRuntime
+        scenario={scenario}
+        stepIndex={stepIndex}
+        userValue={userValue}
+      />
     </ContinuumProvider>
   );
 }

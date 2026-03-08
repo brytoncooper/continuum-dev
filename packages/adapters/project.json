@@ -1,5 +1,5 @@
 {
-  "name": "@continuum/adapters",
+  "name": "@continuum-dev/adapters",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/adapters/src",
   "projectType": "library",

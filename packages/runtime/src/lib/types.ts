@@ -8,7 +8,7 @@ import type {
   DataResolution,
   ValueLineage,
   DetachedValue,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
 
 export interface ReconciliationResult {
   /**

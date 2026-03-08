@@ -1,11 +1,18 @@
-import type { FieldOption, ViewNode } from '@continuum/contract';
+import type { FieldOption, ViewNode } from '@continuum-dev/contract';
 
-export function readNodeProp<T>(definition: ViewNode, key: string): T | undefined {
-  return (definition as unknown as Record<string, unknown>)[key] as T | undefined;
+export function readNodeProp<T>(
+  definition: ViewNode,
+  key: string
+): T | undefined {
+  return (definition as unknown as Record<string, unknown>)[key] as
+    | T
+    | undefined;
 }
 
 export function nodeLabel(definition: ViewNode): string {
-  return readNodeProp<string>(definition, 'label') ?? definition.key ?? definition.id;
+  return (
+    readNodeProp<string>(definition, 'label') ?? definition.key ?? definition.id
+  );
 }
 
 export function nodeDescription(definition: ViewNode): string | undefined {
@@ -29,7 +36,11 @@ export function nodeOptions(definition: ViewNode): FieldOption[] {
   return [];
 }
 
-export function nodeNumberProp(definition: ViewNode, key: string, fallback: number): number {
+export function nodeNumberProp(
+  definition: ViewNode,
+  key: string,
+  fallback: number
+): number {
   const directValue = readNodeProp<number>(definition, key);
   if (typeof directValue === 'number') {
     return directValue;

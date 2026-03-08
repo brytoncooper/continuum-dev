@@ -1,7 +1,10 @@
 import { Provider, signal } from '@angular/core';
-import { hydrateOrCreate } from '@continuum/session';
-import type { ContinuitySnapshot } from '@continuum/contract';
-import type { ContinuumPersistError, ContinuumProviderOptions } from './types.js';
+import { hydrateOrCreate } from '@continuum-dev/session';
+import type { ContinuitySnapshot } from '@continuum-dev/contract';
+import type {
+  ContinuumPersistError,
+  ContinuumProviderOptions,
+} from './types.js';
 import {
   CONTINUUM_NODE_MAP,
   CONTINUUM_SESSION,
@@ -30,7 +33,9 @@ function resolveStorage(
   return undefined;
 }
 
-export function provideContinuum(options: ContinuumProviderOptions): Provider[] {
+export function provideContinuum(
+  options: ContinuumProviderOptions
+): Provider[] {
   const storage = resolveStorage(options.persist);
   const key = options.storageKey ?? DEFAULT_STORAGE_KEY;
   const wasHydrated = Boolean(storage?.getItem(key));
@@ -38,17 +43,21 @@ export function provideContinuum(options: ContinuumProviderOptions): Provider[] 
     ...options.sessionOptions,
     persistence: storage
       ? {
-        storage,
-        key,
-        maxBytes: options.maxPersistBytes,
-        onError: options.onPersistError ?? ((error: ContinuumPersistError) => {
-          emitPersistError(undefined, error);
-        }),
-      }
+          storage,
+          key,
+          maxBytes: options.maxPersistBytes,
+          onError:
+            options.onPersistError ??
+            ((error: ContinuumPersistError) => {
+              emitPersistError(undefined, error);
+            }),
+        }
       : undefined,
   });
 
-  const snapshotSignal = signal<ContinuitySnapshot | null>(session.getSnapshot());
+  const snapshotSignal = signal<ContinuitySnapshot | null>(
+    session.getSnapshot()
+  );
   session.onSnapshot(() => {
     snapshotSignal.set(session.getSnapshot());
   });

@@ -1,11 +1,37 @@
-import { INTERACTION_TYPES } from '@continuum/contract';
-import type { ViewportState, DetachedValue, NodeValue, ActionRegistration, ActionHandler, ActionResult, ActionSessionRef } from '@continuum/contract';
+import { INTERACTION_TYPES } from '@continuum-dev/contract';
+import type {
+  ViewportState,
+  DetachedValue,
+  NodeValue,
+  ActionRegistration,
+  ActionHandler,
+  ActionResult,
+  ActionSessionRef,
+} from '@continuum-dev/contract';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
-import { createEmptySessionState, generateId, resetSessionState } from './session/session-state.js';
+import {
+  createEmptySessionState,
+  generateId,
+  resetSessionState,
+} from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
-import { buildSnapshotFromCurrentState, notifySnapshotListeners, subscribeSnapshot, subscribeIssues } from './session/listeners.js';
-import { cloneCheckpointSnapshot, createManualCheckpoint, restoreFromCheckpoint, rewind } from './session/checkpoint-manager.js';
-import { submitIntent, validateIntent, cancelIntent } from './session/intent-manager.js';
+import {
+  buildSnapshotFromCurrentState,
+  notifySnapshotListeners,
+  subscribeSnapshot,
+  subscribeIssues,
+} from './session/listeners.js';
+import {
+  cloneCheckpointSnapshot,
+  createManualCheckpoint,
+  restoreFromCheckpoint,
+  rewind,
+} from './session/checkpoint-manager.js';
+import {
+  submitIntent,
+  validateIntent,
+  cancelIntent,
+} from './session/intent-manager.js';
 import { recordIntent } from './session/event-log.js';
 import { pushView } from './session/view-pusher.js';
 import { serializeSession, deserializeToState } from './session/serializer.js';
@@ -60,19 +86,43 @@ function assembleSessionFromInternalState(
   cleanupPersistence?: () => void
 ): Session {
   const session: Session = {
-    get sessionId() { return internal.sessionId; },
-    get isDestroyed() { return internal.destroyed; },
-    getSnapshot() { assertNotDestroyed(internal); return buildSnapshotFromCurrentState(internal); },
-    getIssues() { assertNotDestroyed(internal); return [...internal.issues]; },
-    getDiffs() { assertNotDestroyed(internal); return [...internal.diffs]; },
-    getResolutions() { assertNotDestroyed(internal); return [...internal.resolutions]; },
-    getEventLog() { assertNotDestroyed(internal); return [...internal.eventLog]; },
-    getPendingIntents() { assertNotDestroyed(internal); return [...internal.pendingIntents]; },
+    get sessionId() {
+      return internal.sessionId;
+    },
+    get isDestroyed() {
+      return internal.destroyed;
+    },
+    getSnapshot() {
+      assertNotDestroyed(internal);
+      return buildSnapshotFromCurrentState(internal);
+    },
+    getIssues() {
+      assertNotDestroyed(internal);
+      return [...internal.issues];
+    },
+    getDiffs() {
+      assertNotDestroyed(internal);
+      return [...internal.diffs];
+    },
+    getResolutions() {
+      assertNotDestroyed(internal);
+      return [...internal.resolutions];
+    },
+    getEventLog() {
+      assertNotDestroyed(internal);
+      return [...internal.eventLog];
+    },
+    getPendingIntents() {
+      assertNotDestroyed(internal);
+      return [...internal.pendingIntents];
+    },
     getDetachedValues() {
       assertNotDestroyed(internal);
       return { ...(internal.currentData?.detachedValues ?? {}) };
     },
-    purgeDetachedValues(filter?: (key: string, value: DetachedValue) => boolean) {
+    purgeDetachedValues(
+      filter?: (key: string, value: DetachedValue) => boolean
+    ) {
       assertNotDestroyed(internal);
       if (!internal.currentData?.detachedValues) return;
       if (!filter) {
@@ -80,7 +130,9 @@ function assembleSessionFromInternalState(
         internal.currentData = rest;
       } else {
         const remaining: Record<string, DetachedValue> = {};
-        for (const [key, value] of Object.entries(internal.currentData.detachedValues)) {
+        for (const [key, value] of Object.entries(
+          internal.currentData.detachedValues
+        )) {
           if (!filter(key, value)) {
             remaining[key] = value;
           }
@@ -89,7 +141,10 @@ function assembleSessionFromInternalState(
           const { detachedValues: _, ...rest } = internal.currentData;
           internal.currentData = rest;
         } else {
-          internal.currentData = { ...internal.currentData, detachedValues: remaining };
+          internal.currentData = {
+            ...internal.currentData,
+            detachedValues: remaining,
+          };
         }
       }
       notifySnapshotListeners(internal);
@@ -97,7 +152,9 @@ function assembleSessionFromInternalState(
     proposeValue(nodeId: string, value: NodeValue, source?: string) {
       assertNotDestroyed(internal);
       if (!internal.currentData) return;
-      const existing = internal.currentData.values[nodeId] as NodeValue | undefined;
+      const existing = internal.currentData.values[nodeId] as
+        | NodeValue
+        | undefined;
       if (existing && existing.isDirty) {
         internal.pendingProposals[nodeId] = {
           nodeId,
@@ -108,7 +165,11 @@ function assembleSessionFromInternalState(
         };
         notifySnapshotListeners(internal);
       } else {
-        recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload: value });
+        recordIntent(internal, {
+          nodeId,
+          type: INTERACTION_TYPES.DATA_UPDATE,
+          payload: value,
+        });
         delete internal.pendingProposals[nodeId];
       }
     },
@@ -116,10 +177,10 @@ function assembleSessionFromInternalState(
       assertNotDestroyed(internal);
       const proposal = internal.pendingProposals[nodeId];
       if (!proposal) return;
-      recordIntent(internal, { 
-        nodeId, 
-        type: INTERACTION_TYPES.DATA_UPDATE, 
-        payload: { ...proposal.proposedValue, isDirty: true } 
+      recordIntent(internal, {
+        nodeId,
+        type: INTERACTION_TYPES.DATA_UPDATE,
+        payload: { ...proposal.proposedValue, isDirty: true },
       });
       delete internal.pendingProposals[nodeId];
     },
@@ -135,13 +196,26 @@ function assembleSessionFromInternalState(
       assertNotDestroyed(internal);
       return { ...internal.pendingProposals };
     },
-    getCheckpoints() { assertNotDestroyed(internal); return [...internal.checkpoints]; },
+    getCheckpoints() {
+      assertNotDestroyed(internal);
+      return [...internal.checkpoints];
+    },
 
-    pushView(view) { assertNotDestroyed(internal); pushView(internal, view); },
-    recordIntent(partial) { assertNotDestroyed(internal); recordIntent(internal, partial); },
+    pushView(view) {
+      assertNotDestroyed(internal);
+      pushView(internal, view);
+    },
+    recordIntent(partial) {
+      assertNotDestroyed(internal);
+      recordIntent(internal, partial);
+    },
     updateState(nodeId, payload) {
       assertNotDestroyed(internal);
-      recordIntent(internal, { nodeId, type: INTERACTION_TYPES.DATA_UPDATE, payload });
+      recordIntent(internal, {
+        nodeId,
+        type: INTERACTION_TYPES.DATA_UPDATE,
+        payload,
+      });
     },
     getViewportState(nodeId) {
       assertNotDestroyed(internal);
@@ -152,29 +226,60 @@ function assembleSessionFromInternalState(
       applyViewportStateUpdate(internal, nodeId, state);
     },
 
-    submitIntent(partial) { assertNotDestroyed(internal); submitIntent(internal, partial); },
-    validateIntent(intentId) { assertNotDestroyed(internal); return validateIntent(internal, intentId); },
-    cancelIntent(intentId) { assertNotDestroyed(internal); return cancelIntent(internal, intentId); },
+    submitIntent(partial) {
+      assertNotDestroyed(internal);
+      submitIntent(internal, partial);
+    },
+    validateIntent(intentId) {
+      assertNotDestroyed(internal);
+      return validateIntent(internal, intentId);
+    },
+    cancelIntent(intentId) {
+      assertNotDestroyed(internal);
+      return cancelIntent(internal, intentId);
+    },
 
-    checkpoint() { assertNotDestroyed(internal); return createManualCheckpoint(internal); },
-    restoreFromCheckpoint(cp) { assertNotDestroyed(internal); restoreFromCheckpoint(internal, cp); },
-    rewind(checkpointId) { assertNotDestroyed(internal); rewind(internal, checkpointId); },
+    checkpoint() {
+      assertNotDestroyed(internal);
+      return createManualCheckpoint(internal);
+    },
+    restoreFromCheckpoint(cp) {
+      assertNotDestroyed(internal);
+      restoreFromCheckpoint(internal, cp);
+    },
+    rewind(checkpointId) {
+      assertNotDestroyed(internal);
+      rewind(internal, checkpointId);
+    },
     reset() {
       assertNotDestroyed(internal);
       resetSessionState(internal);
       notifySnapshotListeners(internal);
     },
 
-    onSnapshot(listener) { assertNotDestroyed(internal); return subscribeSnapshot(internal, listener); },
-    onIssues(listener) { assertNotDestroyed(internal); return subscribeIssues(internal, listener); },
+    onSnapshot(listener) {
+      assertNotDestroyed(internal);
+      return subscribeSnapshot(internal, listener);
+    },
+    onIssues(listener) {
+      assertNotDestroyed(internal);
+      return subscribeIssues(internal, listener);
+    },
 
-    serialize() { assertNotDestroyed(internal); return serializeSession(internal); },
+    serialize() {
+      assertNotDestroyed(internal);
+      return serializeSession(internal);
+    },
     destroy() {
       assertNotDestroyed(internal);
       cleanupPersistence?.();
       return teardownSessionAndClearState(internal);
     },
-    registerAction(intentId: string, registration: ActionRegistration, handler: ActionHandler) {
+    registerAction(
+      intentId: string,
+      registration: ActionRegistration,
+      handler: ActionHandler
+    ) {
       assertNotDestroyed(internal);
       internal.actionRegistry.set(intentId, { registration, handler });
     },
@@ -190,12 +295,20 @@ function assembleSessionFromInternalState(
       }
       return result;
     },
-    async dispatchAction(intentId: string, nodeId: string): Promise<ActionResult> {
+    async dispatchAction(
+      intentId: string,
+      nodeId: string
+    ): Promise<ActionResult> {
       assertNotDestroyed(internal);
       const entry = internal.actionRegistry.get(intentId);
       if (!entry) {
-        console.warn(`[Continuum] dispatchAction: no handler registered for intentId "${intentId}"`);
-        return { success: false, error: `No handler registered for intentId "${intentId}"` };
+        console.warn(
+          `[Continuum] dispatchAction: no handler registered for intentId "${intentId}"`
+        );
+        return {
+          success: false,
+          error: `No handler registered for intentId "${intentId}"`,
+        };
       }
       const snapshot = buildSnapshotFromCurrentState(internal);
       if (!snapshot) {
@@ -208,7 +321,12 @@ function assembleSessionFromInternalState(
         proposeValue: (id, v, s) => session.proposeValue(id, v, s),
       };
       try {
-        const raw = await entry.handler({ intentId, snapshot: snapshot.data, nodeId, session: sessionRef });
+        const raw = await entry.handler({
+          intentId,
+          snapshot: snapshot.data,
+          nodeId,
+          session: sessionRef,
+        });
         return raw ?? { success: true };
       } catch (error) {
         return { success: false, error };
@@ -217,9 +335,13 @@ function assembleSessionFromInternalState(
     async executeIntent(partial) {
       assertNotDestroyed(internal);
       submitIntent(internal, partial);
-      const intent = internal.pendingIntents[internal.pendingIntents.length - 1];
+      const intent =
+        internal.pendingIntents[internal.pendingIntents.length - 1];
       try {
-        const result = await session.dispatchAction(partial.intentName, partial.nodeId);
+        const result = await session.dispatchAction(
+          partial.intentName,
+          partial.nodeId
+        );
         if (result.success) {
           validateIntent(internal, intent.intentId);
         } else {
@@ -248,11 +370,14 @@ function assembleSessionFromInternalState(
 export function createSession(options?: SessionOptions): Session {
   const clock = options?.clock ?? Date.now;
   const internal = createEmptySessionState(generateId('session', clock), clock);
-  internal.maxEventLogSize = options?.maxEventLogSize ?? internal.maxEventLogSize;
-  internal.maxPendingIntents = options?.maxPendingIntents ?? internal.maxPendingIntents;
+  internal.maxEventLogSize =
+    options?.maxEventLogSize ?? internal.maxEventLogSize;
+  internal.maxPendingIntents =
+    options?.maxPendingIntents ?? internal.maxPendingIntents;
   internal.maxCheckpoints = options?.maxCheckpoints ?? internal.maxCheckpoints;
   internal.reconciliationOptions = options?.reconciliation;
-  internal.validateOnUpdate = options?.validateOnUpdate ?? internal.validateOnUpdate;
+  internal.validateOnUpdate =
+    options?.validateOnUpdate ?? internal.validateOnUpdate;
   internal.detachedValuePolicy = options?.detachedValuePolicy;
   if (options?.actions) {
     for (const [id, entry] of Object.entries(options.actions)) {
@@ -261,9 +386,9 @@ export function createSession(options?: SessionOptions): Session {
   }
   const cleanupPersistence = options?.persistence
     ? attachPersistence(internal, {
-      ...options.persistence,
-      key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
-    })
+        ...options.persistence,
+        key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
+      })
     : undefined;
   return assembleSessionFromInternalState(internal, cleanupPersistence);
 }
@@ -276,15 +401,11 @@ export function createSession(options?: SessionOptions): Session {
  * @returns A live session instance restored from the payload.
  */
 export function deserialize(data: unknown, options?: SessionOptions): Session {
-  const internal = deserializeToState(
-    data,
-    options?.clock ?? Date.now,
-    {
-      maxEventLogSize: options?.maxEventLogSize,
-      maxPendingIntents: options?.maxPendingIntents,
-      maxCheckpoints: options?.maxCheckpoints,
-    }
-  );
+  const internal = deserializeToState(data, options?.clock ?? Date.now, {
+    maxEventLogSize: options?.maxEventLogSize,
+    maxPendingIntents: options?.maxPendingIntents,
+    maxCheckpoints: options?.maxCheckpoints,
+  });
   if (options?.reconciliation) {
     internal.reconciliationOptions = options.reconciliation;
   }
@@ -293,9 +414,9 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
   }
   const cleanupPersistence = options?.persistence
     ? attachPersistence(internal, {
-      ...options.persistence,
-      key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
-    })
+        ...options.persistence,
+        key: options.persistence.key ?? DEFAULT_STORAGE_KEY,
+      })
     : undefined;
   return assembleSessionFromInternalState(internal, cleanupPersistence);
 }

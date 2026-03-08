@@ -1,4 +1,4 @@
-import type { ContinuumNodeMap } from '@continuum/react';
+import type { ContinuumNodeMap } from '@continuum-dev/react';
 import {
   ActionButton,
   CollectionSection,

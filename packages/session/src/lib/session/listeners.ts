@@ -1,5 +1,5 @@
-import type { ContinuitySnapshot } from '@continuum/contract';
-import type { ReconciliationIssue } from '@continuum/runtime';
+import type { ContinuitySnapshot } from '@continuum-dev/contract';
+import type { ReconciliationIssue } from '@continuum-dev/runtime';
 import type { SessionState } from './session-state.js';
 
 /**
@@ -8,7 +8,9 @@ import type { SessionState } from './session-state.js';
  * @param internal Mutable internal session state.
  * @returns Snapshot when both view and data are present, otherwise null.
  */
-export function buildSnapshotFromCurrentState(internal: SessionState): ContinuitySnapshot | null {
+export function buildSnapshotFromCurrentState(
+  internal: SessionState
+): ContinuitySnapshot | null {
   if (!internal.currentView || !internal.currentData) return null;
   const snapshot: ContinuitySnapshot = {
     view: { ...internal.currentView },
@@ -76,7 +78,9 @@ export function subscribeSnapshot(
   listener: (snapshot: ContinuitySnapshot | null) => void
 ): () => void {
   internal.snapshotListeners.add(listener);
-  return () => { internal.snapshotListeners.delete(listener); };
+  return () => {
+    internal.snapshotListeners.delete(listener);
+  };
 }
 
 /**
@@ -91,5 +95,7 @@ export function subscribeIssues(
   listener: (issues: ReconciliationIssue[]) => void
 ): () => void {
   internal.issueListeners.add(listener);
-  return () => { internal.issueListeners.delete(listener); };
+  return () => {
+    internal.issueListeners.delete(listener);
+  };
 }

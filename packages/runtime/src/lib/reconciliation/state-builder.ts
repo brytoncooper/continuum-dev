@@ -5,11 +5,8 @@ import type {
   ValueLineage,
   ViewDefinition,
   ViewNode,
-} from '@continuum/contract';
-import {
-  ISSUE_CODES,
-  ISSUE_SEVERITY,
-} from '@continuum/contract';
+} from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import { collectDuplicateIssues } from '../context.js';
 import { traverseViewNodes } from './view-traversal.js';
 import type {
@@ -163,7 +160,8 @@ export function buildBlindCarryResult(
       }
     }
     const hasValueLineage = Object.keys(carriedValueLineage).length > 0;
-    const hasDetachedValues = Object.keys(priorData.detachedValues ?? {}).length > 0;
+    const hasDetachedValues =
+      Object.keys(priorData.detachedValues ?? {}).length > 0;
 
     return {
       reconciledState: {
@@ -175,7 +173,9 @@ export function buildBlindCarryResult(
           viewVersion: newView.version,
         },
         ...(hasValueLineage ? { valueLineage: carriedValueLineage } : {}),
-        ...(hasDetachedValues ? { detachedValues: { ...priorData.detachedValues } } : {}),
+        ...(hasDetachedValues
+          ? { detachedValues: { ...priorData.detachedValues } }
+          : {}),
       },
       diffs: [],
       issues,
@@ -192,7 +192,8 @@ export function buildBlindCarryResult(
         viewId: newView.viewId,
         viewVersion: newView.version,
       },
-      ...(priorData.detachedValues && Object.keys(priorData.detachedValues).length > 0
+      ...(priorData.detachedValues &&
+      Object.keys(priorData.detachedValues).length > 0
         ? { detachedValues: { ...priorData.detachedValues } }
         : {}),
     },
@@ -204,7 +205,11 @@ export function buildBlindCarryResult(
 
 export function assembleReconciliationResult(
   resolved: NodeResolutionAccumulator,
-  removals: { diffs: StateDiff[]; issues: ReconciliationIssue[]; detachedValues?: Record<string, DetachedValue> },
+  removals: {
+    diffs: StateDiff[];
+    issues: ReconciliationIssue[];
+    detachedValues?: Record<string, DetachedValue>;
+  },
   priorData: DataSnapshot,
   newView: ViewDefinition,
   now: number

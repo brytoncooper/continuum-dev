@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { ViewNode, ViewDefinition, DataSnapshot, NodeValue } from '@continuum/contract';
+import type {
+  ViewNode,
+  ViewDefinition,
+  DataSnapshot,
+  NodeValue,
+} from '@continuum-dev/contract';
 import {
   buildFreshSessionResult,
   buildBlindCarryResult,
@@ -95,7 +100,9 @@ describe('buildBlindCarryResult', () => {
   it('carries matching values when allowBlindCarry is true', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' }, orphan: { value: 'gone' } });
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
     expect(result.reconciledState.values['orphan']).toBeUndefined();
@@ -104,9 +111,13 @@ describe('buildBlindCarryResult', () => {
   it('carries value by key when id changed', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ email: { value: 'test@example.com' } });
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
-    expect(result.reconciledState.values['field_456']).toEqual({ value: 'test@example.com' });
+    expect(result.reconciledState.values['field_456']).toEqual({
+      value: 'test@example.com',
+    });
     expect(result.reconciledState.values['email']).toBeUndefined();
   });
 
@@ -116,7 +127,9 @@ describe('buildBlindCarryResult', () => {
       makeNode({ id: 'b', key: 'a' }),
     ]);
     const data = makeData({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
     expect(result.reconciledState.values['b']).toBeUndefined();
@@ -131,16 +144,22 @@ describe('buildBlindCarryResult', () => {
       }),
     ]);
     const data = makeData({ 'form/email': { value: 'nested@example.com' } });
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
-    expect(result.reconciledState.values['form/field_1']).toEqual({ value: 'nested@example.com' });
+    expect(result.reconciledState.values['form/field_1']).toEqual({
+      value: 'nested@example.com',
+    });
     expect(result.reconciledState.values['form/email']).toBeUndefined();
   });
 
   it('drops values with no id or key match', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ no_match: { value: 'gone' } });
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
     expect(result.reconciledState.values['field_456']).toBeUndefined();
     expect(result.reconciledState.values['no_match']).toBeUndefined();
@@ -164,9 +183,13 @@ describe('buildBlindCarryResult', () => {
       },
     };
 
-    const result = buildBlindCarryResult(view, data, 5000, { allowBlindCarry: true });
+    const result = buildBlindCarryResult(view, data, 5000, {
+      allowBlindCarry: true,
+    });
 
-    expect(result.reconciledState.values['field_456']).toEqual({ value: 'test@example.com' });
+    expect(result.reconciledState.values['field_456']).toEqual({
+      value: 'test@example.com',
+    });
     expect(result.reconciledState.valueLineage?.['field_456']).toEqual({
       lastUpdated: 400,
       lastInteractionId: 'int-9',
@@ -208,13 +231,28 @@ describe('assembleReconciliationResult', () => {
       issues: [],
     };
     const removals = {
-      diffs: [{ nodeId: 'b', type: 'removed' as const, oldValue: { value: true } }],
-      issues: [{ severity: 'warning' as const, nodeId: 'b', message: 'removed', code: 'NODE_REMOVED' as const }],
+      diffs: [
+        { nodeId: 'b', type: 'removed' as const, oldValue: { value: true } },
+      ],
+      issues: [
+        {
+          severity: 'warning' as const,
+          nodeId: 'b',
+          message: 'removed',
+          code: 'NODE_REMOVED' as const,
+        },
+      ],
     };
     const priorData = makeData({ b: { value: true } });
     const view = makeView([makeNode({ id: 'a' })]);
 
-    const result = assembleReconciliationResult(resolved, removals, priorData, view, 5000);
+    const result = assembleReconciliationResult(
+      resolved,
+      removals,
+      priorData,
+      view,
+      5000
+    );
 
     expect(result.diffs).toHaveLength(2);
     expect(result.issues).toHaveLength(1);
@@ -224,17 +262,30 @@ describe('assembleReconciliationResult', () => {
 
 describe('carryValuesMeta', () => {
   it('copies prior lineage to the new id', () => {
-    const target: Record<string, { lastUpdated?: number; lastInteractionId?: string }> = {};
-    const data = makeData({}, {}, { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } });
+    const target: Record<
+      string,
+      { lastUpdated?: number; lastInteractionId?: string }
+    > = {};
+    const data = makeData(
+      {},
+      {},
+      { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } }
+    );
 
     carryValuesMeta(target, 'new-id', 'old-id', data, 9000, false);
 
-    expect(target['new-id']).toEqual({ lastUpdated: 500, lastInteractionId: 'int-1' });
+    expect(target['new-id']).toEqual({
+      lastUpdated: 500,
+      lastInteractionId: 'int-1',
+    });
   });
 
   it('updates lastUpdated when migrated', () => {
-    const target: Record<string, { lastUpdated?: number; lastInteractionId?: string }> = {};
-    const data = makeData({}, {}, { 'a': { lastUpdated: 500 } });
+    const target: Record<
+      string,
+      { lastUpdated?: number; lastInteractionId?: string }
+    > = {};
+    const data = makeData({}, {}, { a: { lastUpdated: 500 } });
 
     carryValuesMeta(target, 'a', 'a', data, 9000, true);
 

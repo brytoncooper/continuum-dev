@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { FieldFrame, inputLikeStyle } from '@continuum/starter-kit';
+import { FieldFrame, inputLikeStyle } from '@continuum-dev/starter-kit';
 import { color, radius, space, type } from '../../ui/tokens';
 
 const wrapStyle: CSSProperties = {
@@ -108,18 +108,27 @@ export function ScenarioControls({
           {inputTitle ? (
             <div style={inputHeaderStyle}>
               <div style={inputTitleStyle}>{inputTitle}</div>
-              {inputDescription ? <div style={inputDescriptionStyle}>{inputDescription}</div> : null}
+              {inputDescription ? (
+                <div style={inputDescriptionStyle}>{inputDescription}</div>
+              ) : null}
             </div>
           ) : null}
           <div style={inputGridStyle}>
             {inputFields.map((field) => (
-              <div key={field.key} style={field.multiline ? fullRowStyle : undefined}>
+              <div
+                key={field.key}
+                style={field.multiline ? fullRowStyle : undefined}
+              >
                 <FieldFrame label={field.label}>
                   {field.multiline ? (
                     <textarea
                       value={field.value}
                       placeholder={field.placeholder}
-                      style={inputLikeStyle({ minHeight: 132, height: 'auto', resize: 'vertical' })}
+                      style={inputLikeStyle({
+                        minHeight: 132,
+                        height: 'auto',
+                        resize: 'vertical',
+                      })}
                       onChange={(event) => field.onChange(event.target.value)}
                     />
                   ) : (
@@ -138,7 +147,12 @@ export function ScenarioControls({
       ) : null}
       <div style={controlsStyle}>
         {stepTitles.map((title, index) => (
-          <button key={title} type="button" style={buttonStyle(index === stepIndex)} onClick={() => onStepChange(index)}>
+          <button
+            key={title}
+            type="button"
+            style={buttonStyle(index === stepIndex)}
+            onClick={() => onStepChange(index)}
+          >
             {title}
           </button>
         ))}

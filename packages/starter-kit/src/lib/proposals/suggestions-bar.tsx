@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useContinuumSuggestions } from '@continuum/react';
+import { useContinuumSuggestions } from '@continuum-dev/react';
 import { color, radius, space, type } from '../tokens.js';
 
 const containerStyle: CSSProperties = {

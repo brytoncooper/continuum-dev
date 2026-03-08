@@ -1,3 +1,3 @@
-export * from '@continuum/contract';
-export * from '@continuum/runtime';
-export * from '@continuum/session';
+export * from '@continuum-dev/contract';
+export * from '@continuum-dev/runtime';
+export * from '@continuum-dev/session';

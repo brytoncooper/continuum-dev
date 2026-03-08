@@ -1,4 +1,4 @@
-import type { NodeValue } from '@continuum/contract';
+import type { NodeValue } from '@continuum-dev/contract';
 import { useMemo } from 'react';
 import type { PlaygroundStateDropScenario } from '../types';
 import { createHighlightedComponentMap } from './highlighted-node-map';

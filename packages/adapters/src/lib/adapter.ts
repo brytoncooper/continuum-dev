@@ -1,4 +1,4 @@
-import type { ViewDefinition, NodeValue } from '@continuum/contract';
+import type { ViewDefinition, NodeValue } from '@continuum-dev/contract';
 
 export interface ProtocolAdapter<TExternalView, TExternalData = unknown> {
   name: string;

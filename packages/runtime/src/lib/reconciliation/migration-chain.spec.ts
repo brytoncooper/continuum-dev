@@ -1,10 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DataSnapshot, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  DataSnapshot,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import type { MigrationStrategy } from '../types.js';
 import { reconcile } from '../reconcile.js';
 import { attemptMigration } from './migrator.js';
 
-function makeView(nodes: ViewNode[], viewId = 'view-1', version = '1.0'): ViewDefinition {
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
+  version = '1.0'
+): ViewDefinition {
   return { viewId, version, nodes };
 }
 
@@ -22,7 +31,13 @@ function makeNode(
     ...(type === 'field' ? { dataType: 'string' } : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
     ...(type === 'collection'
-      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
     ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
@@ -42,14 +57,18 @@ function makeData(values: Record<string, NodeValue>): DataSnapshot {
 
 describe('migration chains', () => {
   it('applies a 2-step chain v1->v2->v3 in order', () => {
-    const v1ToV2: MigrationStrategy = vi.fn((_id, _priorNode, _newNode, prior) => {
-      const value = prior as NodeValue<string>;
-      return { value: `${value.value}-v2` };
-    });
-    const v2ToV3: MigrationStrategy = vi.fn((_id, _priorNode, _newNode, prior) => {
-      const value = prior as NodeValue<string>;
-      return { value: `${value.value}-v3` };
-    });
+    const v1ToV2: MigrationStrategy = vi.fn(
+      (_id, _priorNode, _newNode, prior) => {
+        const value = prior as NodeValue<string>;
+        return { value: `${value.value}-v2` };
+      }
+    );
+    const v2ToV3: MigrationStrategy = vi.fn(
+      (_id, _priorNode, _newNode, prior) => {
+        const value = prior as NodeValue<string>;
+        return { value: `${value.value}-v3` };
+      }
+    );
     const result = attemptMigration(
       'name',
       makeNode({ id: 'name', hash: 'v1' }),
@@ -69,7 +88,10 @@ describe('migration chains', () => {
         },
       }
     );
-    expect(result).toEqual({ kind: 'migrated', value: { value: 'base-v2-v3' } });
+    expect(result).toEqual({
+      kind: 'migrated',
+      value: { value: 'base-v2-v3' },
+    });
     expect(v1ToV2).toHaveBeenCalledOnce();
     expect(v2ToV3).toHaveBeenCalledOnce();
   });
@@ -90,13 +112,22 @@ describe('migration chains', () => {
       { value: 'base' },
       {
         strategyRegistry: {
-          a: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-2` }),
-          b: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-3` }),
-          c: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-4` }),
+          a: (_id, _p, _n, prior) => ({
+            value: `${(prior as NodeValue<string>).value}-2`,
+          }),
+          b: (_id, _p, _n, prior) => ({
+            value: `${(prior as NodeValue<string>).value}-3`,
+          }),
+          c: (_id, _p, _n, prior) => ({
+            value: `${(prior as NodeValue<string>).value}-4`,
+          }),
         },
       }
     );
-    expect(result).toEqual({ kind: 'migrated', value: { value: 'base-2-3-4' } });
+    expect(result).toEqual({
+      kind: 'migrated',
+      value: { value: 'base-2-3-4' },
+    });
   });
 
   it('prefers direct rule over chain when both are available', () => {
@@ -198,7 +229,10 @@ describe('migration chains', () => {
       strategyId: `s${i}`,
     }));
     const strategyRegistry = Object.fromEntries(
-      Array.from({ length: 12 }, (_, i) => [`s${i}`, (_id: string, _p: ViewNode, _n: ViewNode, prior: unknown) => prior])
+      Array.from({ length: 12 }, (_, i) => [
+        `s${i}`,
+        (_id: string, _p: ViewNode, _n: ViewNode, prior: unknown) => prior,
+      ])
     ) as Record<string, MigrationStrategy>;
     const result = attemptMigration(
       'name',
@@ -277,12 +311,17 @@ describe('migration chains', () => {
       { value: 'base' },
       {
         strategyRegistry: {
-          first: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-first` }),
+          first: (_id, _p, _n, prior) => ({
+            value: `${(prior as NodeValue<string>).value}-first`,
+          }),
           second,
         },
       }
     );
-    expect(result).toEqual({ kind: 'migrated', value: { value: 'base-first-second' } });
+    expect(result).toEqual({
+      kind: 'migrated',
+      value: { value: 'base-first-second' },
+    });
     expect(second.mock.calls[0][3]).toEqual({ value: 'base-first' });
   });
 
@@ -301,13 +340,19 @@ describe('migration chains', () => {
     const priorData = makeData({ a: { value: 'base' } });
     const result = reconcile(newView, priorView, priorData, {
       strategyRegistry: {
-        hop1: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-2` }),
-        hop2: (_id, _p, _n, prior) => ({ value: `${(prior as NodeValue<string>).value}-3` }),
+        hop1: (_id, _p, _n, prior) => ({
+          value: `${(prior as NodeValue<string>).value}-2`,
+        }),
+        hop2: (_id, _p, _n, prior) => ({
+          value: `${(prior as NodeValue<string>).value}-3`,
+        }),
       },
     });
     expect(result.reconciledState.values['a']).toEqual({ value: 'base-2-3' });
     expect(result.diffs.some((d) => d.type === 'migrated')).toBe(true);
-    expect(result.resolutions.some((r) => r.resolution === 'migrated')).toBe(true);
+    expect(result.resolutions.some((r) => r.resolution === 'migrated')).toBe(
+      true
+    );
   });
 
   it('returns none when strategyRegistry is missing for declared chain', () => {

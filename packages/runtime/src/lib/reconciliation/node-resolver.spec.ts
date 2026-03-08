@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import type { ViewDefinition, ViewNode, DataSnapshot, NodeValue } from '@continuum/contract';
-import { buildReconciliationContext, buildPriorValueLookupByIdAndKey } from '../context.js';
+import type {
+  ViewDefinition,
+  ViewNode,
+  DataSnapshot,
+  NodeValue,
+} from '@continuum-dev/contract';
+import {
+  buildReconciliationContext,
+  buildPriorValueLookupByIdAndKey,
+} from '../context.js';
 import { resolveAllNodes, detectRemovedNodes } from './node-resolver.js';
 
 function makeView(
@@ -24,7 +32,13 @@ function makeNode(
     ...(type === 'field' ? { dataType: 'string' } : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
     ...(type === 'collection'
-      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
     ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
@@ -123,7 +137,11 @@ describe('resolveAllNodes', () => {
 
     const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
 
-    expect(result.values['a']).toEqual({ value: 'user-edit', isDirty: true, suggestion: 'new' });
+    expect(result.values['a']).toEqual({
+      value: 'user-edit',
+      isDirty: true,
+      suggestion: 'new',
+    });
   });
 
   it('overwrites value with AI default when field is clean', () => {
@@ -136,16 +154,29 @@ describe('resolveAllNodes', () => {
     const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
 
     expect(result.values['a']).toEqual({ value: 'new', isDirty: false });
-    expect(result.diffs.some((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBe(true);
-    expect(result.resolutions[0].reconciledValue).toEqual({ value: 'new', isDirty: false });
+    expect(
+      result.diffs.some(
+        (diff) => diff.nodeId === 'a' && diff.type === 'migrated'
+      )
+    ).toBe(true);
+    expect(result.resolutions[0].reconciledValue).toEqual({
+      value: 'new',
+      isDirty: false,
+    });
   });
 
   it('does not migrate when object default values are semantically equal', () => {
     const priorView = makeView([
-      makeNode({ id: 'a', defaultValue: { first: 1, second: 2 } as unknown as string }),
+      makeNode({
+        id: 'a',
+        defaultValue: { first: 1, second: 2 } as unknown as string,
+      }),
     ]);
     const newView = makeView([
-      makeNode({ id: 'a', defaultValue: { second: 2, first: 1 } as unknown as string }),
+      makeNode({
+        id: 'a',
+        defaultValue: { second: 2, first: 1 } as unknown as string,
+      }),
     ]);
     const priorData = makeData({
       a: { value: { first: 1, second: 2 }, isDirty: true } as NodeValue,
@@ -159,7 +190,11 @@ describe('resolveAllNodes', () => {
       value: { first: 1, second: 2 },
       isDirty: true,
     });
-    expect(result.diffs.find((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBeUndefined();
+    expect(
+      result.diffs.find(
+        (diff) => diff.nodeId === 'a' && diff.type === 'migrated'
+      )
+    ).toBeUndefined();
     expect(result.resolutions[0].reconciledValue).toEqual({
       value: { first: 1, second: 2 },
       isDirty: true,
@@ -168,10 +203,16 @@ describe('resolveAllNodes', () => {
 
   it('does not overwrite a clean value when object default values only differ by property order', () => {
     const priorView = makeView([
-      makeNode({ id: 'a', defaultValue: { first: 1, second: 2 } as unknown as string }),
+      makeNode({
+        id: 'a',
+        defaultValue: { first: 1, second: 2 } as unknown as string,
+      }),
     ]);
     const newView = makeView([
-      makeNode({ id: 'a', defaultValue: { second: 2, first: 1 } as unknown as string }),
+      makeNode({
+        id: 'a',
+        defaultValue: { second: 2, first: 1 } as unknown as string,
+      }),
     ]);
     const priorData = makeData({
       a: { value: { first: 1, second: 2 }, isDirty: false } as NodeValue,
@@ -185,12 +226,20 @@ describe('resolveAllNodes', () => {
       value: { first: 1, second: 2 },
       isDirty: false,
     });
-    expect(result.diffs.find((diff) => diff.nodeId === 'a' && diff.type === 'migrated')).toBeUndefined();
+    expect(
+      result.diffs.find(
+        (diff) => diff.nodeId === 'a' && diff.type === 'migrated'
+      )
+    ).toBeUndefined();
   });
 
   it('carries state between compatible container types (row -> group)', () => {
-    const priorView = makeView([makeNode({ id: 'a', type: 'row', children: [] } as any)]);
-    const newView = makeView([makeNode({ id: 'a', type: 'group', children: [] } as any)]);
+    const priorView = makeView([
+      makeNode({ id: 'a', type: 'row', children: [] } as any),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'a', type: 'group', children: [] } as any),
+    ]);
     const priorData = makeData({ a: { value: 'container-state' } });
     const ctx = buildReconciliationContext(newView, priorView);
     const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
@@ -203,8 +252,10 @@ describe('resolveAllNodes', () => {
 
   it('restores detached values when a node is re-added with the same key and type', () => {
     const priorView = makeView([]);
-    const newView = makeView([makeNode({ id: 'a', key: 'email', type: 'field' })]);
-    
+    const newView = makeView([
+      makeNode({ id: 'a', key: 'email', type: 'field' }),
+    ]);
+
     // Simulate a snapshot that has a detached value for 'email'
     const priorData = makeData({});
     priorData.detachedValues = {
@@ -215,7 +266,7 @@ describe('resolveAllNodes', () => {
         detachedAt: 1000,
         viewVersion: '1.0',
         reason: 'node-removed',
-      }
+      },
     };
 
     const ctx = buildReconciliationContext(newView, priorView);
@@ -229,8 +280,12 @@ describe('resolveAllNodes', () => {
   });
 
   it('creates a detached value when a type mismatch occurs', () => {
-    const priorView = makeView([makeNode({ id: 'a', type: 'field', key: 'email' })]);
-    const newView = makeView([makeNode({ id: 'a', type: 'action', key: 'email' })]);
+    const priorView = makeView([
+      makeNode({ id: 'a', type: 'field', key: 'email' }),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'a', type: 'action', key: 'email' }),
+    ]);
     const priorData = makeData({ a: { value: 'hello' } });
     const ctx = buildReconciliationContext(newView, priorView);
     const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
@@ -271,7 +326,12 @@ describe('detectRemovedNodes', () => {
     const priorData = makeData({ a: { value: 'hello' }, b: { value: true } });
     const ctx = buildReconciliationContext(newView, priorView);
 
-    const result = detectRemovedNodes(ctx, priorData, { allowPartialRestore: true }, 5000);
+    const result = detectRemovedNodes(
+      ctx,
+      priorData,
+      { allowPartialRestore: true },
+      5000
+    );
 
     expect(result.diffs).toHaveLength(1);
     expect(result.issues).toHaveLength(0);

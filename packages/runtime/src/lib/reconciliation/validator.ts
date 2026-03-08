@@ -1,5 +1,5 @@
-import type { NodeValue, ViewNode } from '@continuum/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum/contract';
+import type { NodeValue, ViewNode } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import type { ReconciliationIssue } from '../types.js';
 
 function readStateValue(state: NodeValue | undefined): unknown {
@@ -66,7 +66,10 @@ export function validateNodeValue(
   }
 
   if (typeof value === 'string') {
-    if (typeof constraints.minLength === 'number' && value.length < constraints.minLength) {
+    if (
+      typeof constraints.minLength === 'number' &&
+      value.length < constraints.minLength
+    ) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
         nodeId: node.id,
@@ -74,7 +77,10 @@ export function validateNodeValue(
         code: ISSUE_CODES.VALIDATION_FAILED,
       });
     }
-    if (typeof constraints.maxLength === 'number' && value.length > constraints.maxLength) {
+    if (
+      typeof constraints.maxLength === 'number' &&
+      value.length > constraints.maxLength
+    ) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
         nodeId: node.id,

@@ -5,8 +5,8 @@ import type {
   NodeValue,
   ViewDefinition,
   ViewNode,
-} from '@continuum/core';
-import { getChildNodes } from '@continuum/core';
+} from '@continuum-dev/core';
+import { getChildNodes } from '@continuum-dev/core';
 import { ContinuumContext } from './context.js';
 import { NodeStateScopeContext, useContinuumState } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
@@ -14,7 +14,9 @@ import { NodeErrorBoundary } from './error-boundary.js';
 
 const noopOnChange = () => undefined;
 
-function deepCloneValues(values: Record<string, NodeValue>): Record<string, NodeValue> {
+function deepCloneValues(
+  values: Record<string, NodeValue>
+): Record<string, NodeValue> {
   return structuredClone(values);
 }
 
@@ -49,21 +51,30 @@ function normalizeCollectionNodeValue(
 ): NodeValue<CollectionNodeState> {
   const metadata = value
     ? {
-        ...(value.suggestion !== undefined ? { suggestion: value.suggestion } : {}),
+        ...(value.suggestion !== undefined
+          ? { suggestion: value.suggestion }
+          : {}),
         ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
         ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
       }
     : {};
-  const items = (value as NodeValue<CollectionNodeState> | undefined)?.value?.items;
+  const items = (value as NodeValue<CollectionNodeState> | undefined)?.value
+    ?.items;
   if (!Array.isArray(items)) {
-    return { ...metadata, value: { items: [] } } as NodeValue<CollectionNodeState>;
+    return {
+      ...metadata,
+      value: { items: [] },
+    } as NodeValue<CollectionNodeState>;
   }
   return {
     ...metadata,
     value: {
       items: items.map((item) => ({
         values:
-          item && typeof item === 'object' && item.values && typeof item.values === 'object'
+          item &&
+          typeof item === 'object' &&
+          item.values &&
+          typeof item.values === 'object'
             ? { ...item.values }
             : {},
       })),
@@ -98,7 +109,9 @@ function normalizeMaxItems(value: number | undefined): number | undefined {
   return Math.floor(value);
 }
 
-function createInitialCollectionState(node: CollectionNode): CollectionNodeState {
+function createInitialCollectionState(
+  node: CollectionNode
+): CollectionNodeState {
   const minItems = normalizeMinItems(node.minItems);
   return {
     items: Array.from({ length: minItems }, () => ({
@@ -222,61 +235,75 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
     );
   }
   const { session, store } = ctx;
-  const scope = useMemo(
-    () => {
-      const readCollectionValue = parentScope
-        ? () => normalizeCollectionNodeValue(parentScope.getNodeValue(collectionCanonicalId))
-        : () => normalizeCollectionNodeValue(store.getNodeValue(collectionCanonicalId));
-
-      const writeCollectionValue = parentScope
-        ? (next: NodeValue<CollectionNodeState>) => parentScope.setNodeValue(collectionCanonicalId, next)
-        : (next: NodeValue<CollectionNodeState>) => session.updateState(collectionCanonicalId, next);
-
-      const subscribeToCollection = parentScope
-        ? (listener: () => void) => parentScope.subscribeNode(collectionCanonicalId, listener)
-        : (listener: () => void) => store.subscribeNode(collectionCanonicalId, listener);
-
-      return {
-        subscribeNode: (_nodeId: string, listener: () => void) =>
-          subscribeToCollection(listener),
-        getNodeValue: (nodeId: string) => {
-          const relativeId = toRelativeNodeId(collectionCanonicalId, nodeId);
-          if (!relativeId) {
-            return undefined;
-          }
-          const collectionValue = readCollectionValue();
-          return (
-            collectionValue.value.items[itemIndex]?.values?.[relativeId] ??
-            templateDefaults[relativeId]
+  const scope = useMemo(() => {
+    const readCollectionValue = parentScope
+      ? () =>
+          normalizeCollectionNodeValue(
+            parentScope.getNodeValue(collectionCanonicalId)
+          )
+      : () =>
+          normalizeCollectionNodeValue(
+            store.getNodeValue(collectionCanonicalId)
           );
-        },
-        setNodeValue: (nodeId: string, nextValue: NodeValue) => {
-          const relativeId = toRelativeNodeId(collectionCanonicalId, nodeId);
-          if (!relativeId) {
-            return;
-          }
-          const collectionValue = readCollectionValue();
-          const items = collectionValue.value.items.map((item) => ({
-            values: deepCloneValues(item.values),
-          }));
-          while (items.length <= itemIndex) {
-            items.push({ values: {} });
-          }
-          items[itemIndex] = {
-            values: {
-              ...items[itemIndex].values,
-              [relativeId]: nextValue,
-            },
-          };
-          writeCollectionValue({
-            ...collectionValue,
-            value: { items },
-          });
-        },
-      };
-    },
-    [collectionCanonicalId, itemIndex, session, store, templateDefaults, parentScope]
-  );
+
+    const writeCollectionValue = parentScope
+      ? (next: NodeValue<CollectionNodeState>) =>
+          parentScope.setNodeValue(collectionCanonicalId, next)
+      : (next: NodeValue<CollectionNodeState>) =>
+          session.updateState(collectionCanonicalId, next);
+
+    const subscribeToCollection = parentScope
+      ? (listener: () => void) =>
+          parentScope.subscribeNode(collectionCanonicalId, listener)
+      : (listener: () => void) =>
+          store.subscribeNode(collectionCanonicalId, listener);
+
+    return {
+      subscribeNode: (_nodeId: string, listener: () => void) =>
+        subscribeToCollection(listener),
+      getNodeValue: (nodeId: string) => {
+        const relativeId = toRelativeNodeId(collectionCanonicalId, nodeId);
+        if (!relativeId) {
+          return undefined;
+        }
+        const collectionValue = readCollectionValue();
+        return (
+          collectionValue.value.items[itemIndex]?.values?.[relativeId] ??
+          templateDefaults[relativeId]
+        );
+      },
+      setNodeValue: (nodeId: string, nextValue: NodeValue) => {
+        const relativeId = toRelativeNodeId(collectionCanonicalId, nodeId);
+        if (!relativeId) {
+          return;
+        }
+        const collectionValue = readCollectionValue();
+        const items = collectionValue.value.items.map((item) => ({
+          values: deepCloneValues(item.values),
+        }));
+        while (items.length <= itemIndex) {
+          items.push({ values: {} });
+        }
+        items[itemIndex] = {
+          values: {
+            ...items[itemIndex].values,
+            [relativeId]: nextValue,
+          },
+        };
+        writeCollectionValue({
+          ...collectionValue,
+          value: { items },
+        });
+      },
+    };
+  }, [
+    collectionCanonicalId,
+    itemIndex,
+    session,
+    store,
+    templateDefaults,
+    parentScope,
+  ]);
 
   return (
     <NodeStateScopeContext.Provider value={scope}>
@@ -354,22 +381,25 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
     });
   }, [maxItems, readCollectionValue, setCollectionValue, templateDefaults]);
 
-  const removeItem = useCallback((index: number) => {
-    const current = readCollectionValue();
-    if (current.value.items.length <= minItems) {
-      return;
-    }
-    const items = current.value.items
-      .map((item) => ({ values: deepCloneValues(item.values) }))
-      .filter((_, itemIndex) => itemIndex !== index);
-    if (items.length < minItems) {
-      return;
-    }
-    setCollectionValue({
-      ...current,
-      value: { items },
-    });
-  }, [minItems, readCollectionValue, setCollectionValue]);
+  const removeItem = useCallback(
+    (index: number) => {
+      const current = readCollectionValue();
+      if (current.value.items.length <= minItems) {
+        return;
+      }
+      const items = current.value.items
+        .map((item) => ({ values: deepCloneValues(item.values) }))
+        .filter((_, itemIndex) => itemIndex !== index);
+      if (items.length < minItems) {
+        return;
+      }
+      setCollectionValue({
+        ...current,
+        value: { items },
+      });
+    },
+    [minItems, readCollectionValue, setCollectionValue]
+  );
 
   const renderedItems = normalizedCollection.value.items.map((_, index) => (
     <CollectionItemRenderer
@@ -409,13 +439,27 @@ const NodeRenderer = memo(function NodeRenderer({
   mappedProps,
 }: NodeRendererProps) {
   if (definition.type === 'collection') {
-    return <CollectionNodeRenderer definition={definition} parentPath={parentPath} />;
+    return (
+      <CollectionNodeRenderer definition={definition} parentPath={parentPath} />
+    );
   }
   const childNodes = getChildNodes(definition);
   if (childNodes.length > 0) {
-    return <ContainerNodeRenderer definition={definition} parentPath={parentPath} mappedProps={mappedProps} />;
+    return (
+      <ContainerNodeRenderer
+        definition={definition}
+        parentPath={parentPath}
+        mappedProps={mappedProps}
+      />
+    );
   }
-  return <StatefulNodeRenderer definition={definition} parentPath={parentPath} mappedProps={mappedProps} />;
+  return (
+    <StatefulNodeRenderer
+      definition={definition}
+      parentPath={parentPath}
+      mappedProps={mappedProps}
+    />
+  );
 });
 
 /**

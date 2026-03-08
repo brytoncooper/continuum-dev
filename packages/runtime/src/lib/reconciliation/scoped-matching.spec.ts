@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { DataSnapshot, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  DataSnapshot,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { buildReconciliationContext } from '../context.js';
 import { reconcile } from '../reconcile.js';
 
-function makeView(nodes: ViewNode[], viewId = 'view-1', version = '1.0'): ViewDefinition {
+function makeView(
+  nodes: ViewNode[],
+  viewId = 'view-1',
+  version = '1.0'
+): ViewDefinition {
   return { viewId, version, nodes };
 }
 
@@ -21,7 +30,13 @@ function makeNode(
     ...(type === 'field' ? { dataType: 'string' } : {}),
     ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
     ...(type === 'collection'
-      ? { template: { id: `${overrides.id}-tpl`, type: 'field', dataType: 'string' } as ViewNode }
+      ? {
+          template: {
+            id: `${overrides.id}-tpl`,
+            type: 'field',
+            dataType: 'string',
+          } as ViewNode,
+        }
       : {}),
     ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
     ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
@@ -39,17 +54,24 @@ function makeData(values: Record<string, NodeValue>): DataSnapshot {
   };
 }
 
-function makeScopedView(billingChildId = 'name', shippingChildId = 'name'): ViewDefinition {
+function makeScopedView(
+  billingChildId = 'name',
+  shippingChildId = 'name'
+): ViewDefinition {
   return makeView([
     makeNode({
       id: 'billing',
       type: 'group',
-      children: [makeNode({ id: billingChildId, key: 'billing-name', type: 'field' })],
+      children: [
+        makeNode({ id: billingChildId, key: 'billing-name', type: 'field' }),
+      ],
     }),
     makeNode({
       id: 'shipping',
       type: 'group',
-      children: [makeNode({ id: shippingChildId, key: 'shipping-name', type: 'field' })],
+      children: [
+        makeNode({ id: shippingChildId, key: 'shipping-name', type: 'field' }),
+      ],
     }),
   ]);
 }
@@ -59,7 +81,9 @@ describe('scoped matching', () => {
     const view = makeScopedView('name', 'name');
     const ctx = buildReconciliationContext(view, null);
     expect(ctx.newById.size).toBeGreaterThanOrEqual(4);
-    expect(ctx.issues.some((issue) => issue.code === 'DUPLICATE_NODE_ID')).toBe(false);
+    expect(ctx.issues.some((issue) => issue.code === 'DUPLICATE_NODE_ID')).toBe(
+      false
+    );
   });
 
   it('carries both scoped child states independently', () => {
@@ -70,8 +94,12 @@ describe('scoped matching', () => {
       'shipping/name': { value: 'shipping-user' },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['billing/name']).toEqual({ value: 'billing-user' });
-    expect(result.reconciledState.values['shipping/name']).toEqual({ value: 'shipping-user' });
+    expect(result.reconciledState.values['billing/name']).toEqual({
+      value: 'billing-user',
+    });
+    expect(result.reconciledState.values['shipping/name']).toEqual({
+      value: 'shipping-user',
+    });
   });
 
   it('does not produce duplicate key warnings when duplicate keys are in different parent scopes', () => {
@@ -88,7 +116,9 @@ describe('scoped matching', () => {
       }),
     ]);
     const ctx = buildReconciliationContext(view, null);
-    expect(ctx.issues.some((issue) => issue.code === 'DUPLICATE_NODE_KEY')).toBe(false);
+    expect(
+      ctx.issues.some((issue) => issue.code === 'DUPLICATE_NODE_KEY')
+    ).toBe(false);
   });
 
   it('preserves child state when parent id is renamed', () => {
@@ -108,7 +138,9 @@ describe('scoped matching', () => {
     ]);
     const priorData = makeData({ 'billing-old/name': { value: 'kept' } });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['billing-new/name']).toEqual({ value: 'kept' });
+    expect(result.reconciledState.values['billing-new/name']).toEqual({
+      value: 'kept',
+    });
   });
 
   it('preserves child state when moved to another parent by key', () => {
@@ -130,7 +162,9 @@ describe('scoped matching', () => {
     ]);
     const priorData = makeData({ 'billing/name': { value: 'moved' } });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['shipping/name']).toEqual({ value: 'moved' });
+    expect(result.reconciledState.values['shipping/name']).toEqual({
+      value: 'moved',
+    });
   });
 
   it('works for 3-level nested duplicate ids', () => {
@@ -138,12 +172,24 @@ describe('scoped matching', () => {
       makeNode({
         id: 'rootA',
         type: 'group',
-        children: [makeNode({ id: 'section', type: 'group', children: [makeNode({ id: 'name' })] })],
+        children: [
+          makeNode({
+            id: 'section',
+            type: 'group',
+            children: [makeNode({ id: 'name' })],
+          }),
+        ],
       }),
       makeNode({
         id: 'rootB',
         type: 'group',
-        children: [makeNode({ id: 'section', type: 'group', children: [makeNode({ id: 'name' })] })],
+        children: [
+          makeNode({
+            id: 'section',
+            type: 'group',
+            children: [makeNode({ id: 'name' })],
+          }),
+        ],
       }),
     ]);
     const newView = priorView;
@@ -152,16 +198,31 @@ describe('scoped matching', () => {
       'rootB/section/name': { value: 'b' },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['rootA/section/name']).toEqual({ value: 'a' });
-    expect(result.reconciledState.values['rootB/section/name']).toEqual({ value: 'b' });
+    expect(result.reconciledState.values['rootA/section/name']).toEqual({
+      value: 'a',
+    });
+    expect(result.reconciledState.values['rootB/section/name']).toEqual({
+      value: 'b',
+    });
   });
 
   it('maintains backward compatibility for flat unique ids', () => {
-    const priorView = makeView([makeNode({ id: 'email' }), makeNode({ id: 'phone' })]);
-    const newView = makeView([makeNode({ id: 'email' }), makeNode({ id: 'phone' })]);
-    const priorData = makeData({ email: { value: 'a@x.com' }, phone: { value: '123' } });
+    const priorView = makeView([
+      makeNode({ id: 'email' }),
+      makeNode({ id: 'phone' }),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'email' }),
+      makeNode({ id: 'phone' }),
+    ]);
+    const priorData = makeData({
+      email: { value: 'a@x.com' },
+      phone: { value: '123' },
+    });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['email']).toEqual({ value: 'a@x.com' });
+    expect(result.reconciledState.values['email']).toEqual({
+      value: 'a@x.com',
+    });
     expect(result.reconciledState.values['phone']).toEqual({ value: '123' });
   });
 
@@ -186,9 +247,15 @@ describe('scoped matching', () => {
       'shipping/name': { value: 'ship' },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.reconciledState.values['global-email']).toEqual({ value: 'g@x.com' });
-    expect(result.reconciledState.values['billing/name']).toEqual({ value: 'bill' });
-    expect(result.reconciledState.values['shipping/name']).toEqual({ value: 'ship' });
+    expect(result.reconciledState.values['global-email']).toEqual({
+      value: 'g@x.com',
+    });
+    expect(result.reconciledState.values['billing/name']).toEqual({
+      value: 'bill',
+    });
+    expect(result.reconciledState.values['shipping/name']).toEqual({
+      value: 'ship',
+    });
   });
 
   it('detects removal correctly for one scoped child only', () => {
@@ -210,8 +277,14 @@ describe('scoped matching', () => {
       'shipping/name': { value: 'ship' },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.diffs.some((diff) => diff.nodeId === 'shipping/name' && diff.type === 'removed')).toBe(true);
-    expect(result.reconciledState.values['billing/name']).toEqual({ value: 'bill' });
+    expect(
+      result.diffs.some(
+        (diff) => diff.nodeId === 'shipping/name' && diff.type === 'removed'
+      )
+    ).toBe(true);
+    expect(result.reconciledState.values['billing/name']).toEqual({
+      value: 'bill',
+    });
   });
 
   it('produces resolutions for both scoped duplicate ids', () => {
@@ -222,7 +295,11 @@ describe('scoped matching', () => {
       'shipping/name': { value: 'ship' },
     });
     const result = reconcile(newView, priorView, priorData);
-    expect(result.resolutions.some((r) => r.nodeId === 'billing/name')).toBe(true);
-    expect(result.resolutions.some((r) => r.nodeId === 'shipping/name')).toBe(true);
+    expect(result.resolutions.some((r) => r.nodeId === 'billing/name')).toBe(
+      true
+    );
+    expect(result.resolutions.some((r) => r.nodeId === 'shipping/name')).toBe(
+      true
+    );
   });
 });

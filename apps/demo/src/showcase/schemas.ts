@@ -1,4 +1,9 @@
-import type { CollectionNodeState, NodeValue, ViewDefinition, ViewNode } from '@continuum/contract';
+import type {
+  CollectionNodeState,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 
 export interface DemoExample {
   title: string;
@@ -18,7 +23,9 @@ function node(definition: Record<string, unknown>): ViewNode {
   return definition as unknown as ViewNode;
 }
 
-function collectionValue(items: Array<{ values: Record<string, NodeValue> }>): NodeValue<CollectionNodeState> {
+function collectionValue(
+  items: Array<{ values: Record<string, NodeValue> }>
+): NodeValue<CollectionNodeState> {
   return {
     value: {
       items,
@@ -34,12 +41,21 @@ export const demoSections: DemoSection[] = [
     examples: [
       {
         title: 'Text field',
-        description: 'Default single-line text input with the shared control height.',
+        description:
+          'Default single-line text input with the shared control height.',
         span: 4,
         view: {
           viewId: 'demo-field-text',
           version: '1',
-          nodes: [{ id: 'full_name', type: 'field', dataType: 'string', label: 'Full name', placeholder: 'Enter Name' }],
+          nodes: [
+            {
+              id: 'full_name',
+              type: 'field',
+              dataType: 'string',
+              label: 'Full name',
+              placeholder: 'Enter Name',
+            },
+          ],
         },
         initialValues: {
           full_name: { value: 'Ada Lovelace' },
@@ -52,7 +68,15 @@ export const demoSections: DemoSection[] = [
         view: {
           viewId: 'demo-field-number',
           version: '1',
-          nodes: [{ id: 'budget', type: 'field', dataType: 'number', label: 'Budget', placeholder: 'Enter Amount' }],
+          nodes: [
+            {
+              id: 'budget',
+              type: 'field',
+              dataType: 'number',
+              label: 'Budget',
+              placeholder: 'Enter Amount',
+            },
+          ],
         },
         initialValues: {
           budget: { value: 1200 },
@@ -60,7 +84,8 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Select',
-        description: 'Single-choice dropdown sized to match the other controls.',
+        description:
+          'Single-choice dropdown sized to match the other controls.',
         span: 4,
         view: {
           viewId: 'demo-select',
@@ -89,7 +114,14 @@ export const demoSections: DemoSection[] = [
         view: {
           viewId: 'demo-toggle',
           version: '1',
-          nodes: [node({ id: 'notifications', type: 'toggle', label: 'Email updates', description: 'Weekly summary only' })],
+          nodes: [
+            node({
+              id: 'notifications',
+              type: 'toggle',
+              label: 'Email updates',
+              description: 'Weekly summary only',
+            }),
+          ],
         },
         initialValues: {
           notifications: { value: true },
@@ -97,12 +129,15 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Date',
-        description: 'Date input keeps the same control rhythm as the text field.',
+        description:
+          'Date input keeps the same control rhythm as the text field.',
         span: 4,
         view: {
           viewId: 'demo-date',
           version: '1',
-          nodes: [node({ id: 'start_date', type: 'date', label: 'Start date' })],
+          nodes: [
+            node({ id: 'start_date', type: 'date', label: 'Start date' }),
+          ],
         },
         initialValues: {
           start_date: { value: '2026-04-18' },
@@ -110,15 +145,25 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Textarea',
-        description: 'Multi-line input expands vertically while staying visually related to the one-line primitives.',
+        description:
+          'Multi-line input expands vertically while staying visually related to the one-line primitives.',
         span: 4,
         view: {
           viewId: 'demo-textarea',
           version: '1',
-          nodes: [node({ id: 'notes', type: 'textarea', label: 'Notes', placeholder: 'Enter Notes' })],
+          nodes: [
+            node({
+              id: 'notes',
+              type: 'textarea',
+              label: 'Notes',
+              placeholder: 'Enter Notes',
+            }),
+          ],
         },
         initialValues: {
-          notes: { value: 'Focus on clarity, hierarchy, and a neutral visual tone.' },
+          notes: {
+            value: 'Focus on clarity, hierarchy, and a neutral visual tone.',
+          },
         },
       },
       {
@@ -147,12 +192,21 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Slider',
-        description: 'Numeric range control with matching label rhythm and control spacing.',
+        description:
+          'Numeric range control with matching label rhythm and control spacing.',
         span: 6,
         view: {
           viewId: 'demo-slider',
           version: '1',
-          nodes: [node({ id: 'confidence', type: 'slider', label: 'Confidence', min: 0, max: 10 })],
+          nodes: [
+            node({
+              id: 'confidence',
+              type: 'slider',
+              label: 'Confidence',
+              min: 0,
+              max: 10,
+            }),
+          ],
         },
         initialValues: {
           confidence: { value: 7 },
@@ -165,12 +219,20 @@ export const demoSections: DemoSection[] = [
         view: {
           viewId: 'demo-action',
           version: '1',
-          nodes: [{ id: 'submit_demo', type: 'action', intentId: 'demo.submit', label: 'Submit sample' }],
+          nodes: [
+            {
+              id: 'submit_demo',
+              type: 'action',
+              intentId: 'demo.submit',
+              label: 'Submit sample',
+            },
+          ],
         },
       },
       {
         title: 'Presentation',
-        description: 'Read-only content lives in the same spacing system without looking decorative.',
+        description:
+          'Read-only content lives in the same spacing system without looking decorative.',
         span: 6,
         view: {
           viewId: 'demo-presentation',
@@ -195,7 +257,8 @@ export const demoSections: DemoSection[] = [
     examples: [
       {
         title: 'Group',
-        description: 'Section-based grouping with quiet headings and balanced spacing.',
+        description:
+          'Section-based grouping with quiet headings and balanced spacing.',
         span: 6,
         view: {
           viewId: 'demo-group',
@@ -206,8 +269,18 @@ export const demoSections: DemoSection[] = [
               type: 'group',
               label: 'Profile',
               children: [
-                { id: 'first_name', type: 'field', dataType: 'string', label: 'First name' },
-                { id: 'last_name', type: 'field', dataType: 'string', label: 'Last name' },
+                {
+                  id: 'first_name',
+                  type: 'field',
+                  dataType: 'string',
+                  label: 'First name',
+                },
+                {
+                  id: 'last_name',
+                  type: 'field',
+                  dataType: 'string',
+                  label: 'Last name',
+                },
                 node({
                   id: 'role',
                   type: 'select',
@@ -230,7 +303,8 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Row',
-        description: 'Horizontal layout stays tight and aligned even with mixed primitive types.',
+        description:
+          'Horizontal layout stays tight and aligned even with mixed primitive types.',
         span: 6,
         view: {
           viewId: 'demo-row',
@@ -240,9 +314,19 @@ export const demoSections: DemoSection[] = [
               id: 'travel_row',
               type: 'row',
               children: [
-                { id: 'destination', type: 'field', dataType: 'string', label: 'Destination' },
+                {
+                  id: 'destination',
+                  type: 'field',
+                  dataType: 'string',
+                  label: 'Destination',
+                },
                 node({ id: 'departure', type: 'date', label: 'Departure' }),
-                { id: 'book_now', type: 'action', intentId: 'demo.submit', label: 'Book' },
+                {
+                  id: 'book_now',
+                  type: 'action',
+                  intentId: 'demo.submit',
+                  label: 'Book',
+                },
               ],
             },
           ],
@@ -265,8 +349,17 @@ export const demoSections: DemoSection[] = [
               type: 'grid',
               columns: 2,
               children: [
-                { id: 'company', type: 'field', dataType: 'string', label: 'Company' },
-                node({ id: 'renewal_date', type: 'date', label: 'Renewal date' }),
+                {
+                  id: 'company',
+                  type: 'field',
+                  dataType: 'string',
+                  label: 'Company',
+                },
+                node({
+                  id: 'renewal_date',
+                  type: 'date',
+                  label: 'Renewal date',
+                }),
                 node({
                   id: 'plan',
                   type: 'radio-group',
@@ -277,7 +370,13 @@ export const demoSections: DemoSection[] = [
                     { value: 'custom', label: 'Custom' },
                   ],
                 }),
-                node({ id: 'adoption', type: 'slider', label: 'Adoption', min: 0, max: 100 }),
+                node({
+                  id: 'adoption',
+                  type: 'slider',
+                  label: 'Adoption',
+                  min: 0,
+                  max: 100,
+                }),
               ],
             },
           ],
@@ -291,7 +390,8 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Collection',
-        description: 'Repeatable sections rely on consistent item rhythm instead of heavy card stacking.',
+        description:
+          'Repeatable sections rely on consistent item rhythm instead of heavy card stacking.',
         span: 12,
         view: {
           viewId: 'demo-collection',
@@ -307,7 +407,12 @@ export const demoSections: DemoSection[] = [
                 type: 'group',
                 label: 'Member',
                 children: [
-                  { id: 'member_name', type: 'field', dataType: 'string', label: 'Name' },
+                  {
+                    id: 'member_name',
+                    type: 'field',
+                    dataType: 'string',
+                    label: 'Name',
+                  },
                   node({
                     id: 'member_role',
                     type: 'select',
@@ -318,7 +423,11 @@ export const demoSections: DemoSection[] = [
                       { value: 'engineering', label: 'Engineering' },
                     ],
                   }),
-                  node({ id: 'member_active', type: 'toggle', label: 'Active' }),
+                  node({
+                    id: 'member_active',
+                    type: 'toggle',
+                    label: 'Active',
+                  }),
                 ],
               },
             },
@@ -345,7 +454,8 @@ export const demoSections: DemoSection[] = [
       },
       {
         title: 'Collection rows',
-        description: 'A row-based collection showing the add-row flow and the inline square remove action.',
+        description:
+          'A row-based collection showing the add-row flow and the inline square remove action.',
         span: 12,
         view: {
           viewId: 'demo-collection-rows',
@@ -360,8 +470,18 @@ export const demoSections: DemoSection[] = [
                 id: 'line_item',
                 type: 'row',
                 children: [
-                  { id: 'item_name', type: 'field', dataType: 'string', label: 'Item' },
-                  { id: 'quantity', type: 'field', dataType: 'number', label: 'Qty' },
+                  {
+                    id: 'item_name',
+                    type: 'field',
+                    dataType: 'string',
+                    label: 'Item',
+                  },
+                  {
+                    id: 'quantity',
+                    type: 'field',
+                    dataType: 'number',
+                    label: 'Qty',
+                  },
                   node({
                     id: 'status',
                     type: 'select',
@@ -408,7 +528,8 @@ export const demoSections: DemoSection[] = [
     examples: [
       {
         title: 'Program brief',
-        description: 'A realistic mixed schema combining sections, rows, grids, collections, and nested collections.',
+        description:
+          'A realistic mixed schema combining sections, rows, grids, collections, and nested collections.',
         span: 12,
         view: {
           viewId: 'demo-program-brief',
@@ -423,15 +544,25 @@ export const demoSections: DemoSection[] = [
                   id: 'program_intro',
                   type: 'presentation',
                   contentType: 'text',
-                  content: 'This composition is meant to test composability, spacing, and nested hierarchy in one pass.',
+                  content:
+                    'This composition is meant to test composability, spacing, and nested hierarchy in one pass.',
                 },
                 {
                   id: 'program_header',
                   type: 'grid',
                   columns: 2,
                   children: [
-                    { id: 'program_name', type: 'field', dataType: 'string', label: 'Program name' },
-                    node({ id: 'launch_date', type: 'date', label: 'Launch date' }),
+                    {
+                      id: 'program_name',
+                      type: 'field',
+                      dataType: 'string',
+                      label: 'Program name',
+                    },
+                    node({
+                      id: 'launch_date',
+                      type: 'date',
+                      label: 'Launch date',
+                    }),
                     node({
                       id: 'region',
                       type: 'select',
@@ -442,7 +573,13 @@ export const demoSections: DemoSection[] = [
                         { value: 'apac', label: 'APAC' },
                       ],
                     }),
-                    node({ id: 'readiness', type: 'slider', label: 'Readiness', min: 0, max: 10 }),
+                    node({
+                      id: 'readiness',
+                      type: 'slider',
+                      label: 'Readiness',
+                      min: 0,
+                      max: 10,
+                    }),
                   ],
                 },
                 {
@@ -459,8 +596,17 @@ export const demoSections: DemoSection[] = [
                         id: 'summary',
                         type: 'row',
                         children: [
-                          { id: 'milestone_name', type: 'field', dataType: 'string', label: 'Milestone name' },
-                          node({ id: 'milestone_date', type: 'date', label: 'Date' }),
+                          {
+                            id: 'milestone_name',
+                            type: 'field',
+                            dataType: 'string',
+                            label: 'Milestone name',
+                          },
+                          node({
+                            id: 'milestone_date',
+                            type: 'date',
+                            label: 'Date',
+                          }),
                         ],
                       },
                       {
@@ -478,9 +624,23 @@ export const demoSections: DemoSection[] = [
                               { value: 'engineering', label: 'Engineering' },
                             ],
                           }),
-                          node({ id: 'risk_level', type: 'slider', label: 'Risk', min: 0, max: 5 }),
-                          node({ id: 'summary_notes', type: 'textarea', label: 'Notes' }),
-                          node({ id: 'approved', type: 'toggle', label: 'Approved for build' }),
+                          node({
+                            id: 'risk_level',
+                            type: 'slider',
+                            label: 'Risk',
+                            min: 0,
+                            max: 5,
+                          }),
+                          node({
+                            id: 'summary_notes',
+                            type: 'textarea',
+                            label: 'Notes',
+                          }),
+                          node({
+                            id: 'approved',
+                            type: 'toggle',
+                            label: 'Approved for build',
+                          }),
                         ],
                       },
                       {
@@ -493,8 +653,17 @@ export const demoSections: DemoSection[] = [
                           type: 'group',
                           label: 'Task',
                           children: [
-                            { id: 'task_name', type: 'field', dataType: 'string', label: 'Task name' },
-                            node({ id: 'task_done', type: 'toggle', label: 'Done' }),
+                            {
+                              id: 'task_name',
+                              type: 'field',
+                              dataType: 'string',
+                              label: 'Task name',
+                            },
+                            node({
+                              id: 'task_done',
+                              type: 'toggle',
+                              label: 'Done',
+                            }),
                           ],
                         },
                       },
@@ -505,8 +674,19 @@ export const demoSections: DemoSection[] = [
                   id: 'program_footer',
                   type: 'row',
                   children: [
-                    { id: 'footer_copy', type: 'presentation', contentType: 'text', content: 'A calm system should keep this structure readable without visual noise.' },
-                    { id: 'approve_program', type: 'action', intentId: 'demo.submit', label: 'Approve program' },
+                    {
+                      id: 'footer_copy',
+                      type: 'presentation',
+                      contentType: 'text',
+                      content:
+                        'A calm system should keep this structure readable without visual noise.',
+                    },
+                    {
+                      id: 'approve_program',
+                      type: 'action',
+                      intentId: 'demo.submit',
+                      label: 'Approve program',
+                    },
                   ],
                 },
               ],
@@ -514,7 +694,9 @@ export const demoSections: DemoSection[] = [
           ],
         },
         initialValues: {
-          'program_brief/program_header/program_name': { value: 'Atlas relaunch' },
+          'program_brief/program_header/program_name': {
+            value: 'Atlas relaunch',
+          },
           'program_brief/program_header/launch_date': { value: '2026-07-09' },
           'program_brief/program_header/region': { value: 'emea' },
           'program_brief/program_header/readiness': { value: 8 },
@@ -525,7 +707,9 @@ export const demoSections: DemoSection[] = [
                 'milestone/summary/milestone_date': { value: '2026-04-20' },
                 'milestone/details/owner': { value: 'product' },
                 'milestone/details/risk_level': { value: 2 },
-                'milestone/details/summary_notes': { value: 'Align language, hierarchy, and examples.' },
+                'milestone/details/summary_notes': {
+                  value: 'Align language, hierarchy, and examples.',
+                },
                 'milestone/details/approved': { value: true },
                 'milestone/tasks': collectionValue([
                   {
@@ -536,7 +720,9 @@ export const demoSections: DemoSection[] = [
                   },
                   {
                     values: {
-                      'task/task_name': { value: 'Prototype nested collection treatment' },
+                      'task/task_name': {
+                        value: 'Prototype nested collection treatment',
+                      },
                       'task/task_done': { value: false },
                     },
                   },
@@ -549,7 +735,9 @@ export const demoSections: DemoSection[] = [
                 'milestone/summary/milestone_date': { value: '2026-07-09' },
                 'milestone/details/owner': { value: 'engineering' },
                 'milestone/details/risk_level': { value: 3 },
-                'milestone/details/summary_notes': { value: 'Keep the demo intentionally quiet.' },
+                'milestone/details/summary_notes': {
+                  value: 'Keep the demo intentionally quiet.',
+                },
                 'milestone/details/approved': { value: false },
                 'milestone/tasks': collectionValue([
                   {

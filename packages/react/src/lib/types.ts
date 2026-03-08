@@ -1,4 +1,4 @@
-import type { NodeValue, SessionOptions, ViewNode } from '@continuum/core';
+import type { NodeValue, SessionOptions, ViewNode } from '@continuum-dev/core';
 import type { ComponentType } from 'react';
 
 /**

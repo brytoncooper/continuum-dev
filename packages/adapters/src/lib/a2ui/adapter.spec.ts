@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FieldNode, GroupNode } from '@continuum/contract';
+import type { FieldNode, GroupNode } from '@continuum-dev/contract';
 import { a2uiAdapter } from './adapter.js';
 import type { A2UIForm } from './types.js';
 
@@ -79,12 +79,17 @@ describe('a2uiAdapter', () => {
       };
 
       const view = a2uiAdapter.toView(form);
-      expect(view.nodes[0]).toMatchObject({ type: 'field', dataType: 'string' });
+      expect(view.nodes[0]).toMatchObject({
+        type: 'field',
+        dataType: 'string',
+      });
     });
 
     it('maps Switch to field node with boolean dataType', () => {
       const form: A2UIForm = {
-        fields: [{ name: 'notifications', type: 'Switch', label: 'Notifications' }],
+        fields: [
+          { name: 'notifications', type: 'Switch', label: 'Notifications' },
+        ],
       };
 
       const view = a2uiAdapter.toView(form);
@@ -101,12 +106,17 @@ describe('a2uiAdapter', () => {
       };
 
       const view = a2uiAdapter.toView(form);
-      expect(view.nodes[0]).toMatchObject({ type: 'field', dataType: 'boolean' });
+      expect(view.nodes[0]).toMatchObject({
+        type: 'field',
+        dataType: 'boolean',
+      });
     });
 
     it('maps DateInput to field node with string dataType', () => {
       const form: A2UIForm = {
-        fields: [{ name: 'birthday', type: 'DateInput', label: 'Date of Birth' }],
+        fields: [
+          { name: 'birthday', type: 'DateInput', label: 'Date of Birth' },
+        ],
       };
 
       const view = a2uiAdapter.toView(form);
@@ -175,7 +185,10 @@ describe('a2uiAdapter', () => {
       };
 
       const view = a2uiAdapter.toView(form);
-      expect(view.nodes[0]).toMatchObject({ type: 'field', dataType: 'string' });
+      expect(view.nodes[0]).toMatchObject({
+        type: 'field',
+        dataType: 'string',
+      });
     });
 
     it('generates deterministic IDs for fields without names', () => {
@@ -194,10 +207,7 @@ describe('a2uiAdapter', () => {
 
     it('generates the same IDs across repeated toView calls', () => {
       const form: A2UIForm = {
-        fields: [
-          { type: 'TextInput' },
-          { type: 'TextInput' },
-        ],
+        fields: [{ type: 'TextInput' }, { type: 'TextInput' }],
       };
 
       const first = a2uiAdapter.toView(form);
@@ -274,7 +284,13 @@ describe('a2uiAdapter', () => {
       expect(view.nodes).toHaveLength(5);
 
       const dataTypes = view.nodes.map((n) => (n as FieldNode).dataType);
-      expect(dataTypes).toEqual(['string', 'string', 'boolean', 'string', 'string']);
+      expect(dataTypes).toEqual([
+        'string',
+        'string',
+        'boolean',
+        'string',
+        'string',
+      ]);
     });
   });
 
@@ -353,7 +369,7 @@ describe('a2uiAdapter', () => {
             id: 'items',
             type: 'collection',
             label: 'My Items',
-            template: { id: 'tpl', type: 'field', dataType: 'string' }
+            template: { id: 'tpl', type: 'field', dataType: 'string' },
           } as any,
         ],
       });
