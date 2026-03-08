@@ -3683,7 +3683,7 @@ describe('collection integration', () => {
 
   it('collection renders collection node id as canonical id on items', () => {
     const view = makeColView({ min: 1 });
-    let capturedNodeIds: string[] = [];
+    const capturedNodeIds: string[] = [];
     const map = makeColMap({
       collection: ({
         children,
@@ -5426,7 +5426,7 @@ describe('adversarial and edge-case integration', () => {
           try {
             (value as Record<string, unknown>).hackedProp = 'injected';
           } catch {
-            /* frozen — expected */
+            /* frozen â€” expected */
           }
         }
         return (

@@ -1,4 +1,4 @@
-import { act, type ReactElement } from 'react';
+import React, { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ViewDefinition } from '@continuum-dev/contract';
 import type { Session } from '@continuum-dev/session';

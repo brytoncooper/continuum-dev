@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { FallbackComponent } from './fallback.js';
@@ -18,9 +19,13 @@ describe('FallbackComponent', () => {
       />
     );
 
-    expect(container.querySelector('[data-continuum-fallback="field"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-continuum-fallback="field"]')
+    ).not.toBeNull();
     expect(getByText('Unknown type: field (Field One)')).toBeTruthy();
-    expect((container.querySelector('input') as HTMLInputElement).placeholder).toBe('Type here');
+    expect(
+      (container.querySelector('input') as HTMLInputElement).placeholder
+    ).toBe('Type here');
   });
 
   it('renders string value in input', () => {
@@ -88,7 +93,12 @@ describe('FallbackComponent', () => {
       <FallbackComponent
         value={undefined}
         onChange={vi.fn()}
-        definition={{ id: 'f1', type: 'field', dataType: 'string', label: 'My Label' }}
+        definition={{
+          id: 'f1',
+          type: 'field',
+          dataType: 'string',
+          label: 'My Label',
+        }}
       />
     );
     const title = container.querySelector('.continuum-fallback-title');
@@ -100,7 +110,12 @@ describe('FallbackComponent', () => {
       <FallbackComponent
         value={undefined}
         onChange={vi.fn()}
-        definition={{ id: 'f1', type: 'field', dataType: 'string', placeholder: 'Custom placeholder' }}
+        definition={{
+          id: 'f1',
+          type: 'field',
+          dataType: 'string',
+          placeholder: 'Custom placeholder',
+        }}
       />
     );
     const input = container.querySelector('input') as HTMLInputElement;
@@ -112,7 +127,12 @@ describe('FallbackComponent', () => {
       <FallbackComponent
         value={undefined}
         onChange={vi.fn()}
-        definition={{ id: 'f1', type: 'field', dataType: 'string', label: 'My Field' }}
+        definition={{
+          id: 'f1',
+          type: 'field',
+          dataType: 'string',
+          label: 'My Field',
+        }}
       />
     );
     const input = container.querySelector('input') as HTMLInputElement;
@@ -134,7 +154,11 @@ describe('FallbackComponent', () => {
   });
 
   it('renders JSON definition in details/pre element', () => {
-    const definition = { id: 'f1', type: 'field' as const, dataType: 'string' as const };
+    const definition = {
+      id: 'f1',
+      type: 'field' as const,
+      dataType: 'string' as const,
+    };
     const { container } = render(
       <FallbackComponent
         value={undefined}

@@ -89,7 +89,9 @@ describe('dispatchAction', () => {
 
   it('warns and returns failure for unregistered intentId', async () => {
     const session = sessionWithView();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
 
     const result = await session.dispatchAction('nonexistent', 'submit_btn');
 
@@ -213,7 +215,9 @@ describe('executeIntent', () => {
 
   it('cancels intent when no handler is registered', async () => {
     const session = sessionWithView();
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
 
     const result = await session.executeIntent({
       nodeId: 'submit_btn',

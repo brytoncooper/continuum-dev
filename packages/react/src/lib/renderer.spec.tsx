@@ -1,4 +1,4 @@
-import { act, type ReactNode } from 'react';
+import React, { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type {
   CollectionNodeState,
@@ -1547,7 +1547,7 @@ describe('renderer', () => {
         addBtn.click();
       });
 
-      let removeBtns = rendered.container.querySelectorAll(
+      const removeBtns = rendered.container.querySelectorAll(
         '[data-testid="remove-item"]'
       );
       expect(removeBtns.length).toBeGreaterThan(0);

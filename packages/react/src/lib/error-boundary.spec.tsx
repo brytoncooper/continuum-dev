@@ -1,8 +1,11 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { NodeErrorBoundary } from './error-boundary.js';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 let bombShouldThrow = false;
 let bombError: unknown = new Error('');
@@ -18,7 +21,7 @@ describe('NodeErrorBoundary', () => {
   beforeEach(() => {
     bombShouldThrow = false;
     bombError = new Error('');
-    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -75,7 +78,9 @@ describe('NodeErrorBoundary', () => {
         <Bomb />
       </NodeErrorBoundary>
     );
-    const errorDiv = container.querySelector('[data-continuum-render-error="err-node"]');
+    const errorDiv = container.querySelector(
+      '[data-continuum-render-error="err-node"]'
+    );
     expect(errorDiv).not.toBeNull();
   });
 
@@ -109,9 +114,7 @@ describe('NodeErrorBoundary', () => {
     expect(container.textContent).toContain('stuck');
 
     bombShouldThrow = false;
-    rerender(
-      <NodeErrorBoundary nodeId="n1">{bombElement}</NodeErrorBoundary>
-    );
+    rerender(<NodeErrorBoundary nodeId="n1">{bombElement}</NodeErrorBoundary>);
     expect(container.textContent).toContain('stuck');
   });
 
