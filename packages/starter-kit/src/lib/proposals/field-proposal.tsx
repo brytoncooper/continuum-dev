@@ -1,5 +1,4 @@
 import type { NodeValue } from '@continuum-dev/contract';
-import { useContinuumConflict, useContinuumState } from '@continuum-dev/react';
 import { ConflictBanner } from './conflict-banner.js';
 
 function stringifyValue(value: unknown): string {
@@ -10,33 +9,38 @@ function stringifyValue(value: unknown): string {
 }
 
 export function StarterKitFieldProposal({
-  nodeId,
   title,
+  hasSuggestion,
+  currentValue,
+  suggestionValue,
   currentLabel,
   nextLabel,
+  onAccept,
+  onReject,
 }: {
-  nodeId: string;
   title: string;
+  hasSuggestion: boolean;
+  currentValue: unknown;
+  suggestionValue: unknown;
   currentLabel?: string;
   nextLabel?: string;
+  onAccept: () => void;
+  onReject: () => void;
 }) {
-  const [value] = useContinuumState(nodeId);
-  const conflict = useContinuumConflict(nodeId);
-
-  if (!conflict.hasConflict) {
+  if (!hasSuggestion) {
     return null;
   }
 
   return (
     <ConflictBanner
       title={title}
-      currentValue={stringifyValue((value as NodeValue | undefined)?.value)}
+      currentValue={stringifyValue((currentValue as NodeValue | undefined)?.value ?? currentValue)}
       currentLabel={currentLabel}
-      nextValue={stringifyValue(conflict.proposal?.proposedValue.value)}
+      nextValue={stringifyValue(suggestionValue)}
       nextLabel={nextLabel}
       tone="proposal"
-      onAccept={conflict.accept}
-      onReject={conflict.reject}
+      onAccept={onAccept}
+      onReject={onReject}
     />
   );
 }
