@@ -1593,6 +1593,164 @@ describe('renderer', () => {
       expect(addBtn.disabled).toBe(true);
       rendered.unmount();
     });
+
+    it('93: surfaces collection item suggestions to nested field renderer props', () => {
+      const view = makeCollectionView({ minItems: 1 });
+
+      const map = collectionMap({
+        field: ({
+          hasSuggestion,
+          suggestionValue,
+        }: {
+          hasSuggestion?: boolean;
+          suggestionValue?: unknown;
+        }) => (
+          <div
+            data-testid="collection-suggestion-probe"
+            data-has-suggestion={String(hasSuggestion)}
+            data-suggestion-value={String(suggestionValue ?? '')}
+          />
+        ),
+      });
+
+      let capturedSession: Session | null = null;
+      function App() {
+        const session = useContinuumSession();
+        capturedSession = session;
+        if (!session.getSnapshot()) {
+          session.pushView(view);
+          session.updateState('items', {
+            value: {
+              items: [
+                {
+                  values: {
+                    'row/name': { value: 'typed', isDirty: true },
+                  },
+                },
+              ],
+            },
+            suggestion: {
+              items: [
+                {
+                  values: {
+                    'row/name': { value: 'ai-name' },
+                  },
+                },
+              ],
+            },
+          } as NodeValue<CollectionNodeState>);
+        }
+        return <ContinuumRenderer view={view} />;
+      }
+
+      const rendered = renderIntoDom(
+        <ContinuumProvider components={map}>
+          <App />
+        </ContinuumProvider>
+      );
+
+      const probe = rendered.container.querySelector(
+        '[data-testid="collection-suggestion-probe"]'
+      ) as HTMLElement;
+      expect(probe.getAttribute('data-has-suggestion')).toBe('true');
+      expect(probe.getAttribute('data-suggestion-value')).toBe('ai-name');
+
+      const snapshot = requireSession(capturedSession).getSnapshot();
+      const collection = snapshot?.data.values['items'] as
+        | NodeValue<CollectionNodeState>
+        | undefined;
+      expect(collection?.suggestion).toBeDefined();
+      rendered.unmount();
+    });
+
+    it('94: accepting nested field suggestion clears collection root suggestion entry', () => {
+      const view = makeCollectionView({ minItems: 1 });
+
+      const map = collectionMap({
+        field: ({
+          value,
+          onChange,
+          hasSuggestion,
+          suggestionValue,
+        }: {
+          value: NodeValue | undefined;
+          onChange: (next: NodeValue) => void;
+          hasSuggestion?: boolean;
+          suggestionValue?: unknown;
+        }) => (
+          <button
+            data-testid="accept-nested-suggestion"
+            data-has-suggestion={String(hasSuggestion)}
+            onClick={() =>
+              onChange({
+                ...(value ?? { value: undefined }),
+                value: suggestionValue,
+                suggestion: undefined,
+                isDirty: true,
+              } as NodeValue)
+            }
+          >
+            accept
+          </button>
+        ),
+      });
+
+      let capturedSession: Session | null = null;
+      function App() {
+        const session = useContinuumSession();
+        capturedSession = session;
+        if (!session.getSnapshot()) {
+          session.pushView(view);
+          session.updateState('items', {
+            value: {
+              items: [
+                {
+                  values: {
+                    'row/name': { value: 'typed', isDirty: true },
+                  },
+                },
+              ],
+            },
+            suggestion: {
+              items: [
+                {
+                  values: {
+                    'row/name': { value: 'ai-name' },
+                  },
+                },
+              ],
+            },
+          } as NodeValue<CollectionNodeState>);
+        }
+        return <ContinuumRenderer view={view} />;
+      }
+
+      const rendered = renderIntoDom(
+        <ContinuumProvider components={map}>
+          <App />
+        </ContinuumProvider>
+      );
+
+      const acceptButton = rendered.container.querySelector(
+        '[data-testid="accept-nested-suggestion"]'
+      ) as HTMLButtonElement;
+      expect(acceptButton.getAttribute('data-has-suggestion')).toBe('true');
+
+      act(() => {
+        acceptButton.click();
+      });
+
+      const snapshot = requireSession(capturedSession).getSnapshot();
+      const collection = snapshot?.data.values['items'] as
+        | NodeValue<CollectionNodeState>
+        | undefined;
+      expect(collection?.value.items[0].values['row/name']?.value).toBe(
+        'ai-name'
+      );
+      expect(collection?.suggestion).toBeUndefined();
+
+      rendered.unmount();
+    });
   });
 
   describe('NodeRenderer dispatch', () => {
@@ -1691,6 +1849,64 @@ describe('renderer', () => {
       const session = requireSession(capturedSession);
       const snapshot = session.getSnapshot();
       expect(snapshot?.data.values['leaf']).toEqual({ value: 'clicked' });
+      rendered.unmount();
+    });
+
+    it('96: passes hasSuggestion and suggestionValue to leaf components', () => {
+      const view: ViewDefinition = {
+        viewId: 'v',
+        version: '1',
+        nodes: [{ id: 'leaf', type: 'field', dataType: 'string' } as ViewNode],
+      };
+
+      const map = {
+        field: ({
+          hasSuggestion,
+          suggestionValue,
+        }: {
+          hasSuggestion?: boolean;
+          suggestionValue?: unknown;
+        }) => (
+          <div
+            data-testid="suggestion-props"
+            data-has-suggestion={String(hasSuggestion)}
+            data-suggestion-value={String(suggestionValue ?? '')}
+          />
+        ),
+      };
+
+      let capturedSession: Session | null = null;
+      function App() {
+        const session = useContinuumSession();
+        capturedSession = session;
+        if (!session.getSnapshot()) {
+          session.pushView(view);
+          session.updateState('leaf', {
+            value: 'user value',
+            suggestion: 'ai suggestion',
+          } as NodeValue);
+        }
+        return <ContinuumRenderer view={view} />;
+      }
+
+      const rendered = renderIntoDom(
+        <ContinuumProvider components={map}>
+          <App />
+        </ContinuumProvider>
+      );
+
+      const el = rendered.container.querySelector(
+        '[data-testid="suggestion-props"]'
+      ) as HTMLElement;
+      expect(el.getAttribute('data-has-suggestion')).toBe('true');
+      expect(el.getAttribute('data-suggestion-value')).toBe('ai suggestion');
+
+      const snapshot = requireSession(capturedSession).getSnapshot();
+      expect(snapshot?.data.values['leaf']).toEqual({
+        value: 'user value',
+        suggestion: 'ai suggestion',
+      });
+
       rendered.unmount();
     });
   });
