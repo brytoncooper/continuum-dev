@@ -83,6 +83,11 @@ export const packageLinks: DocsLinkItem[] = [
     href: repositoryFileUrl('packages/starter-kit/README.md'),
   },
   {
+    title: '@continuum-dev/ai-connect',
+    description: 'Headless provider clients and model catalogs for AI generation flows.',
+    href: repositoryFileUrl('packages/ai-connect/README.md'),
+  },
+  {
     title: '@continuum-dev/prompts',
     description: 'Prompt templates and helpers for create, evolve, and correction loops.',
     href: repositoryFileUrl('packages/prompts/README.md'),

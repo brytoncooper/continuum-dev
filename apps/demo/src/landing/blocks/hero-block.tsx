@@ -47,19 +47,19 @@ export function HeroBlock() {
         </div>
         <div style={actionsStyle}>
           <a href="/live-ai" style={actionStyle(true)}>
-            Try Live AI
+            Live AI Demo
           </a>
           <a href="/starter-kit" style={actionStyle()}>
             Explore starter kit
           </a>
           <a href="/playground" style={actionStyle()}>
-            Open playground
+            Open Static Demo
           </a>
         </div>
         <LandingFeatureList
           items={[
             'Regenerate the interface without wiping in-progress user input.',
-            'See a full starter-kit experience instantly in the Live AI Studio.',
+            'See a full starter-kit experience instantly in the Live AI Demo.',
             'Let AI, schemas, and workflows restructure the screen without rewriting your state model.',
             'Get reconciliation, persistence, proposals, and diagnostics in one continuity layer.',
           ]}

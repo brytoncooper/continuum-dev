@@ -4,6 +4,14 @@ body,
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+[id] {
+  scroll-margin-top: 88px;
+}
+
 body {
   margin: 0;
   background: #f3f3f1;

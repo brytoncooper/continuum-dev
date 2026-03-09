@@ -58,6 +58,7 @@ const sectionStyle: CSSProperties = {
 const sectionHeaderStyle: CSSProperties = {
   display: 'grid',
   gap: space.xs,
+  paddingLeft: space.lg,
 };
 
 const sectionTitleStyle: CSSProperties = {

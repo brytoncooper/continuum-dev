@@ -2,7 +2,12 @@ import type { CSSProperties } from 'react';
 import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { SiteNav } from '../ui/site-nav';
 import { color, radius, space, type } from '../ui/tokens';
-import { githubProfileUrl, repositoryUrl, siteDomain } from '../site-config';
+import {
+  githubProfileUrl,
+  maintainerEmail,
+  maintainerName,
+  repositoryUrl,
+} from '../site-config';
 import { deepReferenceLinks, guideLinks, installOptions, packageLinks } from './docs-content';
 
 const cardBodyStyle: CSSProperties = {
@@ -131,14 +136,6 @@ export function DocsPage() {
       >
         <ExampleGrid alignItems="stretch">
           <ExampleCard
-            title="Website"
-            description="Public home for the project and the domain you can post everywhere."
-            span={4}
-            fullHeight
-          >
-            <div style={cardBodyStyle}>{siteDomain}</div>
-          </ExampleCard>
-          <ExampleCard
             title="Repository"
             description="The source of truth for release history, package docs, and tracked markdown."
             span={4}
@@ -156,6 +153,17 @@ export function DocsPage() {
           >
             <a href={githubProfileUrl} target="_blank" rel="noreferrer" style={actionStyle}>
               Open profile
+            </a>
+          </ExampleCard>
+          <ExampleCard
+            title="Maintainer"
+            description="Contact for partnerships, support, or launch follow-up."
+            span={4}
+            fullHeight
+          >
+            <div style={{ ...cardBodyStyle, marginBottom: space.sm }}>{maintainerName}</div>
+            <a href={`mailto:${maintainerEmail}`} style={actionStyle}>
+              {maintainerEmail}
             </a>
           </ExampleCard>
         </ExampleGrid>

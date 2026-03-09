@@ -42,14 +42,14 @@ export function SiteNav() {
         <NavLink to="/" end style={navLinkStyle}>
           Home
         </NavLink>
+        <NavLink to="/live-ai" style={navLinkStyle}>
+          Live AI Demo
+        </NavLink>
         <NavLink to="/playground" style={navLinkStyle}>
-          Playground
+          Static Demo
         </NavLink>
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit
-        </NavLink>
-        <NavLink to="/live-ai" style={navLinkStyle}>
-          Live AI
         </NavLink>
         <NavLink to="/docs" style={navLinkStyle}>
           Docs

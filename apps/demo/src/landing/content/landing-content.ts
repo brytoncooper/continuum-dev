@@ -110,13 +110,8 @@ export const howItWorksContent = {
 export const packageStackContent = {
   title: 'A tight stack with sharp responsibilities',
   description:
-    'Each layer handles one part of the problem so teams can adopt the model without inheriting a giant framework, then opt into the Starter Kit when they want a faster path to usable screens.',
+    'These are the current Continuum packages, from low-level contracts through headless rendering and the starter-kit demo path.',
   items: [
-    {
-      name: 'core',
-      title: 'Bundles the runtime spine',
-      body: 'Collects contract, runtime, and session into one convenience package so the lower-level Continuum stack ships as a single dependency edge.',
-    },
     {
       name: 'contract',
       title: 'Defines the language',
@@ -133,9 +128,24 @@ export const packageStackContent = {
       body: 'Adds persistence, checkpoints, event history, proposals, and a practical stateful shell around the runtime.',
     },
     {
+      name: 'core',
+      title: 'Bundles the runtime spine',
+      body: 'Collects contract, runtime, and session into one convenience package so the lower-level Continuum stack ships as a single dependency edge.',
+    },
+    {
       name: 'react',
       title: 'Renders headlessly',
       body: 'Binds the model into React so teams can bring their own design system without surrendering continuity.',
+    },
+    {
+      name: 'prompts',
+      title: 'Model prompt contracts',
+      body: 'Provides create/evolve/correction prompt templates and output contracts for Continuum ViewDefinition generation.',
+    },
+    {
+      name: 'ai-connect',
+      title: 'Provider connections',
+      body: 'Headless provider clients and model catalogs for OpenAI and Google, with optional Anthropic support.',
     },
     {
       name: 'starter-kit',
@@ -212,12 +222,8 @@ export const featureListContent = {
 export const ctaContent = {
   title: 'This is the pitch in one line',
   description:
-    'Continuum gives teams a continuity layer for interfaces that regenerate at runtime, with reconciliation, persistence, proposals, diagnostics, collections, and headless rendering built in.',
+    'Continuum gives teams a continuity layer for interfaces that regenerate at runtime. The Live AI Demo is built with the Starter Kit, and the Static Demo is available when you want to explore without adding an API key.',
   links: [
-    { label: 'Try Live AI', href: '/live-ai' },
-    { label: 'Starter Kit', href: '/starter-kit' },
-    { label: 'Docs', href: '/docs' },
-    { label: 'GitHub', href: 'https://github.com/brytoncooper/continuum-dev' },
     { label: 'The problem', href: '#the-problem' },
     { label: 'How it works', href: '#how-it-works' },
     { label: 'Feature highlights', href: '#feature-highlights' },

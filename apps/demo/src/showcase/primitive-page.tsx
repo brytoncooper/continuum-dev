@@ -136,7 +136,7 @@ export function PrimitivePage() {
       description="Continuum keeps the continuity layer headless so teams can bring their own design system. The Starter Kit is the opinionated React layer we provide for faster adoption, with ready-to-use primitives, action wiring patterns, and proposal-friendly UI."
     >
       <PageSection
-        title="Try the Live AI Studio"
+        title="Try the Live AI Demo"
         description="This is the best zero-setup showcase of starter-kit in action: provider setup, AI chat, session checkpoints, proposal flows, and generated Continuum rendering in one place."
       >
         <ExampleGrid alignItems="stretch">
@@ -147,7 +147,7 @@ export function PrimitivePage() {
             fullHeight
           >
             <div style={liveHeroStyle}>
-              <div style={liveHeroTitleStyle}>Open the live studio and try it now</div>
+              <div style={liveHeroTitleStyle}>Open the live demo and try it now</div>
               <div style={liveHeroBodyStyle}>
                 Configure a provider, run prompts, review proposals, and rewind checkpoints with preview. This is the recommended first-stop page for new users evaluating starter-kit.
               </div>

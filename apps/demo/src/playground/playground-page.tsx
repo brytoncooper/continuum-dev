@@ -136,10 +136,10 @@ export function PlaygroundPage() {
         />
         <div style={liveAiCalloutStyle}>
           <div style={{ ...type.small, color: color.text }}>
-            Want the fastest real-world starter-kit demo? Try the Live AI Studio.
+            Want the fastest real-world starter-kit demo (with provider key)? Try Live AI Demo.
           </div>
           <a href="/live-ai" style={liveAiLinkStyle}>
-            Open Live AI
+            Open Live AI Demo
           </a>
         </div>
       </PageSection>

@@ -38,7 +38,7 @@ const liveView = {
     {
       id: 'welcome',
       type: 'group',
-      label: 'Live AI Studio',
+      label: 'Live AI Demo',
       description: 'Start from a clean session and generate your first Continuum view in seconds.',
       children: [
         {
@@ -255,6 +255,23 @@ const loadingBorderSvgStyle: CSSProperties = {
 const helperTextStyle: CSSProperties = {
   ...type.small,
   color: color.textMuted,
+};
+
+const linkRowStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: space.sm,
+  marginBottom: space.md,
+};
+
+const inlineLinkStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
+  textDecoration: 'none',
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.pill,
+  border: `1px solid ${color.border}`,
+  background: color.surfaceMuted,
 };
 
 const sectionTitleStyle: CSSProperties = {
@@ -540,7 +557,7 @@ export function LiveAiPage() {
   return (
     <PageShell
       nav={<SiteNav />}
-      eyebrow="Live AI"
+      eyebrow="Live AI Demo"
       title="Try Continuum live with your provider and token."
       description="Pick a provider, paste an access token, and evolve this starter view in real time. Provider settings are saved in your browser on this device."
     >
@@ -616,8 +633,16 @@ export function LiveAiPage() {
 
       <PageSection
         title="Live studio"
-        description="Prompt on the left and watch the generated Continuum view evolve in a larger workspace on the right. Session timeline is persisted in local storage for a full Continuum flow."
+        description="This Live AI Demo is built using the Starter Kit. Prompt on the left and watch the generated Continuum view evolve in a larger workspace on the right."
       >
+        <div style={linkRowStyle}>
+          <a href="/starter-kit" style={inlineLinkStyle}>
+            Built with Starter Kit
+          </a>
+          <a href="/playground" style={inlineLinkStyle}>
+            Prefer no API key? Try Static Demo
+          </a>
+        </div>
         <ContinuumProvider
           components={starterKitComponentMap}
           persist="localStorage"

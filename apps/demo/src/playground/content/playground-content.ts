@@ -1,5 +1,5 @@
 export const playgroundContent = {
-  eyebrow: 'Continuum playground',
+  eyebrow: 'Static Demo',
   title: '',
   description: '',
   queuedScenarios: [
