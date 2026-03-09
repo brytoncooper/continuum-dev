@@ -3,6 +3,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 `@continuum-dev/core` is the convenience entrypoint for the Continuum runtime spine.
 
 It re-exports the public surface from:

@@ -3,6 +3,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 These modules are internal to `@continuum-dev/session`. They are imported only by the top-level `session.ts` orchestrator and are not re-exported through the package's public API.
 
 ## Data Flow

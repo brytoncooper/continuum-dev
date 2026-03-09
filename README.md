@@ -5,6 +5,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 > [!WARNING] > **Pre-release Note**: Continuum is currently in active development. The APIs, package exports, and installation processes described below are subject to change.
 
 Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a view update reorganizes your form, or a user refreshes the page -- their data stays intact.
@@ -142,4 +147,3 @@ apps/demo                  (public launch site)
 ## License
 
 MIT
-
