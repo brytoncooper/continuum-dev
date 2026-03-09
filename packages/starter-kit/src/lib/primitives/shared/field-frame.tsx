@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { color, space, type } from '../../tokens.js';
 import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
+import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
@@ -38,12 +39,24 @@ export function useInputLikeStyle(overrides?: CSSProperties): CSSProperties {
 }
 
 export function FieldFrame({
+  nodeId,
   label,
   description,
+  hasSuggestion,
+  suggestionValue,
+  currentValue,
+  onAcceptSuggestion,
+  onRejectSuggestion,
   children,
 }: {
+  nodeId?: string;
   label?: string;
   description?: string;
+  hasSuggestion?: boolean;
+  suggestionValue?: unknown;
+  currentValue?: unknown;
+  onAcceptSuggestion?: () => void;
+  onRejectSuggestion?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -55,6 +68,18 @@ export function FieldFrame({
         </div>
       ) : null}
       {children}
+      {nodeId && hasSuggestion && onAcceptSuggestion && onRejectSuggestion ? (
+        <StarterKitFieldProposal
+          title={label ?? 'Field suggestion'}
+          hasSuggestion={Boolean(hasSuggestion)}
+          currentValue={currentValue}
+          suggestionValue={suggestionValue}
+          currentLabel="Current value"
+          nextLabel="AI suggestion"
+          onAccept={onAcceptSuggestion}
+          onReject={onRejectSuggestion}
+        />
+      ) : null}
     </label>
   );
 }

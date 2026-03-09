@@ -14,14 +14,18 @@ export function SliderInput({
   value,
   onChange,
   definition,
+  nodeId,
+  hasSuggestion,
+  suggestionValue,
 }: ContinuumNodeProps) {
+  const nodeValue = value as NodeValue<number> | undefined;
   const min = nodeNumberProp(definition, 'min', 0);
   const max = nodeNumberProp(definition, 'max', 100);
   const fallback = Math.round((min + max) / 2);
   const defaultValue = readNodeProp<number>(definition, 'defaultValue');
   const numericValue =
-    typeof (value as NodeValue<number> | undefined)?.value === 'number'
-      ? (value as NodeValue<number>).value
+    typeof nodeValue?.value === 'number'
+      ? nodeValue.value
       : typeof defaultValue === 'number'
       ? defaultValue
       : fallback;
@@ -29,8 +33,32 @@ export function SliderInput({
 
   return (
     <FieldFrame
+      nodeId={nodeId}
       label={nodeLabel(definition)}
       description={nodeDescription(definition)}
+      hasSuggestion={Boolean(hasSuggestion)}
+      suggestionValue={suggestionValue}
+      currentValue={nodeValue?.value}
+      onAcceptSuggestion={() => {
+        if (suggestionValue === undefined) {
+          return;
+        }
+        onChange({
+          ...(nodeValue ?? {}),
+          value: suggestionValue,
+          suggestion: undefined,
+          isDirty: true,
+        } as NodeValue);
+      }}
+      onRejectSuggestion={() => {
+        if (!nodeValue) {
+          return;
+        }
+        onChange({
+          ...nodeValue,
+          suggestion: undefined,
+        } as NodeValue);
+      }}
     >
       <div style={{ display: 'grid', gap: space.sm }}>
         <div
