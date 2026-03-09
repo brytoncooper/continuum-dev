@@ -252,16 +252,6 @@ export function StarterKitSessionWorkbench({
         continue;
       }
 
-      if (
-        current.isDirty &&
-        current.value !== seed.defaultValue &&
-        current.suggestion !== seed.defaultValue
-      ) {
-        session.updateState(seed.nodeId, {
-          ...current,
-          suggestion: seed.defaultValue,
-        } as NodeValue);
-      }
     }
   }, [seeds, session, snapshot]);
 
