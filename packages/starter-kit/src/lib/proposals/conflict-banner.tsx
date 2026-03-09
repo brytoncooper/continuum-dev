@@ -64,6 +64,7 @@ const actionsStyle: CSSProperties = {
   gap: space.sm,
   flexWrap: 'nowrap',
   alignItems: 'center',
+  justifyContent: 'flex-end',
 };
 
 const popoverActionsStyle: CSSProperties = {
@@ -111,6 +112,26 @@ export function ConflictBanner({
   onReject?: () => void;
 }) {
   const buttonStyle = useStarterKitStyle('conflictActionButton', starterKitDefaultStyles.conflictActionButton);
+  const quotedSuggestion = `"${nextValue || 'Empty'}"`;
+
+  if (tone === 'proposal') {
+    return (
+      <div style={containerStyle(tone, variant)}>
+        <div style={titleStyle}>{title}</div>
+        <div style={valueStyle}>{quotedSuggestion}</div>
+        {onAccept && onReject ? (
+          <div style={variant === 'popover' ? popoverActionsStyle : actionsStyle}>
+            <button type="button" style={buttonStyle} onClick={onAccept}>
+              Accept
+            </button>
+            <button type="button" style={buttonStyle} onClick={onReject}>
+              Reject
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   if (variant === 'popover') {
     return (
