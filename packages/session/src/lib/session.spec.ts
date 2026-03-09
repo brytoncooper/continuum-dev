@@ -151,6 +151,163 @@ describe('Session Ledger', () => {
       expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
     });
 
+    it('clears stale suggestions on pushView and only sets fresh suggestions from current view', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [makeNode({ id: 'a', defaultValue: 'A' })],
+        'view-1',
+        '1.0'
+      );
+      session.pushView(viewV1);
+      session.updateState('a', {
+        value: 'typed',
+        isDirty: true,
+        suggestion: 'stale-from-previous-turn',
+      });
+
+      const viewV2 = makeView(
+        [makeNode({ id: 'a', defaultValue: 'A' })],
+        'view-1',
+        '2.0'
+      );
+      session.pushView(viewV2);
+
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'typed',
+        isDirty: true,
+      });
+
+      const viewV3 = makeView(
+        [makeNode({ id: 'a', defaultValue: 'B' })],
+        'view-1',
+        '3.0'
+      );
+      session.pushView(viewV3);
+
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'typed',
+        isDirty: true,
+        suggestion: 'B',
+      });
+    });
+
+    it('clears stale nested collection suggestions on pushView and computes fresh collection suggestions', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [
+          {
+            id: 'items',
+            type: 'collection',
+            defaultValues: [{ name: 'Alice' }],
+            template: {
+              id: 'row',
+              type: 'group',
+              children: [
+                {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'name',
+                },
+              ],
+            },
+          } as ViewNode,
+        ],
+        'view-1',
+        '1.0'
+      );
+      session.pushView(viewV1);
+
+      session.updateState('items', {
+        value: {
+          items: [
+            {
+              values: {
+                'row/name': { value: 'typed', isDirty: true },
+              },
+            },
+          ],
+        },
+        suggestion: {
+          items: [
+            {
+              values: {
+                'row/name': { value: 'stale-suggestion' },
+              },
+            },
+          ],
+        },
+      });
+
+      const viewV2 = makeView(
+        [
+          {
+            id: 'items',
+            type: 'collection',
+            defaultValues: [{ name: 'Alice' }],
+            template: {
+              id: 'row',
+              type: 'group',
+              children: [
+                {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'name',
+                },
+              ],
+            },
+          } as ViewNode,
+        ],
+        'view-1',
+        '2.0'
+      );
+      session.pushView(viewV2);
+
+      const afterV2 = session.getSnapshot()?.data.values['items'] as
+        | {
+            suggestion?: unknown;
+          }
+        | undefined;
+      expect(afterV2?.suggestion).toBeUndefined();
+
+      const viewV3 = makeView(
+        [
+          {
+            id: 'items',
+            type: 'collection',
+            defaultValues: [{ name: 'Brenda' }],
+            template: {
+              id: 'row',
+              type: 'group',
+              children: [
+                {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'name',
+                },
+              ],
+            },
+          } as ViewNode,
+        ],
+        'view-1',
+        '3.0'
+      );
+      session.pushView(viewV3);
+
+      const afterV3 = session.getSnapshot()?.data.values['items'] as
+        | {
+            suggestion?: {
+              items?: Array<{ values?: Record<string, { value: unknown }> }>;
+            };
+          }
+        | undefined;
+      expect(afterV3?.suggestion?.items?.[0]?.values?.['row/name']?.value).toBe(
+        'Brenda'
+      );
+    });
+
     it('view push notifies snapshot listeners', () => {
       const session = createSession();
       const snapshots: unknown[] = [];

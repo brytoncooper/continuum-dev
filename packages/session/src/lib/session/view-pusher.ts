@@ -1,4 +1,9 @@
-import type { ViewDefinition, DetachedValue } from '@continuum-dev/contract';
+import type {
+  DataSnapshot,
+  ViewDefinition,
+  DetachedValue,
+  NodeValue,
+} from '@continuum-dev/contract';
 import { reconcile } from '@continuum-dev/runtime';
 import type { SessionState } from './session-state.js';
 import { autoCheckpoint } from './checkpoint-manager.js';
@@ -82,6 +87,80 @@ function runDetachedValueGC(internal: SessionState): void {
   }
 }
 
+function isCollectionState(
+  value: unknown
+): value is { items: Array<{ values?: Record<string, unknown> }> } {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as { items?: unknown };
+  return Array.isArray(candidate.items);
+}
+
+function stripSuggestionsFromNodeValue(nodeValue: NodeValue): NodeValue {
+  const next = structuredClone(nodeValue) as NodeValue & {
+    value: unknown;
+    suggestion?: unknown;
+  };
+  delete next.suggestion;
+
+  const walkCollectionState = (state: unknown): void => {
+    if (!isCollectionState(state)) {
+      return;
+    }
+
+    for (const item of state.items) {
+      if (!item || typeof item !== 'object' || !item.values) {
+        continue;
+      }
+
+      const values = item.values;
+      for (const key of Object.keys(values)) {
+        const nested = values[key];
+        if (nested && typeof nested === 'object' && 'value' in nested) {
+          values[key] = stripSuggestionsFromNodeValue(nested as NodeValue);
+        }
+      }
+    }
+  };
+
+  walkCollectionState(next.value);
+  return next;
+}
+
+function stripSuggestionsForReconcile(priorData: DataSnapshot): DataSnapshot {
+  const sanitizedValues: Record<string, NodeValue> = {};
+
+  for (const [nodeId, nodeValue] of Object.entries(priorData.values)) {
+    sanitizedValues[nodeId] = stripSuggestionsFromNodeValue(nodeValue);
+  }
+
+  const sanitizedDetachedValues: Record<string, DetachedValue> = {};
+  const detachedValues = priorData.detachedValues ?? {};
+  for (const [key, detached] of Object.entries(detachedValues)) {
+    const detachedValue =
+      detached.value &&
+      typeof detached.value === 'object' &&
+      'value' in (detached.value as Record<string, unknown>)
+        ? stripSuggestionsFromNodeValue(detached.value as NodeValue)
+        : detached.value;
+
+    sanitizedDetachedValues[key] = {
+      ...detached,
+      value: detachedValue,
+    };
+  }
+
+  return {
+    ...priorData,
+    values: sanitizedValues,
+    ...(Object.keys(sanitizedDetachedValues).length > 0
+      ? { detachedValues: sanitizedDetachedValues }
+      : {}),
+  };
+}
+
 /**
  * Pushes a new view definition into the session and reconciles existing data.
  *
@@ -98,8 +177,11 @@ export function pushView(internal: SessionState, view: ViewDefinition): void {
   const priorVersion = internal.currentView?.version;
   internal.priorView = internal.currentView;
   internal.currentView = view;
+  const priorDataForReconcile = internal.currentData
+    ? stripSuggestionsForReconcile(internal.currentData)
+    : null;
 
-  const result = reconcile(view, internal.priorView, internal.currentData, {
+  const result = reconcile(view, internal.priorView, priorDataForReconcile, {
     clock: internal.clock,
     ...(internal.reconciliationOptions ?? {}),
   });
