@@ -9,6 +9,10 @@ import type { ComponentType } from 'react';
 export interface ContinuumNodeProps<T = NodeValue> {
   /** Current node value from session state. */
   value: T | undefined;
+  /** True when the current node value contains an active suggestion. */
+  hasSuggestion?: boolean;
+  /** Current suggestion payload for this node when available. */
+  suggestionValue?: unknown;
   /** Writes a new node value into session state. */
   onChange: (value: T) => void;
   /** Raw node definition from the active view. */

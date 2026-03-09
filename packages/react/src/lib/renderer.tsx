@@ -49,26 +49,12 @@ interface NodeRendererProps {
 function normalizeCollectionNodeValue(
   value: NodeValue | undefined
 ): NodeValue<CollectionNodeState> {
-  const metadata = value
-    ? {
-        ...(value.suggestion !== undefined
-          ? { suggestion: value.suggestion }
-          : {}),
-        ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
-        ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
-      }
-    : {};
-  const items = (value as NodeValue<CollectionNodeState> | undefined)?.value
-    ?.items;
-  if (!Array.isArray(items)) {
+  const normalizeState = (state: unknown): CollectionNodeState => {
+    const items = (state as CollectionNodeState | undefined)?.items;
+    if (!Array.isArray(items)) {
+      return { items: [] };
+    }
     return {
-      ...metadata,
-      value: { items: [] },
-    } as NodeValue<CollectionNodeState>;
-  }
-  return {
-    ...metadata,
-    value: {
       items: items.map((item) => ({
         values:
           item &&
@@ -78,8 +64,81 @@ function normalizeCollectionNodeValue(
             ? { ...item.values }
             : {},
       })),
-    },
+    };
+  };
+
+  const metadata = value
+    ? {
+        ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
+        ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
+      }
+    : {};
+
+  const normalizedValue = normalizeState(
+    (value as NodeValue<CollectionNodeState> | undefined)?.value
+  );
+  const rawSuggestion = (value as NodeValue<CollectionNodeState> | undefined)
+    ?.suggestion;
+
+  return {
+    ...metadata,
+    value: normalizedValue,
+    ...(rawSuggestion !== undefined
+      ? { suggestion: normalizeState(rawSuggestion) }
+      : {}),
   } as NodeValue<CollectionNodeState>;
+}
+
+function mergeCollectionItemSuggestion(
+  baseValue: NodeValue | undefined,
+  collectionSuggestion: CollectionNodeState | undefined,
+  itemIndex: number,
+  relativeId: string
+): NodeValue | undefined {
+  const suggestedNodeValue = collectionSuggestion?.items?.[itemIndex]?.values?.[
+    relativeId
+  ] as NodeValue | undefined;
+  if (!suggestedNodeValue) {
+    return baseValue;
+  }
+
+  const merged: NodeValue = baseValue
+    ? { ...baseValue }
+    : { value: suggestedNodeValue.value };
+
+  if (merged.suggestion === undefined) {
+    merged.suggestion = suggestedNodeValue.value;
+  }
+
+  return merged;
+}
+
+function clearCollectionItemSuggestion(
+  collectionSuggestion: CollectionNodeState | undefined,
+  itemIndex: number,
+  relativeId: string
+): CollectionNodeState | undefined {
+  if (!collectionSuggestion) {
+    return undefined;
+  }
+
+  const items = collectionSuggestion.items.map((item) => ({
+    values: deepCloneValues(item.values),
+  }));
+
+  if (itemIndex < items.length) {
+    delete items[itemIndex].values[relativeId];
+  }
+
+  const hasAnySuggestion = items.some(
+    (item) => Object.keys(item.values).length > 0
+  );
+
+  if (!hasAnySuggestion) {
+    return undefined;
+  }
+
+  return { items };
 }
 
 function toRelativeNodeId(
@@ -152,6 +211,8 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
   const canonicalId = toCanonicalId(definition.id, parentPath);
 
   const [value, setValue] = useContinuumState(canonicalId);
+  const hasSuggestion = (value as NodeValue | undefined)?.suggestion !== undefined;
+  const suggestionValue = (value as NodeValue | undefined)?.suggestion;
 
   if (definition.hidden) {
     return null;
@@ -162,6 +223,8 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
       <NodeErrorBoundary nodeId={definition.id}>
         <Component
           value={value}
+          hasSuggestion={hasSuggestion}
+          suggestionValue={suggestionValue}
           onChange={setValue}
           definition={definition}
           nodeId={canonicalId}
@@ -267,9 +330,17 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
           return undefined;
         }
         const collectionValue = readCollectionValue();
-        return (
+        const itemValue =
           collectionValue.value.items[itemIndex]?.values?.[relativeId] ??
-          templateDefaults[relativeId]
+          templateDefaults[relativeId];
+        const collectionSuggestion =
+          collectionValue.suggestion as CollectionNodeState | undefined;
+
+        return mergeCollectionItemSuggestion(
+          itemValue,
+          collectionSuggestion,
+          itemIndex,
+          relativeId
         );
       },
       setNodeValue: (nodeId: string, nextValue: NodeValue) => {
@@ -290,10 +361,24 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
             [relativeId]: nextValue,
           },
         };
-        writeCollectionValue({
+        const nextCollectionSuggestion = clearCollectionItemSuggestion(
+          collectionValue.suggestion as CollectionNodeState | undefined,
+          itemIndex,
+          relativeId
+        );
+        const nextCollectionValue = {
           ...collectionValue,
           value: { items },
-        });
+          ...(nextCollectionSuggestion !== undefined
+            ? { suggestion: nextCollectionSuggestion }
+            : {}),
+        } as NodeValue<CollectionNodeState>;
+
+        if (nextCollectionSuggestion === undefined) {
+          delete nextCollectionValue.suggestion;
+        }
+
+        writeCollectionValue(nextCollectionValue);
       },
     };
   }, [
@@ -339,6 +424,8 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
   const canonicalId = toCanonicalId(definition.id, parentPath);
   const [collectionValue, setCollectionValue] = useContinuumState(canonicalId);
   const normalizedCollection = normalizeCollectionNodeValue(collectionValue);
+  const hasSuggestion = normalizedCollection.suggestion !== undefined;
+  const suggestionValue = normalizedCollection.suggestion;
   const minItems = normalizeMinItems(definition.minItems);
   const maxItems = normalizeMaxItems(definition.maxItems);
   const templateDefaults = useMemo(
@@ -418,6 +505,8 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
       <NodeErrorBoundary nodeId={definition.id}>
         <Component
           value={normalizedCollection}
+          hasSuggestion={hasSuggestion}
+          suggestionValue={suggestionValue}
           onChange={setCollectionValue}
           definition={definition}
           nodeId={canonicalId}
