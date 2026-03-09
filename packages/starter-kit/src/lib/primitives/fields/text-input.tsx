@@ -8,12 +8,20 @@ import {
   readNodeProp,
 } from '../shared/node.js';
 
-export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
+export function TextInput({
+  value,
+  onChange,
+  definition,
+  nodeId,
+  hasSuggestion,
+  suggestionValue,
+}: ContinuumNodeProps) {
+  const nodeValue = value as NodeValue<string | number> | undefined;
   const label = nodeLabel(definition);
   const dataType = readNodeProp<string>(definition, 'dataType') ?? 'string';
   const defaultValue = readNodeProp<string | number>(definition, 'defaultValue');
   const rawValue =
-    (value as NodeValue<string | number> | undefined)?.value ?? defaultValue;
+    nodeValue?.value ?? defaultValue;
   const displayValue =
     dataType === 'number'
       ? typeof rawValue === 'number'
@@ -25,8 +33,32 @@ export function TextInput({ value, onChange, definition }: ContinuumNodeProps) {
 
   return (
     <FieldFrame
+      nodeId={nodeId}
       label={label}
       description={nodeDescription(definition)}
+      hasSuggestion={Boolean(hasSuggestion)}
+      suggestionValue={suggestionValue}
+      currentValue={nodeValue?.value}
+      onAcceptSuggestion={() => {
+        if (suggestionValue === undefined) {
+          return;
+        }
+        onChange({
+          ...(nodeValue ?? {}),
+          value: suggestionValue,
+          suggestion: undefined,
+          isDirty: true,
+        } as NodeValue);
+      }}
+      onRejectSuggestion={() => {
+        if (!nodeValue) {
+          return;
+        }
+        onChange({
+          ...nodeValue,
+          suggestion: undefined,
+        } as NodeValue);
+      }}
     >
       <input
         type={dataType === 'number' ? 'number' : 'text'}

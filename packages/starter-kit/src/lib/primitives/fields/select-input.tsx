@@ -12,17 +12,45 @@ export function SelectInput({
   value,
   onChange,
   definition,
+  nodeId,
+  hasSuggestion,
+  suggestionValue,
 }: ContinuumNodeProps) {
+  const nodeValue = value as NodeValue<string> | undefined;
   const selected =
-    (value as NodeValue<string> | undefined)?.value ??
+    nodeValue?.value ??
     readNodeProp<string>(definition, 'defaultValue') ??
     '';
   const options = nodeOptions(definition);
 
   return (
     <FieldFrame
+      nodeId={nodeId}
       label={nodeLabel(definition)}
       description={nodeDescription(definition)}
+      hasSuggestion={Boolean(hasSuggestion)}
+      suggestionValue={suggestionValue}
+      currentValue={nodeValue?.value}
+      onAcceptSuggestion={() => {
+        if (suggestionValue === undefined) {
+          return;
+        }
+        onChange({
+          ...(nodeValue ?? {}),
+          value: suggestionValue,
+          suggestion: undefined,
+          isDirty: true,
+        } as NodeValue);
+      }}
+      onRejectSuggestion={() => {
+        if (!nodeValue) {
+          return;
+        }
+        onChange({
+          ...nodeValue,
+          suggestion: undefined,
+        } as NodeValue);
+      }}
     >
       <select
         value={selected}
