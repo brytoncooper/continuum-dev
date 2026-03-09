@@ -5,6 +5,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 When building agentic UIs, teams eventually hit the re-render problem: when an AI agent streams a new schema or layout, the frontend remounts and local user input gets lost.
 
 `@continuum-dev/contract` defines a strict boundary between **View** (AI-owned structure) and **Data** (user-owned state). This package is zero-dependency and contains the shared TypeScript contracts used across the Continuum ecosystem.

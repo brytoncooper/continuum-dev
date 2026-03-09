@@ -5,6 +5,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 [![npm version](https://badge.fury.io/js/@continuum-dev%2Fruntime.svg)](https://badge.fury.io/js/@continuum-dev%2Fruntime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

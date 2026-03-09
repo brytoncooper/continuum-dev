@@ -3,6 +3,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 `@continuum-dev/starter-kit` is the fastest way to get Continuum on screen in a React app.
 
 Continuum itself stays headless by design. The starter kit is the opinionated convenience layer:

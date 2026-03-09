@@ -3,6 +3,11 @@
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
+## Core Premise: The Ephemerality Gap
+
+The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
+Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+
 Prompt templates and assembly helpers for Continuum AI view generation.
 
 If you want the opinionated UI layer and prompt helpers from one install path, `@continuum-dev/starter-kit` re-exports this package.
