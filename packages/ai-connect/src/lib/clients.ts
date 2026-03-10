@@ -22,6 +22,36 @@ const UNSUPPORTED_STRUCTURED_OUTPUT_KEYS = new Set([
   'patternProperties',
 ]);
 
+const UNSUPPORTED_ANTHROPIC_SCHEMA_KEYS = new Set([
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems',
+  'multipleOf',
+  'default',
+  'examples',
+]);
+
+const SUPPORTED_ANTHROPIC_STRING_FORMATS = new Set([
+  'date',
+  'date-time',
+  'email',
+  'hostname',
+  'ipv4',
+  'ipv6',
+  'time',
+  'uri',
+  'uuid',
+]);
+
+const ANTHROPIC_ANY_JSON_VALUE_SCHEMA = {
+  type: ['string', 'number', 'boolean', 'object', 'array', 'null'],
+};
+
 function parseJsonText<T>(text: string): T | null {
   try {
     return JSON.parse(text) as T;
@@ -67,6 +97,78 @@ function sanitizeStructuredOutputSchema(value: unknown): unknown {
   return result;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isOpenAiStrictCompatibleSchema(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return true;
+  }
+
+  const type = value.type;
+  const properties = value.properties;
+
+  if (type === 'object' || isRecord(properties)) {
+    if (value.additionalProperties !== false) {
+      return false;
+    }
+
+    if (!isRecord(properties)) {
+      return false;
+    }
+
+    const propertyKeys = Object.keys(properties);
+    const required = value.required;
+    if (!Array.isArray(required)) {
+      return false;
+    }
+
+    if (required.length !== propertyKeys.length) {
+      return false;
+    }
+
+    for (const key of propertyKeys) {
+      if (!required.includes(key)) {
+        return false;
+      }
+    }
+  }
+
+  for (const [key, nextValue] of Object.entries(value)) {
+    if (key === 'properties' && isRecord(nextValue)) {
+      for (const child of Object.values(nextValue)) {
+        if (!isOpenAiStrictCompatibleSchema(child)) {
+          return false;
+        }
+      }
+      continue;
+    }
+
+    if (key === 'items') {
+      if (!isOpenAiStrictCompatibleSchema(nextValue)) {
+        return false;
+      }
+      continue;
+    }
+
+    if (Array.isArray(nextValue)) {
+      for (const entry of nextValue) {
+        if (isRecord(entry) && !isOpenAiStrictCompatibleSchema(entry)) {
+          return false;
+        }
+      }
+      continue;
+    }
+
+    if (isRecord(nextValue) && !isOpenAiStrictCompatibleSchema(nextValue)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function sanitizeGoogleResponseSchema(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((entry) => sanitizeGoogleResponseSchema(entry));
@@ -85,6 +187,17 @@ function sanitizeGoogleResponseSchema(value: unknown): unknown {
     result[key] = sanitizeGoogleResponseSchema(nextValue);
   }
 
+  const properties =
+    typeof result.properties === 'object' &&
+    result.properties !== null &&
+    !Array.isArray(result.properties)
+      ? (result.properties as Record<string, unknown>)
+      : undefined;
+
+  if (properties && !Array.isArray(result.propertyOrdering)) {
+    result.propertyOrdering = Object.keys(properties);
+  }
+
   if (
     Array.isArray(result.enum) &&
     result.enum.length > 0 &&
@@ -96,12 +209,61 @@ function sanitizeGoogleResponseSchema(value: unknown): unknown {
   return result;
 }
 
+function sanitizeAnthropicOutputSchema(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeAnthropicOutputSchema(entry));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  if (Object.keys(value as Record<string, unknown>).length === 0) {
+    return ANTHROPIC_ANY_JSON_VALUE_SCHEMA;
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, nextValue] of Object.entries(value as Record<string, unknown>)) {
+    if (UNSUPPORTED_ANTHROPIC_SCHEMA_KEYS.has(key)) {
+      continue;
+    }
+
+    if (
+      key === 'format' &&
+      (typeof nextValue !== 'string' ||
+        !SUPPORTED_ANTHROPIC_STRING_FORMATS.has(nextValue))
+    ) {
+      continue;
+    }
+
+    result[key] = sanitizeAnthropicOutputSchema(nextValue);
+  }
+
+  const typeAllowsObject =
+    result.type === 'object' ||
+    (Array.isArray(result.type) && result.type.includes('object'));
+
+  if (
+    typeAllowsObject ||
+    (typeof result.properties === 'object' &&
+      result.properties !== null &&
+      !Array.isArray(result.properties))
+  ) {
+    result.additionalProperties = false;
+  }
+
+  return result;
+}
+
 function isSchemaFormatError(error: unknown): boolean {
   const message =
     error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (
     message.includes('response_format') ||
     message.includes('json_schema') ||
+    message.includes('output_config') ||
+    message.includes('output format') ||
+    message.includes('output_format') ||
     message.includes('response schema') ||
     message.includes('responseschema') ||
     message.includes('response_schema')
@@ -134,6 +296,24 @@ function readAnthropicContent(raw: unknown): string {
     .map((part) => part.text ?? '')
     .join('')
     .trim();
+}
+
+function buildAnthropicSystemPrompt(prompt: string, model: string): string {
+  return [
+    '<role>',
+    `You are Claude, created by Anthropic. The current model is ${model}.`,
+    '</role>',
+    '<instructions>',
+    'Follow the instructions exactly and directly.',
+    'Be clear, specific, and grounded.',
+    'Prefer a simple valid result over an ambitious invalid one.',
+    prompt,
+    '</instructions>',
+  ].join('\n');
+}
+
+function buildAnthropicUserMessage(message: string): string {
+  return ['<input>', message.trim(), '</input>'].join('\n');
 }
 
 function readGoogleContent(raw: unknown): string {
@@ -179,12 +359,19 @@ export function createOpenAiClient(options: OpenAiClientOptions): AiConnectClien
       };
 
       if (request.outputContract) {
+        const sanitizedSchema = sanitizeStructuredOutputSchema(
+          request.outputContract.schema
+        );
+        const strictRequested = request.outputContract.strict ?? false;
+        const strict =
+          strictRequested && isOpenAiStrictCompatibleSchema(sanitizedSchema);
+
         body.response_format = {
           type: 'json_schema',
           json_schema: {
             name: request.outputContract.name,
-            strict: request.outputContract.strict ?? true,
-            schema: sanitizeStructuredOutputSchema(request.outputContract.schema),
+            strict,
+            schema: sanitizedSchema,
           },
         };
       }
@@ -239,26 +426,63 @@ export function createAnthropicClient(
     label: options.label ?? 'Anthropic',
     kind: 'anthropic',
     defaultModel,
-    supportsJsonSchema: false,
+    supportsJsonSchema: true,
     async generate<TJson>(
       request: AiConnectGenerateRequest
     ): Promise<AiConnectGenerateResult<TJson>> {
       const model = request.model ?? defaultModel;
-      const raw = await fetchJson(`${baseUrl}/messages`, {
+      const body: Record<string, unknown> = {
+        model,
+        temperature: request.temperature,
+        max_tokens: request.maxTokens ?? 64000,
+        system: buildAnthropicSystemPrompt(request.systemPrompt, model),
+        messages: [
+          {
+            role: 'user',
+            content: buildAnthropicUserMessage(request.userMessage),
+          },
+        ],
+      };
+
+      if (request.outputContract) {
+        body.output_config = {
+          format: {
+            type: 'json_schema',
+            schema: sanitizeAnthropicOutputSchema(
+              sanitizeStructuredOutputSchema(request.outputContract.schema)
+            ),
+          },
+        };
+      }
+
+      const requestConfig = {
         method: 'POST',
         headers: {
+          'anthropic-dangerous-direct-browser-access': 'true',
           'content-type': 'application/json',
           'x-api-key': options.apiKey,
           'anthropic-version': '2023-06-01',
         },
-        body: JSON.stringify({
-          model,
-          temperature: request.temperature,
-          max_tokens: request.maxTokens ?? 2048,
-          system: request.systemPrompt,
-          messages: [{ role: 'user', content: request.userMessage }],
-        }),
-      });
+      } satisfies Omit<RequestInit, 'body'>;
+
+      let raw: unknown;
+      try {
+        raw = await fetchJson(`${baseUrl}/messages`, {
+          ...requestConfig,
+          body: JSON.stringify(body),
+        });
+      } catch (error) {
+        if (!request.outputContract || !isSchemaFormatError(error)) {
+          throw error;
+        }
+
+        const fallbackBody = { ...body };
+        delete fallbackBody.output_config;
+        raw = await fetchJson(`${baseUrl}/messages`, {
+          ...requestConfig,
+          body: JSON.stringify(fallbackBody),
+        });
+      }
 
       const text = readAnthropicContent(raw);
       return {
