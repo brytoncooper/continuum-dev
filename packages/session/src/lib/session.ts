@@ -155,7 +155,7 @@ function assembleSessionFromInternalState(
       const existing = internal.currentData.values[nodeId] as
         | NodeValue
         | undefined;
-      if (existing && existing.isDirty) {
+      if (existing && (existing.isDirty || existing.isSticky)) {
         internal.pendingProposals[nodeId] = {
           nodeId,
           proposedValue: value,

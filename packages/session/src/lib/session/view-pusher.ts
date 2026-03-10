@@ -98,6 +98,16 @@ function isCollectionState(
   return Array.isArray(candidate.items);
 }
 
+function isPopulatedValue(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  if (typeof value === 'string') {
+    return value.length > 0;
+  }
+  return true;
+}
+
 function stripSuggestionsFromNodeValue(nodeValue: NodeValue): NodeValue {
   const next = structuredClone(nodeValue) as NodeValue & {
     value: unknown;
@@ -129,11 +139,55 @@ function stripSuggestionsFromNodeValue(nodeValue: NodeValue): NodeValue {
   return next;
 }
 
+function lockPopulatedValuesAsDirty(nodeValue: NodeValue): NodeValue {
+  const next = structuredClone(nodeValue) as NodeValue & {
+    value: unknown;
+    isSticky?: boolean;
+  };
+
+  const walkCollectionState = (state: unknown): void => {
+    if (!isCollectionState(state)) {
+      return;
+    }
+
+    for (const item of state.items) {
+      if (!item || typeof item !== 'object' || !item.values) {
+        continue;
+      }
+
+      const values = item.values;
+      for (const key of Object.keys(values)) {
+        const nested = values[key];
+        if (nested && typeof nested === 'object' && 'value' in nested) {
+          values[key] = lockPopulatedValuesAsDirty(nested as NodeValue);
+        }
+      }
+    }
+  };
+
+  if (isCollectionState(next.value)) {
+    walkCollectionState(next.value);
+    return next;
+  }
+
+  if (
+    next.isDirty !== true &&
+    next.isSticky !== true &&
+    isPopulatedValue(next.value)
+  ) {
+    next.isSticky = true;
+  }
+
+  return next;
+}
+
 function stripSuggestionsForReconcile(priorData: DataSnapshot): DataSnapshot {
   const sanitizedValues: Record<string, NodeValue> = {};
 
   for (const [nodeId, nodeValue] of Object.entries(priorData.values)) {
-    sanitizedValues[nodeId] = stripSuggestionsFromNodeValue(nodeValue);
+    sanitizedValues[nodeId] = lockPopulatedValuesAsDirty(
+      stripSuggestionsFromNodeValue(nodeValue)
+    );
   }
 
   const sanitizedDetachedValues: Record<string, DetachedValue> = {};

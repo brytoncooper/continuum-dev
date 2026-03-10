@@ -118,14 +118,14 @@ describe('recordIntent', () => {
   it('stores a cloned payload value', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
-    const payload = { value: 'hello', isDirty: true };
+    const payload = { value: 'hello', isSticky: true };
 
     recordIntent(internal, { nodeId: 'a', type: 'value-change', payload });
     payload.value = 'changed-after';
 
     expect(internal.currentData?.values['a']).toEqual({
       value: 'hello',
-      isDirty: true,
+      isSticky: true,
     });
   });
 

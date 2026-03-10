@@ -147,7 +147,10 @@ describe('Session Ledger', () => {
       session.pushView(viewV2);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({ value: 'hello' });
+      expect(snapshot!.data.values['a']).toEqual({
+        value: 'hello',
+        isSticky: true,
+      });
       expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
     });
 
@@ -188,6 +191,127 @@ describe('Session Ledger', () => {
         value: 'typed',
         isDirty: true,
         suggestion: 'B',
+      });
+    });
+
+    it('locks populated non-dirty values as sticky on next push so new defaults become suggestions', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [makeNode({ id: 'first_name', defaultValue: 'Alex' })],
+        'view-1',
+        '1.0'
+      );
+      session.pushView(viewV1);
+
+      const viewV2 = makeView(
+        [makeNode({ id: 'first_name', defaultValue: 'Jordan' })],
+        'view-1',
+        '2.0'
+      );
+      session.pushView(viewV2);
+
+      expect(session.getSnapshot()?.data.values['first_name']).toEqual({
+        value: 'Alex',
+        isSticky: true,
+        suggestion: 'Jordan',
+      });
+    });
+
+    it('does not lock empty string values as sticky, allowing new defaults to replace them', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [makeNode({ id: 'nickname', defaultValue: '' })],
+        'view-1',
+        '1.0'
+      );
+      session.pushView(viewV1);
+
+      const viewV2 = makeView(
+        [makeNode({ id: 'nickname', defaultValue: 'J' })],
+        'view-1',
+        '2.0'
+      );
+      session.pushView(viewV2);
+
+      expect(session.getSnapshot()?.data.values['nickname']).toEqual({
+        value: 'J',
+      });
+    });
+
+    it('locks populated collection item field values as sticky on next push', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [
+          {
+            id: 'items',
+            type: 'collection',
+            defaultValues: [{ name: 'A' }],
+            template: {
+              id: 'row',
+              type: 'group',
+              children: [
+                {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'name',
+                },
+              ],
+            },
+          } as ViewNode,
+        ],
+        'view-1',
+        '1.0'
+      );
+      session.pushView(viewV1);
+
+      const viewV2 = makeView(
+        [
+          {
+            id: 'items',
+            type: 'collection',
+            defaultValues: [{ name: 'B' }],
+            template: {
+              id: 'row',
+              type: 'group',
+              children: [
+                {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'name',
+                },
+              ],
+            },
+          } as ViewNode,
+        ],
+        'view-1',
+        '2.0'
+      );
+      session.pushView(viewV2);
+
+      const itemsNode = session.getSnapshot()?.data.values['items'] as
+        | {
+            value?: {
+              items?: Array<{
+                values?: Record<
+                  string,
+                  { value: unknown; isDirty?: boolean; isSticky?: boolean }
+                >;
+              }>;
+            };
+            suggestion?: {
+              items?: Array<{ values?: Record<string, { value: unknown }> }>;
+            };
+          }
+        | undefined;
+
+      expect(itemsNode?.value?.items?.[0]?.values?.['row/name']).toEqual({
+        value: 'A',
+        isSticky: true,
+      });
+      expect(itemsNode?.suggestion?.items?.[0]?.values?.['row/name']).toEqual({
+        value: 'B',
       });
     });
 
@@ -359,6 +483,41 @@ describe('Session Ledger', () => {
 
       expect(session.getDetachedValues()['b']).toBeDefined();
       expect(session.getDetachedValues()['b'].reason).toBe('node-removed');
+    });
+
+    it('preserves detached label metadata through session exposure', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [
+          makeNode({
+            id: 'employment',
+            type: 'group',
+            label: 'Employment',
+            children: [
+              makeNode({
+                id: 'employer_name',
+                key: 'employer_name',
+                label: 'Employer',
+              }),
+            ],
+          }),
+        ],
+        'view-1',
+        '1.0'
+      );
+      const viewV2 = makeView([], 'view-1', '2.0');
+
+      session.pushView(viewV1);
+      session.updateState('employment/employer_name', { value: 'Acme' });
+
+      session.pushView(viewV2);
+
+      expect(session.getDetachedValues()['employer_name'].previousLabel).toBe(
+        'Employer'
+      );
+      expect(
+        session.getDetachedValues()['employer_name'].previousParentLabel
+      ).toBe('Employment');
     });
   });
 
@@ -589,6 +748,24 @@ describe('Session Ledger', () => {
       expect(session.getSnapshot()?.data.values['a']).toEqual({
         value: 'typed',
         isDirty: true,
+      });
+    });
+
+    it('proposeValue creates a pending proposal when existing value is sticky', () => {
+      session.updateState('a', { value: 'accepted', isSticky: true });
+
+      session.proposeValue('a', { value: 'ai-next' }, 'ai');
+
+      const proposal = session.getPendingProposals()['a'];
+      expect(proposal).toBeDefined();
+      expect(proposal?.proposedValue).toEqual({ value: 'ai-next' });
+      expect(proposal?.currentValue).toEqual({
+        value: 'accepted',
+        isSticky: true,
+      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual({
+        value: 'accepted',
+        isSticky: true,
       });
     });
 
@@ -1010,6 +1187,7 @@ describe('Session Ledger', () => {
       expect(checkpoints[1].snapshot.view.viewId).toBe('s2');
       expect(checkpoints[1].snapshot.data.values['a']).toEqual({
         value: 'hello',
+        isSticky: true,
       });
     });
 
@@ -1028,6 +1206,7 @@ describe('Session Ledger', () => {
       expect(session.getSnapshot()!.view.viewId).toBe('s2');
       expect(session.getSnapshot()!.data.values['a']).toEqual({
         value: 'hello',
+        isSticky: true,
       });
 
       session.rewind(session.getCheckpoints()[0].checkpointId);
@@ -1119,6 +1298,7 @@ describe('Session Ledger', () => {
       expect(restored.getSnapshot()!.view.viewId).toBe('s2');
       expect(restored.getSnapshot()!.data.values['a']).toEqual({
         value: 'before',
+        isSticky: true,
       });
       expect(restored.getSnapshot()!.data.values['b']).toEqual({
         value: 'after',
@@ -1134,6 +1314,7 @@ describe('Session Ledger', () => {
       const checkpoints = session.getCheckpoints();
       expect(checkpoints[1].snapshot.data.values['a']).toEqual({
         value: 'typed',
+        isSticky: true,
       });
     });
   });
@@ -1222,6 +1403,7 @@ describe('Session Ledger', () => {
 
       expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({
         value: 'nested',
+        isSticky: true,
       });
     });
 

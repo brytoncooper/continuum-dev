@@ -45,7 +45,7 @@ describe('createManualCheckpoint', () => {
     const internal = createEmptySessionState('s', () => 5000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
-      values: { a: { value: undefined, isDirty: true } },
+      values: { a: { value: undefined, isDirty: true, isSticky: true } },
       lineage: { timestamp: 1000, sessionId: 's' },
     };
 
@@ -54,6 +54,7 @@ describe('createManualCheckpoint', () => {
     expect(cp.snapshot.data.values.a).toHaveProperty('value');
     expect(cp.snapshot.data.values.a.value).toBeUndefined();
     expect(cp.snapshot.data.values.a.isDirty).toBe(true);
+    expect(cp.snapshot.data.values.a.isSticky).toBe(true);
   });
 
   it('preserves Date values in checkpoint snapshots', () => {
