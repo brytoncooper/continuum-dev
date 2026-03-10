@@ -1,14 +1,23 @@
 # View Contract Reference
 
-The definitive reference for Continuum's view definition format, reconciliation rules, state conventions, and serialization format.
+The complete reference for Continuum’s view model, reconciliation behavior, and serialized session shape.
 
----
+Use this guide when you need exact contract details. If you are just getting started, begin with [Quick Start](./QUICK_START.md).
 
-## ViewDefinition
+## The mental model
 
-The top-level structure describing a UI at a point in time.
+Continuum separates two things:
 
-```typescript
+- the **view**, which describes what should be rendered now
+- the **data**, which represents user intent accumulated over time
+
+When you call `pushView(newView)`, Continuum reconciles the current data against the new structure instead of throwing everything away.
+
+## 1. `ViewDefinition`
+
+`ViewDefinition` is the top-level contract for a renderable screen or workflow state.
+
+```ts
 interface ViewDefinition {
   viewId: string;
   version: string;
@@ -16,25 +25,36 @@ interface ViewDefinition {
 }
 ```
 
-| Field     | Type         | Required | Description                                                                         |
-| --------- | ------------ | -------- | ----------------------------------------------------------------------------------- |
-| `viewId`  | `string`     | yes      | Stable identifier for the form. Stays the same across versions (e.g. `"loan-app"`). |
-| `version` | `string`     | yes      | Version identifier. Should increment on each view push (e.g. `"1.0"`, `"2.0"`).    |
-| `nodes`   | `ViewNode[]` | yes      | Top-level nodes in render order. Can be empty.                                      |
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `viewId` | `string` | yes | Stable identifier for the logical workflow |
+| `version` | `string` | yes | Version label for this specific view shape |
+| `nodes` | `ViewNode[]` | yes | Top-level nodes in render order |
 
-Constraints:
+Rules:
 
-- `viewId` should remain constant across versions of the same logical form
-- `version` is compared by string equality (not numeric ordering) for checkpoint matching
-- The same `viewId` + `version` pair should always produce the same node tree
+- keep `viewId` stable across versions of the same workflow
+- change `version` when the structure changes
+- do not rely on numeric version ordering; Continuum compares version strings by equality
+- the same `viewId` plus `version` should always describe the same node tree
 
----
+### Smallest valid example
 
-## ViewNode
+```json
+{
+  "viewId": "profile-form",
+  "version": "1",
+  "nodes": [
+    { "id": "name", "type": "field", "dataType": "string" }
+  ]
+}
+```
 
-A discriminated union of node types within a view definition.
+## 2. `ViewNode`
 
-```typescript
+Continuum supports these node types:
+
+```ts
 type ViewNode =
   | FieldNode
   | GroupNode
@@ -45,11 +65,9 @@ type ViewNode =
   | GridNode;
 ```
 
-### BaseNode
+### Shared base fields
 
-All node types share these fields:
-
-```typescript
+```ts
 interface BaseNode {
   id: string;
   type: string;
@@ -60,27 +78,31 @@ interface BaseNode {
 }
 ```
 
-| Field        | Type              | Required | Description                                                                                                                                                      |
-| ------------ | ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`         | `string`          | yes      | Unique identifier within this view version. May change across versions.                                                                                          |
-| `type`       | `string`          | yes      | Node type discriminator: `'field'`, `'group'`, `'collection'`, `'action'`, `'presentation'`, `'row'`, or `'grid'`.                                               |
-| `key`        | `string`          | no       | Stable semantic key for matching across view versions. If a node's `id` changes but its `key` stays the same, Continuum treats it as a rename and carries state. |
-| `hidden`     | `boolean`         | no       | If true, node is excluded from rendering in default renderer.                                                                                                    |
-| `hash`       | `string`          | no       | View shape hash. When a matched node's hash changes, Continuum looks for a migration rule. If absent, no hash-based migration occurs.                            |
-| `migrations` | `MigrationRule[]` | no       | Declarative migration rules for hash transitions.                                                                                                                |
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique identifier for this node in this view version |
+| `type` | `string` | yes | Node discriminator |
+| `key` | `string` | no | Stable semantic identity across versions |
+| `hidden` | `boolean` | no | Whether the default renderer should hide the node |
+| `hash` | `string` | no | Shape hash used to decide when migration is needed |
+| `migrations` | `MigrationRule[]` | no | Declarative migration rules for hash transitions |
 
-### id vs key
+### `id` vs `key`
 
-- `id` is the **address** -- it uniquely identifies the node in this specific view version
-- `key` is the **identity** -- it semantically identifies what the node represents across versions
+This is one of the most important Continuum concepts:
 
-Example: renaming `first_name` to `given_name` (different `id`, same `key: 'first_name'`) preserves the user's input.
+- `id` is the node’s address in the current view
+- `key` is the node’s semantic identity across view changes
 
-### FieldNode
+If a field changes from `id: 'first_name'` to `id: 'given_name'` but keeps `key: 'first_name'`, Continuum can preserve the user’s value because the meaning stayed the same.
 
-For text inputs, date inputs, number inputs, boolean toggles, and any value-based node.
+## 3. Node type reference
 
-```typescript
+### `FieldNode`
+
+Use for editable values such as text, numbers, booleans, dates, and option fields.
+
+```ts
 interface FieldNode extends BaseNode {
   type: 'field';
   dataType: 'string' | 'number' | 'boolean';
@@ -108,11 +130,11 @@ interface FieldOption {
 }
 ```
 
-### GroupNode
+### `GroupNode`
 
-For sections, cards, and container layouts with nested children.
+Use for sections or containers with nested children.
 
-```typescript
+```ts
 interface GroupNode extends BaseNode {
   type: 'group';
   label?: string;
@@ -122,11 +144,11 @@ interface GroupNode extends BaseNode {
 }
 ```
 
-### CollectionNode
+### `CollectionNode`
 
-For repeatable/list items backed by a template node.
+Use for repeatable groups of item state.
 
-```typescript
+```ts
 interface CollectionNode extends BaseNode {
   type: 'collection';
   label?: string;
@@ -137,11 +159,11 @@ interface CollectionNode extends BaseNode {
 }
 ```
 
-### ActionNode
+### `ActionNode`
 
-For buttons and intent triggers.
+Use for buttons or intent triggers.
 
-```typescript
+```ts
 interface ActionNode extends BaseNode {
   type: 'action';
   intentId: string;
@@ -150,21 +172,13 @@ interface ActionNode extends BaseNode {
 }
 ```
 
-When an `ActionNode` is activated, the runtime resolves the `intentId` against the
-session's action registry. If a handler is registered, `dispatchAction(intentId, nodeId)`
-is called and an `ActionResult` is returned. If no handler exists, a console warning
-is emitted and `{ success: false }` is returned. Handlers receive an `ActionContext`
-that includes a `session` reference (`ActionSessionRef`) for performing state mutations
-such as `pushView`, `updateState`, `getSnapshot`, and `proposeValue`.
+When an `ActionNode` is triggered, Continuum resolves `intentId` against the session action registry. Registered handlers receive an action context that includes the current snapshot and a session reference.
 
-See the [Integration Guide](./INTEGRATION_GUIDE.md#6-action-execution) and
-[AI Integration](./AI_INTEGRATION.md) docs for full examples.
+### `PresentationNode`
 
-### PresentationNode
+Use for read-only content.
 
-For read-only display content.
-
-```typescript
+```ts
 interface PresentationNode extends BaseNode {
   type: 'presentation';
   contentType: 'text' | 'markdown';
@@ -172,22 +186,22 @@ interface PresentationNode extends BaseNode {
 }
 ```
 
-### RowNode
+### `RowNode`
 
-For horizontal layouts.
+Use for horizontal layouts.
 
-```typescript
+```ts
 interface RowNode extends BaseNode {
   type: 'row';
   children: ViewNode[];
 }
 ```
 
-### GridNode
+### `GridNode`
 
-For multi-column grid layouts.
+Use for multi-column layouts.
 
-```typescript
+```ts
 interface GridNode extends BaseNode {
   type: 'grid';
   columns?: number;
@@ -195,37 +209,73 @@ interface GridNode extends BaseNode {
 }
 ```
 
-### Minimum Valid Node
+## 4. Reconciliation behavior
 
-The minimum contract for a field node is `{ id, type, dataType }`:
+When `pushView(newView)` runs, Continuum reconciles each new node against prior state.
 
-```json
-{ "id": "name", "type": "field", "dataType": "string" }
+### High-level decision tree
+
+```mermaid
+flowchart TD
+    Start["For each node in new view"] --> MatchId{"Prior node with same id?"}
+    MatchId -->|Yes| Matched["Match by id"]
+    MatchId -->|No| MatchKey{"Prior node with same key?"}
+    MatchKey -->|Yes| Matched2["Match by key"]
+    MatchKey -->|No| CheckDetached{"Detached value with matching key?"}
+    CheckDetached -->|Yes| Restored["Restored from detached values"]
+    CheckDetached -->|No| Added["Added with empty state"]
+
+    Matched --> TypeCheck{"Types match?"}
+    Matched2 --> TypeCheck
+    TypeCheck -->|No| Detached["Detached because type changed"]
+    TypeCheck -->|Yes| HashCheck{"Hashes match?"}
+    HashCheck -->|Yes| Carried["Carried as-is"]
+    HashCheck -->|"No hash set"| Carried
+    HashCheck -->|No| Migrate{"Migration available?"}
+    Migrate -->|Yes| Migrated["Migrated"]
+    Migrate -->|No| SameType{"Same type?"}
+    SameType -->|Yes| CarriedFallback["Carried with migration warning"]
+    SameType -->|No| DetachedMigration["Detached"]
 ```
 
----
+### Matching order
 
-## MigrationRule
+The runtime tries to find prior nodes in this order:
 
-Declares how state should be migrated when a node's `hash` changes.
+1. exact scoped full-path `id`
+2. exact raw `id`
+3. exact scoped `key`
+4. dot-notation suffix key
+5. unique raw `id` mapping
+6. dot-notation suffix `id`
 
-```typescript
+### What the outcomes mean
+
+| Outcome | Meaning |
+| --- | --- |
+| `added` | New node with no recoverable prior state |
+| `carried` | Prior state preserved as-is |
+| `migrated` | Prior state transformed by a migration strategy |
+| `detached` | Prior state could not safely continue |
+| `restored` | State was recovered from detached storage |
+
+### Important details
+
+- a type mismatch produces a `TYPE_MISMATCH` error and detaches the old value
+- removed nodes are recorded in diffs and detached-value storage
+- when hashes differ, Continuum looks for migration rules before falling back
+
+## 5. Migration rules
+
+Use migrations when the meaning of a node remains the same but the stored value shape must change.
+
+```ts
 interface MigrationRule {
   fromHash: string;
   toHash: string;
   strategyId?: string;
 }
-```
 
-| Field        | Type     | Required | Description                                                                                                          |
-| ------------ | -------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| `fromHash`   | `string` | yes      | Hash of the prior view shape.                                                                                        |
-| `toHash`     | `string` | yes      | Hash of the new view shape.                                                                                          |
-| `strategyId` | `string` | no       | Key into the `strategyRegistry` in `ReconciliationOptions`. If absent, Continuum falls back to carrying state as-is. |
-
-### MigrationStrategy
-
-```typescript
 type MigrationStrategy = (
   nodeId: string,
   priorNode: ViewNode,
@@ -234,68 +284,11 @@ type MigrationStrategy = (
 ) => unknown;
 ```
 
----
+`strategyId` points into `ReconciliationOptions.strategyRegistry`.
 
-## Reconciliation Rules
+### Reconciliation options
 
-When `pushView(newView)` is called with existing data, each node in the new view is processed through this decision tree:
-
-```mermaid
-flowchart TD
-    Start["For each node in new view"] --> MatchId{"Prior node with same id?"}
-    MatchId -->|Yes| Matched["Match found (by id)"]
-    MatchId -->|No| MatchKey{"Prior node with same key?"}
-    MatchKey -->|Yes| Matched2["Match found (by key)"]
-    MatchKey -->|No| CheckDetached{"Detached value with matching key?"}
-    CheckDetached -->|Yes| Restored["RESTORED: state recovered from detached values"]
-    CheckDetached -->|No| Added["ADDED: empty state"]
-
-    Matched --> TypeCheck{"Types match?"}
-    Matched2 --> TypeCheck
-
-    TypeCheck -->|No| Detached["DETACHED: state lost, TYPE_MISMATCH error"]
-    TypeCheck -->|Yes| HashCheck{"Hashes match?"}
-
-    HashCheck -->|Yes| Carried["CARRIED: state preserved"]
-    HashCheck -->|No| Migrate{"Migration strategy found?"}
-    HashCheck -->|"No hash set"| Carried
-
-    Migrate -->|Yes| Migrated["MIGRATED: state transformed"]
-    Migrate -->|No| SameType{"Same type?"}
-    SameType -->|Yes| CarriedFallback["CARRIED: state preserved as-is + MIGRATION_FAILED warning"]
-    SameType -->|No| DetachedMigration["DETACHED: state lost"]
-```
-
-### Matching Order
-
-Node matching in `findPriorNode` follows this priority:
-
-1. **Exact full-path ID** -- matches the scoped path-qualified ID (e.g. `billing/name`)
-2. **Exact raw ID** -- matches by the bare `id` field
-3. **Exact key** -- scope-qualified key match (`parentPath/key`)
-4. **Dot-notation suffix key** -- if the key contains dots, tries the last segment as a key
-5. **Unique raw ID mapping** -- if only one prior node shares the same raw ID, it matches
-6. **Dot-notation suffix ID** -- tries the last segment of a dotted key as a raw ID lookup
-
-### Step-by-step
-
-1. **Match by ID** -- look for a prior node with the same path-qualified `id`
-2. **Match by key** -- if no ID match, look for a prior node with the same scope-qualified `key`
-3. **No match** -- node is new. Check detached values for restoration, otherwise resolution: `added`. State is empty.
-4. **Type check** -- if matched nodes have different `type`, state is **detached**. Issue: `TYPE_MISMATCH` (error). Resolution: `detached`.
-5. **Hash check** -- if types match but `hash` values differ, attempt migration
-6. **Migration** -- resolution order:
-   - `ReconciliationOptions.migrationStrategies[nodeId]` (per-node override)
-   - Direct `MigrationRule` match (`fromHash` -> `toHash`) + `ReconciliationOptions.strategyRegistry[rule.strategyId]`
-   - Multi-step migration chain via rule path (BFS, max chain depth: 10)
-   - Same-type fallback: carry prior state as-is with `MIGRATION_FAILED` warning
-   - Different-type with no strategy: detach
-7. **Carry** -- if type and hash match (or no hash is set), state carries forward unchanged. Resolution: `carried`.
-8. **Removed nodes** -- prior nodes not present in the new view are logged as `NODE_REMOVED` (warning). They appear in `diffs` but not in `resolutions` (which only cover new-view nodes). Removed values are stored as detached values for potential future restoration.
-
-### ReconciliationOptions
-
-```typescript
+```ts
 interface ReconciliationOptions {
   allowPartialRestore?: boolean;
   allowBlindCarry?: boolean;
@@ -305,41 +298,19 @@ interface ReconciliationOptions {
 }
 ```
 
-| Field                  | Type                                  | Description                                                                                   |
-| ---------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `allowPartialRestore`  | `boolean`                             | Suppresses `NODE_REMOVED` warnings for partial restoration workflows.                         |
-| `allowBlindCarry`      | `boolean`                             | When `priorView` is null, carries values by matching raw node IDs and keys.                   |
-| `migrationStrategies`  | `Record<string, MigrationStrategy>`   | Per-node migration overrides keyed by the new node ID.                                        |
-| `strategyRegistry`     | `Record<string, MigrationStrategy>`   | Named migration functions referenced by `MigrationRule.strategyId`.                           |
-| `clock`                | `() => number`                        | Time source for lineage and detached value timestamps.                                        |
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `allowPartialRestore` | `boolean` | Suppresses `NODE_REMOVED` warnings for partial-restore workflows |
+| `allowBlindCarry` | `boolean` | Allows raw id and key carry when there is no prior view |
+| `migrationStrategies` | `Record<string, MigrationStrategy>` | Per-node migration overrides keyed by new node id |
+| `strategyRegistry` | `Record<string, MigrationStrategy>` | Named strategies referenced by migration rules |
+| `clock` | `() => number` | Custom time source for lineage metadata |
 
----
+## 6. Diagnostics surfaced by reconciliation
 
-## Data Resolutions
+### Resolutions
 
-When a node undergoes reconciliation, its state is assigned a resolution:
-
-```typescript
-const DATA_RESOLUTIONS = {
-  CARRIED: 'carried',
-  MIGRATED: 'migrated',
-  DETACHED: 'detached',
-  ADDED: 'added',
-  RESTORED: 'restored',
-} as const;
-```
-
-| Resolution   | Meaning                                                                            |
-| ------------ | ---------------------------------------------------------------------------------- |
-| `added`      | A new node where no prior state existed.                                           |
-| `carried`    | Prior state was carried forward as-is (by ID or key match).                        |
-| `migrated`   | Prior state was successfully transformed via a migration strategy.                 |
-| `detached`   | Prior state was detached on incompatible type transitions.                         |
-| `restored`   | State was restored from detached values when a compatible node returned.           |
-
-### ReconciliationResolution
-
-```typescript
+```ts
 interface ReconciliationResolution {
   nodeId: string;
   priorId: string | null;
@@ -352,33 +323,9 @@ interface ReconciliationResolution {
 }
 ```
 
----
+### Diffs
 
-## View Diffs
-
-Changes to the view structure are captured in `diffs`:
-
-```typescript
-const VIEW_DIFFS = {
-  ADDED: 'added',
-  REMOVED: 'removed',
-  MIGRATED: 'migrated',
-  TYPE_CHANGED: 'type-changed',
-  RESTORED: 'restored',
-} as const;
-```
-
-| Diff           | Meaning                                                      |
-| -------------- | ------------------------------------------------------------ |
-| `added`        | A node was added in the new view.                            |
-| `removed`      | A node from the prior view is missing in the new view.       |
-| `migrated`     | A value changed during reconciliation (for example hash migration or default-value migration). |
-| `type-changed` | A node's type changed, breaking state continuity.            |
-| `restored`     | A node was restored from detached values.                    |
-
-### StateDiff
-
-```typescript
+```ts
 interface StateDiff {
   nodeId: string;
   type: ViewDiff;
@@ -388,57 +335,17 @@ interface StateDiff {
 }
 ```
 
----
+Common diff kinds:
 
-## Issue Codes
+- `added`
+- `removed`
+- `migrated`
+- `type-changed`
+- `restored`
 
-During reconciliation and validation, warnings and errors are recorded as issues.
+### Issues
 
-```typescript
-const ISSUE_CODES = {
-  NO_PRIOR_DATA: 'NO_PRIOR_DATA',
-  NO_PRIOR_VIEW: 'NO_PRIOR_VIEW',
-  TYPE_MISMATCH: 'TYPE_MISMATCH',
-  NODE_REMOVED: 'NODE_REMOVED',
-  MIGRATION_FAILED: 'MIGRATION_FAILED',
-  UNVALIDATED_CARRY: 'UNVALIDATED_CARRY',
-  VALIDATION_FAILED: 'VALIDATION_FAILED',
-  UNKNOWN_NODE: 'UNKNOWN_NODE',
-  DUPLICATE_NODE_ID: 'DUPLICATE_NODE_ID',
-  DUPLICATE_NODE_KEY: 'DUPLICATE_NODE_KEY',
-  VIEW_CHILD_CYCLE_DETECTED: 'VIEW_CHILD_CYCLE_DETECTED',
-  VIEW_MAX_DEPTH_EXCEEDED: 'VIEW_MAX_DEPTH_EXCEEDED',
-  COLLECTION_CONSTRAINT_VIOLATED: 'COLLECTION_CONSTRAINT_VIOLATED',
-  SCOPE_COLLISION: 'SCOPE_COLLISION',
-} as const;
-
-const ISSUE_SEVERITY = {
-  ERROR: 'error',
-  WARNING: 'warning',
-  INFO: 'info',
-} as const;
-```
-
-| Code                              | Severity  | Description                                                                  |
-| --------------------------------- | --------- | ---------------------------------------------------------------------------- |
-| `NO_PRIOR_DATA`                   | info      | Reconciling with no prior data snapshot (first push).                        |
-| `NO_PRIOR_VIEW`                   | warning   | Reconciling with no prior view definition (blind carry mode).                |
-| `TYPE_MISMATCH`                   | error     | A matched node has a different `type`. State is detached.                    |
-| `NODE_REMOVED`                    | warning   | A prior node is absent from the new view.                                   |
-| `MIGRATION_FAILED`                | warning   | A migration strategy was required but missing, or execution threw.           |
-| `UNVALIDATED_CARRY`               | info      | State was carried over during blind carry without validation.                |
-| `VALIDATION_FAILED`               | warning   | A node's state failed constraint validation.                                |
-| `UNKNOWN_NODE`                    | warning   | A state update referenced a node not in the active view.                    |
-| `DUPLICATE_NODE_ID`               | error     | Multiple nodes share the same scoped `id`.                                  |
-| `DUPLICATE_NODE_KEY`              | warning   | Multiple nodes share the same scoped `key`.                                 |
-| `VIEW_CHILD_CYCLE_DETECTED`       | error     | A circular reference was detected in group/container children.               |
-| `VIEW_MAX_DEPTH_EXCEEDED`         | error     | View structure exceeds the max nesting depth (default: 128).                 |
-| `COLLECTION_CONSTRAINT_VIOLATED`  | warning   | A collection node violates `minItems`/`maxItems` constraints.                |
-| `SCOPE_COLLISION`                 | error     | Name/key collision in resolution scope.                                      |
-
-### ReconciliationIssue
-
-```typescript
+```ts
 interface ReconciliationIssue {
   severity: IssueSeverity;
   nodeId?: string;
@@ -447,13 +354,31 @@ interface ReconciliationIssue {
 }
 ```
 
----
+Common issue codes:
 
-## NodeValue
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `NO_PRIOR_DATA` | info | First reconciliation with no prior data |
+| `NO_PRIOR_VIEW` | warning | Carry attempted without a prior view |
+| `TYPE_MISMATCH` | error | Matched node changed type |
+| `NODE_REMOVED` | warning | Node existed before but not in the new view |
+| `MIGRATION_FAILED` | warning | A needed migration was missing or threw |
+| `VALIDATION_FAILED` | warning | Node value failed validation |
+| `UNKNOWN_NODE` | warning | State update referenced a node not in the active view |
+| `DUPLICATE_NODE_ID` | error | Multiple nodes share the same scoped id |
+| `DUPLICATE_NODE_KEY` | warning | Multiple nodes share the same scoped key |
+| `VIEW_CHILD_CYCLE_DETECTED` | error | A circular child reference was detected |
+| `VIEW_MAX_DEPTH_EXCEEDED` | error | View depth exceeded the safety limit |
+| `COLLECTION_CONSTRAINT_VIOLATED` | warning | Collection violated min or max item limits |
+| `SCOPE_COLLISION` | error | Scoped name or key collision occurred |
 
-The universal state shape for all value-bearing nodes.
+## 7. Data model
 
-```typescript
+### `NodeValue`
+
+This is the standard state shape for value-bearing nodes.
+
+```ts
 interface NodeValue<T = unknown> {
   value: T;
   suggestion?: T;
@@ -462,27 +387,19 @@ interface NodeValue<T = unknown> {
 }
 ```
 
-All node types use `NodeValue<T>` where `T` matches the node's `dataType`:
+Typical mappings:
 
-| dataType    | T         | Example                          |
-| ----------- | --------- | -------------------------------- |
-| `'string'`  | `string`  | `{ value: 'Alice' }`            |
-| `'number'`  | `number`  | `{ value: 42 }`                 |
-| `'boolean'` | `boolean` | `{ value: true, isDirty: true }`|
+| `dataType` | Stored value |
+| --- | --- |
+| `'string'` | `{ value: string }` |
+| `'number'` | `{ value: number }` |
+| `'boolean'` | `{ value: boolean }` |
 
-The `suggestion` field holds a proposed value (from AI, migration, or `defaultValues`) that the user can accept or reject.
+`suggestion` is used for proposal-based flows where a value is staged rather than immediately accepted.
 
-Custom values are also valid -- the session stores them opaquely:
+### Collection state
 
-```typescript
-session.updateState('chart', { zoom: 1.5, panX: 100, panY: 50 });
-```
-
-### CollectionNodeState
-
-Collections store their items as an array of per-item value maps:
-
-```typescript
+```ts
 interface CollectionItemState {
   values: Record<string, NodeValue>;
 }
@@ -492,13 +409,9 @@ interface CollectionNodeState {
 }
 ```
 
----
+### `DataSnapshot`
 
-## DataSnapshot
-
-The state container for an entire view.
-
-```typescript
+```ts
 interface DataSnapshot {
   values: Record<string, NodeValue>;
   viewContext?: Record<string, ViewportState>;
@@ -508,53 +421,11 @@ interface DataSnapshot {
 }
 ```
 
-### ViewportState
+### `DetachedValue`
 
-Per-node viewport/UI state not tied to data values.
+Detached values preserve state from nodes that were removed or became incompatible.
 
-```typescript
-interface ViewportState {
-  scrollX?: number;
-  scrollY?: number;
-  zoom?: number;
-  offsetX?: number;
-  offsetY?: number;
-  isExpanded?: boolean;
-  isFocused?: boolean;
-}
-```
-
-### SnapshotLineage
-
-Provenance metadata for the snapshot.
-
-```typescript
-interface SnapshotLineage {
-  timestamp: number;
-  sessionId: string;
-  viewId?: string;
-  viewVersion?: string;
-  viewHash?: string;
-  lastInteractionId?: string;
-}
-```
-
-### ValueLineage
-
-Per-node provenance.
-
-```typescript
-interface ValueLineage {
-  lastUpdated?: number;
-  lastInteractionId?: string;
-}
-```
-
-### DetachedValue
-
-State preserved from nodes that were removed or had type changes.
-
-```typescript
+```ts
 interface DetachedValue {
   value: unknown;
   previousNodeType: string;
@@ -566,40 +437,20 @@ interface DetachedValue {
 }
 ```
 
-### DetachedValuePolicy
+## 8. Session snapshots, intents, and checkpoints
 
-Controls garbage collection of detached values.
+### `ContinuitySnapshot`
 
-```typescript
-interface DetachedValuePolicy {
-  maxAge?: number;
-  maxCount?: number;
-  pushCount?: number;
-}
-```
-
----
-
-## ContinuitySnapshot
-
-The combined view + data at a point in time.
-
-```typescript
+```ts
 interface ContinuitySnapshot {
   view: ViewDefinition;
   data: DataSnapshot;
 }
 ```
 
----
+### Interactions
 
-## Interactions
-
-### Interaction
-
-An event log entry recording a user or system action.
-
-```typescript
+```ts
 interface Interaction {
   interactionId: string;
   sessionId: string;
@@ -611,23 +462,13 @@ interface Interaction {
 }
 ```
 
-### InteractionType
-
-```typescript
-const INTERACTION_TYPES = {
-  DATA_UPDATE: 'data-update',
-  VALUE_CHANGE: 'value-change',
-  VIEW_CONTEXT_CHANGE: 'view-context-change',
-} as const;
-
+```ts
 type InteractionType = 'data-update' | 'value-change' | 'view-context-change';
 ```
 
-### PendingIntent
+### Pending intents
 
-An uncommitted action with a lifecycle.
-
-```typescript
+```ts
 interface PendingIntent {
   intentId: string;
   nodeId: string;
@@ -637,33 +478,20 @@ interface PendingIntent {
   viewVersion: string;
   status: IntentStatus;
 }
-```
-
-### IntentStatus
-
-```typescript
-const INTENT_STATUS = {
-  PENDING: 'pending',
-  VALIDATED: 'validated',
-  STALE: 'stale',
-  CANCELLED: 'cancelled',
-} as const;
 
 type IntentStatus = 'pending' | 'validated' | 'stale' | 'cancelled';
 ```
 
 Intent lifecycle:
 
-- `pending` -- submitted, awaiting validation
-- `validated` -- confirmed valid for execution
-- `stale` -- marked stale when a new view version is pushed (only affects `pending` intents)
-- `cancelled` -- explicitly cancelled
+- `pending`: submitted and waiting
+- `validated`: completed successfully
+- `stale`: invalidated by a later view version
+- `cancelled`: explicitly cancelled or failed through the audited lifecycle
 
----
+### Checkpoints
 
-## Checkpoints
-
-```typescript
+```ts
 interface Checkpoint {
   checkpointId: string;
   sessionId: string;
@@ -674,29 +502,18 @@ interface Checkpoint {
 }
 ```
 
-- **Auto checkpoints** are created on every `pushView` call, capped by `maxCheckpoints` (default: 50). When over the cap, older auto checkpoints are pruned first.
-- **Manual checkpoints** are created by calling `session.checkpoint()` and are also capped by `maxCheckpoints`.
-- `restoreFromCheckpoint` restores view + data from the checkpoint, truncates the event log, and clears issues, diffs, resolutions, and pending intents.
-- `rewind(checkpointId)` restores to the given checkpoint and removes all checkpoints after it.
+Checkpoint behavior:
 
----
+- every `pushView` creates an auto-checkpoint
+- `session.checkpoint()` creates a manual checkpoint
+- `restoreFromCheckpoint` restores a snapshot without deleting later checkpoints
+- `rewind(checkpointId)` restores a checkpoint and removes all checkpoints after it
 
-## Versioning Strategy
+## 9. Serialization
 
-- `viewId` stays constant for the lifetime of a form (e.g. `"loan-application"`)
-- `version` increments with each push (e.g. `"1.0"` -> `"2.0"` -> `"3.0"`)
-- Version changes trigger pending intent staling (intents with `pending` status are marked `stale`)
-- Checkpoints record the version at the time of creation
+`session.serialize()` returns a JSON-compatible object shaped like this:
 
-There is no prescribed version format. Strings are compared by equality, not ordering.
-
----
-
-## Serialization Format
-
-`session.serialize()` produces a JSON-compatible object:
-
-```typescript
+```ts
 {
   formatVersion: 1,
   sessionId: string,
@@ -717,46 +534,38 @@ There is no prescribed version format. Strings are compared by equality, not ord
 }
 ```
 
-### Deserialization Validation
+### Deserialization guarantees
 
 `deserialize(blob)` validates:
 
-- Payload must be an object
-- `sessionId` must be a string
-- `formatVersion` when present must be a number, and must equal `1`
-- `currentView`, `currentData`, `priorView` must be objects or null
-- `eventLog`, `pendingIntents`, `checkpoints`, `issues`, `diffs`, `resolutions` must be arrays
-- Each event log entry's `type` must be a valid `InteractionType`
+- the payload is an object
+- `sessionId` is a string
+- `formatVersion`, when present, is `1`
+- core collection fields are arrays
+- object-or-null fields are valid
 
-Invalid blobs fail fast with explicit errors.
+Invalid payloads fail fast with explicit errors.
 
-### Deserialization Limits
+### Limits
 
-`deserialize` accepts optional limits that cap restored collection sizes:
+Optional restore limits:
 
-| Limit               | Default | Description                              |
-| ------------------- | ------- | ---------------------------------------- |
-| `maxEventLogSize`   | 1000    | Max event log entries to restore.        |
-| `maxPendingIntents` | 500     | Max pending intents to restore.          |
-| `maxCheckpoints`    | 50      | Max checkpoints to restore.              |
+| Limit | Default | Meaning |
+| --- | --- | --- |
+| `maxEventLogSize` | `1000` | Max restored event log entries |
+| `maxPendingIntents` | `500` | Max restored pending intents |
+| `maxCheckpoints` | `50` | Max restored checkpoints |
 
-### Forward Compatibility
+### Compatibility
 
-- `formatVersion` is checked on deserialization
-- Missing `formatVersion` is accepted for backward compatibility
-- When present, only `formatVersion: 1` is accepted; any other value throws
+- missing `formatVersion` is accepted for backward compatibility
+- when present, only `formatVersion: 1` is accepted
 
-### Size Considerations
+## 10. Traversal safety
 
-The serialized blob includes the full checkpoint stack. Each checkpoint contains a complete `ContinuitySnapshot` (view + data). For long-lived sessions with many view pushes, the blob can grow. The `maxCheckpoints` limit (default 50) and `DetachedValuePolicy` garbage collection help bound this growth.
+The runtime protects itself during view traversal with:
 
----
+- cycle detection, which emits `VIEW_CHILD_CYCLE_DETECTED`
+- a max depth guard, which emits `VIEW_MAX_DEPTH_EXCEEDED`
 
-## View Traversal Safety
-
-The runtime uses an iterative view walker with two safety mechanisms:
-
-- **Cycle detection** -- tracks active nodes on the current traversal path. If a node is re-entered, a `VIEW_CHILD_CYCLE_DETECTED` error is emitted and traversal stops for that branch.
-- **Max depth guard** -- default limit of 128 levels. Nodes exceeding this depth emit a `VIEW_MAX_DEPTH_EXCEEDED` error.
-
-Node IDs are scoped by parent path during traversal (e.g. `billing/name`, `shipping/name`), preventing cross-branch collisions.
+Scoped node ids such as `billing/name` and `shipping/name` prevent cross-branch collisions during traversal.

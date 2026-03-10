@@ -1,148 +1,245 @@
 # Continuum
 
-**Protocol-agnostic state continuity for view-driven UIs.**
+**State continuity for view-driven and AI-generated UIs.**
 
-Website: [continuumstack.dev](https://continuumstack.dev)
+Website: [continuumstack.dev](https://continuumstack.dev)  
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-## Core Premise: The Ephemerality Gap
+Continuum keeps UI structure and user state separate, then reconciles them deterministically as views change.
 
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+That means:
 
-> [!WARNING] > **Pre-release Note**: Continuum is currently in active development. The APIs, package exports, and installation processes described below are subject to change.
+- an AI can regenerate a form without wiping what the user already entered
+- a backend can send a new screen layout without losing meaningful state
+- a user can refresh, rewind, and continue from the same session
 
-Continuum is the runtime layer that preserves user state when dynamic UIs change. Whether an AI agent regenerates your interface, a view update reorganizes your form, or a user refreshes the page -- their data stays intact.
+> [!WARNING]
+> Continuum is pre-release. The package surfaces are usable, but APIs and docs may continue to evolve quickly.
 
-## Why Continuum
+## Why this exists
 
-View-driven UIs are fragile. An AI generates a form, the user fills it out, the AI regenerates -- and everything the user typed is gone. Continuum solves this with deterministic reconciliation: match nodes across view versions, carry state forward, migrate when shapes change, and log what happened.
+Modern apps increasingly treat UI as generated output:
 
-**For AI developers:** Your agent generates view definitions. Continuum handles the data lifecycle -- persistence, reconciliation, rewind, and audit trail -- so your agent can focus on generating, not bookkeeping.
+- AI models generate and revise forms
+- server-driven flows send new view definitions
+- product teams iterate on structure faster than persistence layers can keep up
 
-**For app developers:** Drop-in persistent, rewindable state for React apps. When you add AI later, your app is already wired for it.
+The hard part is not rendering the next view. The hard part is preserving user intent when that view changes.
 
-## Packages
+Continuum solves that with a few core ideas:
 
-| Package                   | Description                                                                          | Status |
-| ------------------------- | ------------------------------------------------------------------------------------ | ------ |
-| `@continuum-dev/contract` | Core types and constants -- ViewDefinition, DataSnapshot, NodeValue, Checkpoint     | Published |
-| `@continuum-dev/runtime`  | Reconciliation engine -- diffs views, carries state, logs resolutions               | Published |
-| `@continuum-dev/session`  | Session manager -- orchestrates pushView, updateState, checkpoint, rewind, serialize | Published |
-| `@continuum-dev/core`     | Thin facade over contract, runtime, and session                                      | New |
-| `@continuum-dev/react`    | React bindings built on top of core                                                  | Published |
-| `@continuum-dev/starter-kit` | Opinionated React primitives, component map, and proposal UI                      | New |
-| `@continuum-dev/prompts`  | Prompt templates and composition helpers for AI view generation                      | Ready to publish |
-| `@continuum-dev/ai-connect` | Headless provider connectors and model catalog for AI chat workflows               | Published |
-| `@continuum-dev/angular`  | Angular bindings -- provideContinuum, signals, standalone renderer, forms            | Not published (internal preview) |
-| `@continuum-dev/adapters` | Protocol adapters -- transform external formats (A2UI) into ViewDefinition           | Not published (internal preview) |
+- `ViewDefinition` describes the current UI
+- session state is stored separately from the rendered structure
+- `pushView(view)` reconciles the old and new trees
+- matching nodes carry state forward by `id`, `key`, and type
+- mismatches, migrations, detachments, and restores are recorded for inspection
 
-## Quick Start
+## Start here
+
+If you want the fastest path, use the starter kit:
 
 ```bash
 npm install @continuum-dev/starter-kit react
 ```
 
 ```tsx
+import { useEffect } from 'react';
 import {
   ContinuumProvider,
   ContinuumRenderer,
   starterKitComponentMap,
   useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
 } from '@continuum-dev/starter-kit';
-import type { ViewDefinition } from '@continuum-dev/core';
 
-function App() {
+const initialView: ViewDefinition = {
+  viewId: 'profile-form',
+  version: '1',
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      key: 'profile',
+      label: 'Profile',
+      children: [
+        {
+          id: 'name',
+          type: 'field',
+          dataType: 'string',
+          key: 'name',
+          label: 'Name',
+        },
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          key: 'email',
+          label: 'Email',
+        },
+      ],
+    },
+  ],
+};
+
+function Page() {
+  const session = useContinuumSession();
+  const snapshot = useContinuumSnapshot();
+
+  useEffect(() => {
+    if (!snapshot) {
+      session.pushView(initialView);
+    }
+  }, [session, snapshot]);
+
+  if (!snapshot?.view) {
+    return null;
+  }
+
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <YourApp />
+      <Page />
     </ContinuumProvider>
   );
 }
-
-function YourApp() {
-  const session = useContinuumSession();
-
-  function handleViewFromAgent(view: ViewDefinition) {
-    session.pushView(view);
-  }
-
-  const snapshot = session.getSnapshot();
-
-  return snapshot ? <ContinuumRenderer view={snapshot.view} /> : null;
-}
 ```
 
-State is automatically reconciled on each `pushView`. User input is preserved across view changes when nodes match by key or ID. Sessions persist to localStorage and survive refresh.
+Once the initial view is mounted, you can push a new version at any time:
 
-## Key Features
+```tsx
+session.pushView(nextViewFromServerOrAgent);
+```
 
-**Reconciliation** -- Deterministic algorithm that matches nodes across view versions by ID, key, and type. Carries forward state for matches, detaches for type mismatches, and supports custom migration strategies.
+Continuum will preserve matching data automatically and record what changed.
 
-**Auto-Checkpoint & Rewind** -- Every `pushView` creates a checkpoint. Call `session.getCheckpoints()` to see the timeline and `session.rewind(checkpointId)` to restore any prior version instantly.
+## Choose your package
 
-**Serialization** -- `session.serialize()` produces a versioned JSON blob containing the full session state, view, event log, and checkpoints. `deserialize()` reconstructs a working session. Format-versioned for forward compatibility.
+### `@continuum-dev/starter-kit`
 
-**Persistence** -- The React provider handles localStorage/sessionStorage persistence automatically. Sessions rehydrate on page load with full state intact.
+Use this if you want the easiest React setup.
 
-**Audit Trail** -- Every view push generates reconciliation resolutions (what was carried, migrated, detached, added) and diffs. Every user interaction is logged with timestamps.
+It gives you:
 
-**Actions** -- Register handlers keyed by `intentId`. Each handler receives an `ActionContext` with the current snapshot and a session reference (`ActionSessionRef`) for performing mutations like `pushView` or `updateState` from inside the handler. `dispatchAction` returns a structured `ActionResult`. `executeIntent` bridges the intent queue and action dispatch into a single audited call.
+- ready-to-use primitives
+- a default component map
+- proposal-aware UI helpers
+- session workbench and provider chat primitives
+- re-exports for the most common Continuum APIs
 
-## Session API Highlights
+### `@continuum-dev/react`
 
-The session surface in `@continuum-dev/session` includes:
+Use this if you want Continuum’s React state model but your own rendering layer.
 
-- Core reads: `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getDetachedValues`
-- Mutations: `pushView`, `updateState`, `recordIntent`
-- Intent lifecycle: `submitIntent`, `getPendingIntents`, `validateIntent`, `cancelIntent`
-- Actions: `registerAction`, `dispatchAction` (returns `Promise<ActionResult>`), `executeIntent`
-- Time travel: `checkpoint`, `restoreFromCheckpoint`, `getCheckpoints`, `rewind`, `reset`
-- Persistence and subscriptions: `serialize`, `onSnapshot`, `onIssues`, `destroy`
+### `@continuum-dev/core`
 
-The React package (`@continuum-dev/react`) provides a `useContinuumAction` hook that wraps `dispatchAction` with `isDispatching` and `lastResult` state for easy component integration.
+Use this if you want the session/runtime facade without the React primitives.
 
-Serialized payloads use `formatVersion: 1`; deserialization accepts `formatVersion: 1` and also accepts blobs without `formatVersion` for compatibility.
+### `@continuum-dev/session` and `@continuum-dev/runtime`
+
+Use these directly if you need lower-level control over reconciliation and session behavior.
+
+## What Continuum gives you
+
+### Reconciliation
+
+When a new view arrives, Continuum tries to match new nodes to prior nodes:
+
+- first by scoped `id`
+- then by semantic `key`
+- then by detached values when restoration is possible
+
+If types match, values carry forward. If shapes changed and a migration is configured, values can be transformed. If continuity breaks, the old value is detached instead of silently corrupted.
+
+### Checkpoints and rewind
+
+Every `pushView` creates an auto-checkpoint. You can inspect the timeline, restore a previous checkpoint, or rewind the session to an earlier state.
+
+### Persistence
+
+The React provider supports built-in `localStorage` and `sessionStorage` persistence with automatic rehydration.
+
+### Diagnostics
+
+Every push produces:
+
+- issues
+- diffs
+- resolutions
+- event history
+
+That gives you an audit trail for what happened to user state during each view change.
+
+### Actions and intents
+
+Action nodes trigger registered handlers by `intentId`. Handlers receive the current snapshot plus a session reference, so they can read or mutate state as part of the action lifecycle.
+
+## Package map
+
+| Package | What it is | Status |
+| --- | --- | --- |
+| `@continuum-dev/contract` | Core types and constants such as `ViewDefinition`, `DataSnapshot`, and checkpoints | Published |
+| `@continuum-dev/runtime` | Stateless reconciliation engine | Published |
+| `@continuum-dev/session` | Stateful session lifecycle, persistence, checkpoints, rewind, proposals, and actions | Published |
+| `@continuum-dev/core` | Thin facade over contract, runtime, and session | New |
+| `@continuum-dev/react` | Headless React bindings | Published |
+| `@continuum-dev/starter-kit` | Opinionated React primitives, default component map, proposal UI, and AI helpers | New |
+| `@continuum-dev/prompts` | Prompt composition helpers for create/evolve/correction flows | Ready to publish |
+| `@continuum-dev/ai-connect` | Headless provider clients and model catalog helpers | Published |
+| `@continuum-dev/angular` | Angular bindings | Internal preview |
+| `@continuum-dev/adapters` | Protocol adapters for external formats | Internal preview |
+
+## Recommended reading path
+
+If you are new:
+
+1. [Quick Start](docs/QUICK_START.md)
+2. [Starter Kit README](packages/starter-kit/README.md)
+3. [Integration Guide](docs/INTEGRATION_GUIDE.md)
+
+If you are wiring AI:
+
+1. [AI Integration Guide](docs/AI_INTEGRATION.md)
+2. [View Contract Reference](docs/VIEW_CONTRACT.md)
+
+If you need exact contract details:
+
+1. [View Contract Reference](docs/VIEW_CONTRACT.md)
+
+## Architecture
+
+```text
+@continuum-dev/contract
+        ↓
+@continuum-dev/runtime
+        ↓
+@continuum-dev/session
+        ↓
+@continuum-dev/core
+        ↓
+@continuum-dev/react
+        ↓
+@continuum-dev/starter-kit
+
+@continuum-dev/prompts
+@continuum-dev/ai-connect
+
+apps/demo
+```
+
+The published package stack is layered. The starter kit sits at the top as the easiest public entry point.
 
 ## Development
 
 ```bash
-npx nx run-many -t test        # Run all tests
-npx nx run-many -t build       # Build all packages
-npx nx run demo:serve          # Run the demo app (landing + docs + live studio + playground)
-npx nx run demo:build          # Build the demo app
+npx nx run-many -t build
+npx nx run-many -t test
+npx nx run demo:serve
+npx nx run demo:build
 ```
-
-## Architecture
-
-```
-@continuum-dev/contract    (types, constants)
-       ↓
-@continuum-dev/runtime     (reconciliation engine)
-       ↓
-@continuum-dev/session     (session lifecycle)
-       ↓
-@continuum-dev/core        (runtime facade)
-       ↓
-@continuum-dev/react       (headless React bindings)
-       ↓
-@continuum-dev/starter-kit (opinionated primitives and proposal UI)
-@continuum-dev/prompts     (AI prompt templates)
-@continuum-dev/ai-connect  (headless provider connectors)
-apps/demo                  (public launch site)
-
-@continuum-dev/angular     (internal preview, not published)
-@continuum-dev/adapters    (internal preview, not published)
-```
-
-## Documentation
-
-| Guide                                          | Description                                                                     |
-| ---------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Quick Start](docs/QUICK_START.md)             | 5-minute integration guide with copy-paste code                                 |
-| [Integration Guide](docs/INTEGRATION_GUIDE.md) | Server-sent views, custom migrations, protocol adapters, persistence, lifecycle |
-| [View Contract Reference](docs/VIEW_CONTRACT.md) | Definitive reference for ViewDefinition format and reconciliation rules      |
-| [AI Integration](docs/AI_INTEGRATION.md)       | Connecting an AI agent to Continuum with prompt templates and examples          |
 
 ## License
 
