@@ -22,6 +22,18 @@ export interface AssembleSystemPromptArgs {
   mode: PromptMode;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
+  includeOutputContractInstructions?: boolean;
+}
+
+export interface DetachedFieldHint {
+  detachedKey: string;
+  key?: string;
+  previousNodeType: string;
+  previousLabel?: string;
+  previousParentLabel?: string;
+  reason: string;
+  viewVersion: string;
+  valuePreview?: unknown;
 }
 
 export interface BuildUserMessageArgs {
@@ -30,4 +42,5 @@ export interface BuildUserMessageArgs {
   validationErrors?: string[];
   runtimeErrors?: string[];
   detachedNodeIds?: string[];
+  detachedFields?: DetachedFieldHint[];
 }
