@@ -45,6 +45,10 @@ export interface NodeValue<T = unknown> {
    */
   isDirty?: boolean;
   /**
+   * True if this value should be protected from silent AI overwrites.
+   */
+  isSticky?: boolean;
+  /**
    * True if the value currently passes the ViewDefinition's constraints.
    */
   isValid?: boolean;
@@ -170,6 +174,14 @@ export interface DetachedValue {
    * Optional semantic key used to match and restore this value later.
    */
   key?: string;
+  /**
+   * Prior user-facing label, if one existed.
+   */
+  previousLabel?: string;
+  /**
+   * Prior immediate parent label, if one existed.
+   */
+  previousParentLabel?: string;
   /**
    * Detachment timestamp.
    */
