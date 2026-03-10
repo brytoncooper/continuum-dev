@@ -3,6 +3,7 @@ import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { space } from '../../tokens.js';
 import { ContainerShell } from '../shared/container-shell.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
+import { responsiveGridColumns } from '../shared/responsive-layout.js';
 
 function layoutStyle(
   definition: ContinuumNodeProps['definition']
@@ -12,8 +13,8 @@ function layoutStyle(
 
   if (layout === 'horizontal') {
     return {
-      display: 'flex',
-      flexWrap: 'wrap',
+      display: 'grid',
+      gridTemplateColumns: responsiveGridColumns(columns),
       gap: space.lg,
       alignItems: 'start',
     };
@@ -22,7 +23,7 @@ function layoutStyle(
   if (layout === 'grid') {
     return {
       display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      gridTemplateColumns: responsiveGridColumns(columns),
       gap: space.lg,
       alignItems: 'start',
     };
