@@ -29,17 +29,23 @@ describe('serializeSession', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
-      values: { a: { value: undefined, isDirty: true } },
+      values: { a: { value: undefined, isDirty: true, isSticky: true } },
       lineage: { timestamp: 1000, sessionId: 's' },
     };
 
     const serialized = serializeSession(internal) as {
-      currentData: { values: Record<string, { value?: unknown; isDirty?: boolean }> };
+      currentData: {
+        values: Record<
+          string,
+          { value?: unknown; isDirty?: boolean; isSticky?: boolean }
+        >;
+      };
     };
 
     expect(serialized.currentData.values.a).toHaveProperty('value');
     expect(serialized.currentData.values.a.value).toBeUndefined();
     expect(serialized.currentData.values.a.isDirty).toBe(true);
+    expect(serialized.currentData.values.a.isSticky).toBe(true);
   });
 
   it('preserves Date node values before persistence encoding', () => {

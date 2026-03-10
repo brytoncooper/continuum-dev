@@ -49,6 +49,28 @@ describe('Pending Proposals', () => {
     });
   });
 
+  it('adds a proposal when proposeValue is called on a sticky field', () => {
+    const session = createSession();
+    session.pushView(
+      makeView([{ id: 'f1', type: 'field', dataType: 'string' }])
+    );
+
+    session.updateState('f1', { value: 'accepted-value', isSticky: true });
+    session.proposeValue('f1', { value: 'ai-value' }, 'ai');
+
+    expect(session.getPendingProposals()['f1']).toEqual({
+      nodeId: 'f1',
+      proposedValue: { value: 'ai-value' },
+      currentValue: { value: 'accepted-value', isSticky: true },
+      proposedAt: expect.any(Number),
+      source: 'ai',
+    });
+    expect(session.getSnapshot()?.data.values['f1']).toEqual({
+      value: 'accepted-value',
+      isSticky: true,
+    });
+  });
+
   it('updates the node value and clears the proposal when acceptProposal is called', () => {
     const session = createSession();
     session.pushView(
