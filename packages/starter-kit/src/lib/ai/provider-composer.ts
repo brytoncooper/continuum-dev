@@ -1,12 +1,12 @@
-import {
-  createAnthropicClient,
-  createGoogleClient,
-  createOpenAiClient,
-  type AiConnectClient,
-  type AnthropicClientOptions,
-  type GoogleClientOptions,
-  type OpenAiClientOptions,
+import type {
+  AiConnectClient,
+  AnthropicClientOptions,
+  GoogleClientOptions,
+  OpenAiClientOptions,
 } from '@continuum-dev/ai-connect';
+import { createStarterKitAnthropicProvider } from './providers/anthropic.js';
+import { createStarterKitGoogleProvider } from './providers/google.js';
+import { createStarterKitOpenAiProvider } from './providers/openai.js';
 
 export type StarterKitProviderKey = 'openai' | 'anthropic' | 'google';
 
@@ -15,17 +15,6 @@ export interface StarterKitProviderComposerArgs {
   openai?: Partial<OpenAiClientOptions>;
   anthropic?: Partial<AnthropicClientOptions>;
   google?: Partial<GoogleClientOptions>;
-}
-
-function requiredApiKey(provider: StarterKitProviderKey): string {
-  switch (provider) {
-    case 'openai':
-      return 'openai.apiKey';
-    case 'anthropic':
-      return 'anthropic.apiKey';
-    default:
-      return 'google.apiKey';
-  }
 }
 
 export function createStarterKitProviders(
@@ -39,34 +28,22 @@ export function createStarterKitProviders(
 
   return args.include.map((provider) => {
     if (provider === 'openai') {
-      const config = args.openai;
-      if (!config?.apiKey) {
-        throw new Error(`Missing required config: ${requiredApiKey(provider)}`);
-      }
-      return createOpenAiClient({
-        ...config,
-        apiKey: config.apiKey,
+      return createStarterKitOpenAiProvider({
+        apiKey: args.openai?.apiKey ?? '',
+        ...args.openai,
       });
     }
 
     if (provider === 'anthropic') {
-      const config = args.anthropic;
-      if (!config?.apiKey) {
-        throw new Error(`Missing required config: ${requiredApiKey(provider)}`);
-      }
-      return createAnthropicClient({
-        ...config,
-        apiKey: config.apiKey,
+      return createStarterKitAnthropicProvider({
+        apiKey: args.anthropic?.apiKey ?? '',
+        ...args.anthropic,
       });
     }
 
-    const config = args.google;
-    if (!config?.apiKey) {
-      throw new Error(`Missing required config: ${requiredApiKey(provider)}`);
-    }
-    return createGoogleClient({
-      ...config,
-      apiKey: config.apiKey,
+    return createStarterKitGoogleProvider({
+      apiKey: args.google?.apiKey ?? '',
+      ...args.google,
     });
   });
 }
