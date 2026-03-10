@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/starter-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
@@ -44,10 +44,10 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/ai-connect": "^0.2.0",
-    "@continuum-dev/core": "^0.2.0",
-    "@continuum-dev/prompts": "^0.2.0",
-    "@continuum-dev/react": "^0.2.0",
+    "@continuum-dev/ai-connect": "^0.3.0",
+    "@continuum-dev/core": "^0.3.0",
+    "@continuum-dev/prompts": "^0.3.0",
+    "@continuum-dev/react": "^0.3.0",
     "yaml": "^2.8.2"
   },
   "nx": {
