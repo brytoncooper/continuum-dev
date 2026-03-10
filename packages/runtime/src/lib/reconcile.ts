@@ -785,6 +785,9 @@ function mergeAsSuggestion(
   if (sourceValue.value !== undefined && sourceValue.isDirty !== undefined) {
     base.isDirty = sourceValue.isDirty;
   }
+  if (sourceValue.value !== undefined && sourceValue.isSticky !== undefined) {
+    base.isSticky = sourceValue.isSticky;
+  }
   return base;
 }
 

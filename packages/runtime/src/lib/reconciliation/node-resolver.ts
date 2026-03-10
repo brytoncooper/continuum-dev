@@ -38,6 +38,28 @@ import {
   reconcileCollectionValue,
 } from './collection-resolver.js';
 
+function readNodeLabel(node: ViewNode | undefined): string | undefined {
+  if (!node || typeof node !== 'object') {
+    return undefined;
+  }
+
+  const label = (node as unknown as Record<string, unknown>).label;
+  return typeof label === 'string' && label.trim().length > 0 ? label : undefined;
+}
+
+function readParentLabel(
+  ctx: ReconciliationContext,
+  scopedNodeId: string
+): string | undefined {
+  const separator = scopedNodeId.lastIndexOf('/');
+  if (separator < 0) {
+    return undefined;
+  }
+
+  const parentId = scopedNodeId.slice(0, separator);
+  return readNodeLabel(ctx.priorById.get(parentId));
+}
+
 export function resolveAllNodes(
   ctx: ReconciliationContext,
   priorValues: Map<string, unknown>,
@@ -136,6 +158,10 @@ export function resolveAllNodes(
   }
 
   return acc;
+}
+
+function isProtectedValue(value: NodeValue): boolean {
+  return value.isDirty === true || value.isSticky === true;
 }
 
 function resolveNewNode(
@@ -256,6 +282,8 @@ function resolveTypeMismatchedNode(
       value: priorValue as NodeValue,
       previousNodeType: priorNode.type,
       key: priorNode.key,
+      previousLabel: readNodeLabel(priorNode),
+      previousParentLabel: readParentLabel(ctx, priorNodeId),
       detachedAt: now,
       viewVersion: ctx.priorView?.version ?? 'unknown',
       reason: 'type-mismatch',
@@ -408,7 +436,7 @@ function resolveUnchangedNode(
           !areDefaultValuesEqual(priorNode.defaultValue, newNode.defaultValue)
         ) {
           didApplyDefaultChange = true;
-          if (priorNodeValue.isDirty) {
+          if (isProtectedValue(priorNodeValue)) {
             resolvedValue.suggestion = newNode.defaultValue;
           } else {
             resolvedValue.value = newNode.defaultValue;
@@ -416,7 +444,7 @@ function resolveUnchangedNode(
         }
       } else {
         didApplyDefaultChange = true;
-        if (priorNodeValue.isDirty) {
+        if (isProtectedValue(priorNodeValue)) {
           resolvedValue.suggestion = newNode.defaultValue;
         } else {
           resolvedValue.value = newNode.defaultValue;
@@ -481,6 +509,8 @@ export function detectRemovedNodes(
           value: priorValue as NodeValue,
           previousNodeType: priorComp?.type ?? 'unknown',
           key: priorComp?.key,
+          previousLabel: readNodeLabel(priorComp ?? undefined),
+          previousParentLabel: readParentLabel(ctx, resolvedPriorId),
           detachedAt: now,
           viewVersion: ctx.priorView?.version ?? 'unknown',
           reason: 'node-removed',

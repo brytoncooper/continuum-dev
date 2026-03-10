@@ -153,6 +153,10 @@ function needsPathRemapping(
   return false;
 }
 
+function isProtectedValue(value: NodeValue): boolean {
+  return value.isDirty === true || value.isSticky === true;
+}
+
 export function reconcileCollectionValue(
   priorNode: CollectionNode,
   newNode: CollectionNode,
@@ -207,7 +211,8 @@ export function reconcileCollectionValue(
     if (state && Array.isArray(state.items)) {
       hasDirtyItems = state.items.some(
         (item) =>
-          item.values && Object.values(item.values).some((v) => v.isDirty)
+          item.values &&
+          Object.values(item.values).some((value) => isProtectedValue(value))
       );
     }
   }
@@ -348,6 +353,7 @@ export function normalizeCollectionValue(
       ? { suggestion: normalizeState(nodeValue.suggestion) }
       : {}),
     ...(nodeValue.isDirty !== undefined ? { isDirty: nodeValue.isDirty } : {}),
+    ...(nodeValue.isSticky !== undefined ? { isSticky: nodeValue.isSticky } : {}),
     ...(nodeValue.isValid !== undefined ? { isValid: nodeValue.isValid } : {}),
   };
 }
