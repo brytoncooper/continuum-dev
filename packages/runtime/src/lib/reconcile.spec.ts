@@ -952,6 +952,37 @@ describe('reconcile', () => {
       );
     });
 
+    it('stores previous label metadata for removed nested fields', () => {
+      const priorView = makeView([
+        makeNode({
+          id: 'employment',
+          type: 'group',
+          label: 'Employment',
+          children: [
+            makeNode({
+              id: 'employer_name',
+              key: 'employer_name',
+              label: 'Employer',
+            }),
+          ],
+        }),
+      ]);
+      const newView = makeView([]);
+      const priorData = makeData({
+        'employment/employer_name': { value: 'Acme' },
+      });
+
+      const result = reconcile(newView, priorView, priorData);
+
+      expect(
+        result.reconciledState.detachedValues?.['employer_name'].previousLabel
+      ).toBe('Employer');
+      expect(
+        result.reconciledState.detachedValues?.['employer_name']
+          .previousParentLabel
+      ).toBe('Employment');
+    });
+
     it('restores detached value when matching key and type return', () => {
       const priorView = makeView([makeNode({ id: 'a', key: 'a-key' })]);
       const removedView = makeView([]);
