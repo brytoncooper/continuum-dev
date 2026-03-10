@@ -43,6 +43,7 @@ function shallowNodeValueEqual(
   return (
     left.value === right.value &&
     left.isDirty === right.isDirty &&
+    left.isSticky === right.isSticky &&
     left.isValid === right.isValid &&
     left.suggestion === right.suggestion
   );
