@@ -204,12 +204,18 @@ const components = {
 import {
   StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
+  createStarterKitGoogleProvider,
+  createStarterKitOpenAiProvider,
 } from '@continuum-dev/starter-kit';
-import { createOpenAiClient, createGoogleClient } from '@continuum-dev/ai-connect';
 
 const providers = [
-  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, model: 'gpt-5.4' }),
-  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+  createStarterKitOpenAiProvider({
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-5.4',
+  }),
+  createStarterKitGoogleProvider({
+    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  }),
 ];
 
 function AiControls() {
@@ -224,6 +230,7 @@ function AiControls() {
 
 If both OpenAI and Google are present, the provider selector appears automatically.
 Anthropic is optional and only needed if you explicitly enable it.
+If you want a single convenience call instead, use `createStarterKitProviders(...)`.
 
 ## 9) Optional: Use Prompt Helpers
 

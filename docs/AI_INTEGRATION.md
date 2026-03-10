@@ -72,6 +72,52 @@ If you are using starter-kit UI primitives, `StarterKitProviderChatBox` can run 
 
 ---
 
+## Starter-Kit Provider Setup
+
+Use the provider factories exported by `@continuum-dev/starter-kit` when you want each provider configured independently.
+
+```typescript
+import {
+  createStarterKitAnthropicProvider,
+  createStarterKitGoogleProvider,
+  createStarterKitOpenAiProvider,
+} from '@continuum-dev/starter-kit';
+
+const openAi = createStarterKitOpenAiProvider({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  model: 'gpt-5.4',
+});
+
+const gemini = createStarterKitGoogleProvider({
+  apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+});
+
+const anthropic = createStarterKitAnthropicProvider({
+  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+});
+
+const providers = [openAi, gemini, anthropic];
+```
+
+If you prefer one convenience call, keep using `createStarterKitProviders`:
+
+```typescript
+import { createStarterKitProviders } from '@continuum-dev/starter-kit';
+
+const providers = createStarterKitProviders({
+  include: ['openai', 'google'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-5.4',
+  },
+  google: {
+    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  },
+});
+```
+
+---
+
 ## Prompt Strategy That Holds Up In Production
 
 Use continuity bias, not rigid bans:
@@ -334,9 +380,9 @@ Current persistence behavior:
 
 ## Provider-Specific Notes
 
-- OpenAI: use structured output contracts directly when available.
-- Google Gemini: validate parsed output before `pushView` and run a correction retry when the candidate is malformed.
-- Anthropic: keep optional unless you have active keys and tested config for your environment.
+- OpenAI: `createStarterKitOpenAiProvider(...)` is the most direct setup path and keeps OpenAI defaults local to that provider.
+- Google Gemini: `createStarterKitGoogleProvider(...)` pairs well with the starter-kit correction retry flow when malformed candidates need repair.
+- Anthropic: `createStarterKitAnthropicProvider(...)` keeps Anthropic setup isolated so you can enable it only in environments where keys and model choices are available.
 
 ---
 
