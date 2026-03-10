@@ -26,7 +26,7 @@ export function CollectionSection({
       style={{
         display: 'grid',
         gap: space.lg,
-        padding: depth === 0 ? space.xxl : 0,
+        padding: depth === 0 ? space.xl : 0,
         borderRadius: depth === 0 ? radius.lg : 0,
         background: depth === 0 ? color.surface : 'transparent',
         border: depth === 0 ? `1px solid ${color.border}` : 'none',
@@ -45,10 +45,10 @@ export function CollectionSection({
         </div>
       ) : null}
       <div style={{ display: 'grid', gap: space.md }}>{children}</div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button
           type="button"
-          style={addButtonStyle}
+          style={{ ...addButtonStyle, width: '100%', maxWidth: 220 }}
           disabled={!canAdd}
           onClick={() => {
             if (typeof onAdd === 'function') {

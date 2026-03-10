@@ -34,7 +34,7 @@ const itemLabelStyle: CSSProperties = {
 function hierarchyStyle(depth: number, isItem: boolean): CSSProperties {
   if (isItem) {
     return {
-      padding: space.lg,
+      padding: space.md,
       borderRadius: radius.md,
       background: color.surface,
       border: `1px solid ${color.borderSoft}`,
@@ -43,7 +43,7 @@ function hierarchyStyle(depth: number, isItem: boolean): CSSProperties {
 
   if (depth === 0) {
     return {
-      padding: space.xxl,
+      padding: space.xl,
       borderRadius: radius.lg,
       background: color.surface,
       border: `1px solid ${color.border}`,
@@ -119,6 +119,7 @@ export function ContainerShell({
               itemRemovePlacement === 'inline'
                 ? {
                     display: 'flex',
+                    flexWrap: 'wrap',
                     alignItems: 'flex-end',
                     gap: space.md,
                     minWidth: 0,

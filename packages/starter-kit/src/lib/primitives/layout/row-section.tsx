@@ -2,6 +2,7 @@ import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { space } from '../../tokens.js';
 import { ContainerShell } from '../shared/container-shell.js';
 import { nodeDescription, nodeLabel } from '../shared/node.js';
+import { responsiveGridColumns } from '../shared/responsive-layout.js';
 
 export function RowSection(props: ContinuumNodeProps) {
   const isCollectionItem = typeof props.itemIndex === 'number';
@@ -17,8 +18,8 @@ export function RowSection(props: ContinuumNodeProps) {
       itemRemovePlacement={isCollectionItem ? 'inline' : 'header'}
       itemRemoveVariant={isCollectionItem ? 'icon' : 'default'}
       layoutStyle={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: 'grid',
+        gridTemplateColumns: responsiveGridColumns(2),
         alignItems: 'start',
         gap: space.lg,
       }}
