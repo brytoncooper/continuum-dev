@@ -1,68 +1,75 @@
 # Quick Start
 
-Get a working Continuum React integration in a few minutes.
+Get a working Continuum app on screen fast, then learn how view updates preserve user state.
 
-## 1) Install
+This guide uses `@continuum-dev/starter-kit`, which is the easiest public entry point.
+
+## What you will build
+
+By the end of this guide you will have:
+
+- a React app wrapped in `ContinuumProvider`
+- a rendered `ViewDefinition`
+- local persistence across refresh
+- a view update that preserves matching user data
+
+## 1. Install the fastest path
 
 ```bash
 npm install @continuum-dev/starter-kit react
 ```
 
-`@continuum-dev/starter-kit` is the fastest path: it includes the opinionated primitives, a default component map, prompt helpers, and the headless React layer underneath.
+Use the starter kit if you want:
 
-If you want to stay headless from the start instead, install:
+- a default component map
+- ready-to-use primitives
+- Continuum React hooks from the same package surface
+- optional AI chat and session workbench primitives later
+
+If you want a fully headless React setup instead, install:
 
 ```bash
 npm install @continuum-dev/react @continuum-dev/core react
 ```
 
-If you want built-in provider chat + model selection for live generation, also install:
+## 2. Wrap your app
 
-```bash
-npm install @continuum-dev/ai-connect
-```
-
-## 2) Define Your Component Map
-
-The Starter Kit ships with a default component map, so you can render immediately and customize later.
+Create your app shell with `ContinuumProvider`.
 
 ```tsx
-import { starterKitComponentMap } from '@continuum-dev/starter-kit';
-```
-
-## 3) Wrap Your App With `ContinuumProvider`
-
-```tsx
-// App.tsx
 import { ContinuumProvider, starterKitComponentMap } from '@continuum-dev/starter-kit';
-import { MyPage } from './MyPage';
+import { Page } from './Page';
 
 export default function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <MyPage />
+      <Page />
     </ContinuumProvider>
   );
 }
 ```
 
-`persist="localStorage"` enables automatic rehydration and persistence.
+Why this matters:
 
-## 4) Push a View and Render It
+- `components={starterKitComponentMap}` gives you a default renderer immediately
+- `persist="localStorage"` makes the session survive refresh automatically
+
+## 3. Push your first view
+
+Create a simple `ViewDefinition` and render it from session state.
 
 ```tsx
-// MyPage.tsx
 import { useEffect } from 'react';
-import type { ViewDefinition } from '@continuum-dev/core';
 import {
   ContinuumRenderer,
   useContinuumSession,
   useContinuumSnapshot,
+  type ViewDefinition,
 } from '@continuum-dev/starter-kit';
 
 const initialView: ViewDefinition = {
   viewId: 'profile-form',
-  version: '1.0.0',
+  version: '1',
   nodes: [
     {
       id: 'profile',
@@ -70,42 +77,64 @@ const initialView: ViewDefinition = {
       key: 'profile',
       label: 'Profile',
       children: [
-        { id: 'name', type: 'field', dataType: 'string', key: 'name', label: 'Name' },
-        { id: 'email', type: 'field', dataType: 'string', key: 'email', label: 'Email' },
-        { id: 'agree', type: 'field', dataType: 'boolean', key: 'agree', label: 'Agree' },
+        {
+          id: 'name',
+          type: 'field',
+          dataType: 'string',
+          key: 'name',
+          label: 'Name',
+        },
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          key: 'email',
+          label: 'Email',
+        },
+        {
+          id: 'agree',
+          type: 'field',
+          dataType: 'boolean',
+          key: 'agree',
+          label: 'Agree to terms',
+        },
       ],
     },
   ],
 };
 
-export function MyPage() {
+export function Page() {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
 
   useEffect(() => {
-    if (!session.getSnapshot()) {
+    if (!snapshot) {
       session.pushView(initialView);
     }
-  }, [session]);
+  }, [session, snapshot]);
 
   if (!snapshot?.view) {
-    return <div>Loading...</div>;
+    return null;
   }
 
   return <ContinuumRenderer view={snapshot.view} />;
 }
 ```
 
-At this point, form edits survive refresh.
+At this point:
 
-## 5) Evolve the View While Preserving User State
+- the view is live
+- state updates go into the active Continuum session
+- refresh will rehydrate the session from storage
 
-When your AI/backend sends a new version, push it:
+## 4. Update the view without losing the user’s data
 
-```typescript
+When your backend or AI sends a new version, push it into the same session:
+
+```tsx
 session.pushView({
   viewId: 'profile-form',
-  version: '2.0.0',
+  version: '2',
   nodes: [
     {
       id: 'profile',
@@ -113,67 +142,123 @@ session.pushView({
       key: 'profile',
       label: 'Profile',
       children: [
-        { id: 'full_name', type: 'field', dataType: 'string', key: 'name', label: 'Full Name' },
-        { id: 'email', type: 'field', dataType: 'string', key: 'email', label: 'Email' },
-        { id: 'phone', type: 'field', dataType: 'string', key: 'phone', label: 'Phone' },
-        { id: 'agree', type: 'field', dataType: 'boolean', key: 'agree', label: 'Agree' },
+        {
+          id: 'full_name',
+          type: 'field',
+          dataType: 'string',
+          key: 'name',
+          label: 'Full Name',
+        },
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          key: 'email',
+          label: 'Email',
+        },
+        {
+          id: 'phone',
+          type: 'field',
+          dataType: 'string',
+          key: 'phone',
+          label: 'Phone',
+        },
+        {
+          id: 'agree',
+          type: 'field',
+          dataType: 'boolean',
+          key: 'agree',
+          label: 'Agree to terms',
+        },
       ],
     },
   ],
 });
 ```
 
-- `name` value carries to `full_name` because the semantic `key` is still `name`
-- unchanged nodes keep their data
-- new nodes start empty
+What happens here:
 
-## 6) Add Rewind and Diagnostics
+- the `name` value carries to `full_name` because the semantic `key` is still `name`
+- `email` and `agree` keep their data
+- `phone` starts empty because it is new
+
+## 5. Inspect what happened
+
+Continuum exposes diagnostics for every push:
 
 ```tsx
-import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/starter-kit';
+import { useContinuumDiagnostics } from '@continuum-dev/starter-kit';
 
-function Devtools() {
-  const session = useContinuumSession();
-  const { checkpoints, issues, resolutions } = useContinuumDiagnostics();
+export function DiagnosticsPanel() {
+  const { issues, resolutions, checkpoints } = useContinuumDiagnostics();
 
   return (
-    <div>
-      <button
-        onClick={() => {
-          const previous = checkpoints[checkpoints.length - 2];
-          if (previous) {
-            session.rewind(previous.checkpointId);
-          }
-        }}
-      >
-        Undo
-      </button>
-
-      <pre>{JSON.stringify({ issueCount: issues.length, resolutions }, null, 2)}</pre>
-    </div>
+    <pre>
+      {JSON.stringify(
+        {
+          issueCount: issues.length,
+          resolutionCount: resolutions.length,
+          checkpointCount: checkpoints.length,
+        },
+        null,
+        2
+      )}
+    </pre>
   );
 }
 ```
 
-## 7) Wire Actions
+This is useful for:
 
-Register a handler and render an action button:
+- AI view generation loops
+- debugging unexpected detachments
+- building internal tooling and audit panels
+
+## 6. Rewind to an earlier checkpoint
+
+Every `pushView` creates an auto-checkpoint.
+
+```tsx
+import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/starter-kit';
+
+export function UndoButton() {
+  const session = useContinuumSession();
+  const { checkpoints } = useContinuumDiagnostics();
+
+  return (
+    <button
+      onClick={() => {
+        const previous = checkpoints[checkpoints.length - 2];
+        if (previous) {
+          session.rewind(previous.checkpointId);
+        }
+      }}
+    >
+      Undo last view change
+    </button>
+  );
+}
+```
+
+## 7. Add actions
+
+Action nodes can trigger registered handlers by `intentId`.
 
 ```tsx
 import { useEffect } from 'react';
 import { useContinuumAction, useContinuumSession } from '@continuum-dev/starter-kit';
 
-function RegisterActions() {
+export function RegisterActions() {
   const session = useContinuumSession();
 
   useEffect(() => {
     session.registerAction(
       'submit',
       { label: 'Submit' },
-      async (ctx) => {
+      async (context) => {
         await fetch('/api/submit', {
           method: 'POST',
-          body: JSON.stringify(ctx.snapshot.values),
+          body: JSON.stringify(context.snapshot.values),
         });
         return { success: true };
       }
@@ -183,22 +268,23 @@ function RegisterActions() {
   return null;
 }
 
-const components = {
-  action: ({ definition }) => {
-    const { dispatch, isDispatching } = useContinuumAction(definition.intentId);
-    return (
-      <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
-        {definition.label}
-      </button>
-    );
-  },
-};
+export function SubmitButton({ intentId, nodeId, label }: { intentId: string; nodeId: string; label: string }) {
+  const { dispatch, isDispatching } = useContinuumAction(intentId);
+
+  return (
+    <button disabled={isDispatching} onClick={() => dispatch(nodeId)}>
+      {label}
+    </button>
+  );
+}
 ```
 
-## 8) Optional: Add Built-In AI Chat + Session Workbench
+## 8. Optional: add built-in AI controls
 
-`StarterKitProviderChatBox` lets users send instructions directly to a configured provider.
-`StarterKitSessionWorkbench` gives checkpoint timeline, preview, and rewind controls.
+The starter kit also ships AI-focused UI primitives:
+
+- `StarterKitProviderChatBox`
+- `StarterKitSessionWorkbench`
 
 ```tsx
 import {
@@ -218,7 +304,7 @@ const providers = [
   }),
 ];
 
-function AiControls() {
+export function AiControls() {
   return (
     <>
       <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
@@ -228,21 +314,17 @@ function AiControls() {
 }
 ```
 
-If both OpenAI and Google are present, the provider selector appears automatically.
-Anthropic is optional and only needed if you explicitly enable it.
-If you want a single convenience call instead, use `createStarterKitProviders(...)`.
+Notes:
 
-## 9) Optional: Use Prompt Helpers
+- if multiple providers are present, the chat box shows a provider selector automatically
+- Anthropic support is optional
+- if you want one convenience call, use `createStarterKitProviders(...)`
 
-The Starter Kit re-exports the prompt helpers, so you can import them from the same package surface.
+## 9. What to read next
 
-```bash
-npm install @continuum-dev/starter-kit react
-```
+Continue based on what you are doing next:
 
-## Next Steps
-
-- [Integration Guide](INTEGRATION_GUIDE.md) - production React patterns
-- [AI Integration Guide](AI_INTEGRATION.md) - prompt and correction-loop setup
-- [View Contract Reference](VIEW_CONTRACT.md) - complete `ViewDefinition` contract
-- [Root Package Overview](../README.md#packages) - package map and status
+- [Starter Kit README](../packages/starter-kit/README.md) for the package-level surface
+- [Integration Guide](INTEGRATION_GUIDE.md) for production patterns
+- [AI Integration Guide](AI_INTEGRATION.md) for prompting and correction loops
+- [View Contract Reference](VIEW_CONTRACT.md) for exact `ViewDefinition` rules

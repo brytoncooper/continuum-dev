@@ -1,16 +1,35 @@
 # Integration Guide
 
-React-first integration patterns for:
+Production-oriented patterns for integrating:
 
-- `@continuum-dev/core`
-- `@continuum-dev/react`
 - `@continuum-dev/starter-kit`
+- `@continuum-dev/react`
+- `@continuum-dev/core`
+- `@continuum-dev/session`
 - `@continuum-dev/prompts`
 - `@continuum-dev/ai-connect`
 
-## 0) Fastest Production Path (Starter Kit)
+This guide assumes you already understand the basics from [Quick Start](./QUICK_START.md).
 
-If you want zero-setup rendering + AI controls, start with starter-kit primitives first and customize later.
+## The production mental model
+
+Continuum works best when your app follows one simple rule:
+
+**Treat the current view as replaceable, but treat user intent as durable.**
+
+In practice that means:
+
+1. render from the active session snapshot
+2. accept new views from a server or model
+3. push those views through `session.pushView(view)`
+4. inspect issues, diffs, and resolutions after each push
+5. persist and rehydrate the session across reloads
+
+## 1. Choose your integration level
+
+### Fastest path: `@continuum-dev/starter-kit`
+
+Use this when you want a polished React surface quickly.
 
 ```tsx
 import {
@@ -18,23 +37,31 @@ import {
   ContinuumRenderer,
   StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
+  createStarterKitGoogleProvider,
+  createStarterKitOpenAiProvider,
   starterKitComponentMap,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
-import { createOpenAiClient, createGoogleClient } from '@continuum-dev/ai-connect';
 
 const providers = [
-  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY, model: 'gpt-5.4' }),
-  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+  createStarterKitOpenAiProvider({
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-5.4',
+  }),
+  createStarterKitGoogleProvider({
+    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  }),
 ];
 
 function Page() {
   const snapshot = useContinuumSnapshot();
-  if (!snapshot) return null;
+  if (!snapshot?.view) {
+    return null;
+  }
   return <ContinuumRenderer view={snapshot.view} />;
 }
 
-function App() {
+export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
       <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
@@ -45,12 +72,16 @@ function App() {
 }
 ```
 
-## 1) Production Baseline in React
+### Headless React path: `@continuum-dev/react`
 
-Use `ContinuumProvider` as the state authority and render from `useContinuumSnapshot`.
+Use this when you want Continuum’s session model but your own components.
 
 ```tsx
-import { ContinuumProvider, ContinuumRenderer, useContinuumSnapshot } from '@continuum-dev/react';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
 import type { ContinuumNodeMap } from '@continuum-dev/react';
 
 const nodeMap: ContinuumNodeMap = {
@@ -60,31 +91,39 @@ const nodeMap: ContinuumNodeMap = {
   presentation: PresentationComponent,
 };
 
-function App() {
+function Page() {
+  const snapshot = useContinuumSnapshot();
+  if (!snapshot?.view) {
+    return null;
+  }
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
   return (
     <ContinuumProvider components={nodeMap} persist="localStorage">
       <Page />
     </ContinuumProvider>
   );
 }
-
-function Page() {
-  const snapshot = useContinuumSnapshot();
-  if (!snapshot) return null;
-  return <ContinuumRenderer view={snapshot.view} />;
-}
 ```
 
-## 2) Receiving Server or AI Views
+## 2. Accepting views from a server or model
 
-Before `pushView`, validate payload shape and reject duplicate ids or keys.
+Before calling `pushView`, validate the basics:
+
+- the payload is an object
+- `viewId` exists
+- `version` exists
+- `nodes` is an array
+- duplicate node ids or keys are rejected
 
 ```tsx
 import { useEffect } from 'react';
 import { useContinuumSession } from '@continuum-dev/react';
 import { collectDuplicateIssues, type ViewDefinition } from '@continuum-dev/core';
 
-function AgentListener({ agentUrl }: { agentUrl: string }) {
+export function AgentListener({ agentUrl }: { agentUrl: string }) {
   const session = useContinuumSession();
 
   useEffect(() => {
@@ -92,13 +131,20 @@ function AgentListener({ agentUrl }: { agentUrl: string }) {
 
     ws.addEventListener('message', (event) => {
       const payload = JSON.parse(event.data) as { view?: unknown };
-      if (!payload.view || typeof payload.view !== 'object') return;
+      if (!payload.view || typeof payload.view !== 'object') {
+        return;
+      }
+
       const view = payload.view as ViewDefinition;
-      if (!view.viewId || !view.version || !Array.isArray(view.nodes)) return;
+      if (!view.viewId || !view.version || !Array.isArray(view.nodes)) {
+        return;
+      }
 
       const issues = collectDuplicateIssues(view.nodes);
-      const hasError = issues.some((issue) => issue.severity === 'error');
-      if (hasError) return;
+      const hasBlockingIssue = issues.some((issue) => issue.severity === 'error');
+      if (hasBlockingIssue) {
+        return;
+      }
 
       session.pushView(view);
     });
@@ -110,71 +156,9 @@ function AgentListener({ agentUrl }: { agentUrl: string }) {
 }
 ```
 
-## 3) Prompting and Correction Loops
+## 3. Persistence strategy
 
-Use `@continuum-dev/prompts` to keep generation behavior consistent.
-
-```typescript
-import {
-  assembleSystemPrompt,
-  buildEvolveUserMessage,
-  buildCorrectionUserMessage,
-  getDefaultOutputContract,
-} from '@continuum-dev/prompts';
-import { createOpenAiClient } from '@continuum-dev/ai-connect';
-
-const client = createOpenAiClient({
-  apiKey: process.env.OPENAI_API_KEY!,
-  model: 'gpt-5.4',
-});
-
-const systemPrompt = assembleSystemPrompt({
-  mode: 'evolve-view',
-  addons: ['strict-continuity'],
-  outputContract: getDefaultOutputContract(),
-});
-
-const userMessage = buildEvolveUserMessage({
-  currentView,
-  instruction: 'Add co-borrower employment and preserve existing semantic keys.',
-});
-
-const correctionMessage = buildCorrectionUserMessage({
-  currentView,
-  instruction: 'Fix validation and runtime errors while preserving semantic continuity.',
-  validationErrors,
-  runtimeErrors,
-  detachedNodeIds,
-});
-
-const result = await client.generate({
-  systemPrompt,
-  userMessage,
-  outputContract: getDefaultOutputContract(),
-});
-```
-
-Recommended loop:
-
-1. Generate candidate view.
-2. Run preflight shape and duplicate checks.
-3. Call `session.pushView(view)`.
-4. Inspect `issues` and `resolutions`.
-5. Retry with correction mode when blocking errors appear.
-
-Provider recommendation:
-
-- Default to OpenAI + Google first for most apps.
-- Treat Anthropic as optional and include it only when you explicitly need/test it.
-
-## 4) Persistence Strategies
-
-`ContinuumProvider` built-in persistence props:
-
-- `persist`: one of `'localStorage'`, `'sessionStorage'`, or `false`
-- `storageKey`
-- `maxPersistBytes`
-- `onPersistError`
+For most React apps, start with provider-managed storage:
 
 ```tsx
 <ContinuumProvider
@@ -192,17 +176,36 @@ Provider recommendation:
 </ContinuumProvider>
 ```
 
-Current behavior:
+Built-in behavior today:
 
-- writes are debounced by 200ms
-- rehydration happens automatically
-- `localStorage` syncs across tabs with `storage` events
+- writes are debounced
+- rehydration is automatic
+- `localStorage` syncs across tabs through `storage` events
 
-## 5) Migration Strategies for Schema Evolution
+Use custom serialization only when you need:
 
-When node hashes evolve, configure migration behavior in session reconciliation options.
+- server persistence
+- encrypted storage
+- cross-device resume
+- explicit session snapshot transport
 
-```typescript
+```ts
+import { createSession, deserialize } from '@continuum-dev/session';
+
+const session = createSession();
+const blob = session.serialize();
+const restored = deserialize(blob);
+
+restored.destroy();
+```
+
+`deserialize` accepts `formatVersion: 1` and also accepts compatible payloads without a `formatVersion`.
+
+## 4. Migrations for schema evolution
+
+If shapes evolve but values should survive in transformed form, define migration strategies.
+
+```ts
 import { createSession } from '@continuum-dev/session';
 
 const session = createSession({
@@ -226,15 +229,15 @@ const session = createSession({
 Resolution order:
 
 1. `migrationStrategies[nodeId]`
-2. node `migrations` rules and `strategyRegistry`
-3. carry state as-is when type is unchanged
-4. detach and emit `MIGRATION_FAILED` when migration fails
+2. the node’s `migrations` rules plus `strategyRegistry`
+3. same-type carry when no migration is required
+4. detach when continuity cannot be preserved safely
 
-## 6) Action Execution
+## 5. Actions and intent execution
 
-Register action handlers at session creation or at runtime. Handlers receive an `ActionContext` with a session reference for post-action mutations.
+Action handlers can read the current snapshot and update session state as part of a workflow.
 
-```typescript
+```ts
 import { createSession } from '@continuum-dev/session';
 
 const session = createSession({
@@ -255,18 +258,18 @@ const session = createSession({
 });
 ```
 
-`dispatchAction` returns a `Promise<ActionResult>` and catches handler errors:
+Dispatch directly when you already know the action should run:
 
-```typescript
+```ts
 const result = await session.dispatchAction('submit_form', 'btn_submit');
 if (!result.success) {
   console.error('Action failed:', result.error);
 }
 ```
 
-For an audited lifecycle that bridges the intent queue and action dispatch:
+Use `executeIntent` when you want the full audited lifecycle:
 
-```typescript
+```ts
 const result = await session.executeIntent({
   nodeId: 'btn_submit',
   intentName: 'submit_form',
@@ -274,17 +277,21 @@ const result = await session.executeIntent({
 });
 ```
 
-`executeIntent` submits a pending intent, dispatches the action, and marks the intent as `validated` on success or `cancelled` on failure.
+That path:
 
-If no handler is registered for a dispatched `intentId`, a console warning is emitted and `{ success: false }` is returned.
-## 7) Conflict Handling in React
+- records the intent
+- dispatches the action
+- marks it `validated` on success
+- marks it `cancelled` on failure
 
-When AI proposes values while users are editing, use proposals instead of direct overwrites.
+## 6. Conflict handling and proposals
+
+When AI or remote systems suggest values while the user is editing, prefer proposals over direct overwrite.
 
 ```tsx
 import { useContinuumConflict, useContinuumSession } from '@continuum-dev/react';
 
-function EmailConflictBanner() {
+export function EmailConflictBanner() {
   const session = useContinuumSession();
   const conflict = useContinuumConflict('email');
 
@@ -295,32 +302,39 @@ function EmailConflictBanner() {
   return (
     <div>
       <button onClick={propose}>Suggest email</button>
-      {conflict.hasConflict && (
+      {conflict.hasConflict ? (
         <div>
           <button onClick={conflict.accept}>Accept</button>
           <button onClick={conflict.reject}>Reject</button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 ```
 
-## 8) Diagnostics and Ops
+This is the safest default whenever:
 
-Use runtime diagnostics after each push and track core metrics.
+- a user might already be editing the same field
+- AI suggestions are helpful but not authoritative
+- you need reviewable changes instead of silent mutation
+
+## 7. Diagnostics and operational visibility
+
+Inspect diagnostics after every view push:
 
 ```tsx
 import { useContinuumDiagnostics } from '@continuum-dev/react';
 
-function DiagnosticsPanel() {
+export function DiagnosticsPanel() {
   const { issues, resolutions, diffs, checkpoints } = useContinuumDiagnostics();
+
   return (
     <pre>
       {JSON.stringify(
         {
           issueCount: issues.length,
-          detachedCount: resolutions.filter((r) => r.resolution === 'detached').length,
+          detachedCount: resolutions.filter((item) => item.resolution === 'detached').length,
           diffCount: diffs.length,
           checkpointCount: checkpoints.length,
         },
@@ -336,22 +350,25 @@ Track at minimum:
 
 - error issue count per push
 - detached resolution count per push
-- correction retries before success
-- persistence errors (`size_limit`, `storage_error`)
+- retry count for correction loops
+- persistence errors such as `size_limit` and `storage_error`
 
-## 9) Lifecycle and Serialization
+## 8. Production checklist
 
-Use serialization for custom persistence backends, and call `destroy` when done.
+Use this as your default rollout checklist:
 
-```typescript
-import { createSession, deserialize } from '@continuum-dev/session';
+1. Keep `viewId` stable for a logical workflow.
+2. Change `version` when the structure changes.
+3. Keep semantic `key` values stable when meaning is unchanged.
+4. Validate payload shape before `pushView`.
+5. Reject duplicate ids and blocking structural issues.
+6. Inspect issues and resolutions after every push.
+7. Use proposals for AI-suggested values instead of overwriting active edits.
+8. Persist sessions so users can survive refresh and long-running workflows.
+9. Add migration strategies only where shape changes truly need transformation.
 
-const session = createSession();
+## 9. Related guides
 
-const blob = session.serialize();
-const restored = deserialize(blob);
-
-restored.destroy();
-```
-
-`deserialize` accepts payloads with `formatVersion: 1` and compatible legacy payloads without `formatVersion`.
+- [Quick Start](./QUICK_START.md)
+- [AI Integration Guide](./AI_INTEGRATION.md)
+- [View Contract Reference](./VIEW_CONTRACT.md)

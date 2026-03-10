@@ -1,20 +1,19 @@
 # @continuum-dev/starter-kit
 
-Website: [continuumstack.dev](https://continuumstack.dev)
+The fastest way to get Continuum on screen in a React app.
+
+Website: [continuumstack.dev](https://continuumstack.dev)  
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-## Core Premise: The Ephemerality Gap
+Continuum itself is intentionally headless. The starter kit is the opinionated convenience layer on top of it.
 
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
-
-`@continuum-dev/starter-kit` is the fastest way to get Continuum on screen in a React app.
-
-Continuum itself stays headless by design. The starter kit is the opinionated convenience layer:
+It gives you:
 
 - ready-to-use primitives for common Continuum node types
 - a default component map
 - proposal and suggestion UI helpers
+- style customization hooks for the shipped primitives
+- AI chat and session workbench primitives
 - prompt helpers re-exported from `@continuum-dev/prompts`
 
 ## Install
@@ -23,29 +22,91 @@ Continuum itself stays headless by design. The starter kit is the opinionated co
 npm install @continuum-dev/starter-kit react
 ```
 
-## Use it when
+## Use the starter kit when
 
-- you want a polished starting point instead of building your own component map first
-- you want proposal-safe UI ready on day one
-- you want prompt helpers available from the same package surface
+- you want the fastest possible React integration
+- you want to render real `ViewDefinition` payloads immediately
+- you do not want to build your own component map first
+- you want proposal-aware and AI-ready UI primitives available from day one
 
-## Example
+If you want a fully headless React integration instead, start with `@continuum-dev/react`.
+
+## Fastest possible example
 
 ```tsx
-import { ContinuumProvider, ContinuumRenderer, starterKitComponentMap } from '@continuum-dev/starter-kit';
+import { useEffect } from 'react';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  starterKitComponentMap,
+  useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
+} from '@continuum-dev/starter-kit';
+
+const view: ViewDefinition = {
+  viewId: 'profile-form',
+  version: '1',
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      key: 'profile',
+      label: 'Profile',
+      children: [
+        {
+          id: 'name',
+          type: 'field',
+          dataType: 'string',
+          key: 'name',
+          label: 'Name',
+        },
+      ],
+    },
+  ],
+};
+
+function Page() {
+  const session = useContinuumSession();
+  const snapshot = useContinuumSnapshot();
+
+  useEffect(() => {
+    if (!snapshot) {
+      session.pushView(view);
+    }
+  }, [session, snapshot]);
+
+  if (!snapshot?.view) {
+    return null;
+  }
+
+  return <ContinuumRenderer view={snapshot.view} />;
+}
 
 export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <ContinuumRenderer view={view} />
+      <Page />
     </ContinuumProvider>
   );
 }
 ```
 
-## Optional style customization
+## What this package exports
 
-Starter kit primitives now ship with stable defaults, and you can override key style slots with `StarterKitStyleProvider`.
+The starter kit gives you one package surface for the most common tasks:
+
+- `ContinuumProvider` and `ContinuumRenderer`
+- common Continuum hooks such as `useContinuumSession`, `useContinuumSnapshot`, and diagnostics hooks
+- `starterKitComponentMap`
+- starter primitives and shared field helpers
+- proposal UI such as conflict and suggestion components
+- AI helpers such as `StarterKitProviderChatBox`, `StarterKitSessionWorkbench`, and provider factories
+- prompt helpers re-exported from `@continuum-dev/prompts`
+
+## Styling the shipped primitives
+
+The primitives ship with stable defaults. Override the exposed style slots with `StarterKitStyleProvider`.
 
 ```tsx
 import {
@@ -72,8 +133,18 @@ export function App() {
 }
 ```
 
-Supported slots: `fieldControl`, `sliderInput`, `actionButton`, `collectionAddButton`, `itemRemoveButton`, `itemIconRemoveButton`, `conflictActionButton`, `suggestionsActionButton`.
-You can also inspect the exact shipped defaults in code with `starterKitDefaultStyles`.
+Supported slots:
+
+- `fieldControl`
+- `sliderInput`
+- `actionButton`
+- `collectionAddButton`
+- `itemRemoveButton`
+- `itemIconRemoveButton`
+- `conflictActionButton`
+- `suggestionsActionButton`
+
+You can inspect the shipped defaults directly:
 
 ```tsx
 import { starterKitDefaultStyles } from '@continuum-dev/starter-kit';
@@ -81,54 +152,65 @@ import { starterKitDefaultStyles } from '@continuum-dev/starter-kit';
 console.log(starterKitDefaultStyles.fieldControl);
 ```
 
-Default slots and what they target:
+Slot meanings:
 
-- `fieldControl`: input/select/textarea/date controls
+- `fieldControl`: input, select, textarea, and date controls
 - `sliderInput`: range input host element
-- `actionButton`: `action` primitive button
-- `collectionAddButton`: collection "Add item" button
-- `itemRemoveButton`: collection item remove button (text)
-- `itemIconRemoveButton`: collection item remove button (icon)
-- `conflictActionButton`: accept/reject buttons in `ConflictBanner`
-- `suggestionsActionButton`: accept all / reject all in `StarterKitSuggestionsBar`
-## AI provider chat primitive
+- `actionButton`: action primitive button
+- `collectionAddButton`: collection add button
+- `itemRemoveButton`: collection row remove button
+- `itemIconRemoveButton`: collection icon remove button
+- `conflictActionButton`: conflict accept and reject buttons
+- `suggestionsActionButton`: suggestions accept-all and reject-all buttons
 
-Starter kit includes a ready-to-use headless-provider chat control: `StarterKitProviderChatBox`.
+## Built-in AI UI
+
+The starter kit includes a ready-to-use provider chat primitive:
+
+- `StarterKitProviderChatBox`
+- `StarterKitSessionWorkbench`
 
 ```tsx
 import {
   ContinuumProvider,
   ContinuumRenderer,
   StarterKitProviderChatBox,
+  StarterKitSessionWorkbench,
+  createStarterKitGoogleProvider,
+  createStarterKitOpenAiProvider,
   starterKitComponentMap,
 } from '@continuum-dev/starter-kit';
-import {
-  createGoogleClient,
-  createOpenAiClient,
-} from '@continuum-dev/ai-connect';
 
 const providers = [
-  createOpenAiClient({ apiKey: import.meta.env.VITE_OPENAI_API_KEY }),
-  createGoogleClient({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY }),
+  createStarterKitOpenAiProvider({
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-5.4',
+  }),
+  createStarterKitGoogleProvider({
+    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  }),
 ];
 
 export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
       <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <StarterKitSessionWorkbench />
       <ContinuumRenderer view={view} />
     </ContinuumProvider>
   );
 }
 ```
 
-If multiple providers are configured, the primitive shows a provider select automatically.
+Behavior notes:
 
-For full session timeline UX (checkpoint preview + confirm/cancel rewind), use `StarterKitSessionWorkbench` alongside the chat box.
+- if multiple providers are configured, the chat box shows a provider selector automatically
+- Anthropic support is optional
+- the chat box can auto-apply valid generated views into the active session
 
-### Provider composer helper
+## Provider composer helper
 
-Use `StarterKitProviderComposer` to build providers from one config object:
+If you want one convenience function instead of separate provider factories:
 
 ```tsx
 import {
@@ -142,8 +224,27 @@ const providers = StarterKitProviderComposer({
   google: { apiKey: import.meta.env.VITE_GOOGLE_API_KEY },
 });
 
-<StarterKitProviderChatBox providers={providers} mode="evolve-view" />;
+export function AiBox() {
+  return <StarterKitProviderChatBox providers={providers} mode="evolve-view" />;
+}
 ```
 
 If a provider is listed in `include`, its `apiKey` is required.
-Anthropic support is optional and should only be included when you have it configured.
+
+## When not to use this package
+
+Do not start with the starter kit if:
+
+- you need a completely custom rendering system immediately
+- you do not want opinionated primitives in the bundle
+- you are integrating at the session/runtime level rather than the React UI layer
+
+In those cases, start with `@continuum-dev/react`, `@continuum-dev/core`, or `@continuum-dev/session`.
+
+## Related docs
+
+- [Root README](../../README.md)
+- [Quick Start](../../docs/QUICK_START.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
+- [AI Integration Guide](../../docs/AI_INTEGRATION.md)
+- [View Contract Reference](../../docs/VIEW_CONTRACT.md)
