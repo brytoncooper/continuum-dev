@@ -1,20 +1,15 @@
 import type { CSSProperties } from 'react';
 import { repositoryUrl } from '../../site-config';
 import { color, radius, space, type } from '../../ui/tokens';
-import { ctaContent } from '../content/landing-content';
+import { closingCtaContent } from '../content/landing-content';
 import { LandingCard, LandingGrid, LandingSection } from '../landing-layout';
 
-const descriptionStyle: CSSProperties = {
+const headlineStyle: CSSProperties = {
   ...type.title,
   color: color.text,
 };
 
-const cardTitleStyle: CSSProperties = {
-  ...type.section,
-  color: color.text,
-};
-
-const cardBodyStyle: CSSProperties = {
+const bodyStyle: CSSProperties = {
   ...type.body,
   color: color.textMuted,
 };
@@ -35,20 +30,14 @@ const actionStyle = (tone: 'default' | 'soft' | 'strong' = 'default'): CSSProper
     tone === 'strong' ? color.accent : tone === 'soft' ? color.highlightSoft : color.surface,
 });
 
-export function CtaBlock() {
+export function ClosingCtaBlock() {
   return (
-    <LandingSection title={ctaContent.title} description={ctaContent.description}>
+    <LandingSection title={closingCtaContent.title} description={closingCtaContent.description}>
       <LandingGrid alignItems="stretch">
-        <LandingCard span={12} tone="strong">
-          <div style={descriptionStyle}>
-            The fastest path is to understand the problem, verify the proof, and then click through
-            to GitHub with enough confidence to install.
-          </div>
-        </LandingCard>
-        {ctaContent.actions.map((action) => (
+        {closingCtaContent.actions.map((action) => (
           <LandingCard key={action.title} span={4} tone={action.tone ?? 'default'} fullHeight>
-            <div style={cardTitleStyle}>{action.title}</div>
-            <div style={{ ...cardBodyStyle, marginTop: space.sm }}>{action.body}</div>
+            <div style={headlineStyle}>{action.title}</div>
+            <div style={{ ...bodyStyle, marginTop: space.sm }}>{action.body}</div>
             <div style={{ marginTop: space.lg }}>
               <a
                 href={action.href === 'github' ? repositoryUrl : action.href}

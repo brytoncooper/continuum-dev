@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { color, page, radius, shadow, space, type } from '../ui/tokens';
+import { color, page, radius, space, type } from '../ui/tokens';
+import { useResponsiveState } from '../ui/responsive';
 
 const shellStyle: CSSProperties = {
   minHeight: '100vh',
-  padding: `${space.xxxl}px ${space.page}px`,
 };
 
 const innerStyle: CSSProperties = {
@@ -23,9 +23,9 @@ const navRowStyle: CSSProperties = {
   zIndex: 30,
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.md,
-  border: `1px solid ${color.border}`,
-  background: 'rgba(255, 255, 255, 0.92)',
-  backdropFilter: 'blur(6px)',
+  border: `1px solid ${color.borderSoft}`,
+  background: 'rgba(255, 255, 255, 0.88)',
+  backdropFilter: 'blur(8px)',
 };
 
 const heroStyle: CSSProperties = {
@@ -86,9 +86,8 @@ const cardStyle: CSSProperties = {
   display: 'grid',
   gap: space.lg,
   padding: space.xxl,
-  border: `1px solid ${color.border}`,
+  border: `1px solid ${color.borderSoft}`,
   borderRadius: radius.lg,
-  boxShadow: shadow.panel,
   minWidth: 0,
   background: color.surface,
 };
@@ -106,14 +105,49 @@ export function LandingShell({
   description: string;
   children: ReactNode;
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
-    <div style={shellStyle}>
-      <div style={innerStyle}>
-        {nav ? <div style={navRowStyle}>{nav}</div> : null}
+    <div
+      style={{
+        ...shellStyle,
+        padding: `${isMobile ? space.xxl : space.xxxl}px ${
+          isMobile ? space.pageMobile : space.page
+        }px ${isMobile ? space.xxl : space.xxxl + space.xxl}px`,
+      }}
+    >
+      <div style={{ ...innerStyle, width: `min(100%, ${page.width}px)` }}>
+        {nav ? (
+          <div
+            style={{
+              ...navRowStyle,
+              top: isMobile ? space.xs : space.sm,
+              padding: `${space.sm}px ${isMobile ? space.sm : space.md}px`,
+            }}
+          >
+            {nav}
+          </div>
+        ) : null}
         <header style={heroStyle}>
           <div style={eyebrowStyle}>{eyebrow}</div>
-          <div style={headlineStyle}>{title}</div>
-          <div style={supportingStyle}>{description}</div>
+          <div
+            style={{
+              ...headlineStyle,
+              fontSize: isMobile ? 36 : headlineStyle.fontSize,
+              lineHeight: isMobile ? 1.02 : headlineStyle.lineHeight,
+            }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              ...supportingStyle,
+              fontSize: isMobile ? type.body.fontSize : supportingStyle.fontSize,
+              lineHeight: isMobile ? type.body.lineHeight : supportingStyle.lineHeight,
+            }}
+          >
+            {description}
+          </div>
         </header>
         {children}
       </div>
@@ -130,9 +164,16 @@ export function LandingSection({
   description: string;
   children: ReactNode;
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
     <section style={sectionStyle}>
-      <div style={sectionHeaderStyle}>
+      <div
+        style={{
+          ...sectionHeaderStyle,
+          paddingLeft: isMobile ? 0 : sectionHeaderStyle.paddingLeft,
+        }}
+      >
         <div style={sectionTitleStyle}>{title}</div>
         <div style={sectionTextStyle}>{description}</div>
       </div>
@@ -148,7 +189,19 @@ export function LandingGrid({
   children: ReactNode;
   alignItems?: 'start' | 'stretch';
 }) {
-  return <div style={{ ...gridStyle, alignItems }}>{children}</div>;
+  const { isMobile } = useResponsiveState();
+
+  return (
+    <div
+      style={{
+        ...gridStyle,
+        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : gridStyle.gridTemplateColumns,
+        alignItems,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function LandingCard({
@@ -162,16 +215,22 @@ export function LandingCard({
   tone?: 'default' | 'soft' | 'strong';
   fullHeight?: boolean;
 }) {
+  const { isMobile } = useResponsiveState();
   const background =
-    tone === 'strong' ? color.surfaceInset : tone === 'soft' ? color.surfaceMuted : color.surface;
+    tone === 'strong'
+      ? color.surfaceMuted
+      : tone === 'soft'
+        ? color.surface
+        : color.surface;
 
-  const borderColor = tone === 'strong' ? color.borderStrong : color.border;
+  const borderColor = tone === 'strong' ? color.border : color.borderSoft;
 
   return (
     <div
       style={{
         ...cardStyle,
-        gridColumn: `span ${span} / span ${span}`,
+        gridColumn: isMobile ? '1 / -1' : `span ${span} / span ${span}`,
+        padding: isMobile ? space.xl : cardStyle.padding,
         background,
         border: `1px solid ${borderColor}`,
         height: fullHeight ? '100%' : undefined,

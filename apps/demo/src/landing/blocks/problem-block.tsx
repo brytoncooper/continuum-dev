@@ -18,8 +18,13 @@ export function ProblemBlock() {
     <div id="the-problem">
       <LandingSection title={problemContent.title} description={problemContent.description}>
         <LandingGrid alignItems="stretch">
-          {problemContent.callouts.map((callout) => (
-            <LandingCard key={callout.title} span={4} fullHeight>
+          {problemContent.callouts.map((callout, index) => (
+            <LandingCard
+              key={callout.title}
+              span={4}
+              tone={index === 0 ? 'strong' : index === 1 ? 'soft' : 'default'}
+              fullHeight
+            >
               <div style={titleStyle}>{callout.title}</div>
               <div style={{ ...bodyStyle, marginTop: space.sm }}>{callout.body}</div>
             </LandingCard>

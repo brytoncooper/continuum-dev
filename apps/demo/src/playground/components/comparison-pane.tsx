@@ -11,22 +11,25 @@ const statusRowStyle: CSSProperties = {
   flexWrap: 'wrap',
 };
 
-const statusChipStyle = (status: string): CSSProperties => ({
+const statusChipStyle = (status: string, tone: 'naive' | 'continuum'): CSSProperties => ({
   ...type.small,
   color: color.text,
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.pill,
-  border: `1px solid ${status === 'State dropped' ? color.borderStrong : color.border}`,
-  background: status === 'State preserved' ? color.surfaceInset : color.surface,
+  border: `1px solid ${
+    tone === 'continuum'
+      ? color.highlight
+      : status === 'State dropped'
+        ? color.danger
+        : color.border
+  }`,
+  background:
+    tone === 'continuum'
+      ? color.highlightSoft
+      : status === 'State dropped'
+        ? color.dangerSoft
+        : color.surface,
 });
-
-const previewStyle: CSSProperties = {
-  padding: space.lg,
-  borderRadius: radius.md,
-  border: `1px solid ${color.borderSoft}`,
-  background: color.surfaceMuted,
-  pointerEvents: 'none',
-};
 
 const gridStyle: CSSProperties = {
   display: 'grid',
@@ -36,15 +39,6 @@ const gridStyle: CSSProperties = {
 
 const fullRowStyle: CSSProperties = {
   gridColumn: '1 / -1',
-};
-
-const explanationCardStyle: CSSProperties = {
-  display: 'grid',
-  gap: space.sm,
-  padding: space.lg,
-  borderRadius: radius.md,
-  border: `1px solid ${color.borderSoft}`,
-  background: color.surfaceMuted,
 };
 
 const explanationTitleStyle: CSSProperties = {
@@ -82,6 +76,7 @@ export function ComparisonPane({
   title,
   description,
   status,
+  tone,
   semanticKey,
   currentNodeId,
   storedValue,
@@ -91,17 +86,35 @@ export function ComparisonPane({
   title: string;
   description: string;
   status: string;
+  tone: 'naive' | 'continuum';
   semanticKey: string;
   currentNodeId: string | null;
   storedValue: string;
   values: Record<string, unknown>;
   children: ReactNode;
 }) {
+  const previewStyle: CSSProperties = {
+    padding: space.lg,
+    borderRadius: radius.md,
+    border: `1px solid ${tone === 'continuum' ? color.highlight : color.borderSoft}`,
+    background: tone === 'continuum' ? color.highlightSoft : color.surfaceMuted,
+    pointerEvents: 'none',
+  };
+
+  const explanationCardStyle: CSSProperties = {
+    display: 'grid',
+    gap: space.sm,
+    padding: space.lg,
+    borderRadius: radius.md,
+    border: `1px solid ${tone === 'continuum' ? color.highlight : color.borderSoft}`,
+    background: tone === 'continuum' ? color.surfaceAccent : color.surfaceMuted,
+  };
+
   return (
     <ExampleCard title={title} description={description} span={6} fullHeight>
       <div style={contentStyle}>
         <div style={statusRowStyle}>
-          <div style={statusChipStyle(status)}>{status}</div>
+          <div style={statusChipStyle(status, tone)}>{status}</div>
         </div>
         <div style={previewStyle}>{children}</div>
         <div style={gridStyle}>

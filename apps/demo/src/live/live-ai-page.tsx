@@ -17,7 +17,9 @@ import {
 } from '@continuum-dev/starter-kit';
 import type { ViewDefinition } from '@continuum-dev/core';
 import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
+import { repositoryUrl } from '../site-config';
 import { SiteNav } from '../ui/site-nav';
+import { useResponsiveState } from '../ui/responsive';
 import { color, control, radius, space, type } from '../ui/tokens';
 
 const LIVE_AI_STORAGE_KEY = 'continuum_demo_live_ai_settings_v1';
@@ -335,6 +337,7 @@ function LiveStudio({
   const [clearCheckpointPreviewSignal, setClearCheckpointPreviewSignal] =
     useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { isMobile } = useResponsiveState();
 
   useEffect(() => {
     if (!snapshot) {
@@ -345,9 +348,14 @@ function LiveStudio({
   const activeView = snapshot?.view ?? liveView;
 
   return (
-    <div style={studioGridStyle}>
-      <aside style={chatPanelStyle}>
-        <div style={panelShellStyle}>
+    <div
+      style={{
+        ...studioGridStyle,
+        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : studioGridStyle.gridTemplateColumns,
+      }}
+    >
+      <aside style={{ ...chatPanelStyle, gridColumn: isMobile ? '1 / -1' : chatPanelStyle.gridColumn }}>
+        <div style={{ ...panelShellStyle, padding: isMobile ? space.md : panelShellStyle.padding }}>
           <div style={sectionTitleStyle}>AI chat</div>
           <StarterKitSessionWorkbench
             initialView={liveView}
@@ -374,8 +382,13 @@ function LiveStudio({
         </div>
       </aside>
 
-      <section style={previewPanelStyle}>
-        <div style={panelShellStyle}>
+      <section
+        style={{
+          ...previewPanelStyle,
+          gridColumn: isMobile ? '1 / -1' : previewPanelStyle.gridColumn,
+        }}
+      >
+        <div style={{ ...panelShellStyle, padding: isMobile ? space.md : panelShellStyle.padding }}>
           <div style={sectionTitleStyle}>Generated view</div>
           <div style={helperTextStyle}>
             This panel intentionally takes more space so you can inspect structure, spacing, and behavior while iterating.
@@ -567,6 +580,7 @@ export function LiveAiPage() {
       },
     });
   }, [accessToken, model, provider, selectedProvider]);
+  const { isMobile } = useResponsiveState();
 
   return (
     <PageShell
@@ -585,7 +599,14 @@ export function LiveAiPage() {
             description="These settings drive the headless ai-connect client used by the live studio below."
             span={12}
           >
-            <div style={controlGridStyle}>
+            <div
+              style={{
+                ...controlGridStyle,
+                gridTemplateColumns: isMobile
+                  ? 'minmax(0, 1fr)'
+                  : controlGridStyle.gridTemplateColumns,
+              }}
+            >
               <label style={controlGroupStyle}>
                 <span style={fieldLabelStyle}>Provider</span>
                 <select
@@ -665,6 +686,12 @@ export function LiveAiPage() {
         description="This Live AI Demo is built using the Starter Kit. Prompt on the left and watch the generated Continuum view evolve in a larger workspace on the right."
       >
         <div style={linkRowStyle}>
+          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={inlineLinkStyle}>
+            View on GitHub
+          </a>
+          <a href="/docs" style={inlineLinkStyle}>
+            Install / Read docs
+          </a>
           <a href="/starter-kit" style={inlineLinkStyle}>
             Built with Starter Kit
           </a>

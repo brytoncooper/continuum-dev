@@ -18,8 +18,12 @@ export function FeatureListBlock() {
     <div id="feature-highlights">
       <LandingSection title={featureListContent.title} description={featureListContent.description}>
         <LandingGrid>
-          {featureListContent.items.map((item) => (
-            <LandingCard key={item.title} span={6}>
+          {featureListContent.items.map((item, index) => (
+            <LandingCard
+              key={item.title}
+              span={6}
+              tone={index % 3 === 0 ? 'soft' : index % 3 === 1 ? 'default' : 'strong'}
+            >
               <div style={titleStyle}>{item.title}</div>
               <div style={{ ...bodyStyle, marginTop: space.sm }}>{item.body}</div>
             </LandingCard>

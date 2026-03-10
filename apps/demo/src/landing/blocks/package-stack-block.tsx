@@ -15,7 +15,7 @@ const pillStyle: CSSProperties = {
   padding: `${space.sm}px ${space.md}px`,
   border: `1px solid ${color.border}`,
   borderRadius: 999,
-  background: color.surfaceMuted,
+  background: color.accentSoft,
 };
 
 const nameStyle: CSSProperties = {
@@ -45,8 +45,13 @@ export function PackageStackBlock() {
           ))}
         </div>
         <LandingGrid alignItems="stretch">
-          {packageStackContent.items.map((item) => (
-            <LandingCard key={item.name} span={3} fullHeight>
+          {packageStackContent.items.map((item, index) => (
+            <LandingCard
+              key={item.name}
+              span={3}
+              tone={index % 2 === 0 ? 'default' : 'soft'}
+              fullHeight
+            >
               <div style={nameStyle}>{item.name}</div>
               <div style={{ ...titleStyle, marginTop: space.md }}>{item.title}</div>
               <div style={{ ...bodyStyle, marginTop: space.sm }}>{item.body}</div>

@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { repositoryUrl } from '../site-config';
 import { ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { color, page, radius, space, type } from '../ui/tokens';
+import { useResponsiveState } from '../ui/responsive';
 import { SiteNav } from '../ui/site-nav';
 import { playgroundContent } from './content/playground-content';
 import { CollectionPane } from './components/collection-pane';
@@ -49,28 +51,48 @@ const responsiveLayoutStyle: CSSProperties = {
 
 const liveAiCalloutStyle: CSSProperties = {
   marginTop: space.md,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
+  display: 'grid',
   gap: space.md,
-  flexWrap: 'wrap',
   padding: space.md,
   borderRadius: radius.md,
   border: `1px solid ${color.border}`,
-  background: color.surfaceMuted,
+  background: color.surfaceInset,
 };
 
-const liveAiLinkStyle: CSSProperties = {
+const calloutActionRowStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: space.sm,
+};
+
+const primaryLinkStyle: CSSProperties = {
   ...type.small,
   color: color.surface,
   textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.pill,
-  border: `1px solid ${color.borderStrong}`,
+  border: `1px solid ${color.accentStrong}`,
   background: color.accent,
 };
 
+const secondaryLinkStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.pill,
+  border: `1px solid ${color.border}`,
+  background: color.surface,
+};
+
 export function PlaygroundPage() {
+  const { isMobile } = useResponsiveState();
   const [scenarioId, setScenarioId] = useState(defaultPlaygroundScenarioId);
   const [scenarioInputs, setScenarioInputs] = useState<
     Record<string, Record<string, string>>
@@ -136,15 +158,32 @@ export function PlaygroundPage() {
         />
         <div style={liveAiCalloutStyle}>
           <div style={{ ...type.small, color: color.text }}>
-            Want the fastest real-world starter-kit demo (with provider key)? Try Live AI Demo.
+            This is the fastest no-key proof path. You can also jump straight to GitHub, install
+            docs, or the Live AI demo.
           </div>
-          <a href="/live-ai" style={liveAiLinkStyle}>
-            Open Live AI Demo
-          </a>
+          <div style={calloutActionRowStyle}>
+            <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
+              View on GitHub
+            </a>
+            <a href="/docs" style={secondaryLinkStyle}>
+              Install / Read Docs
+            </a>
+            <a href="/live-ai" style={secondaryLinkStyle}>
+              Open Live AI Demo
+            </a>
+          </div>
         </div>
       </PageSection>
       <PageSection title={scenario.title} description={scenario.problem}>
-        <div style={{ ...scenarioLayoutStyle, ...responsiveLayoutStyle }}>
+        <div
+          style={{
+            ...scenarioLayoutStyle,
+            ...responsiveLayoutStyle,
+            gridTemplateColumns: isMobile
+              ? 'minmax(0, 1fr)'
+              : scenarioLayoutStyle.gridTemplateColumns,
+          }}
+        >
           <div style={scenarioMainStyle}>
             <ScenarioControls
               inputTitle={
@@ -236,13 +275,35 @@ export function PlaygroundPage() {
               )}
             </ExampleGrid>
           </div>
-          <div style={stickyRailStyle}>
+          <div
+            style={{
+              ...stickyRailStyle,
+              position: isMobile ? 'static' : stickyRailStyle.position,
+              top: isMobile ? undefined : stickyRailStyle.top,
+            }}
+          >
             <PlaygroundStepCard
               title="What this scenario proves"
               description={scenario.problem}
               whyItMatters={scenario.whyItMatters}
             />
           </div>
+        </div>
+      </PageSection>
+      <PageSection
+        title="Convinced by the difference?"
+        description="Use GitHub when you want the source, package layout, and tracked setup path in one place. Use the docs when you are ready to choose an install path directly."
+      >
+        <div style={calloutActionRowStyle}>
+          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
+            View Continuum on GitHub
+          </a>
+          <a href="/docs" style={secondaryLinkStyle}>
+            Read setup docs
+          </a>
+          <a href="/starter-kit" style={secondaryLinkStyle}>
+            Explore Starter Kit
+          </a>
         </div>
       </PageSection>
     </PageShell>

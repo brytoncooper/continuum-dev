@@ -132,31 +132,34 @@ export function PrimitivePage() {
     <PageShell
       nav={<SiteNav />}
       eyebrow="Starter Kit"
-      title="Continuum is headless by design. The Starter Kit gets teams moving fast."
-      description="Continuum keeps the continuity layer headless so teams can bring their own design system. The Starter Kit is the opinionated React layer we provide for faster adoption, with ready-to-use primitives, action wiring patterns, and proposal-friendly UI."
+      title="Continuum Starter Kit gets developers from GitHub to working dynamic UI faster."
+      description="Continuum keeps the continuity runtime headless so teams can bring their own design system. The Starter Kit is the opinionated React layer for faster installation, proof, and adoption when you want a polished path from source to working UI."
     >
       <PageSection
-        title="Try the Live AI Demo"
-        description="This is the best zero-setup showcase of starter-kit in action: provider setup, AI chat, session checkpoints, proposal flows, and generated Continuum rendering in one place."
+        title="Inspect the repo, then try the Starter Kit path"
+        description="Inspect GitHub, open the setup docs, or jump straight into the Live AI demo to see the starter-kit experience working end to end."
       >
         <ExampleGrid alignItems="stretch">
           <ExampleCard
             title="Built with starter-kit primitives"
-            description="The Live AI page is built with starter-kit components end to end. If this experience feels good, you can ship it immediately and customize from there."
+            description="The Live AI page is built with starter-kit components end to end. If this experience feels right, the next step is GitHub and install."
             span={12}
             fullHeight
           >
             <div style={liveHeroStyle}>
-              <div style={liveHeroTitleStyle}>Open the live demo and try it now</div>
+              <div style={liveHeroTitleStyle}>Open the repo, then choose your proof path</div>
               <div style={liveHeroBodyStyle}>
-                Configure a provider, run prompts, review proposals, and rewind checkpoints with preview. This is the recommended first-stop page for new users evaluating starter-kit.
+                GitHub gives you the source, tracked docs, and packages in one place. The Live AI demo shows the full starter-kit workflow end to end.
               </div>
               <div style={{ display: 'flex', gap: space.sm, flexWrap: 'wrap' }}>
-                <a href="/live-ai" style={actionStyle}>
-                  Launch Live AI
+                <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
+                  View on GitHub
                 </a>
                 <a href="/docs" style={actionStyle}>
-                  Read setup docs
+                  Install / Read setup docs
+                </a>
+                <a href="/live-ai" style={actionStyle}>
+                  Launch Live AI
                 </a>
               </div>
             </div>
@@ -185,7 +188,7 @@ export function PrimitivePage() {
 
       <PageSection
         title="Use the layer that matches your team"
-        description="Start with the Starter Kit when you want a polished path to working screens. Drop down to headless React and core when you want full control over your component system and styling."
+        description="Start with the Starter Kit when you want the fastest path to a polished screen. Drop down to headless React and core when you want more control over your install surface and component system."
       >
         <ExampleGrid alignItems="stretch">
           <InstallCard
@@ -200,16 +203,16 @@ export function PrimitivePage() {
           />
           <ExampleCard
             title="Next steps"
-            description="Read the tracked docs or inspect the repo before wiring your own actions and prompts."
+            description="GitHub is the fastest way to inspect the source, packages, and tracked docs before you install."
             span={12}
             fullHeight
           >
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <a href="/docs" style={actionStyle}>
-                Open docs
-              </a>
               <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
-                GitHub
+                View on GitHub
+              </a>
+              <a href="/docs" style={actionStyle}>
+                Read setup docs
               </a>
             </div>
           </ExampleCard>

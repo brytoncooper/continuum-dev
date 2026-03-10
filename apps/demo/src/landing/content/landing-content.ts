@@ -20,69 +20,78 @@ export type FeatureItem = {
   body: string;
 };
 
+export type LandingAction = {
+  title: string;
+  body: string;
+  label: string;
+  href: string;
+  external?: boolean;
+  tone?: 'default' | 'soft' | 'strong';
+};
+
 export const heroContent = {
-  eyebrow: 'continuumstack.dev',
-  title: 'Your UI can change mid-session. Your user state should not.',
+  eyebrow: 'State continuity for view-driven and AI-generated UIs',
+  title: 'The view changed. The user lost their work.',
   description:
-    'Continuum is the continuity layer for AI-generated, schema-driven, and server-driven interfaces. It stays headless where it matters, and now ships with an opinionated Starter Kit so teams can get from install to working UI much faster.',
+    'That is the failure mode. Typed input disappears, progress resets, and trust collapses the moment a model or backend ships a new view. Continuum preserves state through view changes with deterministic reconciliation.',
   callouts: [
     {
-      title: 'Dynamic UI without state loss',
-      body: 'Regenerate the interface, restructure the tree, and keep the in-progress session alive.',
+      title: 'Typed input gets wiped',
+      body: 'A new view arrives and the user has to start over.',
     },
     {
-      title: 'View and data are separate',
-      body: 'The UI is allowed to change because the user data is not trapped inside the render tree.',
+      title: 'Progress resets mid-session',
+      body: 'A reordered flow or regenerated form turns active work into discarded state.',
     },
     {
-      title: 'Production-grade continuity',
-      body: 'Carry, migrate, detach, restore, persist, rewind, and audit every structural change.',
+      title: 'Trust disappears fast',
+      body: 'One bad update teaches users that dynamic UI is fragile.',
     },
   ] satisfies LandingCallout[],
 };
 
 export const problemContent = {
-  title: 'The real problem is not dynamic UI. The real problem is continuity collapse.',
+  title: 'Why AI-generated UIs lose user state',
   description:
-    'When the UI tree changes, most apps treat the old nodes as gone and the new nodes as unrelated. That is why users lose typed input, partial work, and trust the moment an AI or backend updates the screen.',
+    'The real problem is not that the interface changes. The real problem is that most apps tie user state to the current tree, so every structural update risks dropped input, broken progress, and lost trust.',
   callouts: [
     {
-      title: 'The structure mutates',
-      body: 'An agent inserts steps, a workflow reorders sections, or the server swaps layouts while the user is still working.',
+      title: 'The structure changes mid-session',
+      body: 'An agent inserts steps, a backend swaps sections, or a workflow reorders the page while the user is still working.',
     },
     {
-      title: 'The state was glued to the tree',
-      body: 'Traditional UI state assumes a mostly stable component hierarchy, so structural change turns into dropped identity.',
+      title: 'Traditional state is glued to the tree',
+      body: 'When node identity changes, many apps treat the old screen as gone and the new screen as unrelated, even when the user intent is still the same.',
     },
     {
-      title: 'The session feels fragile',
-      body: 'Input disappears, progress resets, proposals clobber edits, and every update feels like starting over.',
+      title: 'The product feels unreliable',
+      body: 'Typed input disappears, progress resets, proposals clobber edits, and the user learns not to trust dynamic updates.',
     },
   ] satisfies LandingCallout[],
 };
 
 export const continuityContent = {
-  title: 'View is generated. Data is durable. That is the secret.',
+  title: 'How Continuum preserves state when the UI changes',
   description:
-    'Continuum splits the problem in two and turns that boundary into a first-class contract, so the interface can keep changing while the user keeps one continuity-aware state model underneath it.',
+    'Continuum separates generated view structure from durable user state, turning that boundary into a first-class contract so the interface can keep evolving while the session stays coherent.',
   columns: [
     {
       title: 'ViewDefinition',
-      body: 'AI-owned structure: the versioned tree that describes layout, flow, semantics, and what the UI looks like right now.',
+      body: 'The generated structure that describes layout, flow, semantics, and what the interface looks like right now.',
     },
     {
       title: 'DataSnapshot',
-      body: 'User-owned state: the snapshot of values, suggestions, dirty flags, lineage, and detached data that survives pushes.',
+      body: 'The durable session state that carries values, proposals, dirty flags, lineage, and detached data through structural change.',
     },
   ] satisfies LandingCallout[],
   summary:
-    'That separation is the unlock: dynamic interfaces stop feeling disposable because state continuity is no longer an accident.',
+    'That separation is the unlock: dynamic UI stops feeling fragile because continuity is handled intentionally instead of by accident.',
 };
 
 export const howItWorksContent = {
-  title: 'What Continuum does when the interface changes',
+  title: 'What the runtime does on every view update',
   description:
-    'The workflow is simple at the surface and serious underneath. A new view arrives, the runtime reconciles it against prior state, and the session keeps moving instead of breaking.',
+    'The workflow is easy to explain and serious underneath. A new view arrives, Continuum reconciles it against the prior session state, and the user keeps moving instead of starting over.',
   steps: [
     {
       label: '01',
@@ -108,9 +117,9 @@ export const howItWorksContent = {
 };
 
 export const packageStackContent = {
-  title: 'A tight stack with sharp responsibilities',
+  title: 'Install the layer that matches your team',
   description:
-    'These are the current Continuum packages, from low-level contracts through headless rendering and the starter-kit demo path.',
+    'Continuum is intentionally layered so teams can start with the install path that fits their workflow, from low-level contracts to headless React and the opinionated Starter Kit.',
   items: [
     {
       name: 'contract',
@@ -156,9 +165,9 @@ export const packageStackContent = {
 };
 
 export const useCasesContent = {
-  title: 'Built for interfaces that do not stay still',
+  title: 'Where developers use Continuum',
   description:
-    'Continuum matters anywhere structure can change after a session has already started.',
+    'Continuum matters anywhere the interface can change after the session has already started.',
   callouts: [
     {
       title: 'AI-generated forms',
@@ -180,9 +189,9 @@ export const useCasesContent = {
 };
 
 export const featureListContent = {
-  title: 'Everything you need to make dynamic interfaces feel stable',
+  title: 'What you get when you install Continuum',
   description:
-    'Continuum gives teams the continuity infrastructure that dynamic products usually have to invent for themselves once views start changing at runtime.',
+    'Continuum gives developers the continuity infrastructure that dynamic UI products usually have to build for themselves once views start changing at runtime.',
   items: [
     {
       title: 'Deterministic reconciliation',
@@ -220,13 +229,61 @@ export const featureListContent = {
 };
 
 export const ctaContent = {
-  title: 'This is the pitch in one line',
+  title: 'Inspect the repo, install a layer, or prove it in the demo',
   description:
-    'Continuum gives teams a continuity layer for interfaces that regenerate at runtime. The Live AI Demo is built with the Starter Kit, and the Static Demo is available when you want to explore without adding an API key.',
-  links: [
-    { label: 'The problem', href: '#the-problem' },
-    { label: 'How it works', href: '#how-it-works' },
-    { label: 'Feature highlights', href: '#feature-highlights' },
-    { label: 'Package stack', href: '#package-stack' },
-  ],
+    'The fastest path is simple: inspect the open-source repo, read the install docs, and use the static demo to see why continuity matters before you wire a live provider.',
+  actions: [
+    {
+      title: 'View Continuum on GitHub',
+      body: 'See the source, tracked docs, package structure, and the open-source surface you would install.',
+      label: 'Open GitHub',
+      href: 'github',
+      external: true,
+      tone: 'strong',
+    },
+    {
+      title: 'Install or read setup docs',
+      body: 'Choose Starter Kit for the fastest path or headless React when you want full control over your components.',
+      label: 'Open install docs',
+      href: '/docs',
+      tone: 'default',
+    },
+    {
+      title: 'Try the no-key static demo',
+      body: 'See state loss versus preserved continuity in a deterministic comparison without adding an API key.',
+      label: 'Open static demo',
+      href: '/playground',
+      tone: 'soft',
+    },
+  ] satisfies LandingAction[],
+};
+
+export const closingCtaContent = {
+  title: 'Ready to inspect the source and install?',
+  description:
+    'If the problem feels real, the next step is to inspect the GitHub repo and pick an install path. The demos exist to make that decision faster, not to slow it down.',
+  actions: [
+    {
+      title: 'GitHub first',
+      body: 'Open the repository when you want the quickest path to source, docs, packages, and install commands in one place.',
+      label: 'View on GitHub',
+      href: 'github',
+      external: true,
+      tone: 'strong',
+    },
+    {
+      title: 'Install with docs open',
+      body: 'Use the tracked docs to choose Starter Kit, headless React, or the lower-level runtime spine.',
+      label: 'Read setup docs',
+      href: '/docs',
+      tone: 'default',
+    },
+    {
+      title: 'Need one more proof point?',
+      body: 'Run the static continuity demo if you want to feel the pain and the fix one more time before clicking through.',
+      label: 'Try static demo',
+      href: '/playground',
+      tone: 'soft',
+    },
+  ] satisfies LandingAction[],
 };

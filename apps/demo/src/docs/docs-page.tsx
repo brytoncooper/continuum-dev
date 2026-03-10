@@ -58,14 +58,29 @@ export function DocsPage() {
     <PageShell
       nav={<SiteNav />}
       eyebrow="Docs"
-      title="Launch-ready docs for the headless Continuum stack and the opinionated Starter Kit."
-      description="Everything linked here is tracked in git. Use the Starter Kit when you want the fastest path to a working UI, or stay headless with React and core when you want full control."
+      title="Install Continuum from the open-source repo with docs for Starter Kit, React, and core."
+      description="These docs are the fastest path from GitHub to installation. Use the Starter Kit when you want a polished UI quickly, or stay headless with React and core when you want full control."
     >
       <PageSection
         title="Start Here"
-        description="Choose the install path that matches how much UI you want Continuum to provide out of the box."
+        description="Start with GitHub when you want the source, package layout, and tracked markdown in one place. Then choose the install path that matches how much UI you want Continuum to provide."
       >
         <ExampleGrid alignItems="stretch">
+          <ExampleCard
+            title="Inspect source before install"
+            description="GitHub is the fastest trust step because it gives you the repository, package docs, and tracked setup path in one click."
+            span={12}
+            fullHeight
+          >
+            <div style={linkListStyle}>
+              <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
+                View Continuum on GitHub
+              </a>
+              <a href="/playground" style={actionStyle}>
+                Try the static continuity demo
+              </a>
+            </div>
+          </ExampleCard>
           {installOptions.map((option) => (
             <ExampleCard
               key={option.title}
@@ -84,14 +99,14 @@ export function DocsPage() {
       </PageSection>
       <PageSection
         title="Read The Guides"
-        description="These are the tracked docs to read before shipping an integration or posting the project publicly."
+        description="These are the tracked docs to read before wiring an integration, sharing the project internally, or committing to an install path."
       >
         <ExampleGrid alignItems="stretch">
           {guideLinks.map((item) => (
             <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
               <div style={linkListStyle}>
                 <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  Open on GitHub
+                  Read on GitHub
                 </a>
               </div>
             </ExampleCard>
@@ -100,14 +115,14 @@ export function DocsPage() {
       </PageSection>
       <PageSection
         title="Package Docs"
-        description="The npm surface is intentionally layered: core for the runtime spine, react for headless UI bindings, starter-kit for convenience, and prompts for model-facing helpers."
+        description="The npm surface is intentionally layered: core for the runtime spine, React for headless UI bindings, starter-kit for convenience, and prompts for model-facing helpers."
       >
         <ExampleGrid alignItems="stretch">
           {packageLinks.map((item) => (
             <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
               <div style={linkListStyle}>
                 <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  README
+                  Open package README
                 </a>
               </div>
             </ExampleCard>
@@ -116,14 +131,14 @@ export function DocsPage() {
       </PageSection>
       <PageSection
         title="Deep Reference"
-        description="When you need exact contracts or engine details, jump directly into the tracked references."
+        description="When you need exact contracts or engine details before installing deeper into the stack, jump directly into the tracked references."
       >
         <ExampleGrid alignItems="stretch">
           {deepReferenceLinks.map((item) => (
             <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
               <div style={linkListStyle}>
                 <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  Open reference
+                  Open tracked reference
                 </a>
               </div>
             </ExampleCard>
@@ -132,7 +147,7 @@ export function DocsPage() {
       </PageSection>
       <PageSection
         title="Links"
-        description="These are the public launch links for Continuum."
+        description="These are the public links most likely to help a new evaluator move from trust to install."
       >
         <ExampleGrid alignItems="stretch">
           <ExampleCard
@@ -142,7 +157,7 @@ export function DocsPage() {
             fullHeight
           >
             <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
-              Open repository
+              View on GitHub
             </a>
           </ExampleCard>
           <ExampleCard

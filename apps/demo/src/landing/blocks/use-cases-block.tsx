@@ -17,8 +17,8 @@ export function UseCasesBlock() {
   return (
     <LandingSection title={useCasesContent.title} description={useCasesContent.description}>
       <LandingGrid>
-        {useCasesContent.callouts.map((callout) => (
-          <LandingCard key={callout.title} span={6} tone="soft">
+        {useCasesContent.callouts.map((callout, index) => (
+          <LandingCard key={callout.title} span={6} tone={index % 2 === 0 ? 'soft' : 'strong'}>
             <div style={titleStyle}>{callout.title}</div>
             <div style={{ ...bodyStyle, marginTop: space.sm }}>{callout.body}</div>
           </LandingCard>

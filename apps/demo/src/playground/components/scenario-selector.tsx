@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { PlaygroundScenario } from '../types';
 import { color, radius, space, type } from '../../ui/tokens';
+import { useResponsiveState } from '../../ui/responsive';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
@@ -33,8 +34,8 @@ const buttonStyle = (active: boolean): CSSProperties => ({
   color: color.text,
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.pill,
-  border: `1px solid ${active ? color.borderStrong : color.border}`,
-  background: active ? color.surface : color.surfaceMuted,
+  border: `1px solid ${active ? color.accentStrong : color.border}`,
+  background: active ? color.accentSoft : color.surface,
   cursor: 'pointer',
 });
 
@@ -49,8 +50,10 @@ export function ScenarioSelector({
   onSelect: (scenarioId: string) => void;
   queuedScenarios?: string[];
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
-    <div style={wrapStyle}>
+    <div style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}>
       <div style={introStyle}>
         Pick a deterministic problem at the top, then advance its steps to compare the same update
         with and without Continuum reconciliation.

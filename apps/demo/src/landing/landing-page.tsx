@@ -1,4 +1,5 @@
 import { SiteNav } from '../ui/site-nav';
+import { ClosingCtaBlock } from './blocks/closing-cta-block';
 import { CtaBlock } from './blocks/cta-block';
 import { ContinuityBlock } from './blocks/continuity-block';
 import { FeatureListBlock } from './blocks/feature-list-block';
@@ -19,13 +20,14 @@ export function LandingPage() {
       description={heroContent.description}
     >
       <HeroBlock />
-      <CtaBlock />
       <ProblemBlock />
-      <ContinuityBlock />
-      <HowItWorksBlock />
+      <CtaBlock />
       <FeatureListBlock />
+      <HowItWorksBlock />
+      <ContinuityBlock />
       <PackageStackBlock />
       <UseCasesBlock />
+      <ClosingCtaBlock />
     </LandingShell>
   );
 }
