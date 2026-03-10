@@ -3,19 +3,18 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ContinuumProvider,
   ContinuumRenderer,
+  getAiConnectModelCatalog,
+  type AiConnectClient,
   type StarterKitCheckpointPreview,
   StarterKitProviderChatBox,
   StarterKitProviderComposer,
   StarterKitSessionWorkbench,
+  type StarterKitViewAuthoringFormat,
   starterKitComponentMap,
   type StarterKitProviderKey,
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
-import {
-  getAiConnectModelCatalog,
-  type AiConnectClient,
-} from '@continuum-dev/ai-connect';
 import type { ViewDefinition } from '@continuum-dev/core';
 import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { SiteNav } from '../ui/site-nav';
@@ -119,6 +118,11 @@ const providerOptions: Array<{
     tokenLabel: 'OpenAI API key',
   },
   {
+    key: 'anthropic',
+    label: 'Anthropic Claude',
+    tokenLabel: 'Anthropic API key',
+  },
+  {
     key: 'google',
     label: 'Google Gemini',
     tokenLabel: 'Google API key',
@@ -131,6 +135,7 @@ interface LiveAiStoredSettings {
   provider?: StarterKitProviderKey;
   tokens?: Partial<ProviderValueMap>;
   models?: Partial<ProviderValueMap>;
+  authoringFormat?: StarterKitViewAuthoringFormat;
 }
 
 const defaultProviderValues: ProviderValueMap = {
@@ -171,7 +176,7 @@ function readStoredSettings(): LiveAiStoredSettings {
 
 const controlGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
   gap: space.lg,
 };
 
@@ -317,9 +322,11 @@ const overlayActionsStyle: CSSProperties = {
 function LiveStudio({
   providers,
   hasToken,
+  authoringFormat,
 }: {
   providers: AiConnectClient[];
   hasToken: boolean;
+  authoringFormat: StarterKitViewAuthoringFormat;
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
@@ -352,6 +359,7 @@ function LiveStudio({
           <StarterKitProviderChatBox
             providers={providers}
             mode="evolve-view"
+            authoringFormat={authoringFormat}
             instructionPlaceholder="Try: add a co-applicant section with employment and annual income fields."
             enableSuggestedPrompts
             suggestedPrompts={SMART_PROMPTS}
@@ -481,6 +489,10 @@ export function LiveAiPage() {
   const [provider, setProvider] = useState<StarterKitProviderKey>(
     stored.provider ?? 'openai'
   );
+  const [authoringFormat, setAuthoringFormat] =
+    useState<StarterKitViewAuthoringFormat>(
+      stored.authoringFormat ?? 'line-dsl'
+    );
   const [tokensByProvider, setTokensByProvider] = useState<ProviderValueMap>({
     ...defaultProviderValues,
     ...(stored.tokens ?? {}),
@@ -508,6 +520,7 @@ export function LiveAiPage() {
       provider,
       tokens: tokensByProvider,
       models: modelsByProvider,
+      authoringFormat,
     };
 
     try {
@@ -515,7 +528,7 @@ export function LiveAiPage() {
     } catch {
       // Ignore storage errors in demo mode.
     }
-  }, [provider, tokensByProvider, modelsByProvider]);
+  }, [authoringFormat, provider, tokensByProvider, modelsByProvider]);
 
   const hasToken = accessToken.trim().length > 0;
 
@@ -540,6 +553,7 @@ export function LiveAiPage() {
         include: ['anthropic'],
         anthropic: {
           apiKey: token,
+          baseUrl: '/api/anthropic',
           ...(model.trim() ? { model: model.trim() } : {}),
         },
       });
@@ -623,9 +637,24 @@ export function LiveAiPage() {
                   ))}
                 </select>
               </label>
+              <label style={controlGroupStyle}>
+                <span style={fieldLabelStyle}>Authoring format</span>
+                <select
+                  value={authoringFormat}
+                  onChange={(event) => {
+                    setAuthoringFormat(
+                      event.target.value as StarterKitViewAuthoringFormat
+                    );
+                  }}
+                  style={inputStyle}
+                >
+                  <option value="line-dsl">Line DSL</option>
+                  <option value="yaml">Markdown YAML</option>
+                </select>
+              </label>
             </div>
             <div style={helperTextStyle}>
-              Stored locally in this browser so you do not have to re-enter keys while testing. Model IDs are sourced from provider docs current on March 8, 2026.
+              Stored locally in this browser so you do not have to re-enter keys while testing. Model IDs are sourced from provider docs current on March 8, 2026. Line DSL is the default path. YAML stays available here for experiments.
             </div>
           </ExampleCard>
         </ExampleGrid>
@@ -648,7 +677,11 @@ export function LiveAiPage() {
           persist="localStorage"
           storageKey={LIVE_AI_SESSION_STORAGE_KEY}
         >
-          <LiveStudio providers={providers} hasToken={hasToken} />
+          <LiveStudio
+            providers={providers}
+            hasToken={hasToken}
+            authoringFormat={authoringFormat}
+          />
         </ContinuumProvider>
       </PageSection>
     </PageShell>

@@ -27,9 +27,6 @@
       "path": "../../packages/core"
     },
     {
-      "path": "../../packages/ai-connect"
-    },
-    {
       "path": "../../packages/starter-kit"
     }
   ]

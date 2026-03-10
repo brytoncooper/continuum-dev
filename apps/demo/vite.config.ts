@@ -49,6 +49,13 @@ export default defineConfig({
   },
   server: {
     port: 4300,
+    proxy: {
+      '/api/anthropic': {
+        target: 'https://api.anthropic.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/anthropic/, ''),
+      },
+    },
   },
   build: {
     outDir: '../../dist/apps/demo',
