@@ -33,6 +33,10 @@ const OPTION_ITEM_SCHEMA: JsonSchema = {
   additionalProperties: true,
 };
 
+const JSON_VALUE_SCHEMA: JsonSchema = {
+  type: ['string', 'number', 'boolean', 'object', 'array', 'null'],
+};
+
 const VIEW_NODE_SCHEMA: JsonSchema = {
   type: 'object',
   required: ['id', 'type'],
@@ -67,7 +71,7 @@ const VIEW_NODE_SCHEMA: JsonSchema = {
     max: { type: 'number' },
     step: { type: 'number' },
     columns: { type: 'number' },
-    defaultValue: {},
+    defaultValue: JSON_VALUE_SCHEMA,
     defaultValues: {
       type: 'array',
       items: { type: 'object', additionalProperties: true },
@@ -163,6 +167,7 @@ export const MODE_EVOLVE_VIEW = `Mode: Evolve an existing view.
 Input context will include:
 - currentView JSON
 - user instruction describing changes
+- detachedFields hints (if available)
 
 Guidance:
 - Evolve currentView instead of regenerating from scratch.
@@ -175,6 +180,7 @@ Continuity preferences:
 - Preserve existing node ids when possible.
 - If id changes, keep key stable when semantics are unchanged.
 - Avoid unnecessary key churn.
+- If a previously detached field is being reintroduced, reuse its detached key instead of inventing a new key alias.
 
 Output:
 - Full next ViewDefinition JSON.`;
@@ -284,11 +290,11 @@ export function buildOutputContractInstructions(
 
 export function assembleSystemPrompt(args: AssembleSystemPromptArgs): string {
   const outputContract = args.outputContract ?? PROMPT_LIBRARY.outputContract;
-  const sections = [
-    PROMPT_LIBRARY.base,
-    PROMPT_LIBRARY.modes[args.mode],
-    buildOutputContractInstructions(outputContract),
-  ];
+  const sections = [PROMPT_LIBRARY.base, PROMPT_LIBRARY.modes[args.mode]];
+
+  if (args.includeOutputContractInstructions !== false) {
+    sections.push(buildOutputContractInstructions(outputContract));
+  }
 
   for (const addon of uniqueAddons(args.addons)) {
     sections.push(PROMPT_LIBRARY.addons[addon]);
@@ -308,6 +314,11 @@ export function buildEvolveUserMessage(args: BuildUserMessageArgs): string {
 
   return [
     `Current view:\n${JSON.stringify(args.currentView, null, 2)}`,
+    `Detached fields:\n${
+      (args.detachedFields ?? []).length > 0
+        ? JSON.stringify(args.detachedFields, null, 2)
+        : 'none'
+    }`,
     `Instruction:\n${args.instruction.trim()}`,
   ].join('\n\n');
 }
@@ -320,6 +331,7 @@ export function buildCorrectionUserMessage(args: BuildUserMessageArgs): string {
   const validationErrors = args.validationErrors ?? [];
   const runtimeErrors = args.runtimeErrors ?? [];
   const detachedNodeIds = args.detachedNodeIds ?? [];
+  const detachedFields = args.detachedFields ?? [];
 
   return [
     `Current view:\n${JSON.stringify(args.currentView, null, 2)}`,
@@ -327,6 +339,11 @@ export function buildCorrectionUserMessage(args: BuildUserMessageArgs): string {
     `Validation errors:\n${validationErrors.length > 0 ? validationErrors.join('\n') : 'none'}`,
     `Runtime errors:\n${runtimeErrors.length > 0 ? runtimeErrors.join(', ') : 'none'}`,
     `Detached node ids:\n${detachedNodeIds.length > 0 ? detachedNodeIds.join(', ') : 'none'}`,
+    `Detached fields:\n${
+      detachedFields.length > 0
+        ? JSON.stringify(detachedFields, null, 2)
+        : 'none'
+    }`,
   ].join('\n\n');
 }
 
