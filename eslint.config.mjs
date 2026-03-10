@@ -78,8 +78,13 @@ export default [
               onlyDependOnLibsWithTags: ['scope:prompts'],
             },
             {
+              sourceTag: 'scope:ai-connect',
+              onlyDependOnLibsWithTags: ['scope:prompts', 'scope:ai-connect'],
+            },
+            {
               sourceTag: 'scope:starter-kit',
               onlyDependOnLibsWithTags: [
+                'scope:ai-connect',
                 'scope:contract',
                 'scope:core',
                 'scope:react',
