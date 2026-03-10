@@ -1,5 +1,10 @@
 export { ContinuumProvider, ContinuumRenderer } from '@continuum-dev/react';
 export * from '@continuum-dev/core';
+export {
+  getAiConnectModelCatalog,
+  type AiConnectClient,
+  type AiConnectModelOption,
+} from '@continuum-dev/ai-connect';
 export type {
   ContinuumNodeMap,
   ContinuumNodeProps,
@@ -42,6 +47,8 @@ export { StarterKitStyleProvider, starterKitDefaultStyles } from './lib/style-co
 export type { StarterKitStyleConfig, StarterKitStyleSlot } from './lib/style-config.js';
 
 export { StarterKitProviderChatBox } from './lib/ai/provider-chat-box.js';
+export type { StarterKitProviderChatBoxProps } from './lib/ai/provider-chat-box.js';
+export type { StarterKitViewAuthoringFormat } from './lib/ai/view-authoring.js';
 export { StarterKitSessionWorkbench } from './lib/ai/session-workbench.js';
 export type { StarterKitCheckpointPreview } from './lib/ai/session-workbench.js';
 export {
@@ -52,3 +59,13 @@ export type {
   StarterKitProviderComposerArgs,
   StarterKitProviderKey,
 } from './lib/ai/provider-composer.js';
+export {
+  createStarterKitAnthropicProvider,
+  createStarterKitGoogleProvider,
+  createStarterKitOpenAiProvider,
+} from './lib/ai/providers/index.js';
+export type {
+  StarterKitAnthropicProviderConfig,
+  StarterKitGoogleProviderConfig,
+  StarterKitOpenAiProviderConfig,
+} from './lib/ai/providers/index.js';
