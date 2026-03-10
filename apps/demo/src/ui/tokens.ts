@@ -1,15 +1,24 @@
 export const color = {
-  page: '#f3f3f1',
+  page: '#f6f4ef',
   surface: '#ffffff',
-  surfaceMuted: '#f8f8f6',
-  surfaceInset: '#f1f1ee',
-  borderStrong: '#111111',
-  border: '#d9d9d3',
-  borderSoft: '#e7e7e2',
-  text: '#111111',
-  textMuted: '#5f5f58',
-  textSoft: '#7a7a73',
-  accent: '#111111',
+  surfaceMuted: '#fbfaf7',
+  surfaceInset: '#f1eee8',
+  surfaceAccent: '#f6efe5',
+  borderStrong: '#162033',
+  border: '#d8d2c5',
+  borderSoft: '#ebe6dc',
+  text: '#162033',
+  textMuted: '#5d6678',
+  textSoft: '#7c8392',
+  accent: '#294d7a',
+  accentStrong: '#294d7a',
+  accentSoft: '#f1eee8',
+  highlight: '#b08a5b',
+  highlightSoft: '#f5ede1',
+  danger: '#b91c1c',
+  dangerSoft: '#fee2e2',
+  success: '#2d6a4f',
+  successSoft: '#e2f0e7',
 } as const;
 
 export const space = {
@@ -20,7 +29,8 @@ export const space = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
-  page: 40,
+  page: 24,
+  pageMobile: 16,
 } as const;
 
 export const radius = {
@@ -31,13 +41,13 @@ export const radius = {
 } as const;
 
 export const shadow = {
-  panel: '0 1px 2px rgba(17, 17, 17, 0.04)',
+  panel: '0 6px 16px rgba(22, 32, 51, 0.05), 0 1px 3px rgba(22, 32, 51, 0.03)',
 } as const;
 
 export const type = {
   hero: {
-    fontSize: 40,
-    lineHeight: 1,
+    fontSize: 48,
+    lineHeight: 0.98,
     fontWeight: 700,
     letterSpacing: '-0.04em',
   },

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { FieldFrame, inputLikeStyle } from '@continuum-dev/starter-kit';
 import { color, radius, space, type } from '../../ui/tokens';
+import { useResponsiveState } from '../../ui/responsive';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
@@ -100,9 +101,10 @@ export function ScenarioControls({
 }) {
   const canGoPrevious = stepIndex > 0;
   const canGoNext = stepIndex < stepTitles.length - 1;
+  const { isMobile } = useResponsiveState();
 
   return (
-    <div style={wrapStyle}>
+    <div style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}>
       {inputFields?.length ? (
         <div style={inputSectionStyle}>
           {inputTitle ? (
@@ -113,7 +115,14 @@ export function ScenarioControls({
               ) : null}
             </div>
           ) : null}
-          <div style={inputGridStyle}>
+          <div
+            style={{
+              ...inputGridStyle,
+              gridTemplateColumns: isMobile
+                ? 'minmax(0, 1fr)'
+                : inputGridStyle.gridTemplateColumns,
+            }}
+          >
             {inputFields.map((field) => (
               <div
                 key={field.key}

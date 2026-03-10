@@ -18,16 +18,19 @@
   },
   "references": [
     {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/session"
+    },
+    {
+      "path": "../../packages/starter-kit"
+    },
+    {
       "path": "../../packages/react"
     },
     {
       "path": "../../packages/contract"
-    },
-    {
-      "path": "../../packages/core"
-    },
-    {
-      "path": "../../packages/starter-kit"
     }
   ]
 }

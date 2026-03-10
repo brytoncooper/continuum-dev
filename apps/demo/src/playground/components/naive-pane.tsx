@@ -35,6 +35,7 @@ export function NaivePane({
       title="Without Continuum Reconciliation"
       description="Values are attached only to the node ids that exist in the current view."
       status={replay.status}
+      tone="naive"
       semanticKey={replay.trackedField.key}
       currentNodeId={replay.trackedField.nodeId}
       storedValue={String(replay.trackedField.value?.value ?? '')}

@@ -80,6 +80,7 @@ function ContinuityPaneRuntime({
       title="With Continuum Reconciliation"
       description="The same deterministic view sequence is replayed through real Continuum reconciliation."
       status={buildStatus(boundedStepIndex, userValue, currentValue)}
+      tone="continuum"
       semanticKey={scenario.trackedField.key}
       currentNodeId={currentNodeId}
       storedValue={String(currentValue?.value ?? '')}

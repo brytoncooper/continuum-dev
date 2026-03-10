@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { color, page, radius, shadow, space, type } from './tokens';
+import { useResponsiveState } from './responsive';
 
 const shellStyle: CSSProperties = {
   minHeight: '100vh',
-  padding: `${space.xxxl}px ${space.page}px`,
 };
 
 const innerStyle: CSSProperties = {
@@ -24,8 +24,9 @@ const navRowStyle: CSSProperties = {
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.md,
   border: `1px solid ${color.border}`,
-  background: 'rgba(255, 255, 255, 0.92)',
-  backdropFilter: 'blur(6px)',
+  background: 'rgba(255, 255, 255, 0.94)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: shadow.panel,
 };
 
 const heroStyle: CSSProperties = {
@@ -118,13 +119,40 @@ export function PageShell({
   description: string;
   children: ReactNode;
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
-    <div style={shellStyle}>
+    <div
+      style={{
+        ...shellStyle,
+        padding: `${isMobile ? space.xxl : space.xxxl}px ${
+          isMobile ? space.pageMobile : space.page
+        }px ${isMobile ? space.xxl : space.xxxl + space.xxl}px`,
+      }}
+    >
       <div style={{ ...innerStyle, width: `min(100%, ${page.width}px)` }}>
-        {nav ? <div style={navRowStyle}>{nav}</div> : null}
+        {nav ? (
+          <div
+            style={{
+              ...navRowStyle,
+              top: isMobile ? space.xs : space.sm,
+              padding: `${space.sm}px ${isMobile ? space.sm : space.md}px`,
+            }}
+          >
+            {nav}
+          </div>
+        ) : null}
         <header style={heroStyle}>
           <div style={eyebrowStyle}>{eyebrow}</div>
-          <div style={headlineStyle}>{title}</div>
+          <div
+            style={{
+              ...headlineStyle,
+              fontSize: isMobile ? 34 : headlineStyle.fontSize,
+              lineHeight: isMobile ? 1.02 : headlineStyle.lineHeight,
+            }}
+          >
+            {title}
+          </div>
           <div style={supportingStyle}>{description}</div>
         </header>
         {children}
@@ -142,9 +170,16 @@ export function PageSection({
   description: string;
   children: ReactNode;
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
     <section style={sectionStyle}>
-      <div style={sectionHeaderStyle}>
+      <div
+        style={{
+          ...sectionHeaderStyle,
+          paddingLeft: isMobile ? 0 : sectionHeaderStyle.paddingLeft,
+        }}
+      >
         <div style={sectionTitleStyle}>{title}</div>
         <div style={sectionTextStyle}>{description}</div>
       </div>
@@ -160,7 +195,19 @@ export function ExampleGrid({
   children: ReactNode;
   alignItems?: 'start' | 'stretch';
 }) {
-  return <div style={{ ...gridStyle, alignItems }}>{children}</div>;
+  const { isMobile } = useResponsiveState();
+
+  return (
+    <div
+      style={{
+        ...gridStyle,
+        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : gridStyle.gridTemplateColumns,
+        alignItems,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function ExampleCard({
@@ -178,10 +225,12 @@ export function ExampleCard({
   headerAction?: ReactNode;
   children: ReactNode;
 }) {
+  const { isMobile } = useResponsiveState();
+
   return (
     <article
       style={{
-        gridColumn: `span ${span} / span ${span}`,
+        gridColumn: isMobile ? '1 / -1' : `span ${span} / span ${span}`,
         minWidth: 0,
         height: fullHeight ? '100%' : undefined,
       }}
@@ -189,6 +238,7 @@ export function ExampleCard({
       <div
         style={{
           ...cardStyle,
+          padding: isMobile ? space.xl : cardStyle.padding,
           height: fullHeight ? '100%' : undefined,
           display: fullHeight ? 'flex' : cardStyle.display,
           flexDirection: fullHeight ? 'column' : undefined,
