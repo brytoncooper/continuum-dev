@@ -17,14 +17,14 @@ export function ActionButton({ definition }: ContinuumNodeProps) {
         display: 'grid',
         gap: space.sm,
         alignContent: 'start',
-        justifyItems: 'end',
+        justifyItems: 'stretch',
         width: '100%',
         flex: '1 0 100%',
       }}
     >
       <button
         type="button"
-        style={buttonStyle}
+        style={{ ...buttonStyle, width: '100%', justifySelf: 'stretch' }}
         onClick={() => {
           void dispatch(definition.id);
         }}
@@ -33,14 +33,14 @@ export function ActionButton({ definition }: ContinuumNodeProps) {
       </button>
       {nodeDescription(definition) ? (
         <div
-          style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}
+          style={{ ...type.small, color: color.textMuted }}
         >
           {nodeDescription(definition)}
         </div>
       ) : null}
       {lastResult ? (
         <div
-          style={{ ...type.small, color: color.textMuted, textAlign: 'right' }}
+          style={{ ...type.small, color: color.textMuted }}
         >
           {lastResult.success ? 'Action completed' : 'Action failed'}
         </div>
