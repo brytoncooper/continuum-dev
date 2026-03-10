@@ -70,6 +70,7 @@ function normalizeCollectionNodeValue(
   const metadata = value
     ? {
         ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
+        ...(value.isSticky !== undefined ? { isSticky: value.isSticky } : {}),
         ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
       }
     : {};
