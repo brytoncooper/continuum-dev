@@ -32,6 +32,9 @@
     },
     {
       "path": "./packages/ai-connect"
+    },
+    {
+      "path": "./packages/vercel-ai-sdk"
     }
   ]
 }

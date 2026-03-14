@@ -21,10 +21,14 @@
     "paths": {
       "@continuum-dev/contract": ["./packages/contract/src/index.ts"],
       "@continuum-dev/runtime": ["./packages/runtime/src/index.ts"],
+      "@continuum-dev/runtime/validator": [
+        "./packages/runtime/src/validator.ts"
+      ],
       "@continuum-dev/session": ["./packages/session/src/index.ts"],
       "@continuum-dev/core": ["./packages/core/src/index.ts"],
       "@continuum-dev/adapters": ["./packages/adapters/src/index.ts"],
       "@continuum-dev/ai-connect": ["./packages/ai-connect/src/index.ts"],
+      "@continuum-dev/vercel-ai-sdk": ["./packages/vercel-ai-sdk/src/index.ts"],
       "@continuum-dev/react": ["./packages/react/src/index.ts"],
       "@continuum-dev/angular": ["./packages/angular/src/index.ts"],
       "@continuum-dev/prompts": ["./packages/prompts/src/index.ts"],
