@@ -228,9 +228,14 @@ If you need exact contract details:
 @continuum-dev/ai-connect
 
 apps/demo
+apps/demo-api
 ```
 
 The published package stack is layered. The starter kit sits at the top as the easiest public entry point.
+The demo surface is now split on purpose:
+
+- `apps/demo`: frontend SPA and Continuum client runtime
+- `apps/demo-api`: Cloudflare Worker and `/api/*` routes
 
 ## Development
 
@@ -238,6 +243,7 @@ The published package stack is layered. The starter kit sits at the top as the e
 npx nx run-many -t build
 npx nx run-many -t test
 npx nx run demo:serve
+npx nx run demo-api:dev
 npx nx run demo:build
 ```
 
