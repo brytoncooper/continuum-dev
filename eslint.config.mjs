@@ -132,6 +132,50 @@ export default [
   },
   {
     files: [
+      'packages/runtime/src/lib/**/*.ts',
+      'packages/runtime/src/lib/**/*.js',
+    ],
+    ignores: [
+      'packages/runtime/src/lib/context/**/*.ts',
+      'packages/runtime/src/lib/context/**/*.js',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '../context/indexing.js',
+              message:
+                'Use ../context/index.js so context internals stay encapsulated.',
+            },
+            {
+              name: '../context/matching.js',
+              message:
+                'Use ../context/index.js so context internals stay encapsulated.',
+            },
+            {
+              name: '../context/helpers.js',
+              message:
+                'Use ../context/index.js so context internals stay encapsulated.',
+            },
+            {
+              name: '../context/snapshot-values.js',
+              message:
+                'Use ../context/index.js so context internals stay encapsulated.',
+            },
+            {
+              name: '../context/types.js',
+              message:
+                'Use ../context/index.js so context internals stay encapsulated.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
       '**/*.ts',
       '**/*.tsx',
       '**/*.cts',
