@@ -4,7 +4,8 @@
   "license": "MIT",
   "scripts": {
     "demo": "nx run demo:serve",
-    "build:release-packages": "tsc --build packages/contract/tsconfig.lib.json packages/runtime/tsconfig.lib.json packages/session/tsconfig.lib.json packages/core/tsconfig.lib.json packages/react/tsconfig.lib.json packages/prompts/tsconfig.lib.json packages/ai-connect/tsconfig.lib.json packages/starter-kit/tsconfig.lib.json",
+    "demo:api": "nx run demo-api:dev",
+    "build:release-packages": "tsc --build packages/contract/tsconfig.lib.json packages/runtime/tsconfig.lib.json packages/session/tsconfig.lib.json packages/core/tsconfig.lib.json packages/react/tsconfig.lib.json packages/prompts/tsconfig.lib.json packages/ai-connect/tsconfig.lib.json packages/vercel-ai-sdk/tsconfig.lib.json packages/starter-kit/tsconfig.lib.json",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
     "verify:release-packages": "node scripts/verify-release-packages.mjs",
     "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages"
@@ -44,7 +45,8 @@
     "typescript-eslint": "^8.40.0",
     "verdaccio": "^6.0.5",
     "vite": "^7.0.0",
-    "vitest": "4.0.9"
+    "vitest": "4.0.9",
+    "wrangler": "^4.72.0"
   },
   "workspaces": [
     "packages/*",

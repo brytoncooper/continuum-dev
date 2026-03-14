@@ -72,6 +72,7 @@
                                                                            "@continuum-dev/react",
                                                                            "prompts",
                                                                            "@continuum-dev/ai-connect",
+                                                                           "@continuum-dev/vercel-ai-sdk",
                                                                            "@continuum-dev/core",
                                                                            "@continuum-dev/starter-kit"
                                                                        ],

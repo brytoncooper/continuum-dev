@@ -1,0 +1,16 @@
+{
+  "name": "@continuum-dev/vercel-ai-sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/vercel-ai-sdk/src",
+  "projectType": "library",
+  "tags": ["scope:vercel-ai-sdk"],
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/vercel-ai-sdk"
+      }
+    }
+  }
+}
