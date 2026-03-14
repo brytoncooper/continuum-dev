@@ -6,7 +6,22 @@ import type {
   NodeValue,
 } from '@continuum-dev/contract';
 import { ISSUE_CODES } from '@continuum-dev/contract';
-import { reconcile } from './reconcile.js';
+import { reconcile as runtimeReconcile } from './index.js';
+import type { ReconciliationOptions } from '../types.js';
+
+const TEST_NOW = 2000;
+
+function reconcile(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
+  options: ReconciliationOptions = {}
+) {
+  return runtimeReconcile(newView, priorView, priorData, {
+    clock: () => TEST_NOW,
+    ...options,
+  });
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -1233,7 +1248,7 @@ describe('presentation & action node lifecycle', () => {
     expect(result.reconciledState.values['btn']).toEqual({ value: true });
   });
 
-  it('action node hash change triggers migration', () => {
+  it('action node hash change warns and carries when no migration exists', () => {
     const priorView = makeView([
       makeNode({ id: 'btn', type: 'action', hash: 'v1' }),
     ]);
@@ -1243,7 +1258,10 @@ describe('presentation & action node lifecycle', () => {
     const priorData = makeData({ btn: { value: { clicked: true } } });
 
     const result = reconcile(newView, priorView, priorData);
-    expect(result.diffs.some((d) => d.type === 'migrated')).toBe(true);
+    expect(result.diffs.some((d) => d.type === 'migrated')).toBe(false);
+    expect(
+      result.issues.some((issue) => issue.code === ISSUE_CODES.MIGRATION_FAILED)
+    ).toBe(true);
   });
 
   it('row nodes carry all children values independently', () => {

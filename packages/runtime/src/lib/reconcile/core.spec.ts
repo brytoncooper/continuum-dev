@@ -5,9 +5,23 @@ import type {
   DataSnapshot,
   NodeValue,
 } from '@continuum-dev/contract';
-import { reconcile } from './reconcile.js';
-import { computeViewHash } from './reconciliation/state-builder.js';
-import type { MigrationStrategy } from './types.js';
+import { reconcile as runtimeReconcile } from './index.js';
+import { computeViewHash } from '../reconciliation/result-builder/index.js';
+import type { MigrationStrategy, ReconciliationOptions } from '../types.js';
+
+const TEST_NOW = 2000;
+
+function reconcile(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
+  options: ReconciliationOptions = {}
+) {
+  return runtimeReconcile(newView, priorView, priorData, {
+    clock: () => TEST_NOW,
+    ...options,
+  });
+}
 
 function makeView(
   nodes: ViewNode[],
@@ -294,7 +308,7 @@ describe('reconcile', () => {
   });
 
   describe('view migration', () => {
-    it('passes state through when hash changes but type matches (no explicit strategy)', () => {
+    it('carries state forward and warns when hash changes without a strategy', () => {
       const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData({ a: { value: 'hello' } });
@@ -302,9 +316,14 @@ describe('reconcile', () => {
       const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
-      const migratedDiff = result.diffs.find((d) => d.type === 'migrated');
-      expect(migratedDiff).toBeDefined();
-      expect(migratedDiff!.nodeId).toBe('a');
+      expect(result.diffs.find((d) => d.type === 'migrated')).toBeUndefined();
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'MIGRATION_FAILED',
+          nodeId: 'a',
+          severity: 'warning',
+        })
+      );
     });
 
     it('calls explicit migration strategy when provided via options', () => {
@@ -476,7 +495,7 @@ describe('reconcile', () => {
       expect(result.reconciledState.valueLineage?.['b']).toBeUndefined();
     });
 
-    it('updates lastUpdated timestamp for migrated values', () => {
+    it('preserves value lineage when hash changes without a strategy', () => {
       const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData(
@@ -490,13 +509,14 @@ describe('reconcile', () => {
       });
 
       expect(result.reconciledState.valueLineage?.['a']).toEqual({
-        lastUpdated: 4321,
+        lastUpdated: 500,
         lastInteractionId: 'int-1',
       });
-      expect(result.diffs).toContainEqual(
+      expect(result.diffs.find((diff) => diff.nodeId === 'a')).toBeUndefined();
+      expect(result.issues).toContainEqual(
         expect.objectContaining({
+          code: 'MIGRATION_FAILED',
           nodeId: 'a',
-          type: 'migrated',
         })
       );
     });
@@ -670,7 +690,7 @@ describe('reconcile', () => {
       expect(entry!.reconciledValue).toBeUndefined();
     });
 
-    it('resolution for migrated node', () => {
+    it('resolution stays carried when hash changes without a strategy', () => {
       const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([makeNode({ id: 'a', hash: 'hash-v2' })]);
       const priorData = makeData({ a: { value: 'hello' } });
@@ -679,7 +699,7 @@ describe('reconcile', () => {
 
       const entry = result.resolutions.find((t) => t.nodeId === 'a');
       expect(entry).toBeDefined();
-      expect(entry!.resolution).toBe('migrated');
+      expect(entry!.resolution).toBe('carried');
       expect(entry!.priorValue).toEqual({ value: 'hello' });
       expect(entry!.reconciledValue).toEqual({ value: 'hello' });
     });
@@ -1045,7 +1065,7 @@ describe('reconcile', () => {
       expect(r3.reconciledState.detachedValues?.['phone']).toBeUndefined();
     });
 
-    it('restores prior user data over a new default when a replacement node is introduced in one push', () => {
+    it('keeps the prior value detached when a replacement node does not match exactly', () => {
       const priorView = makeView([
         makeNode({ id: 'old-email', key: 'email', defaultValue: '' }),
       ]);
@@ -1063,17 +1083,15 @@ describe('reconcile', () => {
       const result = reconcile(newView, priorView, priorData);
 
       expect(result.reconciledState.values['new-email']).toEqual({
-        value: 'user@example.com',
-        isDirty: true,
+        value: 'AI default',
       });
       expect(result.reconciledState.values['old-email']).toBeUndefined();
-      expect(result.diffs).toContainEqual(
-        expect.objectContaining({
-          nodeId: 'new-email',
-          type: 'restored',
-        })
-      );
-      expect(result.reconciledState.detachedValues?.['email']).toBeUndefined();
+      expect(
+        result.diffs.find(
+          (diff) => diff.nodeId === 'new-email' && diff.type === 'restored'
+        )
+      ).toBeUndefined();
+      expect(result.reconciledState.detachedValues?.['email']).toBeDefined();
     });
   });
 

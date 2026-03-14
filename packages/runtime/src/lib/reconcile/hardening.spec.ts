@@ -8,9 +8,24 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPriorValueLookupByIdAndKey,
   buildReconciliationContext,
-} from './context.js';
-import { reconcile } from './reconcile.js';
-import { computeViewHash } from './reconciliation/state-builder.js';
+} from '../context/index.js';
+import { reconcile as runtimeReconcile } from './index.js';
+import { computeViewHash } from '../reconciliation/result-builder/index.js';
+import type { ReconciliationOptions } from '../types.js';
+
+const TEST_NOW = 2000;
+
+function reconcile(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
+  options: ReconciliationOptions = {}
+) {
+  return runtimeReconcile(newView, priorView, priorData, {
+    clock: () => TEST_NOW,
+    ...options,
+  });
+}
 
 function makeNode(
   overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
@@ -170,7 +185,7 @@ describe('runtime hardening', () => {
       }),
     });
     expect(result.reconciledState.lineage.viewVersion).toBe('2');
-    expect(result.reconciledState.lineage.timestamp).toBe(2);
+    expect(result.reconciledState.lineage.timestamp).toBe(TEST_NOW);
   });
 
   it('reports cycle issues for cyclic child graphs', () => {
