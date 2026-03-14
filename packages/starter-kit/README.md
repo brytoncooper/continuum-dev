@@ -168,6 +168,7 @@ Slot meanings:
 The starter kit includes a ready-to-use provider chat primitive:
 
 - `StarterKitProviderChatBox`
+- `StarterKitVercelAiSdkChatBox`
 - `StarterKitSessionWorkbench`
 
 ```tsx
@@ -207,6 +208,52 @@ Behavior notes:
 - if multiple providers are configured, the chat box shows a provider selector automatically
 - Anthropic support is optional
 - the chat box can auto-apply valid generated views into the active session
+
+## Vercel AI SDK option
+
+If you want Vercel AI SDK to be the streaming transport while Continuum remains the runtime and session layer, use `StarterKitVercelAiSdkChatBox`.
+
+```tsx
+import { DefaultChatTransport } from 'ai';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitVercelAiSdkChatBox,
+  starterKitComponentMap,
+} from '@continuum-dev/starter-kit';
+
+export function App() {
+  return (
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+      <StarterKitVercelAiSdkChatBox
+        chatOptions={{
+          transport: new DefaultChatTransport({
+            api: '/api/chat',
+          }),
+        }}
+      />
+      <ContinuumRenderer view={view} />
+    </ContinuumProvider>
+  );
+}
+```
+
+You can also swap chat implementations explicitly with `StarterKitChatBox`:
+
+```tsx
+<StarterKitChatBox
+  driver={{
+    kind: 'vercel-ai-sdk',
+    props: {
+      chatOptions: {
+        transport: new DefaultChatTransport({
+          api: '/api/chat',
+        }),
+      },
+    },
+  }}
+/>
+```
 
 ## Provider composer helper
 

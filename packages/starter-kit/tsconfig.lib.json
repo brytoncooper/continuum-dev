@@ -32,6 +32,9 @@
     },
     {
       "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../vercel-ai-sdk/tsconfig.lib.json"
     }
   ]
 }
