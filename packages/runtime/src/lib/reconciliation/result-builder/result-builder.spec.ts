@@ -12,7 +12,7 @@ import {
   carryValuesMeta,
   computeViewHash,
   generateSessionId,
-} from './state-builder.js';
+} from './index.js';
 
 function makeView(
   nodes: ViewNode[],
@@ -108,16 +108,14 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['orphan']).toBeUndefined();
   });
 
-  it('carries value by key when id changed', () => {
+  it('does not carry value by key when id changed', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ email: { value: 'test@example.com' } });
     const result = buildBlindCarryResult(view, data, 5000, {
       allowBlindCarry: true,
     });
 
-    expect(result.reconciledState.values['field_456']).toEqual({
-      value: 'test@example.com',
-    });
+    expect(result.reconciledState.values['field_456']).toBeUndefined();
     expect(result.reconciledState.values['email']).toBeUndefined();
   });
 
@@ -135,7 +133,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['b']).toBeUndefined();
   });
 
-  it('matches nested keys using scoped paths', () => {
+  it('does not match nested keys using scoped paths during blind carry', () => {
     const view = makeView([
       makeNode({
         id: 'form',
@@ -148,9 +146,7 @@ describe('buildBlindCarryResult', () => {
       allowBlindCarry: true,
     });
 
-    expect(result.reconciledState.values['form/field_1']).toEqual({
-      value: 'nested@example.com',
-    });
+    expect(result.reconciledState.values['form/field_1']).toBeUndefined();
     expect(result.reconciledState.values['form/email']).toBeUndefined();
   });
 
@@ -165,7 +161,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['no_match']).toBeUndefined();
   });
 
-  it('preserves valueLineage and detachedValues when carrying blindly by key', () => {
+  it('preserves detachedValues without carrying blindly by key', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData(
       { email: { value: 'test@example.com' } },
@@ -187,13 +183,8 @@ describe('buildBlindCarryResult', () => {
       allowBlindCarry: true,
     });
 
-    expect(result.reconciledState.values['field_456']).toEqual({
-      value: 'test@example.com',
-    });
-    expect(result.reconciledState.valueLineage?.['field_456']).toEqual({
-      lastUpdated: 400,
-      lastInteractionId: 'int-9',
-    });
+    expect(result.reconciledState.values['field_456']).toBeUndefined();
+    expect(result.reconciledState.valueLineage?.['field_456']).toBeUndefined();
     expect(result.reconciledState.valueLineage?.['email']).toBeUndefined();
     expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
   });
