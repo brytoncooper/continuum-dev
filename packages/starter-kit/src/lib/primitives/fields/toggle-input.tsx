@@ -62,6 +62,8 @@ export function ToggleInput({
           <input
             type="checkbox"
             checked={checked}
+            data-continuum-control="true"
+            data-continuum-node-id={nodeId}
             style={{
               opacity: 0,
               position: 'absolute',

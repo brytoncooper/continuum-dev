@@ -49,6 +49,8 @@ export function DateInput({
       <input
         type="date"
         value={dateValue}
+        data-continuum-control="true"
+        data-continuum-node-id={nodeId}
         style={useInputLikeStyle()}
         onChange={(event) =>
           onChange({ value: event.target.value, isDirty: true } as NodeValue)

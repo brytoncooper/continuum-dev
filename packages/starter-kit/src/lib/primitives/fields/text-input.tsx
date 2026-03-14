@@ -63,6 +63,8 @@ export function TextInput({
       <input
         type={dataType === 'number' ? 'number' : 'text'}
         value={displayValue}
+        data-continuum-control="true"
+        data-continuum-node-id={nodeId}
         placeholder={
           nodePlaceholder(definition) ?? 'Enter value'
         }

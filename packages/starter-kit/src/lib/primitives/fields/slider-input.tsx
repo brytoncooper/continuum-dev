@@ -78,6 +78,8 @@ export function SliderInput({
           min={min}
           max={max}
           value={numericValue}
+          data-continuum-control="true"
+          data-continuum-node-id={nodeId}
           style={sliderStyle}
           onChange={(event) =>
             onChange({

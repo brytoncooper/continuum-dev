@@ -54,6 +54,8 @@ export function TextareaInput({
     >
       <textarea
         value={text}
+        data-continuum-control="true"
+        data-continuum-node-id={nodeId}
         placeholder={
           nodePlaceholder(definition) ?? 'Enter text'
         }

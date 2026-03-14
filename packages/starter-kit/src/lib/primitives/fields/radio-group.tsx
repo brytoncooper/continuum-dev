@@ -71,6 +71,8 @@ export function RadioGroupInput({
               type="radio"
               name={definition.id}
               checked={selected === option.value}
+              data-continuum-control="true"
+              data-continuum-node-id={nodeId}
               onChange={() =>
                 onChange({ value: option.value, isDirty: true } as NodeValue)
               }

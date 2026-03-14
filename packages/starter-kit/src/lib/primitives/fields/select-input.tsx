@@ -54,6 +54,8 @@ export function SelectInput({
     >
       <select
         value={selected}
+        data-continuum-control="true"
+        data-continuum-node-id={nodeId}
         style={useInputLikeStyle({ cursor: 'pointer', paddingRight: 40 })}
         onChange={(event) =>
           onChange({ value: event.target.value, isDirty: true } as NodeValue)
