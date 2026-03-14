@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
+import type { GroupNode, ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
 
@@ -152,6 +152,95 @@ describe('Session Ledger', () => {
         isSticky: true,
       });
       expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
+    });
+
+    it('patches unchanged branches so simple additions do not rebuild the whole tree', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [
+              {
+                id: 'full_name',
+                type: 'field',
+                dataType: 'string',
+                label: 'Full name',
+              },
+            ],
+          },
+          {
+            id: 'request',
+            type: 'group',
+            children: [
+              {
+                id: 'goal',
+                type: 'field',
+                dataType: 'string',
+                label: 'Goal',
+              },
+            ],
+          },
+        ],
+        'view-1',
+        '1.0'
+      );
+
+      session.pushView(viewV1);
+
+      const beforeView = session.getSnapshot()!.view;
+      const beforeProfile = beforeView.nodes[0] as GroupNode;
+      const beforeFullName = beforeProfile.children[0];
+      const beforeRequest = beforeView.nodes[1];
+
+      const viewV2 = makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [
+              {
+                id: 'full_name',
+                type: 'field',
+                dataType: 'string',
+                label: 'Full name',
+              },
+              {
+                id: 'email',
+                type: 'field',
+                dataType: 'string',
+                label: 'Email',
+              },
+            ],
+          },
+          {
+            id: 'request',
+            type: 'group',
+            children: [
+              {
+                id: 'goal',
+                type: 'field',
+                dataType: 'string',
+                label: 'Goal',
+              },
+            ],
+          },
+        ],
+        'view-1',
+        '2.0'
+      );
+
+      session.pushView(viewV2);
+
+      const afterView = session.getSnapshot()!.view;
+      const afterProfile = afterView.nodes[0] as GroupNode;
+
+      expect(afterView.nodes[1]).toBe(beforeRequest);
+      expect(afterProfile.children[0]).toBe(beforeFullName);
+      expect(afterProfile).not.toBe(beforeProfile);
+      expect(afterProfile.children).not.toBe(beforeProfile.children);
+      expect(afterProfile.children).toHaveLength(2);
     });
 
     it('clears stale suggestions on pushView and only sets fresh suggestions from current view', () => {

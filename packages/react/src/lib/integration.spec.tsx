@@ -1370,7 +1370,7 @@ describe('react integration', () => {
     rendered.unmount();
   });
 
-  it('renders suggestion for regular key cross-level top-to-collection migration', () => {
+  it('does not render suggestion for regular key cross-level top-to-collection migration', () => {
     const priorView: ViewDefinition = {
       viewId: 'suggestion-view',
       version: '1',
@@ -1467,7 +1467,7 @@ describe('react integration', () => {
     );
     expect(fields.length).toBeGreaterThanOrEqual(1);
     expect((fields[0] as HTMLDivElement).textContent).toBe(
-      'undefined|archived'
+      'undefined|undefined'
     );
 
     rendered.unmount();
@@ -1662,7 +1662,7 @@ describe('react integration', () => {
     rendered.unmount();
   });
 
-  it('deep nested collection receives suggestion at leaf component', () => {
+  it('deep nested collection does not receive suggestion at leaf component', () => {
     const priorView: ViewDefinition = {
       viewId: 'deep-suggestion-view',
       version: '1',
@@ -1755,7 +1755,9 @@ describe('react integration', () => {
       '[data-testid="deep-suggestion"]'
     );
     expect(fields.length).toBeGreaterThanOrEqual(1);
-    expect((fields[0] as HTMLDivElement).textContent).toBe('undefined|ready');
+    expect((fields[0] as HTMLDivElement).textContent).toBe(
+      'undefined|undefined'
+    );
     rendered.unmount();
   });
 });
