@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { color, space, type } from '../../tokens.js';
 import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
+import { streamedNodeMotionStyle } from './motion.js';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
@@ -60,14 +61,33 @@ export function FieldFrame({
   children: ReactNode;
 }) {
   return (
-    <label style={wrapStyle}>
+    <label
+      style={{
+        ...wrapStyle,
+        ...streamedNodeMotionStyle(nodeId, 'shell'),
+      }}
+      data-continuum-animated="field"
+      data-continuum-node-shell="true"
+      data-continuum-node-id={nodeId}
+    >
       {label || description ? (
-        <div style={labelRowStyle}>
+        <div
+          data-continuum-animated-child="label"
+          style={{
+            ...labelRowStyle,
+            ...streamedNodeMotionStyle(nodeId, 'content'),
+          }}
+        >
           {label ? <span style={labelStyle}>{label}</span> : null}
           {description ? <span style={descriptionStyle}>{description}</span> : null}
         </div>
       ) : null}
-      {children}
+      <div
+        data-continuum-animated-child="control"
+        style={streamedNodeMotionStyle(nodeId, 'content')}
+      >
+        {children}
+      </div>
       {nodeId && hasSuggestion && onAcceptSuggestion && onRejectSuggestion ? (
         <StarterKitFieldProposal
           title={label ?? 'Field suggestion'}
