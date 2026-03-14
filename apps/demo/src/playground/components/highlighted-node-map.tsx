@@ -56,7 +56,7 @@ function HighlightedControl({
   children,
 }: ContinuumNodeProps) {
   const nodeType = readNodeProp<string>(definition, 'type');
-  const label = nodeLabel(definition);
+  const label = nodeLabel(definition) ?? 'Field';
   const description = nodeDescription(definition);
 
   if (nodeType === 'textarea') {

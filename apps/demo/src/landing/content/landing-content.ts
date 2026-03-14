@@ -157,6 +157,11 @@ export const packageStackContent = {
       body: 'Headless provider clients and model catalogs for OpenAI and Google, with optional Anthropic support.',
     },
     {
+      name: 'vercel-ai-sdk',
+      title: 'Plugs into Vercel AI SDK',
+      body: 'Lets teams keep Vercel AI SDK transport and message streaming while Continuum owns reconciliation and session continuity.',
+    },
+    {
       name: 'starter-kit',
       title: 'Gets teams moving fast',
       body: 'Provides an opinionated component map, primitives, and proposal-friendly UI for teams that want a polished starting point before customizing.',

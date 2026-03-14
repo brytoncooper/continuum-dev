@@ -5,6 +5,7 @@ import {
   ContinuumRenderer,
   getAiConnectModelCatalog,
   type AiConnectClient,
+  type AiConnectModelOption,
   type StarterKitCheckpointPreview,
   StarterKitProviderChatBox,
   StarterKitProviderComposer,
@@ -40,7 +41,6 @@ const liveView = {
       id: 'welcome',
       type: 'group',
       label: 'Live AI Demo',
-      description: 'Start from a clean session and generate your first Continuum view in seconds.',
       children: [
         {
           id: 'welcome_intro',
@@ -52,7 +52,6 @@ const liveView = {
         {
           id: 'quick_start_grid',
           type: 'grid',
-          label: 'ViewDefinition contract',
           columns: 3,
           children: [
             {
@@ -518,7 +517,9 @@ export function LiveAiPage() {
   const accessToken = tokensByProvider[provider] ?? '';
   const modelOptions = getAiConnectModelCatalog(provider);
   const rawModel = modelsByProvider[provider] ?? '';
-  const model = modelOptions.some((option) => option.id === rawModel)
+  const model = modelOptions.some(
+    (option: AiConnectModelOption) => option.id === rawModel
+  )
     ? rawModel
     : '';
 
@@ -651,7 +652,7 @@ export function LiveAiPage() {
                   style={inputStyle}
                 >
                   <option value="">Provider default</option>
-                  {modelOptions.map((option) => (
+                  {modelOptions.map((option: AiConnectModelOption) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
                     </option>
