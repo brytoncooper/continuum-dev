@@ -1,5 +1,5 @@
 import { VIEW_DIFFS, DATA_RESOLUTIONS } from '@continuum-dev/contract';
-import type { StateDiff, ReconciliationResolution } from '../types.js';
+import type { StateDiff, ReconciliationResolution } from '../../types.js';
 
 export function addedDiff(nodeId: string): StateDiff {
   return {
@@ -75,7 +75,7 @@ export function addedResolution(
 export function carriedResolution(
   nodeId: string,
   priorId: string,
-  matchedBy: 'id' | 'key',
+  matchedBy: 'id' | 'semanticKey' | 'key',
   nodeType: string,
   priorValue: unknown,
   reconciledValue: unknown
@@ -95,7 +95,7 @@ export function carriedResolution(
 export function detachedResolution(
   nodeId: string,
   priorId: string,
-  matchedBy: 'id' | 'key' | null,
+  matchedBy: 'id' | 'semanticKey' | 'key' | null,
   priorType: string,
   newType: string,
   priorValue: unknown
@@ -115,7 +115,7 @@ export function detachedResolution(
 export function migratedResolution(
   nodeId: string,
   priorId: string,
-  matchedBy: 'id' | 'key' | null,
+  matchedBy: 'id' | 'semanticKey' | 'key' | null,
   priorType: string,
   newType: string,
   priorValue: unknown,
