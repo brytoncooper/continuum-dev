@@ -95,6 +95,9 @@ console.log(reconciledState.values['layout_group/new_id_99'].value);
 
 When you call `reconcile()`, the runtime executes a strict, deterministic pipeline to figure out exactly what the AI did:
 
+Internal architecture reference:
+- [Context module flow and contracts](src/lib/context/README.md)
+
 1. **Context Indexing:** Recursively indexes both views into lookup maps by `id` and `key`, using scoped nested paths plus dot-suffix key matching to detect structural shifts.
 2. **Node Resolution:** Evaluates every node in the new view:
 * **Carry:** Type and Hash match; data moves forward effortlessly.
