@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ViewNode } from '@continuum-dev/contract';
-import type { MigrationStrategy } from '../types.js';
-import { attemptMigration } from './migrator.js';
+import type { MigrationStrategy } from '../../types.js';
+import { attemptMigration } from './index.js';
 
 function makeNode(
   overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
@@ -62,7 +62,7 @@ describe('attemptMigration', () => {
     expect(result).toEqual({ kind: 'migrated', value: { value: 'migrated' } });
   });
 
-  it('falls back to passthrough when types match and no strategy exists', () => {
+  it('returns none when types match and no strategy exists', () => {
     const result = attemptMigration(
       'node-1',
       makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
@@ -71,7 +71,7 @@ describe('attemptMigration', () => {
       {}
     );
 
-    expect(result).toEqual({ kind: 'migrated', value: { value: 'hello' } });
+    expect(result).toEqual({ kind: 'none' });
   });
 
   it('returns no migration when types differ and no strategy exists', () => {

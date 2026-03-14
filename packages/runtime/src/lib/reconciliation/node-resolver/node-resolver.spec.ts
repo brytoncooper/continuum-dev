@@ -8,8 +8,8 @@ import type {
 import {
   buildReconciliationContext,
   buildPriorValueLookupByIdAndKey,
-} from '../context.js';
-import { resolveAllNodes, detectRemovedNodes } from './node-resolver.js';
+} from '../../context/index.js';
+import { resolveAllNodes, detectRemovedNodes } from './index.js';
 
 function makeView(
   nodes: ViewNode[],
@@ -114,7 +114,7 @@ describe('resolveAllNodes', () => {
     expect(result.resolutions[0].resolution).toBe('detached');
   });
 
-  it('migrates state when hash changes and same type', () => {
+  it('carries state and warns when hash changes without a strategy', () => {
     const priorView = makeView([makeNode({ id: 'a', hash: 'v1' })]);
     const newView = makeView([makeNode({ id: 'a', hash: 'v2' })]);
     const priorData = makeData({ a: { value: 'hello' } });
@@ -124,8 +124,11 @@ describe('resolveAllNodes', () => {
     const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
 
     expect(result.values['a']).toEqual({ value: 'hello' });
-    expect(result.diffs[0].type).toBe('migrated');
-    expect(result.resolutions[0].resolution).toBe('migrated');
+    expect(result.diffs).toEqual([]);
+    expect(result.resolutions[0].resolution).toBe('carried');
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'MIGRATION_FAILED', severity: 'warning' })
+    );
   });
 
   it('routes AI default values to suggestion when field is dirty', () => {

@@ -5,9 +5,23 @@ import type {
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/contract';
-import type { MigrationStrategy } from '../types.js';
-import { reconcile } from '../reconcile.js';
-import { attemptMigration } from './migrator.js';
+import type { MigrationStrategy, ReconciliationOptions } from '../../types.js';
+import { reconcile as runtimeReconcile } from '../../reconcile/index.js';
+import { attemptMigration } from './index.js';
+
+const TEST_NOW = 2000;
+
+function reconcile(
+  newView: ViewDefinition,
+  priorView: ViewDefinition | null,
+  priorData: DataSnapshot | null,
+  options: ReconciliationOptions = {}
+) {
+  return runtimeReconcile(newView, priorView, priorData, {
+    clock: () => TEST_NOW,
+    ...options,
+  });
+}
 
 function makeView(
   nodes: ViewNode[],

@@ -1,5 +1,5 @@
 import type { ViewNode } from '@continuum-dev/contract';
-import type { ReconciliationOptions } from '../types.js';
+import type { ReconciliationOptions } from '../../types.js';
 
 export type MigrationAttemptResult =
   | { kind: 'migrated'; value: unknown }
@@ -95,10 +95,6 @@ export function attemptMigration(
     } catch (error) {
       return { kind: 'error', error };
     }
-  }
-
-  if (priorNode.type === newNode.type) {
-    return { kind: 'migrated', value: priorValue };
   }
   return { kind: 'none' };
 }
