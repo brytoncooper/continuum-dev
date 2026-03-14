@@ -15,49 +15,18 @@ import type { ReconciliationContext, ScopedNodeMatch } from './types.js';
 export function collectDuplicateIssues(
   nodes: ViewNode[]
 ): ReconciliationIssue[] {
-  const issues: ReconciliationIssue[] = [];
   const traversal = traverseViewNodes(nodes);
-  const byId = new Map<string, ViewNode>();
-  const byKey = new Map<string, ViewNode>();
   const semanticKeyCounts = collectSemanticKeyCounts(traversal.visited);
+  const issues: ReconciliationIssue[] = [];
 
-  for (const entry of traversal.visited) {
-    const indexedId = entry.nodeId;
-    if (byId.has(indexedId)) {
-      issues.push({
-        severity: ISSUE_SEVERITY.ERROR,
-        nodeId: entry.node.id,
-        message: `Duplicate node id: ${entry.node.id}`,
-        code: ISSUE_CODES.DUPLICATE_NODE_ID,
-      });
-    }
-    byId.set(indexedId, entry.node);
-
-    if (entry.node.key) {
-      const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
-      if (byKey.has(indexedKey)) {
-        issues.push({
-          severity: ISSUE_SEVERITY.WARNING,
-          nodeId: entry.node.id,
-          message: `Duplicate node key: ${entry.node.key}`,
-          code: ISSUE_CODES.DUPLICATE_NODE_KEY,
-        });
-      }
-      byKey.set(indexedKey, entry.node);
-    }
-
-    if (
-      entry.node.semanticKey &&
-      !isUnique(semanticKeyCounts, entry.node.semanticKey)
-    ) {
-      issues.push({
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: entry.node.id,
-        message: `Ambiguous semantic key: ${entry.node.semanticKey}`,
-        code: ISSUE_CODES.SCOPE_COLLISION,
-      });
-    }
-  }
+  indexNodes(traversal.visited, {
+    byId: new Map<string, ViewNode>(),
+    byKey: new Map<string, ViewNode>(),
+    bySemanticKey: null,
+    nodeIds: null,
+    semanticKeyCounts,
+    issues,
+  });
 
   issues.push(...traversal.issues);
   return issues;
@@ -88,26 +57,24 @@ export function buildReconciliationContext(
     issues: [...newTraversal.issues, ...(priorTraversal?.issues ?? [])],
   };
 
-  indexNodes(
-    newTraversal.visited,
-    context.newById,
-    context.newByKey,
-    context.newBySemanticKey,
-    context.newNodeIds,
-    context.newSemanticKeyCounts,
-    context.issues
-  );
+  indexNodes(newTraversal.visited, {
+    byId: context.newById,
+    byKey: context.newByKey,
+    bySemanticKey: context.newBySemanticKey,
+    nodeIds: context.newNodeIds,
+    semanticKeyCounts: context.newSemanticKeyCounts,
+    issues: context.issues,
+  });
 
   if (priorTraversal) {
-    indexNodes(
-      priorTraversal.visited,
-      context.priorById,
-      context.priorByKey,
-      context.priorBySemanticKey,
-      context.priorNodeIds,
-      context.priorSemanticKeyCounts,
-      context.issues
-    );
+    indexNodes(priorTraversal.visited, {
+      byId: context.priorById,
+      byKey: context.priorByKey,
+      bySemanticKey: context.priorBySemanticKey,
+      nodeIds: context.priorNodeIds,
+      semanticKeyCounts: context.priorSemanticKeyCounts,
+      issues: context.issues,
+    });
   }
 
   return context;
@@ -126,57 +93,64 @@ function collectSemanticKeyCounts(
   return counts;
 }
 
-function indexNodes(
-  traversed: TraversedViewNode[],
-  byId: Map<string, ViewNode>,
-  byKey: Map<string, ViewNode>,
-  bySemanticKey: Map<string, ScopedNodeMatch>,
-  nodeIds: WeakMap<ViewNode, string>,
-  semanticKeyCounts: Map<string, number>,
-  issues: ReconciliationIssue[]
-): void {
+interface IndexState {
+  byId: Map<string, ViewNode>;
+  byKey: Map<string, ViewNode>;
+  bySemanticKey: Map<string, ScopedNodeMatch> | null;
+  nodeIds: WeakMap<ViewNode, string> | null;
+  semanticKeyCounts: Map<string, number>;
+  issues: ReconciliationIssue[];
+}
+
+function indexNodes(traversed: TraversedViewNode[], state: IndexState): void {
   for (const entry of traversed) {
-    const indexedId = entry.nodeId;
-    if (byId.has(indexedId)) {
-      issues.push({
-        severity: ISSUE_SEVERITY.ERROR,
-        nodeId: entry.node.id,
-        message: `Duplicate node id: ${entry.node.id}`,
-        code: ISSUE_CODES.DUPLICATE_NODE_ID,
-      });
-    }
-    byId.set(indexedId, entry.node);
-    nodeIds.set(entry.node, indexedId);
+    indexNode(entry, state);
+  }
+}
 
-    if (entry.node.key) {
-      const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
-      if (byKey.has(indexedKey)) {
-        issues.push({
-          severity: ISSUE_SEVERITY.WARNING,
-          nodeId: entry.node.id,
-          message: `Duplicate node key: ${entry.node.key}`,
-          code: ISSUE_CODES.DUPLICATE_NODE_KEY,
-        });
-      }
-      byKey.set(indexedKey, entry.node);
-    }
+function indexNode(entry: TraversedViewNode, state: IndexState): void {
+  const { byId, byKey, bySemanticKey, nodeIds, semanticKeyCounts, issues } =
+    state;
+  const indexedId = entry.nodeId;
+  if (byId.has(indexedId)) {
+    issues.push({
+      severity: ISSUE_SEVERITY.ERROR,
+      nodeId: entry.node.id,
+      message: `Duplicate node id: ${entry.node.id}`,
+      code: ISSUE_CODES.DUPLICATE_NODE_ID,
+    });
+  }
+  byId.set(indexedId, entry.node);
+  nodeIds?.set(entry.node, indexedId);
 
-    const semanticKey = entry.node.semanticKey;
-    if (!semanticKey) {
-      continue;
-    }
-    if (!isUnique(semanticKeyCounts, semanticKey)) {
+  if (entry.node.key) {
+    const indexedKey = toIndexedKey(entry.node.key, entry.parentPath);
+    if (byKey.has(indexedKey)) {
       issues.push({
         severity: ISSUE_SEVERITY.WARNING,
         nodeId: entry.node.id,
-        message: `Ambiguous semantic key: ${semanticKey}`,
-        code: ISSUE_CODES.SCOPE_COLLISION,
+        message: `Duplicate node key: ${entry.node.key}`,
+        code: ISSUE_CODES.DUPLICATE_NODE_KEY,
       });
-      continue;
     }
-    bySemanticKey.set(semanticKey, {
-      node: entry.node,
-      nodeId: indexedId,
-    });
+    byKey.set(indexedKey, entry.node);
   }
+
+  const semanticKey = entry.node.semanticKey;
+  if (!semanticKey) {
+    return;
+  }
+  if (!isUnique(semanticKeyCounts, semanticKey)) {
+    issues.push({
+      severity: ISSUE_SEVERITY.WARNING,
+      nodeId: entry.node.id,
+      message: `Ambiguous semantic key: ${semanticKey}`,
+      code: ISSUE_CODES.SCOPE_COLLISION,
+    });
+    return;
+  }
+  bySemanticKey?.set(semanticKey, {
+    node: entry.node,
+    nodeId: indexedId,
+  });
 }

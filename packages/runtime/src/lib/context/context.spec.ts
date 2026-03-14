@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
-import { buildReconciliationContext, findPriorNode } from './index.js';
+import {
+  buildReconciliationContext,
+  collectDuplicateIssues,
+  findPriorNode,
+} from './index.js';
 
 function makeNode(
   overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
@@ -63,6 +67,54 @@ describe('buildReconciliationContext', () => {
     expect(ctx.newById.has('group')).toBe(true);
     expect(ctx.newById.has('group/child-1')).toBe(true);
     expect(ctx.newById.has('group/child-2')).toBe(true);
+  });
+
+  it('indexes only unique semantic keys into semantic map', () => {
+    const newView = makeView([
+      makeNode({ id: 'a', semanticKey: 'dup' }),
+      makeNode({ id: 'b', semanticKey: 'dup' }),
+      makeNode({ id: 'c', semanticKey: 'unique' }),
+    ]);
+    const ctx = buildReconciliationContext(newView, null);
+    expect(ctx.newBySemanticKey.has('dup')).toBe(false);
+    expect(ctx.newBySemanticKey.get('unique')?.node.id).toBe('c');
+  });
+});
+
+describe('collectDuplicateIssues', () => {
+  it('emits duplicate node id deterministically for later node', () => {
+    const issues = collectDuplicateIssues([
+      makeNode({ id: 'dup' }),
+      makeNode({ id: 'dup' }),
+    ]);
+    expect(issues).toEqual([
+      {
+        severity: 'error',
+        nodeId: 'dup',
+        message: 'Duplicate node id: dup',
+        code: 'DUPLICATE_NODE_ID',
+      },
+    ]);
+  });
+
+  it('emits duplicate key and semantic ambiguity for same node when both apply', () => {
+    const issues = collectDuplicateIssues([
+      makeNode({ id: 'a', key: 'k', semanticKey: 's' }),
+      makeNode({ id: 'b', key: 'k', semanticKey: 's' }),
+    ]);
+    expect(
+      issues.filter((issue) => issue.nodeId === 'b').map((issue) => issue.code)
+    ).toEqual(['DUPLICATE_NODE_KEY', 'SCOPE_COLLISION']);
+  });
+
+  it('appends traversal issues after duplicate checks', () => {
+    const cyclic = makeNode({ id: 'cyclic', type: 'group', children: [] });
+    (cyclic.children as ViewNode[]).push(cyclic);
+    const issues = collectDuplicateIssues([cyclic, makeNode({ id: 'cyclic' })]);
+    expect(issues.map((issue) => issue.code)).toEqual([
+      'DUPLICATE_NODE_ID',
+      'VIEW_CHILD_CYCLE_DETECTED',
+    ]);
   });
 });
 
