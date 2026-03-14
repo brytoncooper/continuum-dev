@@ -98,6 +98,7 @@ export function restoreFromCheckpoint(
   internal.currentView = cloneCheckpointSnapshot(cp.snapshot.view);
   internal.currentData = cloneCheckpointSnapshot(cp.snapshot.data);
   internal.priorView = null;
+  internal.stableViewVersion = cp.snapshot.view.version;
   internal.eventLog = internal.eventLog.slice(0, cp.eventIndex);
   internal.issues = [];
   internal.diffs = [];
@@ -126,6 +127,7 @@ export function rewind(internal: SessionState, checkpointId: string): void {
   internal.currentView = cloneCheckpointSnapshot(cp.snapshot.view);
   internal.currentData = cloneCheckpointSnapshot(cp.snapshot.data);
   internal.priorView = null;
+  internal.stableViewVersion = cp.snapshot.view.version;
   internal.eventLog = internal.eventLog.slice(0, cp.eventIndex);
   internal.issues = [];
   internal.diffs = [];

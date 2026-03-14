@@ -42,6 +42,7 @@ export function serializeSession(internal: SessionState): unknown {
       allowBlindCarry: internal.reconciliationOptions?.allowBlindCarry,
       allowPartialRestore: internal.reconciliationOptions?.allowPartialRestore,
       validateOnUpdate: internal.validateOnUpdate,
+      stableViewVersion: internal.stableViewVersion,
     },
   });
 }
@@ -62,6 +63,7 @@ interface SerializedSessionData {
     allowBlindCarry?: boolean;
     allowPartialRestore?: boolean;
     validateOnUpdate?: boolean;
+    stableViewVersion?: string | null;
   };
 }
 
@@ -186,6 +188,10 @@ export function deserializeToState(
       allowPartialRestore: raw.settings?.allowPartialRestore,
     },
     validateOnUpdate: raw.settings?.validateOnUpdate ?? false,
+    stableViewVersion:
+      typeof raw.settings?.stableViewVersion === 'string'
+        ? raw.settings.stableViewVersion
+        : raw.currentView?.version ?? null,
     currentView: raw.currentView ?? null,
     currentData: raw.currentData ?? null,
     priorView: raw.priorView ?? null,
