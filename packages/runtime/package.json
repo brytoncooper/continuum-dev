@@ -30,6 +30,12 @@
       "types": "./index.d.ts",
       "import": "./index.js",
       "default": "./index.js"
+    },
+    "./validator": {
+      "@continuum-dev/source": "./src/validator.ts",
+      "types": "./validator.d.ts",
+      "import": "./validator.js",
+      "default": "./validator.js"
     }
   },
   "files": [

@@ -64,7 +64,7 @@ export interface ReconciliationResolution {
   /**
    * How the prior node was matched to the new node.
    */
-  matchedBy: 'id' | 'key' | null;
+  matchedBy: 'id' | 'semanticKey' | 'key' | null;
   /**
    * Prior node type, if a prior node was found.
    */
@@ -138,7 +138,7 @@ export interface ReconciliationOptions {
   /**
    * Time source used for lineage and detached value timestamps.
    *
-   * Override in tests for deterministic assertions.
+   * Provide this when fresh reconciliation does not have prior lineage to derive from.
    */
   clock?: () => number;
 }
