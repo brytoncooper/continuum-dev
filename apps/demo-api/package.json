@@ -1,0 +1,33 @@
+{
+  "name": "demo-api",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.58",
+    "@ai-sdk/openai": "^3.0.41",
+    "ai": "^6.0.116",
+    "zod": "^4.3.6"
+  },
+  "nx": {
+    "tags": [
+      "scope:demo-api"
+    ],
+    "targets": {
+      "dev": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/demo-api",
+          "command": "node ../../node_modules/wrangler/bin/wrangler.js dev --config wrangler.jsonc"
+        }
+      },
+      "deploy": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/demo-api",
+          "command": "node ../../node_modules/wrangler/bin/wrangler.js deploy --config wrangler.jsonc"
+        }
+      }
+    }
+  }
+}
