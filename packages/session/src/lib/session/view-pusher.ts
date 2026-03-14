@@ -4,7 +4,8 @@ import type {
   DetachedValue,
   NodeValue,
 } from '@continuum-dev/contract';
-import { reconcile } from '@continuum-dev/runtime';
+import { patchViewDefinition, reconcile } from '@continuum-dev/runtime';
+import type { SessionViewApplyOptions } from '../types.js';
 import type { SessionState } from './session-state.js';
 import { autoCheckpoint } from './checkpoint-manager.js';
 import { markAllPendingIntentsAsStale } from './intent-manager.js';
@@ -224,18 +225,23 @@ function stripSuggestionsForReconcile(priorData: DataSnapshot): DataSnapshot {
  * @param internal Mutable internal session state.
  * @param view Next view definition to apply.
  */
-export function pushView(internal: SessionState, view: ViewDefinition): void {
+export function pushView(
+  internal: SessionState,
+  view: ViewDefinition,
+  options?: SessionViewApplyOptions
+): void {
   if (internal.destroyed) return;
   assertValidView(view);
+  const isTransient = options?.transient === true;
 
-  const priorVersion = internal.currentView?.version;
   internal.priorView = internal.currentView;
-  internal.currentView = view;
+  const patchedView = patchViewDefinition(internal.currentView, view);
+  internal.currentView = patchedView;
   const priorDataForReconcile = internal.currentData
     ? stripSuggestionsForReconcile(internal.currentData)
     : null;
 
-  const result = reconcile(view, internal.priorView, priorDataForReconcile, {
+  const result = reconcile(patchedView, internal.priorView, priorDataForReconcile, {
     clock: internal.clock,
     ...(internal.reconciliationOptions ?? {}),
   });
@@ -251,11 +257,19 @@ export function pushView(internal: SessionState, view: ViewDefinition): void {
   internal.diffs = result.diffs;
   internal.resolutions = result.resolutions;
 
-  if (priorVersion && priorVersion !== view.version) {
+  if (
+    !isTransient &&
+    internal.stableViewVersion &&
+    internal.stableViewVersion !== patchedView.version
+  ) {
     markAllPendingIntentsAsStale(internal);
   }
 
-  autoCheckpoint(internal);
-  runDetachedValueGC(internal);
+  if (!isTransient) {
+    internal.stableViewVersion = patchedView.version;
+    autoCheckpoint(internal);
+    runDetachedValueGC(internal);
+  }
+
   notifySnapshotAndIssueListeners(internal);
 }
