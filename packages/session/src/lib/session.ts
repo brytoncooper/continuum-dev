@@ -201,9 +201,9 @@ function assembleSessionFromInternalState(
       return [...internal.checkpoints];
     },
 
-    pushView(view) {
+    pushView(view, options) {
       assertNotDestroyed(internal);
-      pushView(internal, view);
+      pushView(internal, view, options);
     },
     recordIntent(partial) {
       assertNotDestroyed(internal);

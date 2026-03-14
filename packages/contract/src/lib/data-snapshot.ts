@@ -171,6 +171,10 @@ export interface DetachedValue {
    */
   previousNodeType: string;
   /**
+   * Optional explicit semantic identity used for deterministic restoration.
+   */
+  semanticKey?: string;
+  /**
    * Optional semantic key used to match and restore this value later.
    */
   key?: string;

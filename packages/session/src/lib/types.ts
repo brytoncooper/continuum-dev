@@ -121,6 +121,10 @@ export interface SessionOptions {
   >;
 }
 
+export interface SessionViewApplyOptions {
+  transient?: boolean;
+}
+
 /**
  * Stateful session API for generative UI timelines.
  */
@@ -152,7 +156,7 @@ export interface Session {
   /**
    * Pushes a new view and reconciles existing data against it.
    */
-  pushView(view: ViewDefinition): void;
+  pushView(view: ViewDefinition, options?: SessionViewApplyOptions): void;
   /**
    * Appends a raw interaction event to the event log and applies its payload.
    */
