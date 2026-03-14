@@ -48,6 +48,10 @@ export type { StarterKitStyleConfig, StarterKitStyleSlot } from './lib/style-con
 
 export { StarterKitProviderChatBox } from './lib/ai/provider-chat-box.js';
 export type { StarterKitProviderChatBoxProps } from './lib/ai/provider-chat-box.js';
+export { StarterKitVercelAiSdkChatBox } from './lib/ai/vercel-ai-sdk-chat-box.js';
+export type { StarterKitVercelAiSdkChatBoxProps } from './lib/ai/vercel-ai-sdk-chat-box.js';
+export { StarterKitChatBox } from './lib/ai/chat-box.js';
+export type { StarterKitChatBoxDriver, StarterKitChatBoxProps } from './lib/ai/chat-box.js';
 export type { StarterKitViewAuthoringFormat } from './lib/ai/view-authoring.js';
 export { StarterKitSessionWorkbench } from './lib/ai/session-workbench.js';
 export type { StarterKitCheckpointPreview } from './lib/ai/session-workbench.js';
