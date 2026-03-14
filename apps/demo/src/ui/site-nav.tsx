@@ -131,6 +131,13 @@ export function SiteNav() {
               <NavLink to="/live-ai" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
                 Live AI Demo
               </NavLink>
+              <NavLink
+                to="/vercel-ai-sdk"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
+                Vercel AI SDK
+              </NavLink>
               <NavLink to="/starter-kit" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
                 Starter Kit
               </NavLink>
@@ -158,6 +165,9 @@ export function SiteNav() {
         </NavLink>
         <NavLink to="/live-ai" style={navLinkStyle}>
           Live AI Demo
+        </NavLink>
+        <NavLink to="/vercel-ai-sdk" style={navLinkStyle}>
+          Vercel AI SDK
         </NavLink>
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit

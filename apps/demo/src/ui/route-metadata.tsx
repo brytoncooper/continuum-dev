@@ -41,6 +41,12 @@ const routeMetadata: Record<string, RouteMetadata> = {
       'Use the Continuum Live AI demo to generate and evolve dynamic UI while preserving in-progress user state with the open-source Continuum runtime and Starter Kit.',
     path: '/live-ai',
   },
+  '/vercel-ai-sdk': {
+    title: 'Continuum Vercel AI SDK Demo | Keep Streaming UI Stable After It Lands',
+    description:
+      'See how Continuum plugs into the Vercel AI SDK stream model so generated forms and workflows can evolve without wiping in-progress user state.',
+    path: '/vercel-ai-sdk',
+  },
 };
 
 function upsertMeta(attribute: 'name' | 'property', value: string, content: string) {

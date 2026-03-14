@@ -5,6 +5,7 @@ import { LiveAiPage } from './live/live-ai-page';
 import { PlaygroundPage } from './playground/playground-page';
 import { PrimitivePage } from './showcase/primitive-page';
 import { RouteMetadataController } from './ui/route-metadata';
+import { VercelAiSdkPage } from './vercel-ai-sdk/vercel-ai-sdk-page';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/starter-kit" element={<PrimitivePage />} />
         <Route path="/live-ai" element={<LiveAiPage />} />
+        <Route path="/vercel-ai-sdk" element={<VercelAiSdkPage />} />
         <Route path="/showcase" element={<Navigate to="/starter-kit" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
