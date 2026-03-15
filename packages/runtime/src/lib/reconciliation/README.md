@@ -1,36 +1,47 @@
 # Reconciliation Internals
 
-Website: [continuumstack.dev](https://continuumstack.dev)
+Website: [continuumstack.dev](https://continuumstack.dev)  
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-## Core Premise: The Ephemerality Gap
+## Purpose
 
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+`reconciliation` contains internal primitives used by the reconcile orchestrator. These modules are implementation details of `@continuum-dev/runtime`.
 
-These modules are internal to `@continuum-dev/runtime`. They are imported only by the top-level `reconcile.ts` orchestrator and are not re-exported through the package's public API.
+Public execution starts at:
 
-## Data Flow
+- `packages/runtime/src/lib/reconcile/index.ts`
+- `packages/runtime/src/lib/reconcile/reconcile-core.ts`
 
+## Internal Data Flow
+
+```text
+reconcile/reconcile-core.ts
+  ├─ buildFreshSessionResult          when priorData is null
+  ├─ buildBlindCarryResult            when priorData exists and priorView is null
+  └─ reconcileViewTransition          full transition path
+       ├─ context.buildReconciliationContext
+       ├─ context.buildPriorValueLookupByIdAndKey
+       ├─ node-resolver.resolveAllNodes
+       ├─ node-resolver.detectRemovedNodes
+       ├─ reconcile.restoreFromSamePushDetachments
+       ├─ reconcile.applySemanticKeyMoves
+       └─ result-builder.assembleReconciliationResult
 ```
-reconcile.ts (orchestrator)
-  ├─ state-builder.buildFreshSessionResult     when no prior state
-  ├─ state-builder.buildBlindCarryResult       when no prior view
-  └─ full reconciliation path:
-       context.buildReconciliationContext  →  index nodes by id and key
-       context.buildPriorValueLookupByIdAndKey  →  map prior values to new IDs via key matching
-       node-resolver.resolveAllNodes  →  per-node decisions
-         ├─ differ.*  →  create diff and resolution entries
-         └─ migrator.attemptMigration  →  resolve migration strategies
-       node-resolver.detectRemovedNodes  →  find orphaned state
-       state-builder.assembleReconciliationResult  →  pack final output
-```
 
-## Modules
+## Submodule Responsibilities
 
-| File               | Responsibility                                                                                                                                      |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `differ.ts`        | Pure factory functions that build `StateDiff` and `ReconciliationResolution` objects. No logic, just construction.                                  |
-| `migrator.ts`      | Resolves which migration strategy to use (explicit, view-declared, or same-type passthrough) and applies it.                                        |
-| `node-resolver.ts` | Iterates every node in the new view and decides its fate: added, type-changed (dropped), migrated, or carried. Also detects removed nodes.          |
-| `state-builder.ts` | Builds the final `ReconciliationResult` for all three code paths. Owns utility functions for session IDs, view hashing, and value meta propagation. |
+| Area | Responsibility |
+| --- | --- |
+| `node-resolver/*` | Per-node resolution, type mismatch handling, migration application, unchanged carry, and removal detection. |
+| `result-builder/*` | Final `ReconciliationResult` assembly, lineage updates, view hash/session helpers, fresh/blind branch result creation. |
+| `differ/*` | Factories for `StateDiff` and `ReconciliationResolution` records. |
+| `collection-resolver/*` | Collection initialization, template path remapping, and collection-state reconciliation helpers. |
+| `view-traversal.ts` | Deterministic traversal with cycle and max-depth issue reporting. |
+
+## Canonical Docs
+
+For current engine behavior and diagrams, see:
+
+- `packages/runtime/src/lib/reconcile/README.md`
+- `packages/runtime/src/lib/reconcile/semantic-moves/README.md`
+- `packages/runtime/src/lib/reconcile/behavior-guarantees.md`
