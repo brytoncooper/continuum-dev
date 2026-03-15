@@ -56,7 +56,7 @@ function makeData(
 describe('buildFreshSessionResult', () => {
   it('returns empty values with a new session id', () => {
     const view = makeView([makeNode({ id: 'a' })]);
-    const result = buildFreshSessionResult(view, 5000);
+    const result = buildFreshSessionResult({ newView: view, now: 5000 });
 
     expect(result.reconciledState.values).toEqual({});
     expect(result.reconciledState.lineage.sessionId).toContain('session_');
@@ -71,7 +71,7 @@ describe('buildFreshSessionResult', () => {
         children: [makeNode({ id: 'child' })],
       }),
     ]);
-    const result = buildFreshSessionResult(view, 5000);
+    const result = buildFreshSessionResult({ newView: view, now: 5000 });
 
     expect(result.diffs).toHaveLength(2);
     expect(result.diffs[0].nodeId).toBe('parent');
@@ -80,7 +80,7 @@ describe('buildFreshSessionResult', () => {
 
   it('emits NO_PRIOR_DATA info issue', () => {
     const view = makeView([makeNode({ id: 'a' })]);
-    const result = buildFreshSessionResult(view, 5000);
+    const result = buildFreshSessionResult({ newView: view, now: 5000 });
 
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
@@ -91,7 +91,12 @@ describe('buildBlindCarryResult', () => {
   it('drops all values when allowBlindCarry is false', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult(view, data, 5000, {});
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {},
+    });
 
     expect(result.reconciledState.values).toEqual({});
     expect(result.issues[0].code).toBe('NO_PRIOR_VIEW');
@@ -100,8 +105,13 @@ describe('buildBlindCarryResult', () => {
   it('carries matching values when allowBlindCarry is true', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' }, orphan: { value: 'gone' } });
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
@@ -111,8 +121,13 @@ describe('buildBlindCarryResult', () => {
   it('does not carry value by key when id changed', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ email: { value: 'test@example.com' } });
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['field_456']).toBeUndefined();
@@ -125,8 +140,13 @@ describe('buildBlindCarryResult', () => {
       makeNode({ id: 'b', key: 'a' }),
     ]);
     const data = makeData({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
@@ -142,8 +162,13 @@ describe('buildBlindCarryResult', () => {
       }),
     ]);
     const data = makeData({ 'form/email': { value: 'nested@example.com' } });
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['form/field_1']).toBeUndefined();
@@ -153,8 +178,13 @@ describe('buildBlindCarryResult', () => {
   it('drops values with no id or key match', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ no_match: { value: 'gone' } });
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['field_456']).toBeUndefined();
@@ -179,8 +209,13 @@ describe('buildBlindCarryResult', () => {
       },
     };
 
-    const result = buildBlindCarryResult(view, data, 5000, {
-      allowBlindCarry: true,
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
     });
 
     expect(result.reconciledState.values['field_456']).toBeUndefined();
@@ -203,10 +238,70 @@ describe('buildBlindCarryResult', () => {
       },
     };
 
-    const result = buildBlindCarryResult(view, data, 5000, {});
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {},
+    });
 
     expect(result.reconciledState.values).toEqual({});
     expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
+  });
+
+  it('preserves lineage fields and omits valueLineage when allowBlindCarry is false', () => {
+    const view = makeView([makeNode({ id: 'a' })], 'new-view', '2.1');
+    const data = makeData(
+      { a: { value: 'hello' } },
+      {
+        sessionId: 'session-1',
+        viewId: 'old-view',
+        viewVersion: '1.0',
+      },
+      { a: { lastUpdated: 400, lastInteractionId: 'int-1' } }
+    );
+
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {},
+    });
+
+    expect(result.reconciledState.values).toEqual({});
+    expect(result.reconciledState.lineage).toEqual({
+      ...data.lineage,
+      timestamp: 5000,
+      viewId: 'new-view',
+      viewVersion: '2.1',
+    });
+    expect(result.reconciledState.valueLineage).toBeUndefined();
+  });
+
+  it('carries valueLineage only for ids carried during blind carry', () => {
+    const view = makeView([makeNode({ id: 'a' })]);
+    const data = makeData(
+      { a: { value: 'hello' }, orphan: { value: 'gone' } },
+      {},
+      {
+        a: { lastUpdated: 100, lastInteractionId: 'int-a' },
+        orphan: { lastUpdated: 200, lastInteractionId: 'int-orphan' },
+      }
+    );
+
+    const result = buildBlindCarryResult({
+      newView: view,
+      priorData: data,
+      now: 5000,
+      options: {
+        allowBlindCarry: true,
+      },
+    });
+
+    expect(result.reconciledState.valueLineage).toEqual({
+      a: { lastUpdated: 100, lastInteractionId: 'int-a' },
+    });
+    expect(result.reconciledState.valueLineage?.['orphan']).toBeUndefined();
   });
 });
 
@@ -237,17 +332,158 @@ describe('assembleReconciliationResult', () => {
     const priorData = makeData({ b: { value: true } });
     const view = makeView([makeNode({ id: 'a' })]);
 
-    const result = assembleReconciliationResult(
+    const result = assembleReconciliationResult({
       resolved,
       removals,
       priorData,
-      view,
-      5000
-    );
+      newView: view,
+      now: 5000,
+    });
 
     expect(result.diffs).toHaveLength(2);
     expect(result.issues).toHaveLength(1);
     expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
+  });
+
+  it('preserves deterministic diff and issue ordering', () => {
+    const resolved = {
+      values: { a: { value: 'hello' } as NodeValue },
+      valueLineage: {},
+      detachedValues: {},
+      restoredDetachedKeys: new Set<string>(),
+      diffs: [
+        { nodeId: 'a', type: 'added' as const },
+        { nodeId: 'c', type: 'added' as const },
+      ],
+      resolutions: [],
+      issues: [
+        {
+          severity: 'info' as const,
+          nodeId: 'a',
+          message: 'resolved-a',
+          code: 'UNVALIDATED_CARRY' as const,
+        },
+      ],
+    };
+    const removals = {
+      diffs: [
+        { nodeId: 'b', type: 'removed' as const, oldValue: { value: true } },
+      ],
+      issues: [
+        {
+          severity: 'warning' as const,
+          nodeId: 'b',
+          message: 'removed-b',
+          code: 'NODE_REMOVED' as const,
+        },
+      ],
+    };
+    const priorData = makeData({ b: { value: true } });
+    const view = makeView([makeNode({ id: 'a' })]);
+
+    const result = assembleReconciliationResult({
+      resolved,
+      removals,
+      priorData,
+      newView: view,
+      now: 5000,
+    });
+
+    expect(result.diffs.map((diff) => `${diff.type}:${diff.nodeId}`)).toEqual([
+      'added:a',
+      'added:c',
+      'removed:b',
+    ]);
+    expect(result.issues.map((issue) => `${issue.code}:${issue.nodeId ?? ''}`)).toEqual([
+      'UNVALIDATED_CARRY:a',
+      'NODE_REMOVED:b',
+    ]);
+  });
+
+  it('merges detached values and removes restored keys after merge', () => {
+    const resolved = {
+      values: { a: { value: 'hello' } as NodeValue },
+      valueLineage: {},
+      detachedValues: {
+        kept: {
+          value: { value: 'resolved' },
+          previousNodeType: 'field' as const,
+          key: 'kept',
+          detachedAt: 100,
+          viewVersion: '1.0',
+          reason: 'node-removed' as const,
+        },
+        restored: {
+          value: { value: 'resolved-restored' },
+          previousNodeType: 'field' as const,
+          key: 'restored',
+          detachedAt: 110,
+          viewVersion: '1.0',
+          reason: 'node-removed' as const,
+        },
+      },
+      restoredDetachedKeys: new Set<string>(['restored']),
+      diffs: [],
+      resolutions: [],
+      issues: [],
+    };
+    const removals = {
+      diffs: [],
+      issues: [],
+      detachedValues: {
+        removed: {
+          value: { value: 'removed' },
+          previousNodeType: 'field' as const,
+          key: 'removed',
+          detachedAt: 120,
+          viewVersion: '1.0',
+          reason: 'node-removed' as const,
+        },
+        restored: {
+          value: { value: 'removal-restored' },
+          previousNodeType: 'field' as const,
+          key: 'restored',
+          detachedAt: 130,
+          viewVersion: '1.0',
+          reason: 'node-removed' as const,
+        },
+      },
+    };
+    const priorData = makeData({});
+    priorData.detachedValues = {
+      prior: {
+        value: { value: 'prior' },
+        previousNodeType: 'field',
+        key: 'prior',
+        detachedAt: 90,
+        viewVersion: '0.9',
+        reason: 'node-removed',
+      },
+      restored: {
+        value: { value: 'prior-restored' },
+        previousNodeType: 'field',
+        key: 'restored',
+        detachedAt: 95,
+        viewVersion: '0.9',
+        reason: 'node-removed',
+      },
+    };
+    const view = makeView([makeNode({ id: 'a' })]);
+
+    const result = assembleReconciliationResult({
+      resolved,
+      removals,
+      priorData,
+      newView: view,
+      now: 5000,
+    });
+
+    expect(result.reconciledState.detachedValues).toEqual({
+      prior: priorData.detachedValues.prior,
+      kept: resolved.detachedValues.kept,
+      removed: removals.detachedValues.removed,
+    });
+    expect(result.reconciledState.detachedValues?.['restored']).toBeUndefined();
   });
 });
 
@@ -263,7 +499,14 @@ describe('carryValuesMeta', () => {
       { 'old-id': { lastUpdated: 500, lastInteractionId: 'int-1' } }
     );
 
-    carryValuesMeta(target, 'new-id', 'old-id', data, 9000, false);
+    carryValuesMeta({
+      target,
+      newId: 'new-id',
+      priorId: 'old-id',
+      priorData: data,
+      now: 9000,
+      isMigrated: false,
+    });
 
     expect(target['new-id']).toEqual({
       lastUpdated: 500,
@@ -278,7 +521,14 @@ describe('carryValuesMeta', () => {
     > = {};
     const data = makeData({}, {}, { a: { lastUpdated: 500 } });
 
-    carryValuesMeta(target, 'a', 'a', data, 9000, true);
+    carryValuesMeta({
+      target,
+      newId: 'a',
+      priorId: 'a',
+      priorData: data,
+      now: 9000,
+      isMigrated: true,
+    });
 
     expect(target['a'].lastUpdated).toBe(9000);
   });

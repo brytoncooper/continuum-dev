@@ -1,8 +1,8 @@
 import type { ViewDefinition } from '@continuum-dev/contract';
-import { traverseViewNodes } from '../view-traversal.js';
+import { traverseViewNodes } from '../view-traversal/index.js';
 
 export function computeViewHash(view: ViewDefinition): string | undefined {
-  const traversal = traverseViewNodes(view.nodes);
+  const traversal = traverseViewNodes({ nodes: view.nodes });
   let hasHash = false;
   const descriptors = traversal.visited.map((entry) => {
     if (entry.node.hash) {

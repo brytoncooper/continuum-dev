@@ -1,42 +1,34 @@
 import type {
   DataSnapshot,
   DetachedValue,
-  ViewDefinition,
 } from '@continuum-dev/contract';
 import type {
   NodeResolutionAccumulator,
-  ReconciliationIssue,
   ReconciliationResult,
-  StateDiff,
 } from '../../types.js';
 import { computeViewHash } from './view-hash.js';
-
-type RemovalAccumulator = {
-  diffs: StateDiff[];
-  issues: ReconciliationIssue[];
-  detachedValues?: Record<string, DetachedValue>;
-};
+import { buildLineageFromPrior } from './reconciled-lineage.js';
+import type {
+  AssembleReconciliationResultInput,
+  RemovedNodesResult,
+} from './types.js';
 
 export function assembleReconciliationResult(
-  resolved: NodeResolutionAccumulator,
-  removals: RemovalAccumulator,
-  priorData: DataSnapshot,
-  newView: ViewDefinition,
-  now: number
+  input: AssembleReconciliationResultInput
 ): ReconciliationResult {
+  const { resolved, removals, priorData, newView, now } = input;
   const detachedValues = mergeDetachedValues(priorData, resolved, removals);
   const viewHash = computeViewHash(newView);
 
   return {
     reconciledState: {
       values: resolved.values,
-      lineage: {
-        ...priorData.lineage,
-        timestamp: now,
-        viewId: newView.viewId,
-        viewVersion: newView.version,
-        ...(viewHash !== undefined ? { viewHash } : {}),
-      },
+      lineage: buildLineageFromPrior({
+        priorLineage: priorData.lineage,
+        now,
+        newView,
+        viewHash,
+      }),
       ...(Object.keys(resolved.valueLineage).length > 0
         ? { valueLineage: resolved.valueLineage }
         : {}),
@@ -51,7 +43,7 @@ export function assembleReconciliationResult(
 function mergeDetachedValues(
   priorData: DataSnapshot,
   resolved: NodeResolutionAccumulator,
-  removals: RemovalAccumulator
+  removals: RemovedNodesResult
 ): Record<string, DetachedValue> {
   const detachedValues: Record<string, DetachedValue> = {
     ...(priorData.detachedValues ?? {}),

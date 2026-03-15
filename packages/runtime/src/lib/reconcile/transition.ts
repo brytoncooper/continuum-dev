@@ -9,14 +9,17 @@ import type {
   NodeResolutionAccumulator,
 } from '../types.js';
 import { resolveAllNodes, detectRemovedNodes } from '../reconciliation/node-resolver/index.js';
-import { assembleReconciliationResult } from '../reconciliation/result-builder/index.js';
+import {
+  assembleReconciliationResult,
+  type RemovedNodesResult,
+} from '../reconciliation/result-builder/index.js';
 import { applySemanticKeyMoves } from './semantic-moves/semantic-key-moves.js';
 import { restoreFromSamePushDetachments } from './same-push-restore.js';
 
 interface TransitionStagesState {
   context: ReturnType<typeof buildReconciliationContext>;
   resolved: NodeResolutionAccumulator;
-  removals: ReturnType<typeof detectRemovedNodes>;
+  removals: RemovedNodesResult;
 }
 
 export function reconcileViewTransition(
@@ -29,13 +32,13 @@ export function reconcileViewTransition(
   const context = buildReconciliationContext(newView, priorView);
   const stageState = runResolutionStages(context, priorData, now, options);
   runPostResolutionStages(stageState, priorData);
-  const result = assembleReconciliationResult(
-    stageState.resolved,
-    stageState.removals,
+  const result = assembleReconciliationResult({
+    resolved: stageState.resolved,
+    removals: stageState.removals,
     priorData,
     newView,
-    now
-  );
+    now,
+  });
   result.issues.unshift(...context.issues);
   return result;
 }

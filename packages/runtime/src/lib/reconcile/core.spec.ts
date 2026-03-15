@@ -142,6 +142,24 @@ describe('reconcile', () => {
         result.issues.find((i) => i.code === 'UNVALIDATED_CARRY')
       ).toBeDefined();
     });
+
+    it('keeps context issues before assembled transition issues', () => {
+      const priorView = makeView([makeNode({ id: 'legacy' })]);
+      const newView = makeView([makeNode({ id: 'dup' }), makeNode({ id: 'dup' })]);
+      const priorData = makeData({ legacy: { value: 'old' } });
+
+      const result = reconcile(newView, priorView, priorData);
+      const duplicateIndex = result.issues.findIndex(
+        (issue) => issue.code === 'DUPLICATE_NODE_ID'
+      );
+      const removedIndex = result.issues.findIndex(
+        (issue) => issue.code === 'NODE_REMOVED'
+      );
+
+      expect(duplicateIndex).toBeGreaterThanOrEqual(0);
+      expect(removedIndex).toBeGreaterThanOrEqual(0);
+      expect(duplicateIndex).toBeLessThan(removedIndex);
+    });
   });
 
   describe('node matching', () => {
@@ -285,8 +303,8 @@ describe('reconcile', () => {
     });
 
     it('calls explicit migration strategy when provided via options', () => {
-      const strategy: MigrationStrategy = vi.fn((_id, _old, _new, oldState) => {
-        return { value: (oldState as { value: string }).value.toUpperCase() };
+      const strategy: MigrationStrategy = vi.fn(({ priorValue }) => {
+        return { value: (priorValue as { value: string }).value.toUpperCase() };
       });
 
       const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
@@ -303,13 +321,11 @@ describe('reconcile', () => {
     });
 
     it('uses view-declared migration rule with strategyRegistry', () => {
-      const registryStrategy: MigrationStrategy = vi.fn(
-        (_id, _old, _new, oldState) => {
-          return {
-            value: (oldState as { value: string }).value + '-migrated',
-          };
-        }
-      );
+      const registryStrategy: MigrationStrategy = vi.fn(({ priorValue }) => {
+        return {
+          value: (priorValue as { value: string }).value + '-migrated',
+        };
+      });
 
       const priorView = makeView([makeNode({ id: 'a', hash: 'hash-v1' })]);
       const newView = makeView([

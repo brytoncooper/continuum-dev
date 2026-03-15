@@ -45,11 +45,16 @@ export function reconcileImpl(
   const now = resolveReconciliationTimestamp(resolvedPriorData, resolvedOptions);
 
   if (!resolvedPriorData) {
-    return buildFreshSessionResult(newView, now);
+    return buildFreshSessionResult({ newView, now });
   }
 
   if (!resolvedPriorView) {
-    return buildBlindCarryResult(newView, resolvedPriorData, now, resolvedOptions);
+    return buildBlindCarryResult({
+      newView,
+      priorData: resolvedPriorData,
+      now,
+      options: resolvedOptions,
+    });
   }
 
   return reconcileViewTransition(

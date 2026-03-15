@@ -39,7 +39,7 @@ The full transition path runs in this order:
 
 1. Build deterministic indexes and traversal issues via `buildReconciliationContext`
 2. Build prior-value lookup remapped to new IDs via `buildPriorValueLookupByIdAndKey`
-3. Resolve all new nodes via `resolveAllNodes` / `resolveNode`
+3. Resolve all new nodes via `resolveAllNodes` / `resolveNode` using typed match/runtime envelopes
 4. Detect removals and generate detached values via `detectRemovedNodes`
 5. Convert same-push add/remove pairs into restore outcomes via `restoreFromSamePushDetachments`
 6. Apply cross-level semantic-key migrations via `applySemanticKeyMoves`
@@ -96,4 +96,5 @@ flowchart TD
   - `packages/runtime/src/lib/reconcile/stress.spec.ts`
   - `packages/runtime/src/lib/reconcile/semantic-key.spec.ts`
   - `packages/runtime/src/lib/reconcile/hardening.spec.ts`
+- Keep internal APIs object-shaped for high-arity resolver/helper calls to reduce argument-order risk while preserving output shape and ordering.
 - If control flow changes, update this document and the diagram in the same change.

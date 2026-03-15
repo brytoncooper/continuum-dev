@@ -9,29 +9,27 @@ import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import { collectDuplicateIssues } from '../../context/index.js';
 import type {
   ReconciliationIssue,
-  ReconciliationOptions,
   ReconciliationResult,
 } from '../../types.js';
-import { traverseViewNodes } from '../view-traversal.js';
+import { traverseViewNodes } from '../view-traversal/index.js';
+import { buildLineageFromPrior } from './reconciled-lineage.js';
+import type { BlindCarryResultInput } from './types.js';
 
 export function buildBlindCarryResult(
-  newView: ViewDefinition,
-  priorData: DataSnapshot,
-  now: number,
-  options: ReconciliationOptions
+  input: BlindCarryResultInput
 ): ReconciliationResult {
+  const { newView, priorData, now, options } = input;
   const issues = buildBlindCarryIssues(newView);
 
   if (!options.allowBlindCarry) {
     return {
       reconciledState: {
         values: {},
-        lineage: {
-          ...priorData.lineage,
-          timestamp: now,
-          viewId: newView.viewId,
-          viewVersion: newView.version,
-        },
+        lineage: buildLineageFromPrior({
+          priorLineage: priorData.lineage,
+          now,
+          newView,
+        }),
         ...(hasDetachedValues(priorData)
           ? { detachedValues: { ...priorData.detachedValues } }
           : {}),
@@ -47,12 +45,11 @@ export function buildBlindCarryResult(
   return {
     reconciledState: {
       values: carried.values,
-      lineage: {
-        ...priorData.lineage,
-        timestamp: now,
-        viewId: newView.viewId,
-        viewVersion: newView.version,
-      },
+      lineage: buildLineageFromPrior({
+        priorLineage: priorData.lineage,
+        now,
+        newView,
+      }),
       ...(Object.keys(carried.valueLineage).length > 0
         ? { valueLineage: carried.valueLineage }
         : {}),
@@ -114,7 +111,7 @@ function carryExactIdValues(
 
 function collectNodeIds(nodes: ViewNode[]): Set<string> {
   const ids = new Set<string>();
-  const traversal = traverseViewNodes(nodes);
+  const traversal = traverseViewNodes({ nodes });
   for (const entry of traversal.visited) {
     ids.add(entry.nodeId);
   }
