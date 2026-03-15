@@ -1,151 +1,145 @@
-import { VIEW_DIFFS, DATA_RESOLUTIONS } from '@continuum-dev/contract';
-import type { StateDiff, ReconciliationResolution } from '../../types.js';
+import {
+  addedDiff as addedDiffImpl,
+  removedDiff as removedDiffImpl,
+  typeChangedDiff as typeChangedDiffImpl,
+  migratedDiff as migratedDiffImpl,
+  restoredDiff as restoredDiffImpl,
+} from './diff-factories.js';
+import {
+  addedResolution as addedResolutionImpl,
+  carriedResolution as carriedResolutionImpl,
+  detachedResolution as detachedResolutionImpl,
+  migratedResolution as migratedResolutionImpl,
+  restoredResolution as restoredResolutionImpl,
+} from './resolution-factories.js';
+import type {
+  CarriedResolutionInput as CarriedResolutionInputModel,
+  DetachedResolutionInput as DetachedResolutionInputModel,
+  MigratedResolutionInput as MigratedResolutionInputModel,
+} from './types.js';
 
-export function addedDiff(nodeId: string): StateDiff {
-  return {
-    nodeId,
-    type: VIEW_DIFFS.ADDED,
-    newValue: undefined,
-    reason: 'Node added to view',
-  };
-}
+/**
+ * Stable public boundary for reconciliation diff/resolution record factories.
+ *
+ * Why this exists:
+ * - Keeps callsites off implementation files (`diff-factories`, `resolution-factories`).
+ * - Provides one canonical import path for deterministic record construction.
+ * - Exposes typed input contracts for high-arity resolution records.
+ *
+ * Determinism note:
+ * - These factories are pure and order-preserving; they do not read time, mutate
+ *   shared state, or inspect external context.
+ */
 
-export function removedDiff(nodeId: string, oldValue: unknown): StateDiff {
-  return {
-    nodeId,
-    type: VIEW_DIFFS.REMOVED,
-    oldValue,
-    reason: 'Node removed from view',
-  };
-}
+/**
+ * Emits a `StateDiff` with type `added`.
+ *
+ * Contract:
+ * - `nodeId` is the scoped id in the reconciled view.
+ * - `newValue` is intentionally `undefined` because value initialization can happen
+ *   in later stages and is not encoded here.
+ */
+export const addedDiff = addedDiffImpl;
 
-export function typeChangedDiff(
-  nodeId: string,
-  oldValue: unknown,
-  priorType: string,
-  newType: string
-): StateDiff {
-  return {
-    nodeId,
-    type: VIEW_DIFFS.TYPE_CHANGED,
-    oldValue,
-    reason: `Type changed from ${priorType} to ${newType}`,
-  };
-}
+/**
+ * Emits a `StateDiff` with type `removed`.
+ *
+ * Contract:
+ * - `oldValue` captures the prior snapshot payload that became detached/removed.
+ * - `nodeId` must refer to the resolved prior-scoped node id.
+ */
+export const removedDiff = removedDiffImpl;
 
-export function migratedDiff(
-  nodeId: string,
-  oldValue: unknown,
-  newValue: unknown
-): StateDiff {
-  return {
-    nodeId,
-    type: VIEW_DIFFS.MIGRATED,
-    oldValue,
-    newValue,
-    reason: 'Node view changed, migration applied',
-  };
-}
+/**
+ * Emits a `StateDiff` with type `type-changed`.
+ *
+ * Contract:
+ * - `oldValue` captures the prior value that could not be safely carried.
+ * - `reason` includes both prior and new node types for diagnostics.
+ */
+export const typeChangedDiff = typeChangedDiffImpl;
 
-export function restoredDiff(nodeId: string, newValue: unknown): StateDiff {
-  return {
-    nodeId,
-    type: VIEW_DIFFS.RESTORED,
-    newValue,
-    reason: 'Node restored from detached values',
-  };
-}
+/**
+ * Emits a `StateDiff` with type `migrated`.
+ *
+ * Contract:
+ * - Use when a value was transformed due to schema/view changes.
+ * - Carries both `oldValue` and `newValue` for auditability.
+ */
+export const migratedDiff = migratedDiffImpl;
 
-export function addedResolution(
-  nodeId: string,
-  newType: string
-): ReconciliationResolution {
-  return {
-    nodeId,
-    priorId: null,
-    matchedBy: null,
-    priorType: null,
-    newType,
-    resolution: DATA_RESOLUTIONS.ADDED,
-    priorValue: undefined,
-    reconciledValue: undefined,
-  };
-}
+/**
+ * Emits a `StateDiff` with type `restored`.
+ *
+ * Contract:
+ * - Use when a node value is recovered from detached storage.
+ * - `newValue` is the restored payload now reattached to `nodeId`.
+ */
+export const restoredDiff = restoredDiffImpl;
 
-export function carriedResolution(
-  nodeId: string,
-  priorId: string,
-  matchedBy: 'id' | 'semanticKey' | 'key',
-  nodeType: string,
-  priorValue: unknown,
-  reconciledValue: unknown
-): ReconciliationResolution {
-  return {
-    nodeId,
-    priorId,
-    matchedBy,
-    priorType: nodeType,
-    newType: nodeType,
-    resolution: DATA_RESOLUTIONS.CARRIED,
-    priorValue,
-    reconciledValue,
-  };
-}
+/**
+ * Emits a `ReconciliationResolution` with resolution `added`.
+ *
+ * Contract:
+ * - Prior identity fields are always `null`.
+ * - `priorValue` and `reconciledValue` are intentionally `undefined`.
+ */
+export const addedResolution = addedResolutionImpl;
 
-export function detachedResolution(
-  nodeId: string,
-  priorId: string,
-  matchedBy: 'id' | 'semanticKey' | 'key' | null,
-  priorType: string,
-  newType: string,
-  priorValue: unknown
-): ReconciliationResolution {
-  return {
-    nodeId,
-    priorId,
-    matchedBy,
-    priorType,
-    newType,
-    resolution: DATA_RESOLUTIONS.DETACHED,
-    priorValue,
-    reconciledValue: undefined,
-  };
-}
+/**
+ * Emits a `ReconciliationResolution` with resolution `carried`.
+ *
+ * Contract:
+ * - `matchedBy` must be concrete (`id`, `semanticKey`, or `key`).
+ * - `priorType` and `newType` are identical (`nodeType`).
+ */
+export const carriedResolution = carriedResolutionImpl;
 
-export function migratedResolution(
-  nodeId: string,
-  priorId: string,
-  matchedBy: 'id' | 'semanticKey' | 'key' | null,
-  priorType: string,
-  newType: string,
-  priorValue: unknown,
-  reconciledValue: unknown
-): ReconciliationResolution {
-  return {
-    nodeId,
-    priorId,
-    matchedBy,
-    priorType,
-    newType,
-    resolution: DATA_RESOLUTIONS.MIGRATED,
-    priorValue,
-    reconciledValue,
-  };
-}
+/**
+ * Emits a `ReconciliationResolution` with resolution `detached`.
+ *
+ * Contract:
+ * - `reconciledValue` is always `undefined`.
+ * - `matchedBy` may be `null` when no deterministic match is available.
+ */
+export const detachedResolution = detachedResolutionImpl;
 
-export function restoredResolution(
-  nodeId: string,
-  priorType: string,
-  reconciledValue: unknown
-): ReconciliationResolution {
-  return {
-    nodeId,
-    priorId: null,
-    matchedBy: null,
-    priorType,
-    newType: priorType,
-    resolution: DATA_RESOLUTIONS.RESTORED,
-    priorValue: undefined,
-    reconciledValue,
-  };
-}
+/**
+ * Emits a `ReconciliationResolution` with resolution `migrated`.
+ *
+ * Contract:
+ * - Captures both `priorValue` and transformed `reconciledValue`.
+ * - `priorType` and `newType` can differ when migration crosses node schemas.
+ */
+export const migratedResolution = migratedResolutionImpl;
+
+/**
+ * Emits a `ReconciliationResolution` with resolution `restored`.
+ *
+ * Contract:
+ * - Prior identity fields are `null` because restoration comes from detached
+ *   value lookup, not direct prior-node matching.
+ * - `priorType` and `newType` are set to the restored node type.
+ */
+export const restoredResolution = restoredResolutionImpl;
+
+/**
+ * Typed object shape for `carriedResolution`.
+ *
+ * Use this to avoid positional-argument ordering bugs at callsites.
+ */
+export type CarriedResolutionInput = CarriedResolutionInputModel;
+
+/**
+ * Typed object shape for `detachedResolution`.
+ *
+ * Use this to keep prior/new type fields explicit during detach paths.
+ */
+export type DetachedResolutionInput = DetachedResolutionInputModel;
+
+/**
+ * Typed object shape for `migratedResolution`.
+ *
+ * Use this when both prior and reconciled values must be recorded explicitly.
+ */
+export type MigratedResolutionInput = MigratedResolutionInputModel;

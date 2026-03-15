@@ -4,10 +4,12 @@ import {
   removedDiff,
   typeChangedDiff,
   migratedDiff,
+  restoredDiff,
   addedResolution,
   carriedResolution,
   detachedResolution,
   migratedResolution,
+  restoredResolution,
 } from './index.js';
 
 describe('diff factories', () => {
@@ -40,6 +42,16 @@ describe('diff factories', () => {
     expect(diff.oldValue).toEqual({ value: 'old' });
     expect(diff.newValue).toEqual({ value: 'new' });
   });
+
+  it('restoredDiff captures restored value and deterministic reason', () => {
+    const diff = restoredDiff('node-1', { value: 'restored' });
+    expect(diff).toEqual({
+      nodeId: 'node-1',
+      type: 'restored',
+      newValue: { value: 'restored' },
+      reason: 'Node restored from detached values',
+    });
+  });
 });
 
 describe('resolution factories', () => {
@@ -54,7 +66,14 @@ describe('resolution factories', () => {
   });
 
   it('carriedResolution records match details and preserved value', () => {
-    const res = carriedResolution('new-id', 'old-id', 'key', 'field', 'hello', 'hello');
+    const res = carriedResolution({
+      nodeId: 'new-id',
+      priorId: 'old-id',
+      matchedBy: 'key',
+      nodeType: 'field',
+      priorValue: 'hello',
+      reconciledValue: 'hello',
+    });
     expect(res.resolution).toBe('carried');
     expect(res.priorId).toBe('old-id');
     expect(res.matchedBy).toBe('key');
@@ -63,16 +82,45 @@ describe('resolution factories', () => {
   });
 
   it('detachedResolution clears reconciledValue', () => {
-    const res = detachedResolution('node-1', 'node-1', 'id', 'field', 'action', 'hello');
+    const res = detachedResolution({
+      nodeId: 'node-1',
+      priorId: 'node-1',
+      matchedBy: 'id',
+      priorType: 'field',
+      newType: 'action',
+      priorValue: 'hello',
+    });
     expect(res.resolution).toBe('detached');
     expect(res.reconciledValue).toBeUndefined();
     expect(res.priorValue).toBe('hello');
   });
 
   it('migratedResolution captures both prior and migrated values', () => {
-    const res = migratedResolution('node-1', 'node-1', 'id', 'field', 'field', 'old', 'new');
+    const res = migratedResolution({
+      nodeId: 'node-1',
+      priorId: 'node-1',
+      matchedBy: 'id',
+      priorType: 'field',
+      newType: 'field',
+      priorValue: 'old',
+      reconciledValue: 'new',
+    });
     expect(res.resolution).toBe('migrated');
     expect(res.priorValue).toBe('old');
     expect(res.reconciledValue).toBe('new');
+  });
+
+  it('restoredResolution keeps prior/new type stable and null match metadata', () => {
+    const res = restoredResolution('node-1', 'field', { value: 'restored' });
+    expect(res).toEqual({
+      nodeId: 'node-1',
+      priorId: null,
+      matchedBy: null,
+      priorType: 'field',
+      newType: 'field',
+      resolution: 'restored',
+      priorValue: undefined,
+      reconciledValue: { value: 'restored' },
+    });
   });
 });
