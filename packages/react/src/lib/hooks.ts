@@ -11,6 +11,7 @@ import type {
   ContinuitySnapshot,
   NodeValue,
   ProposedValue,
+  SessionStream,
   Session,
   ViewportState,
 } from '@continuum-dev/core';
@@ -205,6 +206,112 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
   }, [store]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/**
+ * Subscribes to the latest durable committed continuity snapshot.
+ */
+export function useContinuumCommittedSnapshot(): ContinuitySnapshot | null {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumCommittedSnapshot must be used within a <ContinuumProvider>'
+    );
+  }
+  const { store } = ctx;
+  const snapshotCacheRef = useRef<{
+    view: ContinuitySnapshot['view'] | null;
+    data: ContinuitySnapshot['data'] | null;
+    snapshot: ContinuitySnapshot | null;
+  }>({
+    view: null,
+    data: null,
+    snapshot: null,
+  });
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
+    [store]
+  );
+
+  const getSnapshot = useCallback(() => {
+    const nextSnapshot = store.getCommittedSnapshot();
+    const cache = snapshotCacheRef.current;
+
+    if (!nextSnapshot) {
+      cache.view = null;
+      cache.data = null;
+      cache.snapshot = null;
+      return null;
+    }
+
+    if (
+      cache.snapshot &&
+      cache.view === nextSnapshot.view &&
+      cache.data === nextSnapshot.data
+    ) {
+      return cache.snapshot;
+    }
+
+    cache.view = nextSnapshot.view;
+    cache.data = nextSnapshot.data;
+    cache.snapshot = nextSnapshot;
+    return nextSnapshot;
+  }, [store]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/**
+ * Subscribes to stream metadata emitted by the active Continuum session.
+ */
+export function useContinuumStreams(): SessionStream[] {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'useContinuumStreams must be used within a <ContinuumProvider>'
+    );
+  }
+
+  const { store } = ctx;
+  const streamsCacheRef = useRef<SessionStream[]>([]);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribeStreams(onStoreChange),
+    [store]
+  );
+
+  const getSnapshot = useCallback(() => {
+    const nextStreams = store.getStreams();
+    if (shallowArrayEqual(streamsCacheRef.current, nextStreams)) {
+      return streamsCacheRef.current;
+    }
+    streamsCacheRef.current = nextStreams;
+    return nextStreams;
+  }, [store]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/**
+ * Returns the current foreground streaming state for renderer/integration use.
+ */
+export function useContinuumStreaming(): {
+  streams: SessionStream[];
+  activeStream: SessionStream | null;
+  isStreaming: boolean;
+} {
+  const streams = useContinuumStreams();
+  const activeStream =
+    streams.find(
+      (stream) => stream.status === 'open' && stream.mode === 'foreground'
+    ) ?? null;
+
+  return {
+    streams,
+    activeStream,
+    isStreaming: activeStream !== null,
+  };
 }
 
 /**

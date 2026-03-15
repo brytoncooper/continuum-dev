@@ -4,6 +4,7 @@ import type {
   Session,
   ContinuitySnapshot,
   NodeValue,
+  SessionStream,
   ViewportState,
 } from '@continuum-dev/core';
 import type { ContinuumNodeMap, ContinuumProviderProps } from './types.js';
@@ -64,8 +65,16 @@ function getChangedNodeIds(
 export interface ContinuumStore {
   /** Returns the latest continuity snapshot. */
   getSnapshot(): ContinuitySnapshot | null;
+  /** Returns the latest committed continuity snapshot. */
+  getCommittedSnapshot(): ContinuitySnapshot | null;
+  /** Returns the latest stream metadata. */
+  getStreams(): SessionStream[];
+  /** Returns the active foreground stream when one exists. */
+  getActiveStream(): SessionStream | null;
   /** Subscribes to snapshot updates. */
   subscribeSnapshot(listener: Listener): () => void;
+  /** Subscribes to stream metadata updates. */
+  subscribeStreams(listener: Listener): () => void;
   /** Subscribes to diagnostics-related updates. */
   subscribeDiagnostics(listener: Listener): () => void;
   /** Returns a node value by canonical id. */
@@ -80,13 +89,17 @@ export interface ContinuumStore {
 
 function createContinuumStore(session: Session): ContinuumStore {
   let snapshot = session.getSnapshot();
+  let committedSnapshot = session.getCommittedSnapshot();
+  let streams = session.getStreams?.() ?? [];
   const snapshotListeners = new Set<Listener>();
+  const streamListeners = new Set<Listener>();
   const diagnosticsListeners = new Set<Listener>();
   const nodeListeners = new Map<string, Set<Listener>>();
 
   const cleanupSnapshot = session.onSnapshot((nextSnapshot) => {
     const previousSnapshot = snapshot;
     snapshot = nextSnapshot;
+    committedSnapshot = session.getCommittedSnapshot();
 
     notifyListeners(snapshotListeners);
     notifyListeners(diagnosticsListeners);
@@ -107,16 +120,36 @@ function createContinuumStore(session: Session): ContinuumStore {
     }
   });
 
+  const cleanupStreams =
+    typeof session.onStreams === 'function'
+      ? session.onStreams((nextStreams) => {
+          streams = nextStreams;
+          notifyListeners(streamListeners);
+        })
+      : () => undefined;
+
   const cleanupIssues = session.onIssues(() => {
     notifyListeners(diagnosticsListeners);
   });
 
   return {
     getSnapshot: () => snapshot,
+    getCommittedSnapshot: () => committedSnapshot,
+    getStreams: () => streams,
+    getActiveStream: () =>
+      streams.find(
+        (stream) => stream.status === 'open' && stream.mode === 'foreground'
+      ) ?? null,
     subscribeSnapshot(listener) {
       snapshotListeners.add(listener);
       return () => {
         snapshotListeners.delete(listener);
+      };
+    },
+    subscribeStreams(listener) {
+      streamListeners.add(listener);
+      return () => {
+        streamListeners.delete(listener);
       };
     },
     subscribeDiagnostics(listener) {
@@ -152,8 +185,10 @@ function createContinuumStore(session: Session): ContinuumStore {
     },
     destroy() {
       cleanupSnapshot();
+      cleanupStreams();
       cleanupIssues();
       snapshotListeners.clear();
+      streamListeners.clear();
       diagnosticsListeners.clear();
       nodeListeners.clear();
     },

@@ -1,6 +1,18 @@
 import type { NodeValue, SessionOptions, ViewNode } from '@continuum-dev/core';
 import type { ComponentType } from 'react';
 
+export type ContinuumNodeBuildState =
+  | 'building'
+  | 'ready'
+  | 'committed'
+  | 'error';
+
+export interface ContinuumNodeStreamStatus {
+  status: string;
+  level: 'info' | 'success' | 'warning' | 'error';
+  subtree?: boolean;
+}
+
 /**
  * Props passed to node renderer components in the Continuum map.
  *
@@ -19,6 +31,12 @@ export interface ContinuumNodeProps<T = NodeValue> {
   definition: ViewNode;
   /** Canonical node id, including parent path for nested nodes. */
   nodeId?: string;
+  /** True when a foreground stream is currently building this node or subtree. */
+  isStreaming?: boolean;
+  /** Renderer-facing build state for live-streamed UI. */
+  buildState?: ContinuumNodeBuildState;
+  /** Node-specific stream status when one exists. */
+  streamStatus?: ContinuumNodeStreamStatus;
   /** Rendered children for container-like nodes. */
   children?: React.ReactNode;
   /** Additional mapped props provided by renderers/integrations. */

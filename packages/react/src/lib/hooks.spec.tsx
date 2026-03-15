@@ -7,7 +7,10 @@ import {
   useContinuumSession,
   useContinuumState,
   useContinuumSnapshot,
+  useContinuumCommittedSnapshot,
   useContinuumDiagnostics,
+  useContinuumStreaming,
+  useContinuumStreams,
   useContinuumViewport,
   useContinuumAction,
   useContinuumHydrated,
@@ -281,6 +284,59 @@ describe('useContinuumSnapshot', () => {
     );
     expect(hookSnapshot).toBeDefined();
     expect(hookSnapshot?.view.viewId).toBe('v1');
+  });
+
+  it('keeps committed snapshot stable while a foreground stream updates the render snapshot', () => {
+    let renderSnapshot: ReturnType<typeof useContinuumSnapshot> = null;
+    let committedSnapshot: ReturnType<typeof useContinuumCommittedSnapshot> =
+      null;
+    let streamingState: ReturnType<typeof useContinuumStreaming> | null = null;
+    let streams: ReturnType<typeof useContinuumStreams> = [];
+    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+
+      renderSnapshot = useContinuumSnapshot();
+      committedSnapshot = useContinuumCommittedSnapshot();
+      streamingState = useContinuumStreaming();
+      streams = useContinuumStreams();
+      return null;
+    }
+
+    render(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    act(() => {
+      const stream = requireSession(capturedSession).beginStream({
+        targetViewId: 'v1',
+        mode: 'foreground',
+      });
+      requireSession(capturedSession).applyStreamPart(stream.streamId, {
+        kind: 'view',
+        view: {
+          ...viewDef,
+          version: '2.0',
+          nodes: [
+            ...viewDef.nodes,
+            { id: 'f2', type: 'field', dataType: 'string' },
+          ],
+        },
+      });
+    });
+
+    expect(renderSnapshot?.view.version).toBe('2.0');
+    expect(committedSnapshot?.view.version).toBe('1.0');
+    expect(streamingState?.isStreaming).toBe(true);
+    expect(streamingState?.activeStream?.viewVersion).toBe('2.0');
+    expect(streams[0]?.status).toBe('open');
   });
 });
 
