@@ -5,7 +5,7 @@ import type {
 import { StarterKitChatBoxShell } from './chat-box-shell.js';
 import { useVercelAiSdkChatController } from './use-vercel-ai-sdk-chat-controller.js';
 
-type DistributiveOmit<T, K extends keyof any> = T extends unknown
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
   ? Omit<T, K>
   : never;
 
