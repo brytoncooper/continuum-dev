@@ -1,184 +1,279 @@
-# ♾️ @continuum-dev/runtime
+# @continuum-dev/runtime
 
-**The State Reconciliation Engine for Generative UI.** Saving state is easy. Reconciling state across unpredictable AI mutations is hard.
+**A deterministic reconciliation engine for AI-generated interfaces.**
 
 Website: [continuumstack.dev](https://continuumstack.dev)
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-## Core Premise: The Ephemerality Gap
-
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
-
 [![npm version](https://badge.fury.io/js/@continuum-dev%2Fruntime.svg)](https://badge.fury.io/js/@continuum-dev%2Fruntime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## The Problem: AI Forces Reconciliation
+## The Ephemerality Gap
 
-In a traditional application, state management is trivial: a field has a static ID, and you map a value to it.
+The **Ephemerality Gap** is the mismatch between ephemeral, regenerating interfaces and durable user intent.
 
-But in **Generative UI**, the AI doesn't just change data-it changes *structure*.
+In a traditional app, UI structure is mostly stable. A field keeps the same identity, state lives in a predictable place, and preserving user input is straightforward.
 
-Imagine an AI agent renders a UI for a user. The user starts filling out a text field (`id: "field_123"`). Halfway through, the AI decides to "improve" the layout. It streams an updated UI that moves the field into a new grid, changes the container type, and renames the ID to `id: "grid_item_456"`.
+In generative UI, the model can change the structure itself:
 
-Standard frameworks drop the old node, mount the new node, and the user's input is destroyed. The data wasn't lost because of a bad state store; it was orphaned because **the map between the state and the UI was mutated**.
+- a field gets renamed
+- a field moves under a new container
+- a top-level node becomes part of a collection template
+- a schema changes shape between pushes
 
-To fix this, you don't need a better state manager. You need a reconciliation engine.
+The user is still expressing the same intent, but the interface that used to hold that intent has changed underneath them.
 
-## The Solution
+That is the Ephemerality Gap. `@continuum-dev/runtime` exists to close it.
 
-**Continuum Runtime** is a pure, stateless reconciliation engine designed specifically to solve the continuity problem in AI-generated interfaces.
+## What This Package Does
 
-Given a `priorView`, a `newView`, and the `priorData`, the engine performs deterministic semantic diffing. It matches nodes by stable keys (even when IDs change), executes data migrations, handles deep nesting restructures, and outputs a perfectly reconciled state ready for rendering.
+`@continuum-dev/runtime` accepts:
+
+- a `newView`
+- a `priorView`
+- a `priorData` snapshot
+- runtime `options`
+
+It returns the next canonical snapshot plus an explanation of what happened during reconciliation.
+
+Instead of guessing, the runtime applies deterministic rules for:
+
+- carrying values forward when identity is still defensible
+- migrating values when schema changes are explicitly supported
+- detaching values when carry would be unsafe
+- restoring detached values when compatible structure returns
+- surfacing issues when the new view introduces ambiguity or invalid state
+
+This package is pure TypeScript, framework-agnostic, and side-effect free inside reconciliation.
 
 ```bash
 npm install @continuum-dev/runtime
-
 ```
 
-## Core Capabilities
+## Why Reconciliation Matters
 
-* 🧠 **Semantic Reconciliation:** AI changed the node IDs? Wrapped them in a new `Row` or `Grid`? Continuum reconciles data via stable semantic keys, ensuring state survives massive layout overhauls.
-* 🛡️ **Detached State Retention:** If the AI temporarily removes a field, Continuum doesn't throw the data away. It caches it as an "orphaned" value and automatically restores it if the AI brings the field back in a future turn.
-* 🔄 **Data Migrations:** Upgrading a simple text `field` to a complex `collection`? Provide migration strategies to transform data payloads seamlessly across view transitions.
-* ⚛️ **Pure & Framework Agnostic:** 100% pure TypeScript. Zero I/O side-effects. Use it to power the reconciliation layer of your React, Angular, Vue, or Vanilla JS agents.
+Suppose a user typed an email into a field keyed as `user_email`. On the next model push, that field is moved under a new layout group and gets a different node ID.
 
----
+Without reconciliation, the old node disappears, the new node mounts, and the user's input is lost.
+
+With Continuum runtime, the value can survive because the engine reconciles the **meaning** of the field across structural change, not just its old raw ID.
 
 ## Quick Start
 
-Here is how Continuum reconciles state when an AI completely restructures a UI mid-session.
+The preferred API is object-shaped:
 
 ```typescript
 import { reconcile } from '@continuum-dev/runtime';
 
-// 1. The old view and the user's current data
 const priorView = {
   viewId: 'v1',
   version: '1.0',
-  nodes: [{ id: 'random_id_1', key: 'user_email', type: 'field' }]
+  nodes: [{ id: 'random_id_1', key: 'user_email', type: 'field' }],
 };
 
 const priorData = {
   values: {
-    'random_id_1': { value: 'alice@example.com' } // The user typed this!
+    random_id_1: { value: 'alice@example.com' },
   },
-  lineage: { timestamp: Date.now(), sessionId: 'session_123', viewId: 'v1', viewVersion: '1.0' }
+  lineage: {
+    timestamp: 100,
+    sessionId: 'session_123',
+    viewId: 'v1',
+    viewVersion: '1.0',
+  },
 };
 
-// 2. The AI generates a totally new layout, burying the field in a group and changing the ID.
 const newView = {
   viewId: 'v2',
   version: '2.0',
-  nodes: [{
-    id: 'layout_group',
-    type: 'group',
-    children: [{ id: 'new_id_99', key: 'user_email', type: 'field' }]
-  }]
+  nodes: [
+    {
+      id: 'layout_group',
+      type: 'group',
+      children: [{ id: 'new_id_99', key: 'user_email', type: 'field' }],
+    },
+  ],
 };
 
-// 3. Reconcile the AI's structural mutation! 🪄
-const { reconciledState, diffs, issues, resolutions } = reconcile(
+const result = reconcile({
   newView,
   priorView,
-  priorData
-);
-
-// Continuum reconciled the state using the stable 'user_email' key.
-// Your data survived the AI's restructure!
-console.log(reconciledState.values['layout_group/new_id_99'].value);
-// Output: 'alice@example.com'
-
-```
-
-## Deep Dive: The Reconciliation Pipeline
-
-When you call `reconcile()`, the runtime executes a strict, deterministic pipeline to figure out exactly what the AI did:
-
-Internal architecture reference:
-- [Context module flow and contracts](src/lib/context/README.md)
-
-1. **Context Indexing:** Recursively indexes both views into lookup maps by `id` and `key`, using scoped nested paths plus dot-suffix key matching to detect structural shifts.
-2. **Node Resolution:** Evaluates every node in the new view:
-* **Carry:** Type and Hash match; data moves forward effortlessly.
-* **Migrate:** Hash changed; trigger explicit or registry-based migration strategies to reshape the data payload.
-* **Detach:** Type mismatch (e.g., a text input became a button); old data is safely stored in `detachedValues` rather than discarded.
-* **Restore:** A newly generated node matches the key/type of a previously detached value, reconciling the old data back to life.
-
-
-3. **Collection Mapping:** Normalizes arrays, enforcing `minItems`/`maxItems` constraints and remapping nested template paths if the AI restructures list items.
-4. **Validation:** Runs lightweight constraints checks (`min`, `max`, `pattern`, `required`) to immediately surface data issues caused by the AI's new schema.
-
-## Advanced: Migration Strategies
-
-Sometimes an AI doesn't just move a node; it fundamentally changes its data structure. Continuum allows you to define explicit migration strategies during reconciliation.
-
-```typescript
-const result = reconcile(newView, priorView, priorData, {
-  migrationStrategies: {
-    // If the AI changes the 'status' node schema, run this transformation
-    'status': (nodeId, priorNode, newNode, priorValue) => {
-       const typedValue = priorValue as { value: string };
-       return { value: typedValue.value.toUpperCase() };
-    }
-  },
-  // Or pass a registry of chainable strategies defined by the view AST
-  strategyRegistry: {
-    'string-to-array': myStringToArrayFunction
-  }
+  priorData,
+  options: {},
 });
 
+console.log(result.reconciledState.values['layout_group/new_id_99']);
+console.log(result.diffs);
+console.log(result.resolutions);
+console.log(result.issues);
 ```
 
----
+The legacy positional form is still supported, but it is deprecated:
 
-## The Continuum Ecosystem
+```typescript
+reconcile(newView, priorView, priorData, {});
+```
 
-This package is the core engine, but the Continuum SDK provides dedicated framework bindings so you don't have to wire this up manually:
+## What `reconcile()` Returns
 
-* `@continuum-dev/session` - Stateful manager for conversational UI streams.
-* `@continuum-dev/react` - React bindings and component renderer.
-* `@continuum-dev/angular` - Angular bindings and directives.
+Every run returns a `ReconciliationResult`:
 
----
+```typescript
+interface ReconciliationResult {
+  reconciledState: DataSnapshot;
+  diffs: StateDiff[];
+  issues: ReconciliationIssue[];
+  resolutions: ReconciliationResolution[];
+}
+```
 
-## Public API Reference
+- `reconciledState` is the snapshot you persist and render next.
+- `diffs` records what changed.
+- `resolutions` explains how each node in the new view was resolved.
+- `issues` reports ambiguity, safety boundaries, and validation problems.
 
-The runtime barrel file exports:
+For integrations, that inspectability matters almost as much as the carry logic itself.
 
-- `./lib/reconcile.js`
-- `./lib/types.js`
-- `./lib/context.js`
-- `./lib/reconciliation/validator.js`
+## How Matching Works
 
-Most integrations only need `reconcile()`, but advanced applications can use the lower-level APIs for debugging, preflight checks, and custom matching workflows.
+In a full transition, Continuum does not use fuzzy heuristics. It uses fixed precedence:
 
-### 1) Core Orchestration
+1. scoped `id`
+2. unique `semanticKey`
+3. scoped `key`
 
-#### `reconcile()`
+Important details:
 
-Primary runtime entrypoint. Compares a new view against prior view/data and returns reconciled state plus reconciliation metadata.
+- Matching is path-aware, not just raw local ID matching.
+- Semantic-key matching is only used when the semantic key is unique on both sides.
+- If carry would be unsafe, the runtime keeps the value in `detachedValues` instead of forcing it into the wrong node.
+- If a compatible node reappears later, that detached value can be restored.
+
+This is how the runtime preserves continuity without pretending uncertain matches are safe.
+
+## The Three Runtime Branches
+
+`reconcile()` always takes exactly one branch.
+
+### 1. Fresh Session
+
+Used when `priorData === null`.
+
+- Initializes state from the new view.
+- Emits added outcomes for the new nodes.
+- Requires `options.clock`, because there is no prior lineage timestamp to advance.
+
+### 2. Blind Carry
+
+Used when `priorData !== null` and `priorView === null`.
+
+- Emits `NO_PRIOR_VIEW`.
+- Can carry values only by exact scoped IDs when `allowBlindCarry` is enabled.
+- Does not attempt key or semantic-key matching in this mode.
+
+### 3. Full Transition
+
+Used when both `priorView` and `priorData` exist.
+
+- Builds deterministic context and lookup state.
+- Resolves each new node as added, carried, migrated, detached, restored, or collection-reconciled.
+- Detects removed nodes and preserves their values as detached state.
+- Applies same-push restore and semantic-key move transforms.
+- Assembles the final snapshot and issues.
+
+## Key Guarantees
+
+The runtime is designed around explicit, inspectable guarantees:
+
+- Same inputs produce the same outputs for a fixed timestamp source.
+- Type-incompatible transitions do not blindly carry old values into new nodes.
+- Migration failures do not crash reconciliation; they surface as issues and fall back deterministically.
+- Detached values are preserved instead of silently discarded.
+- Compatible reappearance can restore detached state.
+- Collection normalization and constraint handling are deterministic.
+- Validation issues are emitted as structured runtime issues.
+
+## Migration Strategies
+
+When a node hash changes and you want a deliberate data transformation, provide migration strategies through `ReconciliationOptions`.
+
+```typescript
+import { reconcile } from '@continuum-dev/runtime';
+
+const result = reconcile({
+  newView,
+  priorView,
+  priorData,
+  options: {
+    migrationStrategies: {
+      status: ({ priorValue }) => {
+        const typedValue = priorValue as { value: string };
+        return { value: typedValue.value.toUpperCase() };
+      },
+    },
+    strategyRegistry: {
+      stringToArray: ({ priorValue }) => {
+        const typedValue = priorValue as { value: string };
+        return { value: [typedValue.value] };
+      },
+    },
+  },
+});
+```
+
+The exported `MigrationStrategy` type is context-shaped: `({ nodeId, priorNode, newNode, priorValue }) => unknown`.
+
+## Public API Surface
+
+The package currently exposes:
+
+### Root Import
+
+```typescript
+import {
+  reconcile,
+  validateNodeValue,
+  applyContinuumViewPatch,
+  patchViewDefinition,
+  patchViewNode,
+} from '@continuum-dev/runtime';
+```
+
+This root surface includes:
+
+- `reconcile`
+- runtime types from `src/lib/types.ts`
+- validator exports
+- view-patch helpers
+
+### Validator Subpath
+
+```typescript
+import { validateNodeValue } from '@continuum-dev/runtime/validator';
+```
+
+### Reconcile Signature
+
+Preferred form:
+
+```typescript
+function reconcile(input: ReconcileInput): ReconciliationResult;
+```
+
+Legacy form:
 
 ```typescript
 function reconcile(
   newView: ViewDefinition,
   priorView: ViewDefinition | null,
   priorData: DataSnapshot | null,
-  options?: ReconciliationOptions
+  options: ReconciliationOptions
 ): ReconciliationResult;
 ```
 
-Use case:
-- Call this on every new AI-generated view push to preserve user state across structural mutations.
-- Use the returned `diffs`, `issues`, and `resolutions` to power devtools, telemetry, or UI diagnostics.
+### Important Types
 
-### 2) Core Types and Interfaces
-
-Exported from `src/lib/types.ts`.
-
-#### `ReconciliationOptions`
-
-Controls runtime behavior and migration extension points.
+`ReconciliationOptions`
 
 ```typescript
 interface ReconciliationOptions {
@@ -190,55 +285,13 @@ interface ReconciliationOptions {
 }
 ```
 
-Use case:
-- Enable `allowBlindCarry` when you have prior data but no prior view AST.
-- Provide `migrationStrategies` or `strategyRegistry` when node schemas evolve across view versions.
-- Provide `clock` in tests for deterministic lineage timestamps.
-
-#### `ReconciliationResult`
-
-Full output payload from `reconcile()`.
-
-```typescript
-interface ReconciliationResult {
-  reconciledState: DataSnapshot;
-  diffs: StateDiff[];
-  issues: ReconciliationIssue[];
-  resolutions: ReconciliationResolution[];
-}
-```
-
-Use case:
-- Persist `reconciledState` as your canonical session state.
-- Use `issues` as immediate feedback when AI-generated schemas introduce invalid data.
-
-#### `StateDiff`
-
-Represents a single change produced during reconciliation.
-
-```typescript
-interface StateDiff {
-  nodeId: string;
-  type: ViewDiff;
-  oldValue?: unknown;
-  newValue?: unknown;
-  reason?: string;
-}
-```
-
-Use case:
-- Render "what changed" timelines in developer tooling.
-- Trigger downstream automation only for specific diff types (for example, `migrated` or `removed`).
-
-#### `ReconciliationResolution`
-
-Per-node trace of how a value was resolved.
+`ReconciliationResolution`
 
 ```typescript
 interface ReconciliationResolution {
   nodeId: string;
   priorId: string | null;
-  matchedBy: 'id' | 'key' | null;
+  matchedBy: 'id' | 'semanticKey' | 'key' | null;
   priorType: string | null;
   newType: string;
   resolution: DataResolution;
@@ -247,167 +300,35 @@ interface ReconciliationResolution {
 }
 ```
 
-Use case:
-- Explain why a node was carried, migrated, detached, added, or restored.
-- Audit matching reliability (`matchedBy: 'id' | 'key'`) over real AI traffic.
+## Internal Docs
 
-#### `ReconciliationIssue`
+The package README describes the supported contract.
 
-Structured issue emitted by reconciliation and validation.
+These deeper documents explain implementation details and maintenance-level behavior:
 
-```typescript
-interface ReconciliationIssue {
-  severity: IssueSeverity;
-  nodeId?: string;
-  message: string;
-  code: IssueCode;
-}
-```
+- [Runtime comprehensive reference](./RUNTIME_COMPREHENSIVE_REFERENCE.md)
+- [Reconcile orchestration](./src/lib/reconcile/README.md)
+- [Behavior guarantees](./src/lib/reconcile/behavior-guarantees.md)
+- [Semantic key moves](./src/lib/reconcile/semantic-moves/README.md)
+- [Context and matching](./src/lib/context/README.md)
+- [Reconciliation internals](./src/lib/reconciliation/README.md)
+- [Collection resolver](./src/lib/reconciliation/collection-resolver/README.md)
+- [Node resolver](./src/lib/reconciliation/node-resolver/README.md)
+- [Result builder](./src/lib/reconciliation/result-builder/README.md)
+- [Differ](./src/lib/reconciliation/differ/README.md)
+- [Migrator](./src/lib/reconciliation/migrator/README.md)
+- [View traversal](./src/lib/reconciliation/view-traversal/README.md)
+- [Validator](./src/lib/validator/README.md)
 
-Use case:
-- Surface warning/error banners in debugging UIs.
-- Build alerting and metrics keyed by `code` and `severity`.
+Those docs are for understanding how the runtime works internally. They are not a promise that every internal module is a stable public integration surface.
 
-#### `MigrationStrategy`
+## Ecosystem
 
-User-implemented function for transforming payloads when a node schema changes.
+This package is the core reconciliation engine in the Continuum stack.
 
-```typescript
-type MigrationStrategy = (
-  nodeId: string,
-  priorNode: ViewNode,
-  newNode: ViewNode,
-  priorValue: unknown
-) => unknown;
-```
-
-Use case:
-- Convert old value shapes into new structures when AI changes a node contract.
-- Keep business-critical data continuity through deliberate, explicit transformations.
-
-Note:
-- `NodeResolutionAccumulator` is also exported but is primarily an internal accumulator used by the reconciliation loop.
-
-### 3) Context and Matching Utilities (Advanced)
-
-Exported from `src/lib/context.ts`.
-
-#### `buildReconciliationContext()`
-
-Indexes new and prior views into id/key lookup maps used by matching and resolution.
-
-```typescript
-function buildReconciliationContext(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null
-): ReconciliationContext;
-```
-
-Use case:
-- Build custom reconciliation inspectors or diagnostics outside the main pipeline.
-- Precompute matching context once when running specialized custom workflows.
-
-#### `findPriorNode()`
-
-Finds the best prior-view match for a new node using scoped id, key, and suffix fallback rules.
-
-```typescript
-function findPriorNode(
-  ctx: ReconciliationContext,
-  newNode: ViewNode
-): ViewNode | null;
-```
-
-Use case:
-- Debug matching behavior node-by-node.
-- Validate whether your semantic key strategy is stable across generated layouts.
-
-#### `buildPriorValueLookupByIdAndKey()`
-
-Creates a lookup map that carries prior values by id and semantic key remapping.
-
-```typescript
-function buildPriorValueLookupByIdAndKey(
-  priorData: DataSnapshot,
-  ctx: ReconciliationContext
-): Map<string, unknown>;
-```
-
-Use case:
-- Reuse runtime value remapping logic in custom reconciliation or simulation tooling.
-
-#### `determineNodeMatchStrategy()`
-
-Returns how a new node matched to prior state (`id`, `key`, or `null`).
-
-```typescript
-function determineNodeMatchStrategy(
-  ctx: ReconciliationContext,
-  newNode: ViewNode,
-  priorNode: ViewNode | null
-): 'id' | 'key' | null;
-```
-
-Use case:
-- Instrument matching quality and identify over-reliance on id-only carries.
-
-#### `resolvePriorSnapshotId()`
-
-Resolves a snapshot key to a unique scoped prior node id when possible.
-
-```typescript
-function resolvePriorSnapshotId(
-  ctx: ReconciliationContext,
-  priorId: string
-): string | null;
-```
-
-Use case:
-- Normalize snapshot keys before custom diffing, reconciliation, or migration passes.
-
-#### `findNewNodeByPriorNode()`
-
-Maps a prior node forward to its best new-view candidate by key.
-
-```typescript
-function findNewNodeByPriorNode(
-  ctx: ReconciliationContext,
-  priorNode: ViewNode
-): ViewNode | null;
-```
-
-Use case:
-- Build forward-mapping analyzers for node removals, moves, and restores.
-
-#### `collectDuplicateIssues()`
-
-Scans a view tree for duplicate ids/keys and returns structured issues.
-
-```typescript
-function collectDuplicateIssues(nodes: ViewNode[]): ReconciliationIssue[];
-```
-
-Use case:
-- Run preflight validation on AI-generated views before invoking `reconcile()`.
-
-### 4) Validation
-
-Exported from `src/lib/reconciliation/validator.ts`.
-
-#### `validateNodeValue()`
-
-Validates a node value against view constraints (`required`, numeric bounds, length bounds, pattern).
-
-```typescript
-function validateNodeValue(
-  node: ViewNode,
-  state: NodeValue | undefined
-): ReconciliationIssue[];
-```
-
-Use case:
-- Reuse runtime-consistent validation semantics in custom form flows and pre-submit checks.
-- Re-validate values independently when users edit data outside the default reconciliation loop.
+- `@continuum-dev/session` adds stateful session management around streamed UI pushes.
+- `@continuum-dev/react` provides React bindings and rendering utilities.
+- `@continuum-dev/angular` provides Angular bindings and directives.
 
 ## License
 

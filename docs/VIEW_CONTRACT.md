@@ -277,10 +277,12 @@ interface MigrationRule {
 }
 
 type MigrationStrategy = (
-  nodeId: string,
-  priorNode: ViewNode,
-  newNode: ViewNode,
-  priorValue: unknown
+  context: {
+    nodeId: string;
+    priorNode: ViewNode;
+    newNode: ViewNode;
+    priorValue: unknown;
+  }
 ) => unknown;
 ```
 

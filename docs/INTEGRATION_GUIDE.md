@@ -211,13 +211,13 @@ import { createSession } from '@continuum-dev/session';
 const session = createSession({
   reconciliation: {
     migrationStrategies: {
-      email: (_nodeId, _priorNode, _newNode, priorValue) => {
+      email: ({ priorValue }) => {
         const old = priorValue as { value?: string };
         return { value: (old.value ?? '').trim().toLowerCase() };
       },
     },
     strategyRegistry: {
-      'normalize-phone': (_nodeId, _priorNode, _newNode, priorValue) => {
+      'normalize-phone': ({ priorValue }) => {
         const old = priorValue as { value?: string };
         return { value: (old.value ?? '').replace(/\D/g, '') };
       },
