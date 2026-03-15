@@ -6,7 +6,10 @@ import type {
   ViewNode,
 } from '@continuum-dev/contract';
 import { getChildNodes } from '@continuum-dev/contract';
-import { createInitialCollectionValue } from '../reconciliation/collection-resolver/index.js';
+import {
+  cloneNodeValue,
+  normalizeCollectionState,
+} from './collection-state-normalizer.js';
 
 export function updateCollectionTargetValue(
   currentValue: NodeValue | undefined,
@@ -24,7 +27,9 @@ export function updateCollectionTargetValue(
           item.values ?? {},
           collectionNode.template,
           pathChain,
-          sourceValue
+          sourceValue,
+          normalizeCollectionState,
+          cloneNodeValue
         ),
       })),
     },
@@ -44,22 +49,23 @@ export function readCollectionFirstItemValue(
     return undefined;
   }
 
-  return readPathFromItem(
+  return readPathFromFirstItem(
     items[0].values ?? {},
     outerCollectionNode.template,
     pathChain
   );
 }
 
-export function cloneNodeValue(value: NodeValue): NodeValue {
-  return structuredClone(value);
-}
-
-function writePathChain(
+export function writePathChain(
   values: Record<string, NodeValue>,
   template: ViewNode,
   pathChain: string[],
-  sourceValue: NodeValue
+  sourceValue: NodeValue,
+  normalizeCollectionStateFn: (
+    value: NodeValue | undefined,
+    collectionNode: ViewNode & { type: 'collection' }
+  ) => NodeValue<CollectionNodeState>,
+  cloneNodeValueFn: (value: NodeValue) => NodeValue
 ): Record<string, NodeValue> {
   if (pathChain.length === 0) {
     return values;
@@ -68,7 +74,7 @@ function writePathChain(
   if (pathChain.length === 1) {
     return {
       ...values,
-      [pathChain[0]]: cloneNodeValue(sourceValue),
+      [pathChain[0]]: cloneNodeValueFn(sourceValue),
     };
   }
 
@@ -78,7 +84,7 @@ function writePathChain(
     return values;
   }
 
-  const normalizedNested = normalizeCollectionState(values[nestedPath], nestedNode);
+  const normalizedNested = normalizeCollectionStateFn(values[nestedPath], nestedNode);
   return {
     ...values,
     [nestedPath]: {
@@ -89,7 +95,9 @@ function writePathChain(
             item.values ?? {},
             nestedNode.template,
             pathChain.slice(1),
-            sourceValue
+            sourceValue,
+            normalizeCollectionStateFn,
+            cloneNodeValueFn
           ),
         })),
       },
@@ -97,7 +105,7 @@ function writePathChain(
   };
 }
 
-function readPathFromItem(
+export function readPathFromFirstItem(
   values: Record<string, NodeValue>,
   template: ViewNode,
   pathChain: string[]
@@ -124,32 +132,17 @@ function readPathFromItem(
     return undefined;
   }
 
-  return readPathFromItem(
+  return readPathFromFirstItem(
     nestedItems[0].values ?? {},
     nestedNode.template,
     pathChain.slice(1)
   );
 }
 
-function normalizeCollectionState(
-  value: NodeValue | undefined,
-  collectionNode: CollectionNode
-): NodeValue<CollectionNodeState> {
-  if (!value || typeof value !== 'object' || !('value' in value)) {
-    return createInitialCollectionValue(collectionNode);
-  }
-
-  const items = ((value as NodeValue<CollectionNodeState>).value?.items ?? []).map(
-    (item) => ({ values: { ...(item?.values ?? {}) } })
-  );
-
-  return {
-    ...(value as NodeValue<CollectionNodeState>),
-    value: { items },
-  };
-}
-
-function findNodeByPath(template: ViewNode, relativePath: string): ViewNode | null {
+export function findNodeByPath(
+  template: ViewNode,
+  relativePath: string
+): ViewNode | null {
   const segments = relativePath.split('/').filter((segment) => segment.length > 0);
   if (segments.length === 0 || segments[0] !== template.id) {
     return null;

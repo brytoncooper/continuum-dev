@@ -138,6 +138,8 @@ export default [
     ignores: [
       'packages/runtime/src/lib/context/**/*.ts',
       'packages/runtime/src/lib/context/**/*.js',
+      'packages/runtime/src/lib/reconcile/**/*.ts',
+      'packages/runtime/src/lib/reconcile/**/*.js',
     ],
     rules: {
       'no-restricted-imports': [
@@ -168,6 +170,26 @@ export default [
               name: '../context/types.js',
               message:
                 'Use ../context/index.js so context internals stay encapsulated.',
+            },
+          ],
+          patterns: [
+            {
+              group: [
+                '../reconcile/**/*.js',
+                '../reconcile/*.js',
+                './reconcile/**/*.js',
+                './reconcile/*.js',
+                '../reconcile/**/*.ts',
+                '../reconcile/*.ts',
+                './reconcile/**/*.ts',
+                './reconcile/*.ts',
+                '!../reconcile/index.js',
+                '!./reconcile/index.js',
+                '!../reconcile/index.ts',
+                '!./reconcile/index.ts',
+              ],
+              message:
+                'Use ../reconcile/index.js so reconcile internals stay encapsulated.',
             },
           ],
         },

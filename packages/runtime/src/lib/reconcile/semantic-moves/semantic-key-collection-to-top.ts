@@ -1,13 +1,11 @@
 import type { DataSnapshot } from '@continuum-dev/contract';
-import type { ReconciliationContext } from '../context/index.js';
-import type { NodeResolutionAccumulator } from '../types.js';
-import { migratedDiff } from '../reconciliation/differ/index.js';
+import type { ReconciliationContext } from '../../context/index.js';
+import type { NodeResolutionAccumulator } from '../../types.js';
+import { migratedDiff } from '../../reconciliation/differ/index.js';
 import type { SemanticKeyLocation } from './semantic-key-locations.js';
-import { cloneNodeValue, readCollectionFirstItemValue } from './semantic-key-collection-paths.js';
-import {
-  filterLocationsByLevel,
-  findUniqueSameTypeLocation,
-} from './semantic-key-matchers.js';
+import { readCollectionFirstItemValue } from '../collection-lens/collection-path-lens.js';
+import { cloneNodeValue } from '../collection-lens/collection-state-normalizer.js';
+import { planCollectionToTopMoves } from './semantic-key-move-planner.js';
 
 export function applyCollectionToTopMoves(
   priorLocations: SemanticKeyLocation[],
@@ -16,25 +14,12 @@ export function applyCollectionToTopMoves(
   ctx: ReconciliationContext,
   resolved: NodeResolutionAccumulator
 ): void {
-  const priorCollection = filterLocationsByLevel(priorLocations, 'collection');
-  const newCollection = filterLocationsByLevel(newLocations, 'collection');
-  const newTop = filterLocationsByLevel(newLocations, 'top');
+  const intents = planCollectionToTopMoves(priorLocations, newLocations);
   const migratedNodes = new Set<string>();
 
-  for (const source of priorCollection) {
-    if (
-      !source.outerCollectionId ||
-      !source.pathChain?.length ||
-      findUniqueSameTypeLocation(newCollection, source)
-    ) {
-      continue;
-    }
-
-    const target = findUniqueSameTypeLocation(newTop, source);
-    if (!target) {
-      continue;
-    }
-
+  for (const intent of intents) {
+    const source = intent.source;
+    const target = intent.target;
     const priorCollectionNode = ctx.priorById.get(source.outerCollectionId);
     if (!priorCollectionNode || priorCollectionNode.type !== 'collection') {
       continue;

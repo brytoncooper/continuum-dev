@@ -1,13 +1,10 @@
 import type { DataSnapshot } from '@continuum-dev/contract';
-import type { ReconciliationContext } from '../context/index.js';
-import type { NodeResolutionAccumulator } from '../types.js';
-import { migratedDiff } from '../reconciliation/differ/index.js';
+import type { ReconciliationContext } from '../../context/index.js';
+import type { NodeResolutionAccumulator } from '../../types.js';
+import { migratedDiff } from '../../reconciliation/differ/index.js';
+import { updateCollectionTargetValue } from '../collection-lens/collection-path-lens.js';
+import { planTopToCollectionMoves } from './semantic-key-move-planner.js';
 import type { SemanticKeyLocation } from './semantic-key-locations.js';
-import {
-  filterLocationsByLevel,
-  findUniqueSameTypeLocation,
-} from './semantic-key-matchers.js';
-import { updateCollectionTargetValue } from './semantic-key-collection-paths.js';
 
 export function applyTopToCollectionMoves(
   priorLocations: SemanticKeyLocation[],
@@ -16,21 +13,12 @@ export function applyTopToCollectionMoves(
   ctx: ReconciliationContext,
   resolved: NodeResolutionAccumulator
 ): void {
-  const priorTop = filterLocationsByLevel(priorLocations, 'top');
-  const newTop = filterLocationsByLevel(newLocations, 'top');
-  const newCollection = filterLocationsByLevel(newLocations, 'collection');
+  const intents = planTopToCollectionMoves(priorLocations, newLocations);
   const migratedCollections = new Set<string>();
 
-  for (const source of priorTop) {
-    if (findUniqueSameTypeLocation(newTop, source)) {
-      continue;
-    }
-
-    const target = findUniqueSameTypeLocation(newCollection, source);
-    if (!target || !target.outerCollectionId || !target.pathChain?.length) {
-      continue;
-    }
-
+  for (const intent of intents) {
+    const source = intent.source;
+    const target = intent.target;
     const sourceValue = priorData.values[source.nodeId];
     if (!sourceValue) {
       continue;
