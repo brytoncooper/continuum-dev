@@ -17,11 +17,14 @@ export function teardownSessionAndClearState(internal: SessionState): {
   internal.eventLog = [];
   internal.pendingIntents = [];
   internal.checkpoints = [];
+  internal.streams.clear();
+  internal.activeForegroundStreamId = null;
   const result = { issues: [...internal.issues] };
   internal.issues = [];
   internal.diffs = [];
   internal.resolutions = [];
   internal.snapshotListeners.clear();
+  internal.streamListeners.clear();
   internal.issueListeners.clear();
   return result;
 }

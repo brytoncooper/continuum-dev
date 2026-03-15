@@ -2,8 +2,9 @@ import type { Checkpoint } from '@continuum-dev/contract';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 import {
-  buildSnapshotFromCurrentState,
+  buildCommittedSnapshotFromCurrentState,
   notifySnapshotAndIssueListeners,
+  notifyStreamListeners,
 } from './listeners.js';
 
 /**
@@ -24,7 +25,7 @@ export function cloneCheckpointSnapshot<T>(value: T): T {
  * @param internal Mutable internal session state.
  */
 export function autoCheckpoint(internal: SessionState): void {
-  const snapshot = buildSnapshotFromCurrentState(internal);
+  const snapshot = buildCommittedSnapshotFromCurrentState(internal);
   if (!snapshot) return;
   const id = generateId('cp', internal.clock);
 
@@ -55,7 +56,7 @@ export function autoCheckpoint(internal: SessionState): void {
  * @returns The created checkpoint.
  */
 export function createManualCheckpoint(internal: SessionState): Checkpoint {
-  const snapshot = buildSnapshotFromCurrentState(internal);
+  const snapshot = buildCommittedSnapshotFromCurrentState(internal);
   if (!snapshot) {
     throw new Error('Cannot create checkpoint before pushing a view');
   }
@@ -104,8 +105,11 @@ export function restoreFromCheckpoint(
   internal.diffs = [];
   internal.resolutions = [];
   internal.pendingIntents = [];
+  internal.streams.clear();
+  internal.activeForegroundStreamId = null;
 
   notifySnapshotAndIssueListeners(internal);
+  notifyStreamListeners(internal);
 }
 
 /**
@@ -133,6 +137,9 @@ export function rewind(internal: SessionState, checkpointId: string): void {
   internal.diffs = [];
   internal.resolutions = [];
   internal.pendingIntents = [];
+  internal.streams.clear();
+  internal.activeForegroundStreamId = null;
 
   notifySnapshotAndIssueListeners(internal);
+  notifyStreamListeners(internal);
 }

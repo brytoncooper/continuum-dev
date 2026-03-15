@@ -16,6 +16,8 @@ import type {
   ReconciliationResolution,
   StateDiff,
 } from '@continuum-dev/runtime';
+import type { SessionStream } from '../types.js';
+import type { InternalSessionStreamState } from './streams/types.js';
 
 /**
  * Internal mutable session backing state.
@@ -43,12 +45,15 @@ export interface SessionState {
   pendingIntents: PendingIntent[];
   checkpoints: Checkpoint[];
   snapshotListeners: Set<(snapshot: ContinuitySnapshot) => void>;
+  streamListeners: Set<(streams: SessionStream[]) => void>;
   issueListeners: Set<(issues: ReconciliationIssue[]) => void>;
   pendingProposals: Record<string, ProposedValue>;
   actionRegistry: Map<
     string,
     { registration: ActionRegistration; handler: ActionHandler }
   >;
+  streams: Map<string, InternalSessionStreamState>;
+  activeForegroundStreamId: string | null;
   destroyed: boolean;
 }
 
@@ -82,9 +87,12 @@ export function createEmptySessionState(
     pendingIntents: [],
     checkpoints: [],
     snapshotListeners: new Set(),
+    streamListeners: new Set(),
     issueListeners: new Set(),
     pendingProposals: {},
     actionRegistry: new Map(),
+    streams: new Map(),
+    activeForegroundStreamId: null,
     destroyed: false,
   };
 }
@@ -106,6 +114,8 @@ export function resetSessionState(internal: SessionState): void {
   internal.pendingIntents = [];
   internal.checkpoints = [];
   internal.pendingProposals = {};
+  internal.streams.clear();
+  internal.activeForegroundStreamId = null;
 }
 
 /**
@@ -130,6 +140,8 @@ export function replaceInternalState(
   internal.validateOnUpdate = next.validateOnUpdate;
   internal.reconciliationOptions = next.reconciliationOptions;
   internal.stableViewVersion = next.stableViewVersion;
+  internal.streams = new Map();
+  internal.activeForegroundStreamId = null;
 }
 
 /**

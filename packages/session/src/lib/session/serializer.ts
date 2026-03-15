@@ -204,9 +204,12 @@ export function deserializeToState(
     ),
     checkpoints: (raw.checkpoints ?? []).slice(-(limits?.maxCheckpoints ?? 50)),
     snapshotListeners: new Set(),
+    streamListeners: new Set(),
     issueListeners: new Set(),
     pendingProposals: {},
     actionRegistry: new Map(),
+    streams: new Map(),
+    activeForegroundStreamId: null,
     destroyed: false,
   };
 }
