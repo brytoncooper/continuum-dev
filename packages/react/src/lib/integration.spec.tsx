@@ -2,6 +2,7 @@ import React, {
   act,
   StrictMode,
   useContext,
+  useEffect,
   useState,
   type ReactElement,
   type ReactNode,
@@ -216,6 +217,113 @@ describe('react integration', () => {
       </ContinuumProvider>
     );
     expect(rendered.container.childElementCount).toBe(0);
+    rendered.unmount();
+  });
+
+  it('renders draft preview data immediately when a moved field is shown through snapshotOverride', async () => {
+    const initialDraftView: ViewDefinition = {
+      viewId: 'profile',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              semanticKey: 'person.email',
+            },
+          ],
+        },
+      ],
+    };
+    const rebuiltDraftView: ViewDefinition = {
+      viewId: 'profile',
+      version: '2',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'contact_row',
+              type: 'row',
+              children: [
+                {
+                  id: 'email',
+                  type: 'field',
+                  dataType: 'string',
+                  semanticKey: 'person.email',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const previewComponentMap = {
+      ...componentMap,
+      group: ({ children }: { children?: ReactNode }) => <>{children}</>,
+      row: ({ children }: { children?: ReactNode }) => <>{children}</>,
+    };
+
+    function DraftPreviewApp() {
+      const session = useContinuumSession();
+      const [previewSnapshot, setPreviewSnapshot] =
+        useState<ContinuitySnapshot | null>(null);
+
+      useEffect(() => {
+        session.pushView(initialDraftView);
+        session.updateState('profile/email', {
+          value: 'preserved@example.com',
+          isDirty: true,
+        });
+
+        const stream = session.beginStream({
+          targetViewId: 'profile',
+          mode: 'draft',
+        });
+        session.applyStreamPart(stream.streamId, {
+          kind: 'view',
+          view: rebuiltDraftView,
+        });
+
+        const preview = session.getStreams()[0];
+        if (preview?.previewView && preview.previewData) {
+          setPreviewSnapshot({
+            view: preview.previewView,
+            data: preview.previewData,
+          });
+        }
+      }, [session]);
+
+      const activeView = previewSnapshot?.view ?? session.getSnapshot()?.view ?? initialDraftView;
+
+      return (
+        <ContinuumRenderer
+          view={activeView}
+          snapshotOverride={previewSnapshot}
+        />
+      );
+    }
+
+    const rendered = renderIntoDom(
+      <ContinuumProvider components={previewComponentMap}>
+        <DraftPreviewApp />
+      </ContinuumProvider>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const input = rendered.container.querySelector(
+      '[data-testid="input"]'
+    ) as HTMLInputElement | null;
+    expect(input?.value).toBe('preserved@example.com');
     rendered.unmount();
   });
 

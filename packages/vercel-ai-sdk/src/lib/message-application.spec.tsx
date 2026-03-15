@@ -290,6 +290,109 @@ describe('@continuum-dev/vercel-ai-sdk', () => {
     });
   });
 
+  it('routes draft view chunks through a draft stream and commits only on the final draft part', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'drafted-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          semanticKey: 'person.email',
+        },
+      ],
+    });
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+
+    const previewApplication = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk(
+        {
+          view: {
+            viewId: 'drafted-view',
+            version: '2',
+            nodes: [
+              {
+                id: 'contact_row',
+                type: 'row',
+                children: [
+                  {
+                    id: 'email',
+                    type: 'field',
+                    dataType: 'string',
+                    semanticKey: 'person.email',
+                  },
+                  {
+                    id: 'phone',
+                    type: 'field',
+                    dataType: 'string',
+                    semanticKey: 'person.phone',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        { transient: true, streamMode: 'draft' }
+      ),
+      adapter
+    );
+
+    const previewStreamId =
+      'streamId' in previewApplication ? previewApplication.streamId : undefined;
+    if (!previewStreamId) {
+      throw new Error('Expected transient draft view to create a stream id');
+    }
+
+    expect(session.getSnapshot()?.view.version).toBe('1');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
+    expect(session.getStreams()[0]?.mode).toBe('draft');
+    expect(session.getStreams()[0]?.status).toBe('open');
+    expect(session.getStreams()[0]?.previewView?.version).toBe('2');
+
+    const finalApplication = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk(
+        {
+          view: {
+            viewId: 'drafted-view',
+            version: '2',
+            nodes: [
+              {
+                id: 'contact_row',
+                type: 'row',
+                children: [
+                  {
+                    id: 'email',
+                    type: 'field',
+                    dataType: 'string',
+                    semanticKey: 'person.email',
+                  },
+                  {
+                    id: 'phone',
+                    type: 'field',
+                    dataType: 'string',
+                    semanticKey: 'person.phone',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        { streamMode: 'draft' }
+      ),
+      adapter
+    );
+
+    expect('streamId' in finalApplication ? finalApplication.streamId : undefined).toBe(
+      previewStreamId
+    );
+    expect(session.getSnapshot()?.view.version).toBe('2');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2');
+    expect(session.getStreams()[0]?.status).toBe('committed');
+    expect(session.getStreams()[0]?.mode).toBe('draft');
+  });
+
   it('applies richer stream parts and exposes node-status metadata', () => {
     const session = createSession();
     session.pushView({
@@ -451,6 +554,107 @@ describe('@continuum-dev/vercel-ai-sdk', () => {
 
     expect(capturedStatus).toBe('Applying Continuum update...');
     expect(session.getSnapshot()?.view.viewId).toBe('streamed-view');
+
+    rendered.unmount();
+  });
+
+  it('applies transient preview views before the stream finishes and commits the final view afterward', async () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '1',
+      nodes: [],
+    });
+
+    let sendMessage:
+      | ReturnType<
+          typeof useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>
+        >['sendMessage']
+      | null = null;
+    let releaseFinalView: (() => void) | null = null;
+    const finalViewReady = new Promise<void>((resolve) => {
+      releaseFinalView = resolve;
+    });
+
+    const previewView: ViewDefinition = {
+      viewId: 'streamed-view',
+      version: 'preview',
+      nodes: [{ id: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+    };
+    const finalView: ViewDefinition = {
+      viewId: 'streamed-view',
+      version: 'final',
+      nodes: [
+        { id: 'name', type: 'field', dataType: 'string', label: 'Name' },
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          label: 'Email',
+        },
+      ],
+    };
+
+    function Probe() {
+      const chat = useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>({
+        session,
+        transport: {
+          async sendMessages() {
+            return createUIMessageStream<ContinuumVercelAiSdkMessage>({
+              execute: async ({ writer }) => {
+                writer.write(
+                  createContinuumVercelAiSdkViewDataChunk(
+                    {
+                      view: previewView,
+                    },
+                    { id: 'preview-view', transient: true }
+                  )
+                );
+                await finalViewReady;
+                writer.write(
+                  createContinuumVercelAiSdkViewDataChunk(
+                    {
+                      view: finalView,
+                    },
+                    { id: 'final-view' }
+                  )
+                );
+              },
+            });
+          },
+          async reconnectToStream() {
+            return null;
+          },
+        },
+      });
+
+      sendMessage = chat.sendMessage;
+      return null;
+    }
+
+    const rendered = renderIntoDom(<Probe />);
+    let inflightSend:
+      | Promise<void>
+      | undefined;
+
+    await act(async () => {
+      inflightSend = sendMessage?.({ text: 'Build a new form' });
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    expect(session.getSnapshot()?.view.version).toBe('preview');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
+
+    await act(async () => {
+      releaseFinalView?.();
+      await inflightSend;
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    expect(session.getSnapshot()?.view.version).toBe('final');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('final');
 
     rendered.unmount();
   });

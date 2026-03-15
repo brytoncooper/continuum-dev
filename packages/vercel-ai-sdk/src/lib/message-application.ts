@@ -2,6 +2,7 @@ import { isDataUIPart } from 'ai';
 import {
   applyContinuumViewPatch,
   applyContinuumViewStreamPart,
+  type SessionStreamMode,
 } from '@continuum-dev/core';
 import type { SessionStreamPart } from '@continuum-dev/core';
 import { createContinuumVercelAiSdkSessionAdapter } from './session-adapter.js';
@@ -21,15 +22,38 @@ type ApplicablePart =
 
 const CONTINUUM_VERCEL_AI_SDK_SOURCE = 'vercel-ai-sdk';
 
+function readPartStreamMode(
+  part: ApplicablePart
+): SessionStreamMode | undefined {
+  const nestedMode =
+    part.data &&
+    typeof part.data === 'object' &&
+    'streamMode' in part.data &&
+    (part.data as { streamMode?: unknown }).streamMode;
+  if (nestedMode === 'foreground' || nestedMode === 'draft') {
+    return nestedMode;
+  }
+
+  const topLevelMode = (part as { streamMode?: unknown }).streamMode;
+  if (topLevelMode === 'foreground' || topLevelMode === 'draft') {
+    return topLevelMode;
+  }
+
+  return undefined;
+}
+
 function findOpenStreamId(
   sessionAdapter: ContinuumVercelAiSdkSessionAdapter,
-  targetViewId: string
+  targetViewId: string,
+  mode: SessionStreamMode
 ): string | undefined {
   return sessionAdapter
     .getStreams?.()
     ?.find(
       (stream) =>
-        stream.status === 'open' && stream.targetViewId === targetViewId
+        stream.status === 'open' &&
+        stream.targetViewId === targetViewId &&
+        stream.mode === mode
     )?.streamId;
 }
 
@@ -136,16 +160,18 @@ function applyThroughStreamingFoundation(
 
   const streamPart = normalizeStreamPart(application);
   const targetViewId = resolveTargetViewId(application, sessionAdapter);
+  const streamMode =
+    'streamMode' in application ? application.streamMode ?? 'foreground' : 'foreground';
   if (!streamPart || !targetViewId) {
     return application;
   }
 
-  let streamId = findOpenStreamId(sessionAdapter, targetViewId);
+  let streamId = findOpenStreamId(sessionAdapter, targetViewId, streamMode);
   if (!streamId) {
     streamId = sessionAdapter.beginStream({
       targetViewId,
       source: CONTINUUM_VERCEL_AI_SDK_SOURCE,
-      mode: 'foreground',
+      mode: streamMode,
       supersede: true,
       baseViewVersion:
         sessionAdapter.getCommittedSnapshot()?.view.version ??
@@ -183,12 +209,14 @@ export function interpretContinuumVercelAiSdkDataPart(
       return {
         kind: 'view',
         view: part.data.view,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-patch':
       return {
         kind: 'patch',
         patch: part.data.patch,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-insert-node':
@@ -198,6 +226,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         parentId: part.data.parentId,
         position: part.data.position,
         targetViewId: part.data.targetViewId,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-replace-node':
@@ -206,6 +235,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         nodeId: part.data.nodeId,
         node: part.data.node,
         targetViewId: part.data.targetViewId,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-remove-node':
@@ -213,6 +243,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         kind: 'remove-node',
         nodeId: part.data.nodeId,
         targetViewId: part.data.targetViewId,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-append-content':
@@ -221,6 +252,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         nodeId: part.data.nodeId,
         text: part.data.text,
         targetViewId: part.data.targetViewId,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-state':
@@ -228,6 +260,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         kind: 'state',
         nodeId: part.data.nodeId,
         value: part.data.value,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-reset':
@@ -240,6 +273,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         kind: 'status',
         status: part.data.status,
         level: part.data.level ?? 'info',
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     case 'data-continuum-node-status':
@@ -250,6 +284,7 @@ export function interpretContinuumVercelAiSdkDataPart(
         level: part.data.level ?? 'info',
         subtree: part.data.subtree,
         targetViewId: part.data.targetViewId,
+        streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
     default:

@@ -2,13 +2,17 @@ import { memo, useCallback, useContext, useMemo } from 'react';
 import type {
   CollectionNode,
   CollectionNodeState,
+  ContinuitySnapshot,
   SessionStream,
   NodeValue,
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/core';
 import { getChildNodes } from '@continuum-dev/core';
-import { ContinuumContext } from './context.js';
+import {
+  ContinuumContext,
+  ContinuumRenderSnapshotContext,
+} from './context.js';
 import { NodeStateScopeContext, useContinuumState, useContinuumStreaming } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
 import { NodeErrorBoundary } from './error-boundary.js';
@@ -650,12 +654,52 @@ const NodeRenderer = memo(function NodeRenderer({
 /**
  * Renders a `ViewDefinition` tree using components registered in `ContinuumProvider`.
  */
-export function ContinuumRenderer({ view }: { view: ViewDefinition }) {
-  return (
+export function ContinuumRenderer({
+  view,
+  snapshotOverride = null,
+}: {
+  view: ViewDefinition;
+  snapshotOverride?: ContinuitySnapshot | null;
+}) {
+  const ctx = useContext(ContinuumContext);
+  if (!ctx) {
+    throw new Error(
+      'ContinuumRenderer must be used within a <ContinuumProvider>'
+    );
+  }
+
+  const rootScope = useMemo(() => {
+    if (!snapshotOverride) {
+      return null;
+    }
+
+    return {
+      subscribeNode: (_nodeId: string, _listener: () => void) => () => undefined,
+      getNodeValue: (nodeId: string) =>
+        snapshotOverride.data.values?.[nodeId] as NodeValue | undefined,
+      setNodeValue: (nodeId: string, value: NodeValue) => {
+        ctx.session.updateState(nodeId, value);
+      },
+    };
+  }, [ctx.session, snapshotOverride]);
+
+  const renderedNodes = (
     <>
       {(view.nodes ?? []).map((node) => (
         <NodeRenderer key={node.id} definition={node} parentPath="" />
       ))}
     </>
+  );
+
+  return (
+    <ContinuumRenderSnapshotContext.Provider value={snapshotOverride}>
+      {rootScope ? (
+        <NodeStateScopeContext.Provider value={rootScope}>
+          {renderedNodes}
+        </NodeStateScopeContext.Provider>
+      ) : (
+        renderedNodes
+      )}
+    </ContinuumRenderSnapshotContext.Provider>
   );
 }

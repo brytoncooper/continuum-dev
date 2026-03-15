@@ -5,6 +5,7 @@ import type {
   ContinuumViewPatch,
   NodeValue,
   SessionStream,
+  SessionStreamMode,
   SessionStreamPart,
   SessionStreamResult,
   SessionStreamStartOptions,
@@ -24,15 +25,18 @@ export interface ContinuumVercelAiSdkMessageMetadata {
 
 export interface ContinuumVercelAiSdkViewData {
   view: ViewDefinition;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkStateData {
   nodeId: string;
   value: NodeValue;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkPatchData {
   patch: ContinuumViewPatch;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkInsertNodeData {
@@ -40,23 +44,27 @@ export interface ContinuumVercelAiSdkInsertNodeData {
   parentId?: string | null;
   position?: ContinuumViewPatchPosition;
   targetViewId?: string;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkReplaceNodeData {
   nodeId: string;
   node: ViewNode;
   targetViewId?: string;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkRemoveNodeData {
   nodeId: string;
   targetViewId?: string;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkAppendContentData {
   nodeId: string;
   text: string;
   targetViewId?: string;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkResetData {
@@ -66,6 +74,7 @@ export interface ContinuumVercelAiSdkResetData {
 export interface ContinuumVercelAiSdkStatusData {
   status: string;
   level?: ContinuumVercelAiSdkStatusLevel;
+  streamMode?: SessionStreamMode;
 }
 
 export interface ContinuumVercelAiSdkNodeStatusData {
@@ -74,6 +83,7 @@ export interface ContinuumVercelAiSdkNodeStatusData {
   level?: ContinuumVercelAiSdkStatusLevel;
   subtree?: boolean;
   targetViewId?: string;
+  streamMode?: SessionStreamMode;
 }
 
 export type ContinuumVercelAiSdkDataParts = Record<string, unknown> & {
@@ -222,12 +232,14 @@ export type ContinuumVercelAiSdkPartApplication =
       kind: 'view';
       view: ViewDefinition;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
       kind: 'patch';
       patch: ContinuumViewPatch;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -237,6 +249,7 @@ export type ContinuumVercelAiSdkPartApplication =
       position?: ContinuumViewPatchPosition;
       targetViewId?: string;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -245,6 +258,7 @@ export type ContinuumVercelAiSdkPartApplication =
       node: ViewNode;
       targetViewId?: string;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -252,6 +266,7 @@ export type ContinuumVercelAiSdkPartApplication =
       nodeId: string;
       targetViewId?: string;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -260,6 +275,7 @@ export type ContinuumVercelAiSdkPartApplication =
       text: string;
       targetViewId?: string;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -267,6 +283,7 @@ export type ContinuumVercelAiSdkPartApplication =
       nodeId: string;
       value: NodeValue;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -279,6 +296,7 @@ export type ContinuumVercelAiSdkPartApplication =
       status: string;
       level: ContinuumVercelAiSdkStatusLevel;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {
@@ -289,6 +307,7 @@ export type ContinuumVercelAiSdkPartApplication =
       subtree?: boolean;
       targetViewId?: string;
       transient?: boolean;
+      streamMode?: SessionStreamMode;
       streamId?: string;
     }
   | {

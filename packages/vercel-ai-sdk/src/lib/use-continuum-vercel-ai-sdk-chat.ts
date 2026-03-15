@@ -46,6 +46,17 @@ function buildAppliedPartKey(
   return part.id ?? `${messageId}:${index}:${part.type}`;
 }
 
+function shouldApplyContinuumPartImmediately(
+  part: { type: string; transient?: boolean }
+): boolean {
+  return (
+    part.transient === true &&
+    (part.type === 'data-continuum-view' ||
+      part.type === 'data-continuum-status' ||
+      part.type === 'data-continuum-node-status')
+  );
+}
+
 export function useContinuumVercelAiSdkChat<
   UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
 >(
@@ -63,6 +74,7 @@ export function useContinuumVercelAiSdkChat<
     [session]
   );
   const appliedPartKeysRef = useRef<Set<string>>(new Set());
+  const immediatelyAppliedTransientPartIdsRef = useRef<Set<string>>(new Set());
   const pendingStreamIdsRef = useRef<Set<string>>(new Set());
   const [latestContinuumEvent, setLatestContinuumEvent] =
     useState<ContinuumVercelAiSdkPartApplication | null>(null);
@@ -72,19 +84,58 @@ export function useContinuumVercelAiSdkChat<
   const chat = useChat<UI_MESSAGE>({
     ...chatOptions,
     onData: (part) => {
-      if (
-        isContinuumVercelAiSdkDataPart(part) &&
-        part.type === 'data-continuum-status'
-      ) {
-        const application = interpretContinuumVercelAiSdkDataPart(part);
-        if (application.kind === 'status') {
-          const nextStatus = {
-            status: application.status,
-            level: application.level,
-          } satisfies ContinuumVercelAiSdkStatusData;
-          setLatestStatus(nextStatus);
-          setLatestContinuumEvent(application);
-          onContinuumPart?.(application);
+      if (isContinuumVercelAiSdkDataPart(part)) {
+        if (
+          autoApplyMessages &&
+          shouldApplyContinuumPartImmediately(part) &&
+          (!part.id || !immediatelyAppliedTransientPartIdsRef.current.has(part.id))
+        ) {
+          const application = applyContinuumVercelAiSdkDataPart(
+            part,
+            continuumSession
+          );
+
+          if (part.id) {
+            immediatelyAppliedTransientPartIdsRef.current.add(part.id);
+            appliedPartKeysRef.current.add(part.id);
+          }
+
+          if (
+            'streamId' in application &&
+            typeof application.streamId === 'string' &&
+            application.streamId.length > 0
+          ) {
+            const stream = continuumSession
+              .getStreams?.()
+              ?.find((candidate) => candidate.streamId === application.streamId);
+            if (stream?.status === 'open') {
+              pendingStreamIdsRef.current.add(application.streamId);
+            }
+          }
+
+          if (application.kind === 'status') {
+            const nextStatus = {
+              status: application.status,
+              level: application.level,
+            } satisfies ContinuumVercelAiSdkStatusData;
+            setLatestStatus(nextStatus);
+          }
+
+          if (application.kind !== 'ignored') {
+            setLatestContinuumEvent(application);
+            onContinuumPart?.(application);
+          }
+        } else if (part.type === 'data-continuum-status') {
+          const application = interpretContinuumVercelAiSdkDataPart(part);
+          if (application.kind === 'status') {
+            const nextStatus = {
+              status: application.status,
+              level: application.level,
+            } satisfies ContinuumVercelAiSdkStatusData;
+            setLatestStatus(nextStatus);
+            setLatestContinuumEvent(application);
+            onContinuumPart?.(application);
+          }
         }
       }
 
@@ -95,6 +146,7 @@ export function useContinuumVercelAiSdkChat<
   useEffect(() => {
     if (chat.messages.length === 0) {
       appliedPartKeysRef.current.clear();
+      immediatelyAppliedTransientPartIdsRef.current.clear();
       pendingStreamIdsRef.current.clear();
       return;
     }
@@ -110,6 +162,13 @@ export function useContinuumVercelAiSdkChat<
 
       message.parts.forEach((part, index) => {
         if (!isDataUIPart(part) || !isContinuumVercelAiSdkDataPart(part)) {
+          return;
+        }
+
+        if (
+          part.id &&
+          immediatelyAppliedTransientPartIdsRef.current.has(part.id)
+        ) {
           return;
         }
 
@@ -151,6 +210,12 @@ export function useContinuumVercelAiSdkChat<
       });
     }
   }, [autoApplyMessages, chat.messages, continuumSession, onContinuumPart]);
+
+  useEffect(() => {
+    if (chat.status === 'submitted') {
+      immediatelyAppliedTransientPartIdsRef.current.clear();
+    }
+  }, [chat.status]);
 
   useEffect(() => {
     if (pendingStreamIdsRef.current.size === 0) {

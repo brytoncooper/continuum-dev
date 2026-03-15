@@ -216,6 +216,12 @@ export const ContinuumContext = createContext<ContinuumContextValue | null>(
   null
 );
 
+/**
+ * Optional render-time snapshot override used for non-destructive previews.
+ */
+export const ContinuumRenderSnapshotContext =
+  createContext<ContinuitySnapshot | null>(null);
+
 const DEFAULT_STORAGE_KEY = 'continuum_session';
 
 function resolveStorage(

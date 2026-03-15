@@ -12,6 +12,7 @@ import type {
   ContinuumVercelAiSdkStatusData,
   ContinuumVercelAiSdkViewData,
 } from './types.js';
+import type { SessionStreamMode } from '@continuum-dev/core';
 
 const CONTINUUM_DATA_TYPES = new Set([
   'data-continuum-view',
@@ -29,6 +30,7 @@ const CONTINUUM_DATA_TYPES = new Set([
 export interface ContinuumVercelAiSdkDataChunkOptions {
   id?: string;
   transient?: boolean;
+  streamMode?: SessionStreamMode;
 }
 
 export function createContinuumVercelAiSdkViewDataChunk(
@@ -37,7 +39,10 @@ export function createContinuumVercelAiSdkViewDataChunk(
 ): Extract<ContinuumVercelAiSdkDataChunk, { type: 'data-continuum-view' }> {
   return {
     type: 'data-continuum-view',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -49,7 +54,10 @@ export function createContinuumVercelAiSdkStateDataChunk(
 ): Extract<ContinuumVercelAiSdkDataChunk, { type: 'data-continuum-state' }> {
   return {
     type: 'data-continuum-state',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -61,7 +69,10 @@ export function createContinuumVercelAiSdkPatchDataChunk(
 ): Extract<ContinuumVercelAiSdkDataChunk, { type: 'data-continuum-patch' }> {
   return {
     type: 'data-continuum-patch',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -76,7 +87,10 @@ export function createContinuumVercelAiSdkInsertNodeDataChunk(
 > {
   return {
     type: 'data-continuum-insert-node',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -91,7 +105,10 @@ export function createContinuumVercelAiSdkReplaceNodeDataChunk(
 > {
   return {
     type: 'data-continuum-replace-node',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -106,7 +123,10 @@ export function createContinuumVercelAiSdkRemoveNodeDataChunk(
 > {
   return {
     type: 'data-continuum-remove-node',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -121,7 +141,10 @@ export function createContinuumVercelAiSdkAppendContentDataChunk(
 > {
   return {
     type: 'data-continuum-append-content',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -145,7 +168,10 @@ export function createContinuumVercelAiSdkStatusDataChunk(
 ): Extract<ContinuumVercelAiSdkDataChunk, { type: 'data-continuum-status' }> {
   return {
     type: 'data-continuum-status',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
@@ -160,7 +186,10 @@ export function createContinuumVercelAiSdkNodeStatusDataChunk(
 > {
   return {
     type: 'data-continuum-node-status',
-    data,
+    data: {
+      ...data,
+      ...(options?.streamMode ? { streamMode: options.streamMode } : {}),
+    },
     id: options?.id,
     transient: options?.transient,
   };
