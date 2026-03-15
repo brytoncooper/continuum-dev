@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react';
 import { repositoryUrl } from '../../site-config';
 import { color, space, type } from '../../ui/tokens';
-import { LandingCard, LandingFeatureList, LandingGrid } from '../landing-layout';
-import { heroContent } from '../content/landing-content';
+import { LandingCard, LandingGrid } from '../landing-layout';
+import { heroContent, type LandingCallout } from '../content/landing-content';
+import { HeroProofModule } from './hero-proof-module';
 
 const cardTitleStyle: CSSProperties = {
   ...type.title,
@@ -29,19 +30,7 @@ const actionsStyle: CSSProperties = {
 const helperStyle: CSSProperties = {
   ...type.body,
   color: color.textMuted,
-};
-
-const trustRowStyle: CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: space.sm,
-};
-
-const trustChipStyle: CSSProperties = {
-  ...type.small,
-  color: color.textMuted,
-  padding: `${space.xs}px 0`,
-  borderRadius: 999,
+  maxWidth: 760,
 };
 
 const actionStyle = (tone: 'strong' | 'default' | 'soft' = 'default'): CSSProperties => ({
@@ -60,47 +49,36 @@ const actionStyle = (tone: 'strong' | 'default' | 'soft' = 'default'): CSSProper
     tone === 'strong' ? color.accent : tone === 'soft' ? color.highlightSoft : color.surface,
 });
 
+const tertiaryLinkStyle: CSSProperties = {
+  ...type.small,
+  color: color.textMuted,
+  textDecoration: 'none',
+  padding: `${space.sm}px 0`,
+};
+
 export function HeroBlock() {
   return (
     <LandingGrid>
       <LandingCard span={12} tone="strong">
-        <div style={leadStyle}>
-          Typed input disappears. Progress resets. The session feels disposable.
-        </div>
+        <div style={leadStyle}>The UI changed. Users should not lose their work.</div>
         <div style={actionsStyle}>
-          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle('strong')}>
+          <a href="/docs" style={actionStyle('strong')}>
+            Install Continuum
+          </a>
+          <a href="/playground" style={actionStyle()}>
+            Open demo
+          </a>
+          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={tertiaryLinkStyle}>
             View on GitHub
-          </a>
-          <a href="/docs" style={actionStyle()}>
-            Install / Get Started
-          </a>
-          <a href="/playground" style={actionStyle('soft')}>
-            Try Static Demo
-          </a>
-          <a href="/live-ai" style={actionStyle()}>
-            Launch Live AI Demo
           </a>
         </div>
         <div style={helperStyle}>
-          Continuum is the fix: deterministic reconciliation, state continuity, and a fastest path
-          to install with Starter Kit or headless React.
+          State tools can store values. The hard part is deciding what safely carries forward after
+          the UI changes shape.
         </div>
-        <div style={trustRowStyle}>
-          <div style={trustChipStyle}>Deterministic reconciliation</div>
-          <div style={trustChipStyle}>State continuity</div>
-          <div style={trustChipStyle}>No-key static demo</div>
-          <div style={trustChipStyle}>Fastest path to install</div>
-        </div>
-        <LandingFeatureList
-          items={[
-            'AI-generated and server-driven views should not wipe matching user data.',
-            'Continuum keeps UI structure and user state separate, then reconciles them deterministically.',
-            'Persistence, checkpoints, rewind, and diagnostics are built in.',
-            'Install fast with Starter Kit or go headless with React.',
-          ]}
-        />
+        <HeroProofModule />
       </LandingCard>
-      {heroContent.callouts.map((callout) => (
+      {heroContent.callouts.map((callout: LandingCallout) => (
         <LandingCard key={callout.title} span={4} tone="soft" fullHeight>
           <div style={cardTitleStyle}>{callout.title}</div>
           <div style={{ ...cardBodyStyle, marginTop: space.sm }}>{callout.body}</div>

@@ -41,8 +41,7 @@ export function CtaBlock() {
       <LandingGrid alignItems="stretch">
         <LandingCard span={12} tone="strong">
           <div style={descriptionStyle}>
-            The fastest path is to understand the problem, verify the proof, and then click through
-            to GitHub with enough confidence to install.
+            Install first. The demo shows why this matters.
           </div>
         </LandingCard>
         {ctaContent.actions.map((action) => (

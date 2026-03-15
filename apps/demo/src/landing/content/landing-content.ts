@@ -30,42 +30,42 @@ export type LandingAction = {
 };
 
 export const heroContent = {
-  eyebrow: 'State continuity for view-driven and AI-generated UIs',
-  title: 'The view changed. The user lost their work.',
+  eyebrow: 'For AI-generated and server-driven UI',
+  title: 'Regenerate UI without making users start over.',
   description:
-    'That is the failure mode. Typed input disappears, progress resets, and trust collapses the moment a model or backend ships a new view. Continuum preserves state through view changes with deterministic reconciliation.',
+    'When your UI changes shape, users should keep what they already entered. Continuum carries user work forward safely as fields move, rename, and regroup.',
   callouts: [
     {
-      title: 'Typed input gets wiped',
-      body: 'A new view arrives and the user has to start over.',
+      title: 'Rename a field',
+      body: 'The value stays with the field meaning.',
     },
     {
-      title: 'Progress resets mid-session',
-      body: 'A reordered flow or regenerated form turns active work into discarded state.',
+      title: 'Reorder steps',
+      body: 'In-progress work survives step changes.',
     },
     {
-      title: 'Trust disappears fast',
-      body: 'One bad update teaches users that dynamic UI is fragile.',
+      title: 'Change schema',
+      body: 'Safe values carry forward, unsafe values detach.',
     },
   ] satisfies LandingCallout[],
-};
+} satisfies { eyebrow: string; title: string; description: string; callouts: LandingCallout[] };
 
 export const problemContent = {
-  title: 'Why AI-generated UIs lose user state',
+  title: 'Why standard state tools fail here',
   description:
-    'The real problem is not that the interface changes. The real problem is that most apps tie user state to the current tree, so every structural update risks dropped input, broken progress, and lost trust.',
+    'The UI changed, but the user was still doing the same task. Most state tools only track the current tree, so they cannot decide what should safely carry into the new structure.',
   callouts: [
     {
-      title: 'The structure changes mid-session',
-      body: 'An agent inserts steps, a backend swaps sections, or a workflow reorders the page while the user is still working.',
+      title: 'Structure evolves',
+      body: 'Fields rename, sections reorder, schema shifts. Your UI adapts in real time.',
     },
     {
-      title: 'Traditional state is glued to the tree',
-      body: 'When node identity changes, many apps treat the old screen as gone and the new screen as unrelated, even when the user intent is still the same.',
+      title: 'State tools stay local',
+      body: 'Redux, forms, persistence only guard the current shape. No mapping across change.',
     },
     {
-      title: 'The product feels unreliable',
-      body: 'Typed input disappears, progress resets, proposals clobber edits, and the user learns not to trust dynamic updates.',
+      title: 'Unsafe carry-forward breaks trust',
+      body: 'Blind recovery can put values in the wrong place. Discarding them feels like a bug.',
     },
   ] satisfies LandingCallout[],
 };
@@ -89,29 +89,29 @@ export const continuityContent = {
 };
 
 export const howItWorksContent = {
-  title: 'What the runtime does on every view update',
+  title: 'How Continuum handles changing UI',
   description:
-    'The workflow is easy to explain and serious underneath. A new view arrives, Continuum reconciles it against the prior session state, and the user keeps moving instead of starting over.',
+    'Each update is checked so user work can carry forward when safe and stay detached when it is not.',
   steps: [
     {
-      label: '01',
-      title: 'Push a new view',
-      body: 'A fresh ViewDefinition arrives from an agent, server, workflow, or schema update.',
+      label: '1',
+      title: 'Structure arrives',
+      body: 'New view from model, server, or workflow.',
     },
     {
-      label: '02',
-      title: 'Reconcile against the prior snapshot',
-      body: 'Runtime matches nodes by identity and semantics so it can reason about what stayed, moved, or disappeared.',
+      label: '2',
+      title: 'Intent maps',
+      body: 'Runtime matches old structure to new. Identity, semantics, safety all matter.',
     },
     {
-      label: '03',
-      title: 'Preserve or migrate state',
-      body: 'User data can be carried forward, migrated into new shapes, detached for later recovery, or restored when a structure returns.',
+      label: '3',
+      title: 'Decide per value',
+      body: 'Carry forward, migrate, detach, or reject based on safety rules.',
     },
     {
-      label: '04',
-      title: 'Keep the session usable',
-      body: 'Session history, proposals, checkpoints, and headless React rendering keep the UI stable while the system evolves.',
+      label: '4',
+      title: 'User keeps going',
+      body: 'Session intact. Progress saved. Trust earned.',
     },
   ] satisfies LandingStep[],
 };
@@ -234,60 +234,60 @@ export const featureListContent = {
 };
 
 export const ctaContent = {
-  title: 'Inspect the repo, install a layer, or prove it in the demo',
+  title: 'Start shipping durable UI',
   description:
-    'The fastest path is simple: inspect the open-source repo, read the install docs, and use the static demo to see why continuity matters before you wire a live provider.',
+    'Install in minutes. Then run the demo to see how it all works.',
   actions: [
     {
-      title: 'View Continuum on GitHub',
-      body: 'See the source, tracked docs, package structure, and the open-source surface you would install.',
-      label: 'Open GitHub',
-      href: 'github',
-      external: true,
+      title: 'Install Continuum',
+      body: 'Choose Starter Kit or headless React. Setup docs walk you through.',
+      label: 'Read install docs',
+      href: '/docs',
       tone: 'strong',
     },
     {
-      title: 'Install or read setup docs',
-      body: 'Choose Starter Kit for the fastest path or headless React when you want full control over your components.',
-      label: 'Open install docs',
-      href: '/docs',
+      title: 'See it in action',
+      body: 'No API key needed. Watch intent survive a regeneration.',
+      label: 'Try demo',
+      href: '/playground',
       tone: 'default',
     },
     {
-      title: 'Try the no-key static demo',
-      body: 'See state loss versus preserved continuity in a deterministic comparison without adding an API key.',
-      label: 'Open static demo',
-      href: '/playground',
+      title: 'Review source',
+      body: 'Open-source runtime on GitHub.',
+      label: 'View on GitHub',
+      href: 'github',
+      external: true,
       tone: 'soft',
     },
   ] satisfies LandingAction[],
 };
 
 export const closingCtaContent = {
-  title: 'Ready to inspect the source and install?',
+  title: 'Make your UI reliable.',
   description:
-    'If the problem feels real, the next step is to inspect the GitHub repo and pick an install path. The demos exist to make that decision faster, not to slow it down.',
+    'Install and start protecting user progress today.',
   actions: [
     {
-      title: 'GitHub first',
-      body: 'Open the repository when you want the quickest path to source, docs, packages, and install commands in one place.',
-      label: 'View on GitHub',
-      href: 'github',
-      external: true,
+      title: 'Install now',
+      body: 'Setup takes minutes.',
+      label: 'Read docs',
+      href: '/docs',
       tone: 'strong',
     },
     {
-      title: 'Install with docs open',
-      body: 'Use the tracked docs to choose Starter Kit, headless React, or the lower-level runtime spine.',
-      label: 'Read setup docs',
-      href: '/docs',
+      title: 'See the demo',
+      body: 'No signup required.',
+      label: 'Try it',
+      href: '/playground',
       tone: 'default',
     },
     {
-      title: 'Need one more proof point?',
-      body: 'Run the static continuity demo if you want to feel the pain and the fix one more time before clicking through.',
-      label: 'Try static demo',
-      href: '/playground',
+      title: 'Explore the code',
+      body: 'Open-source and built for scale.',
+      label: 'GitHub',
+      href: 'github',
+      external: true,
       tone: 'soft',
     },
   ] satisfies LandingAction[],

@@ -116,7 +116,13 @@ export function LandingShell({
         }px ${isMobile ? space.xxl : space.xxxl + space.xxl}px`,
       }}
     >
-      <div style={{ ...innerStyle, width: `min(100%, ${page.width}px)` }}>
+      <div
+        style={{
+          ...innerStyle,
+          width: `min(100%, ${page.width}px)`,
+          gap: isMobile ? space.xxl : innerStyle.gap,
+        }}
+      >
         {nav ? (
           <div
             style={{
@@ -167,7 +173,12 @@ export function LandingSection({
   const { isMobile } = useResponsiveState();
 
   return (
-    <section style={sectionStyle}>
+    <section
+      style={{
+        ...sectionStyle,
+        gap: isMobile ? space.md : sectionStyle.gap,
+      }}
+    >
       <div
         style={{
           ...sectionHeaderStyle,
