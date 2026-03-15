@@ -2,13 +2,18 @@ import React, { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 import { createUIMessageStream } from 'ai';
-import { createSession } from '@continuum-dev/session';
-import type { ViewDefinition } from '@continuum-dev/contract';
+import { createSession, type ViewDefinition } from '@continuum-dev/core';
 import {
+  createContinuumVercelAiSdkAppendContentDataChunk,
+  createContinuumVercelAiSdkInsertNodeDataChunk,
+  createContinuumVercelAiSdkNodeStatusDataChunk,
+  applyContinuumVercelAiSdkDataPart,
   applyContinuumVercelAiSdkMessage,
   createContinuumVercelAiSdkPatchDataChunk,
+  createContinuumVercelAiSdkStateDataChunk,
   createContinuumVercelAiSdkSessionAdapter,
   createContinuumVercelAiSdkStatusDataChunk,
+  createContinuumVercelAiSdkViewDataChunk,
   useContinuumVercelAiSdkChat,
   type ContinuumVercelAiSdkMessage,
 } from '../index.js';
@@ -167,6 +172,204 @@ describe('@continuum-dev/vercel-ai-sdk', () => {
       currentValue: { value: 'user@example.com', isDirty: true },
       source: 'vercel-ai-sdk',
     });
+  });
+
+  it('streams transient parts into the render snapshot before committing durable state', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'loan-form',
+      version: '1',
+      nodes: [],
+    });
+
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+
+    const transientPatchApplication = applyContinuumVercelAiSdkDataPart(
+      {
+        type: 'data-continuum-patch',
+        transient: true,
+        data: {
+          patch: {
+            viewId: 'loan-form',
+            version: '2',
+            operations: [
+              {
+                op: 'insert-node',
+                parentId: null,
+                node: {
+                  id: 'name',
+                  type: 'field',
+                  dataType: 'string',
+                },
+              },
+            ],
+          },
+        },
+      },
+      adapter
+    );
+
+    expect(transientPatchApplication.kind).toBe('patch');
+    expect(session.getSnapshot()?.view.version).toBe('2');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
+
+    const streamId =
+      'streamId' in transientPatchApplication
+        ? transientPatchApplication.streamId
+        : undefined;
+    expect(typeof streamId).toBe('string');
+
+    if (!streamId) {
+      throw new Error('Expected transient patch to create a stream id');
+    }
+
+    adapter.commitStream?.(streamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2');
+  });
+
+  it('keeps transient state chunks on render-only nodes out of committed state until commit', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '1',
+      nodes: [],
+    });
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+
+    const transientViewApplication = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk(
+        {
+          view: {
+            viewId: 'streamed-view',
+            version: '2',
+            nodes: [
+              {
+                id: 'name',
+                type: 'field',
+                dataType: 'string',
+              },
+            ],
+          },
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+
+    const streamId =
+      'streamId' in transientViewApplication
+        ? transientViewApplication.streamId
+        : undefined;
+    if (!streamId) {
+      throw new Error('Expected transient view to create a stream id');
+    }
+
+    applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkStateDataChunk(
+        {
+          nodeId: 'name',
+          value: { value: 'typed', isDirty: true },
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+
+    expect(session.getSnapshot()?.data.values['name']).toEqual({
+      value: 'typed',
+      isDirty: true,
+    });
+    expect(session.getCommittedSnapshot()?.data.values['name']).toBeUndefined();
+
+    adapter.commitStream?.(streamId);
+
+    expect(session.getCommittedSnapshot()?.data.values['name']).toEqual({
+      value: 'typed',
+      isDirty: true,
+    });
+  });
+
+  it('applies richer stream parts and exposes node-status metadata', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '1',
+      nodes: [
+        {
+          id: 'intro',
+          type: 'presentation',
+          contentType: 'text',
+          content: 'Hello',
+        },
+      ],
+    });
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+
+    const inserted = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkInsertNodeDataChunk(
+        {
+          targetViewId: 'streamed-view',
+          parentId: null,
+          node: {
+            id: 'name',
+            type: 'field',
+            dataType: 'string',
+          },
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+    const streamId =
+      'streamId' in inserted ? inserted.streamId : undefined;
+    if (!streamId) {
+      throw new Error('Expected transient insert-node to create a stream id');
+    }
+
+    applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkAppendContentDataChunk(
+        {
+          targetViewId: 'streamed-view',
+          nodeId: 'intro',
+          text: ' world',
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+
+    applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkNodeStatusDataChunk(
+        {
+          targetViewId: 'streamed-view',
+          nodeId: 'name',
+          status: 'ready',
+          level: 'success',
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+
+    expect(session.getSnapshot()?.view.nodes).toHaveLength(2);
+    expect(session.getCommittedSnapshot()?.view.nodes).toHaveLength(1);
+    expect(session.getStreams()[0]?.nodeStatuses['name']).toEqual({
+      status: 'ready',
+      level: 'success',
+    });
+    expect(
+      (
+        session.getSnapshot()?.view.nodes[0] as Extract<
+          ViewDefinition['nodes'][number],
+          { type: 'presentation' }
+        >
+      ).content
+    ).toBe('Hello world');
+
+    adapter.commitStream?.(streamId);
+
+    expect(session.getCommittedSnapshot()?.view.nodes).toHaveLength(2);
   });
 
   it('syncs AI SDK UI assistant messages into the session and exposes transient status updates', async () => {

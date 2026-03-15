@@ -46,15 +46,6 @@ function buildAppliedPartKey(
   return part.id ?? `${messageId}:${index}:${part.type}`;
 }
 
-function isTransientPart(part: unknown): boolean {
-  return Boolean(
-    part &&
-      typeof part === 'object' &&
-      'transient' in part &&
-      (part as { transient?: boolean }).transient === true
-  );
-}
-
 export function useContinuumVercelAiSdkChat<
   UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
 >(
@@ -72,6 +63,7 @@ export function useContinuumVercelAiSdkChat<
     [session]
   );
   const appliedPartKeysRef = useRef<Set<string>>(new Set());
+  const pendingStreamIdsRef = useRef<Set<string>>(new Set());
   const [latestContinuumEvent, setLatestContinuumEvent] =
     useState<ContinuumVercelAiSdkPartApplication | null>(null);
   const [latestStatus, setLatestStatus] =
@@ -103,6 +95,7 @@ export function useContinuumVercelAiSdkChat<
   useEffect(() => {
     if (chat.messages.length === 0) {
       appliedPartKeysRef.current.clear();
+      pendingStreamIdsRef.current.clear();
       return;
     }
 
@@ -120,10 +113,6 @@ export function useContinuumVercelAiSdkChat<
           return;
         }
 
-        if (isTransientPart(part) && part.type !== 'data-continuum-status') {
-          return;
-        }
-
         const key = buildAppliedPartKey(message.id, index, part);
         if (appliedPartKeysRef.current.has(key)) {
           return;
@@ -135,6 +124,20 @@ export function useContinuumVercelAiSdkChat<
           part,
           continuumSession
         );
+        if (
+          'streamId' in application &&
+          typeof application.streamId === 'string' &&
+          application.streamId.length > 0
+        ) {
+          const stream = continuumSession
+            .getStreams?.()
+            ?.find((candidate) => candidate.streamId === application.streamId);
+          if (stream?.status === 'open') {
+            pendingStreamIdsRef.current.add(application.streamId);
+          } else {
+            pendingStreamIdsRef.current.delete(application.streamId);
+          }
+        }
         if (application.kind === 'status') {
           setLatestStatus({
             status: application.status,
@@ -148,6 +151,35 @@ export function useContinuumVercelAiSdkChat<
       });
     }
   }, [autoApplyMessages, chat.messages, continuumSession, onContinuumPart]);
+
+  useEffect(() => {
+    if (pendingStreamIdsRef.current.size === 0) {
+      return;
+    }
+
+    if (chat.status !== 'ready' && chat.status !== 'error') {
+      return;
+    }
+
+    const streamIds = [...pendingStreamIdsRef.current];
+    pendingStreamIdsRef.current.clear();
+
+    for (const streamId of streamIds) {
+      const stream = continuumSession
+        .getStreams?.()
+        ?.find((candidate) => candidate.streamId === streamId);
+      if (!stream || stream.status !== 'open') {
+        continue;
+      }
+
+      if (chat.status === 'error') {
+        continuumSession.abortStream?.(streamId, 'AI stream ended with error');
+        continue;
+      }
+
+      continuumSession.commitStream?.(streamId);
+    }
+  }, [chat.status, continuumSession]);
 
   return {
     ...chat,
