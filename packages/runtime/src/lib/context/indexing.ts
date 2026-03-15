@@ -8,14 +8,14 @@ import type { ReconciliationIssue } from '../types.js';
 import {
   type TraversedViewNode,
   traverseViewNodes,
-} from '../reconciliation/view-traversal.js';
+} from '../reconciliation/view-traversal/index.js';
 import { isUnique, toIndexedKey } from './helpers.js';
 import type { ReconciliationContext, ScopedNodeMatch } from './types.js';
 
 export function collectDuplicateIssues(
   nodes: ViewNode[]
 ): ReconciliationIssue[] {
-  const traversal = traverseViewNodes(nodes);
+  const traversal = traverseViewNodes({ nodes });
   const semanticKeyCounts = collectSemanticKeyCounts(traversal.visited);
   const issues: ReconciliationIssue[] = [];
 
@@ -36,8 +36,10 @@ export function buildReconciliationContext(
   newView: ViewDefinition,
   priorView: ViewDefinition | null
 ): ReconciliationContext {
-  const newTraversal = traverseViewNodes(newView.nodes);
-  const priorTraversal = priorView ? traverseViewNodes(priorView.nodes) : null;
+  const newTraversal = traverseViewNodes({ nodes: newView.nodes });
+  const priorTraversal = priorView
+    ? traverseViewNodes({ nodes: priorView.nodes })
+    : null;
 
   const context: ReconciliationContext = {
     newView,
