@@ -2,6 +2,8 @@
 
 Bridge Vercel AI SDK message streams into Continuum sessions.
 
+See the shared streaming guide in [@continuum-dev/session](../session/STREAMING.md) for the snapshot model, conflict rules, and richer stream-part vocabulary.
+
 This package is intentionally Continuum-first.
 
 It does not try to become a provider-routing layer. Instead it gives you:
@@ -9,6 +11,7 @@ It does not try to become a provider-routing layer. Instead it gives you:
 - typed Vercel AI SDK UI-message data parts for Continuum view/state updates
 - helpers to apply streamed message parts into a Continuum session
 - a React hook that keeps `useChat` and a Continuum session in sync
+- stream-aware normalization into `session.beginStream() / applyStreamPart() / commitStream()`
 
 ## Install
 
@@ -90,11 +93,61 @@ export function App() {
 ## Built-in data parts
 
 - `data-continuum-view`
+- `data-continuum-patch`
+- `data-continuum-insert-node`
+- `data-continuum-replace-node`
+- `data-continuum-remove-node`
+- `data-continuum-append-content`
 - `data-continuum-state`
 - `data-continuum-reset`
 - `data-continuum-status`
+- `data-continuum-node-status`
 
-The first three map directly onto Continuum session operations.
+The structured parts normalize into the session streaming foundation:
+
+- `view` and `patch` become `SessionStreamPart` view/patch updates
+- `state` respects Continuum proposal semantics, including dirty/sticky protection
+- `status` updates stream metadata without forcing a commit
+
+When you mark a chunk as `transient: true`, the adapter keeps it in the render snapshot until the stream is committed. That means UI can build incrementally without mutating the durable committed snapshot too early.
+
+```ts
+import {
+  applyContinuumVercelAiSdkDataPart,
+  createContinuumVercelAiSdkPatchDataChunk,
+} from '@continuum-dev/vercel-ai-sdk';
+
+const application = applyContinuumVercelAiSdkDataPart(
+  createContinuumVercelAiSdkPatchDataChunk(
+    {
+      patch: {
+        viewId: 'loan-intake',
+        version: '2.0',
+        operations: [
+          {
+            op: 'insert-node',
+            parentId: 'loan_group',
+            node: {
+              id: 'borrower_email',
+              type: 'field',
+              dataType: 'string',
+            },
+          },
+        ],
+      },
+    },
+    { transient: true }
+  ),
+  adapter
+);
+```
+
+Deterministic conflict behavior:
+
+- open streams are scoped by `targetViewId`
+- a newer superseding stream wins explicitly
+- dirty or sticky user-owned values become proposals instead of being overwritten
+- transient render-only user edits stay in the stream draft until commit, or become detached values on abort
 
 ## License
 

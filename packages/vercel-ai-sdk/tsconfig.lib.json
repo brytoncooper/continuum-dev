@@ -18,12 +18,6 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../contract/tsconfig.lib.json"
-    },
-    {
-      "path": "../session/tsconfig.lib.json"
-    },
-    {
       "path": "../core/tsconfig.lib.json"
     }
   ]

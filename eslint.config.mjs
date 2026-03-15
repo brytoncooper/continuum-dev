@@ -89,8 +89,13 @@ export default [
                 'scope:core',
                 'scope:react',
                 'scope:prompts',
+                'scope:vercel-ai-sdk',
                 'scope:starter-kit',
               ],
+            },
+            {
+              sourceTag: 'scope:vercel-ai-sdk',
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:vercel-ai-sdk'],
             },
             {
               sourceTag: 'scope:playground',
