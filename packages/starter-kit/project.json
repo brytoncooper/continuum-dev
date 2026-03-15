@@ -5,6 +5,14 @@
   "projectType": "library",
   "tags": ["scope:starter-kit"],
   "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "cwd": "packages/starter-kit",
+        "command": "vitest"
+      }
+    },
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",
       "dependsOn": ["^nx-release-publish"],

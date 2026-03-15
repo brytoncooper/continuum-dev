@@ -5,6 +5,7 @@
     "rootDir": "src",
     "outDir": "../../dist/packages/starter-kit",
     "tsBuildInfoFile": "../../dist/packages/starter-kit/tsconfig.lib.tsbuildinfo",
+    "allowJs": true,
     "types": ["node"],
     "lib": ["es2022", "dom"],
     "emitDeclarationOnly": false
@@ -16,7 +17,7 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx"
   ],
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs"],
   "references": [
     {
       "path": "../contract/tsconfig.lib.json"

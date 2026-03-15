@@ -35,7 +35,9 @@
   },
   "files": [
     "**/*.js",
+    "**/*.mjs",
     "**/*.d.ts",
+    "**/*.d.mts",
     "**/*.d.ts.map",
     "README.md",
     "LICENSE*"
