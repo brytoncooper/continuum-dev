@@ -1,4 +1,9 @@
-import type { ViewDefinition } from '@continuum-dev/core';
+import {
+  applyContinuumViewStreamPart,
+  type ContinuumViewPatchPosition,
+  type ViewDefinition,
+  type ViewNode,
+} from '@continuum-dev/core';
 import type {
   DetachedFieldHint,
   PromptOutputContract,
@@ -7,19 +12,44 @@ import type {
   CompactPatchNode,
   PatchNodeHint,
 } from './patch-context.js';
+import {
+  normalizeViewDefinition,
+  SUPPORTED_NODE_TYPE_VALUES,
+} from './view-guardrails.js';
 
-export interface ViewPatchTarget {
-  id?: string;
-  key?: string;
-  path?: string;
-}
-
-export interface ViewPatchOperation {
-  op: 'set-prop';
-  target: ViewPatchTarget;
-  prop: string;
-  value?: unknown;
-}
+export type ViewPatchOperation =
+  | {
+      kind: 'insert-node';
+      parentId?: string | null;
+      position?: ContinuumViewPatchPosition;
+      node: ViewNode;
+    }
+  | {
+      kind: 'move-node';
+      nodeId: string;
+      parentId?: string | null;
+      position?: ContinuumViewPatchPosition;
+    }
+  | {
+      kind: 'wrap-nodes';
+      parentId?: string | null;
+      nodeIds: string[];
+      wrapper: ViewNode;
+    }
+  | {
+      kind: 'replace-node';
+      nodeId: string;
+      node: ViewNode;
+    }
+  | {
+      kind: 'remove-node';
+      nodeId: string;
+    }
+  | {
+      kind: 'append-content';
+      nodeId: string;
+      text: string;
+    };
 
 export interface ViewPatchPlan {
   mode: 'patch' | 'full';
@@ -27,32 +57,6 @@ export interface ViewPatchPlan {
   reason?: string;
   fullStrategy?: 'evolve' | 'replace';
 }
-
-const PATCHABLE_NODE_PROPS = new Set([
-  'type',
-  'key',
-  'label',
-  'description',
-  'placeholder',
-  'defaultValue',
-  'defaultValues',
-  'dataType',
-  'contentType',
-  'content',
-  'intentId',
-  'options',
-  'min',
-  'max',
-  'step',
-  'columns',
-  'layout',
-  'children',
-  'template',
-]);
-
-const JSON_VALUE_SCHEMA = {
-  type: ['string', 'number', 'boolean', 'object', 'array', 'null'],
-};
 
 export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
   name: 'continuum_view_patch',
@@ -76,20 +80,29 @@ export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['op', 'target', 'prop'],
+          required: ['kind'],
           properties: {
-            op: { type: 'string' },
-            target: {
+            kind: { type: 'string' },
+            parentId: {
+              type: ['string', 'null'],
+            },
+            position: {
               type: 'object',
               additionalProperties: false,
               properties: {
-                id: { type: 'string' },
-                key: { type: 'string' },
-                path: { type: 'string' },
+                beforeId: { type: 'string' },
+                afterId: { type: 'string' },
+                index: { type: 'number' },
               },
             },
-            prop: { type: 'string' },
-            value: JSON_VALUE_SCHEMA,
+            nodeId: { type: 'string' },
+            nodeIds: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+            text: { type: 'string' },
+            node: { type: 'object' },
+            wrapper: { type: 'object' },
           },
         },
       },
@@ -99,29 +112,42 @@ export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
 
 export function buildPatchSystemPrompt(): string {
   return [
-    'You generate Continuum patch plans, not full views.',
+    'You generate Continuum update plans for small, localized Continuum UI edits.',
     'Return JSON only.',
     'Do not wrap the JSON in markdown fences.',
     'Do not include commentary before or after the JSON.',
     'Mode options:',
-    '- mode="patch": return operations for small updates.',
+    '- mode="patch": return explicit update operations for small updates.',
     '- mode="full": return no operations when patching is unsafe or ambiguous.',
     '- When mode="full", include fullStrategy as either "evolve" or "replace".',
     'Rules:',
-    '- Prefer mode="patch" when updating existing node props.',
+    '- Prefer mode="patch" when the user asks for a localized change.',
     '- If instruction implies a brand new or replacement workflow, choose mode="full" and fullStrategy="replace".',
     '- If instruction can still evolve the current workflow but patching is unsafe, choose mode="full" and fullStrategy="evolve".',
-    '- Use op "set-prop" only.',
-    '- set-prop may update local structure, including type/columns/layout/children/template.',
-    '- If you add or keep a collection, ensure it starts with at least one item via defaultValues unless the user explicitly asks for an empty collection.',
-    '- Prefer local container patches for layout tweaks instead of forcing full mode.',
-    '- When setting children or template, provide complete valid Continuum node objects.',
-    '- Use target.path whenever possible.',
-    '- Use only targets present in the provided node index.',
+    '- Supported operation kinds are: insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content.',
+    '- insert-node adds one full node subtree at a parent or the top level.',
+    '- move-node repositions one existing node into a parent or the top level without rewriting the subtree.',
+    '- wrap-nodes wraps existing sibling nodes in a new group/row/grid container.',
+    '- replace-node replaces one existing node with a complete valid replacement subtree.',
+    '- remove-node removes one existing node.',
+    '- append-content is only for appending text to an existing presentation node. If content is being rewritten, use replace-node instead.',
+    '- For property tweaks on an existing node, use replace-node with the complete updated node object. Do not invent a separate prop-level patch language.',
+    '- Use only node ids and parent ids that exist in the provided node index/tree unless you are introducing a brand-new inserted node.',
+    '- Prefer the smallest valid operation list that satisfies the request.',
     '- Preserve semantic continuity and detached key continuity.',
+    '- For layout-only regroupings, prefer move-node or wrap-nodes over replacing a large subtree.',
+    '- For stateful fields that move structurally, preserve semanticKey and keep the same field id whenever possible.',
     '- If user asks to re-add a previously detached field, reuse its detached key as node key.',
     '- Use previousLabel and previousParentLabel on detached fields as semantic clues for restore requests.',
     '- Do not reuse a detachedKey for a different concept just because the value preview looks similar.',
+    '- Groups are for major sections and semantic clustering.',
+    '- Rows are for 2-3 short related fields on one line.',
+    '- Grids are for compact peer fields or card-like items.',
+    '- Collections are only for repeatable user-managed items.',
+    '- Every collection must include a complete template node. The template should usually be a group/row/grid that contains the actual child fields.',
+    '- Do not create an empty collection template. A collection without real template fields is invalid.',
+    '- If you add or keep a collection, ensure it starts with at least one initial item via defaultValues unless the user explicitly asks for an empty collection.',
+    `- Supported node types are: ${SUPPORTED_NODE_TYPE_VALUES.join(', ')}.`,
   ].join('\n');
 }
 
@@ -142,7 +168,9 @@ export function buildPatchUserMessage(args: {
       null,
       2
     )}`,
+    'The node index lists existing ids, keys, labels, and structural hints. Use it to target existing nodes precisely.',
     `Node index:\n${JSON.stringify(args.nodeHints, null, 2)}`,
+    'The compact tree shows the full current hierarchy. When you replace or insert a collection, include a complete collection node with a valid template subtree and any needed defaultValues.',
     `Compact full tree snapshot:\n${JSON.stringify(args.compactTree, null, 2)}`,
     'Detached fields are prior removed fields available for restoration. Match by semantic meaning using detachedKey, previousLabel, and previousParentLabel.',
     `Detached fields:\n${
@@ -166,70 +194,159 @@ export function isViewPatchPlan(value: unknown): value is ViewPatchPlan {
   return Array.isArray(candidate.operations);
 }
 
-interface MutableNodeRef {
-  path: string;
-  id: string;
-  key?: string;
-  node: Record<string, unknown>;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function collectMutableNodeRefs(view: ViewDefinition): MutableNodeRef[] {
-  const refs: MutableNodeRef[] = [];
-
-  const walk = (nodes: unknown[], parentPath: string): void => {
-    for (const node of nodes) {
-      if (!node || typeof node !== 'object') {
-        continue;
-      }
-
-      const asRecord = node as Record<string, unknown>;
-      const id =
-        typeof asRecord.id === 'string' && asRecord.id.length > 0
-          ? asRecord.id
-          : 'node';
-      const path = parentPath.length > 0 ? `${parentPath}/${id}` : id;
-      refs.push({
-        path,
-        id,
-        key: typeof asRecord.key === 'string' ? asRecord.key : undefined,
-        node: asRecord,
-      });
-
-      if (Array.isArray(asRecord.children)) {
-        walk(asRecord.children, path);
-      }
-
-      if (asRecord.template && typeof asRecord.template === 'object') {
-        walk([asRecord.template], path);
-      }
-    }
-  };
-
-  walk(view.nodes as unknown[], '');
-  return refs;
-}
-
-function resolvePatchTarget(
-  refs: MutableNodeRef[],
-  target: ViewPatchTarget
-): MutableNodeRef | null {
-  const matches = refs.filter((ref) => {
-    if (target.path) {
-      return ref.path === target.path;
-    }
-    if (target.key) {
-      return ref.key === target.key;
-    }
-    if (target.id) {
-      return ref.id === target.id;
-    }
-    return false;
-  });
-
-  if (matches.length !== 1) {
+function normalizePlanNode(node: unknown): ViewNode | null {
+  if (!isRecord(node)) {
     return null;
   }
-  return matches[0];
+
+  const normalizedView = normalizeViewDefinition({
+    viewId: 'normalized_plan',
+    version: '1',
+    nodes: [node as unknown as ViewNode],
+  });
+
+  return normalizedView.nodes[0] ?? null;
+}
+
+function normalizePlanPosition(
+  input: unknown
+): ContinuumViewPatchPosition | undefined {
+  if (!isRecord(input)) {
+    return undefined;
+  }
+
+  const position: ContinuumViewPatchPosition = {};
+  if (typeof input.beforeId === 'string' && input.beforeId.trim().length > 0) {
+    position.beforeId = input.beforeId;
+  }
+  if (typeof input.afterId === 'string' && input.afterId.trim().length > 0) {
+    position.afterId = input.afterId;
+  }
+  if (typeof input.index === 'number' && Number.isInteger(input.index)) {
+    position.index = input.index;
+  }
+
+  return Object.keys(position).length > 0 ? position : undefined;
+}
+
+function normalizePlanOperation(input: unknown): ViewPatchOperation | null {
+  if (!isRecord(input) || typeof input.kind !== 'string') {
+    return null;
+  }
+
+  if (input.kind === 'insert-node') {
+    const node = normalizePlanNode(input.node);
+    if (!node) {
+      return null;
+    }
+
+    return {
+      kind: 'insert-node',
+      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(input.parentId === null ? { parentId: null } : {}),
+      ...(normalizePlanPosition(input.position)
+        ? { position: normalizePlanPosition(input.position) }
+        : {}),
+      node,
+    };
+  }
+
+  if (input.kind === 'move-node') {
+    if (typeof input.nodeId !== 'string' || input.nodeId.trim().length === 0) {
+      return null;
+    }
+
+    return {
+      kind: 'move-node',
+      nodeId: input.nodeId,
+      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(input.parentId === null ? { parentId: null } : {}),
+      ...(normalizePlanPosition(input.position)
+        ? { position: normalizePlanPosition(input.position) }
+        : {}),
+    };
+  }
+
+  if (input.kind === 'wrap-nodes') {
+    if (
+      !Array.isArray(input.nodeIds) ||
+      input.nodeIds.length === 0 ||
+      input.nodeIds.some(
+        (nodeId) => typeof nodeId !== 'string' || nodeId.trim().length === 0
+      )
+    ) {
+      return null;
+    }
+
+    const wrapper = normalizePlanNode(input.wrapper);
+    if (
+      !wrapper ||
+      (wrapper.type !== 'group' &&
+        wrapper.type !== 'row' &&
+        wrapper.type !== 'grid')
+    ) {
+      return null;
+    }
+
+    return {
+      kind: 'wrap-nodes',
+      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(input.parentId === null ? { parentId: null } : {}),
+      nodeIds: input.nodeIds,
+      wrapper,
+    };
+  }
+
+  if (input.kind === 'replace-node') {
+    if (typeof input.nodeId !== 'string' || input.nodeId.trim().length === 0) {
+      return null;
+    }
+
+    const node = normalizePlanNode(input.node);
+    if (!node) {
+      return null;
+    }
+
+    return {
+      kind: 'replace-node',
+      nodeId: input.nodeId,
+      node,
+    };
+  }
+
+  if (input.kind === 'remove-node') {
+    if (typeof input.nodeId !== 'string' || input.nodeId.trim().length === 0) {
+      return null;
+    }
+
+    return {
+      kind: 'remove-node',
+      nodeId: input.nodeId,
+    };
+  }
+
+  if (input.kind === 'append-content') {
+    if (
+      typeof input.nodeId !== 'string' ||
+      input.nodeId.trim().length === 0 ||
+      typeof input.text !== 'string' ||
+      input.text.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      kind: 'append-content',
+      nodeId: input.nodeId,
+      text: input.text,
+    };
+  }
+
+  return null;
 }
 
 function bumpVersion(version: string): string {
@@ -254,40 +371,25 @@ export function applyPatchPlanToView(
     return null;
   }
 
-  const nextView = structuredClone(currentView);
-  const refs = collectMutableNodeRefs(nextView);
+  let nextView = structuredClone(currentView);
   let changed = false;
 
-  for (const operation of plan.operations) {
-    if (
-      !operation ||
-      operation.op !== 'set-prop' ||
-      !operation.target ||
-      typeof operation.prop !== 'string'
-    ) {
+  for (const rawOperation of plan.operations) {
+    const operation = normalizePlanOperation(rawOperation);
+    if (!operation) {
       return null;
     }
 
-    if (!PATCHABLE_NODE_PROPS.has(operation.prop)) {
+    try {
+      const result = applyContinuumViewStreamPart({
+        currentView: nextView,
+        part: operation,
+      });
+      nextView = result.view;
+      changed = true;
+    } catch {
       return null;
     }
-
-    const ref = resolvePatchTarget(refs, operation.target);
-    if (!ref) {
-      return null;
-    }
-
-    const currentValue = ref.node[operation.prop];
-    if (Object.is(currentValue, operation.value)) {
-      continue;
-    }
-
-    if (typeof operation.value === 'undefined') {
-      delete ref.node[operation.prop];
-    } else {
-      ref.node[operation.prop] = operation.value;
-    }
-    changed = true;
   }
 
   if (!changed) {

@@ -3,7 +3,7 @@ import type {
   AiConnectGenerateResult,
 } from '@continuum-dev/ai-connect';
 import type { SessionStreamPart } from '@continuum-dev/core';
-import { getChildNodes, type ViewDefinition, type ViewNode } from '@continuum-dev/core';
+import type { ViewDefinition } from '@continuum-dev/core';
 import {
   type PromptAddon,
   type PromptMode,
@@ -21,9 +21,20 @@ import {
   getPatchGenerateOptions,
   getRepairGenerateOptions,
   shouldAttemptRepair,
-  shouldUsePatchMode,
 } from './provider-policy.js';
 import type { StarterKitSessionAdapter } from './session-adapter.js';
+import {
+  buildContinuumExecutionPlannerSystemPrompt,
+  buildContinuumExecutionPlannerUserPrompt,
+  getAvailableContinuumExecutionModes,
+  normalizeContinuumSemanticIdentity,
+  resolveContinuumExecutionPlan,
+} from './continuum-execution.mjs';
+import {
+  buildStarterKitPatchTargetCatalog,
+  buildStarterKitStateTargetCatalog,
+  parseStarterKitStateResponse,
+} from './execution-targets.js';
 import {
   applyPatchPlanToView,
   buildPatchSystemPrompt,
@@ -62,11 +73,82 @@ function shouldUseViewDsl(provider: AiConnectClient): boolean {
   return true;
 }
 
+function buildStateSystemPrompt(): string {
+  return [
+    'You author Continuum data updates for a client-side session runtime.',
+    'Return exactly one JSON object and nothing else.',
+    'Do not wrap the JSON in markdown fences.',
+    'Return a state response, not a view or patch response.',
+    'State response shape: {"updates":[...],"status":"optional short summary"}.',
+    'Each update must target one of the provided selected targets by semanticKey, key, or nodeId.',
+    'Only update existing stateful nodes that should actually change.',
+    'Do not invent new node ids, semantic keys, or keys.',
+    'Do not mutate view structure.',
+    'For collections, target the collection node and provide {"value":{"items":[...]}}.',
+    'Collection item objects should use template field semanticKey, key, or nodeId from the provided catalog.',
+    'Prefer preserving meaningful user-entered values unless the instruction explicitly asks to overwrite them.',
+  ].join('\n');
+}
+
+function buildStateUserMessage(args: {
+  instruction: string;
+  currentData: unknown;
+  stateTargets: unknown[];
+  selectedTargets: string[];
+}): string {
+  return [
+    'Return the next Continuum state updates as JSON only.',
+    '',
+    'Selected targets:',
+    JSON.stringify(args.selectedTargets, null, 2),
+    '',
+    'Available state targets:',
+    JSON.stringify(args.stateTargets, null, 2),
+    '',
+    'Current state values:',
+    JSON.stringify(args.currentData ?? null, null, 2),
+    '',
+    'Instruction:',
+    args.instruction.trim(),
+  ].join('\n');
+}
+
+function normalizeGeneratedView(
+  currentView: ViewDefinition,
+  nextView: ViewDefinition
+): ViewDefinition {
+  const normalizedIdentity = normalizeContinuumSemanticIdentity({
+    currentView,
+    nextView,
+  });
+  if (normalizedIdentity.errors.length > 0 || !normalizedIdentity.view) {
+    throw new Error(
+      normalizedIdentity.errors[0] ??
+        'Generated view failed semantic identity validation.'
+    );
+  }
+
+  const normalizedView = normalizeViewDefinition(normalizedIdentity.view);
+  const unsupported = collectUnsupportedNodeTypes(normalizedView.nodes);
+  if (unsupported.length > 0) {
+    throw new Error(
+      `Unsupported node types returned: ${unsupported.join(', ')}. Supported types: ${SUPPORTED_NODE_TYPE_VALUES.join(', ')}.`
+    );
+  }
+  const structuralErrors = collectStructuralErrors(normalizedView.nodes);
+  if (structuralErrors.length > 0) {
+    throw new Error(`Malformed view from model: ${structuralErrors[0]}`);
+  }
+
+  return normalizedView;
+}
+
 function applyThroughStreamingFoundation(
   session: StarterKitSessionAdapter,
   source: string,
   targetViewId: string,
-  parts: SessionStreamPart[]
+  parts: SessionStreamPart[],
+  mode: 'foreground' | 'draft' = 'foreground'
 ): boolean {
   if (
     typeof session.beginStream !== 'function' ||
@@ -80,7 +162,7 @@ function applyThroughStreamingFoundation(
   const stream = session.beginStream({
     targetViewId,
     source,
-    mode: 'foreground',
+    mode,
     supersede: true,
     baseViewVersion: baseSnapshot?.view.version ?? null,
   });
@@ -96,79 +178,54 @@ function applyThroughStreamingFoundation(
   return true;
 }
 
-function collectPresentationNodes(
-  nodes: ViewNode[],
-  parentPath = '',
-  result = new Map<string, string>()
-): Map<string, string> {
-  for (const node of nodes) {
-    const canonicalId = parentPath.length > 0 ? `${parentPath}/${node.id}` : node.id;
-    if (node.type === 'presentation') {
-      result.set(canonicalId, node.content);
-    }
-    const children = getChildNodes(node);
-    if (children.length > 0) {
-      collectPresentationNodes(children, canonicalId, result);
-    }
-    if (node.type === 'collection') {
-      collectPresentationNodes([node.template], canonicalId, result);
-    }
-  }
-  return result;
+function applyStateUpdatesThroughStreamingFoundation(
+  session: StarterKitSessionAdapter,
+  source: string,
+  currentView: ViewDefinition,
+  updates: Array<{ nodeId: string; value: unknown }>
+): boolean {
+  return applyThroughStreamingFoundation(
+    session,
+    source,
+    currentView.viewId,
+    updates.map((update) => ({
+      kind: 'state',
+      nodeId: update.nodeId,
+      value: update.value,
+      source,
+    })) as SessionStreamPart[]
+  );
 }
 
-function buildNormalizedGeneratedStreamParts(
+function applyPatchPlanThroughUpdateParts(
+  session: StarterKitSessionAdapter,
+  source: string,
   currentView: ViewDefinition,
-  nextView: ViewDefinition
-): SessionStreamPart[] {
-  if (currentView.viewId !== nextView.viewId) {
-    return [{ kind: 'view', view: nextView }];
+  plan: unknown
+): boolean {
+  if (!isViewPatchPlan(plan) || plan.mode !== 'patch' || plan.operations.length === 0) {
+    return false;
   }
 
-  const currentPresentation = collectPresentationNodes(currentView.nodes);
-  const nextPresentation = collectPresentationNodes(nextView.nodes);
-  if (currentPresentation.size !== nextPresentation.size) {
-    return [{ kind: 'view', view: nextView }];
+  const parts = plan.operations.map((operation) => ({ ...operation })) as SessionStreamPart[];
+  if (
+    applyThroughStreamingFoundation(
+      session,
+      source,
+      currentView.viewId,
+      parts
+    )
+  ) {
+    return true;
   }
 
-  let appendCandidate:
-    | {
-        nodeId: string;
-        text: string;
-      }
-    | null = null;
-
-  for (const [nodeId, currentContent] of currentPresentation) {
-    const nextContent = nextPresentation.get(nodeId);
-    if (nextContent === undefined) {
-      return [{ kind: 'view', view: nextView }];
-    }
-    if (nextContent === currentContent) {
-      continue;
-    }
-    if (!nextContent.startsWith(currentContent)) {
-      return [{ kind: 'view', view: nextView }];
-    }
-    if (appendCandidate) {
-      return [{ kind: 'view', view: nextView }];
-    }
-    appendCandidate = {
-      nodeId,
-      text: nextContent.slice(currentContent.length),
-    };
+  const nextView = applyPatchPlanToView(currentView, plan);
+  if (!nextView) {
+    return false;
   }
 
-  if (appendCandidate && appendCandidate.text.length > 0) {
-    return [
-      {
-        kind: 'append-content',
-        nodeId: appendCandidate.nodeId,
-        text: appendCandidate.text,
-      },
-    ];
-  }
-
-  return [{ kind: 'view', view: nextView }];
+  session.applyView(normalizeGeneratedView(currentView, nextView));
+  return true;
 }
 
 export async function runStarterKitViewGeneration(
@@ -188,64 +245,140 @@ export async function runStarterKitViewGeneration(
   let fullRunMode: PromptMode = args.mode;
   const useViewDsl = shouldUseViewDsl(args.provider);
   const authoringFormat = args.authoringFormat ?? 'line-dsl';
+  const patchContext = buildPatchContext(snapshot.view);
+  const stateTargets = buildStarterKitStateTargetCatalog(snapshot.view);
+  const patchTargets = buildStarterKitPatchTargetCatalog(snapshot.view);
+  const availableExecutionModes = getAvailableContinuumExecutionModes({
+    hasCurrentView: snapshot.view.nodes.length > 0,
+    hasStateTargets: stateTargets.length > 0,
+  });
 
-  if (
-    shouldUsePatchMode({
-      autoApplyView,
-      mode: args.mode,
-      provider: args.provider,
-    })
-  ) {
+  const planExecutionMode = async () => {
+    if (!autoApplyView || availableExecutionModes.length === 1) {
+      return {
+        mode: availableExecutionModes[0] ?? 'view',
+        fallback: 'view' as const,
+        reason: autoApplyView ? 'only available mode' : 'view generation requested',
+        targetNodeIds: [] as string[],
+        targetSemanticKeys: [] as string[],
+        validation: 'accepted' as const,
+      };
+    }
+
+    const planResult = await args.provider.generate({
+      systemPrompt: buildContinuumExecutionPlannerSystemPrompt(),
+      userMessage: buildContinuumExecutionPlannerUserPrompt({
+        availableModes: availableExecutionModes,
+        patchTargets,
+        stateTargets,
+        compactTree: patchContext.compactTree,
+        currentData: snapshot.data.values,
+        instruction: args.instruction,
+      }),
+      ...getPatchGenerateOptions(args.provider),
+    });
+
+    return {
+      parsed: planResult.json ?? parseJson(planResult.text),
+      raw: planResult,
+      resolved: resolveContinuumExecutionPlan({
+        text: planResult.text,
+        availableModes: availableExecutionModes,
+        patchTargets,
+        stateTargets,
+      }),
+    };
+  };
+
+  const planResult = await planExecutionMode();
+  const executionPlan =
+    ('resolved' in planResult ? planResult.resolved : planResult) ?? {
+      mode: 'view' as const,
+      fallback: 'view' as const,
+      reason: 'planner fallback',
+      targetNodeIds: [] as string[],
+      targetSemanticKeys: [] as string[],
+      validation: 'invalid-plan' as const,
+    };
+  const selectedTargets = [
+    ...executionPlan.targetNodeIds,
+    ...executionPlan.targetSemanticKeys,
+  ];
+
+  if (executionPlan.mode === 'state' && autoApplyView) {
+    const stateResult = await args.provider.generate({
+      systemPrompt: buildStateSystemPrompt(),
+      userMessage: buildStateUserMessage({
+        instruction: args.instruction,
+        currentData: snapshot.data.values,
+        stateTargets,
+        selectedTargets,
+      }),
+      ...getPatchGenerateOptions(args.provider),
+    });
+    const parsedState =
+      parseStarterKitStateResponse({
+        text: stateResult.text,
+        targetCatalog: stateTargets,
+      }) ??
+      null;
+
+    if (
+      parsedState &&
+      parsedState.updates.length > 0 &&
+      applyStateUpdatesThroughStreamingFoundation(
+        args.session,
+        args.provider.label,
+        snapshot.view,
+        parsedState.updates
+      )
+    ) {
+      return {
+        result: stateResult,
+        parsed: parsedState,
+        status:
+          parsedState.status ??
+          `Planner chose state mode and applied ${parsedState.updates.length} Continuum state update${
+            parsedState.updates.length === 1 ? '' : 's'
+          } from ${args.provider.label}.`,
+      };
+    }
+  }
+
+  if (executionPlan.mode === 'patch' && autoApplyView) {
     try {
-      const patchContext = buildPatchContext(snapshot.view);
       const patchResult = await args.provider.generate({
         systemPrompt: buildPatchSystemPrompt(),
-        userMessage: buildPatchUserMessage({
-          viewId: snapshot.view.viewId,
-          version: snapshot.view.version,
-          instruction: args.instruction,
-          nodeHints: patchContext.nodeHints,
-          compactTree: patchContext.compactTree,
-          detachedFields,
-        }),
+        userMessage: [
+          buildPatchUserMessage({
+            viewId: snapshot.view.viewId,
+            version: snapshot.view.version,
+            instruction: args.instruction,
+            nodeHints: patchContext.nodeHints,
+            compactTree: patchContext.compactTree,
+            detachedFields,
+          }),
+          'Planner-selected localized targets:',
+          JSON.stringify(selectedTargets, null, 2),
+        ].join('\n\n'),
         ...getPatchGenerateOptions(args.provider),
       });
       const patchParsed = patchResult.json ?? parseJson(patchResult.text);
 
       if (isViewPatchPlan(patchParsed)) {
-        const patchedView = applyPatchPlanToView(snapshot.view, patchParsed);
-        if (patchedView) {
-          const normalizedPatchedView = normalizeViewDefinition(patchedView);
-          const patchUnsupported = collectUnsupportedNodeTypes(
-            normalizedPatchedView.nodes
-          );
-          const patchStructuralErrors = collectStructuralErrors(
-            normalizedPatchedView.nodes
-          );
-
-          if (
-            patchUnsupported.length === 0 &&
-            patchStructuralErrors.length === 0
-          ) {
-            if (
-              !applyThroughStreamingFoundation(
-                args.session,
-                args.provider.label,
-                normalizedPatchedView.viewId,
-                buildNormalizedGeneratedStreamParts(
-                  snapshot.view,
-                  normalizedPatchedView
-                )
-              )
-            ) {
-              args.session.applyView(normalizedPatchedView);
-            }
-            return {
-              result: patchResult,
-              parsed: patchParsed,
-              status: `Applied patch ${snapshot.view.viewId}@${snapshot.view.version} -> @${normalizedPatchedView.version} from ${args.provider.label}.`,
-            };
-          }
+        if (
+          applyPatchPlanThroughUpdateParts(
+            args.session,
+            args.provider.label,
+            snapshot.view,
+            patchParsed
+          )
+        ) {
+          return {
+            result: patchResult,
+            parsed: patchParsed,
+            status: `Planner chose patch mode and applied localized Continuum update operations to ${snapshot.view.viewId}@${snapshot.view.version} from ${args.provider.label}.`,
+          };
         }
 
         if (
@@ -260,136 +393,132 @@ export async function runStarterKitViewGeneration(
     }
   }
 
-  const systemPrompt = useViewDsl
-    ? buildViewAuthoringSystemPrompt({
-        format: authoringFormat,
-        mode: fullRunMode,
-        addons: args.addons,
-      })
-    : '';
+  const generateFullView = async (
+    mode: PromptMode,
+    validationErrors?: string[]
+  ): Promise<StarterKitRunViewGenerationResult> => {
+    const systemPrompt = useViewDsl
+      ? buildViewAuthoringSystemPrompt({
+          format: authoringFormat,
+          mode,
+          addons: args.addons,
+        })
+      : '';
 
-  const userMessage = useViewDsl
-    ? buildViewAuthoringUserMessage({
-        format: authoringFormat,
-        mode: fullRunMode,
-        instruction: args.instruction,
-        currentView:
-          fullRunMode === 'create-view' ? undefined : snapshot.view,
-        detachedFields:
-          fullRunMode === 'create-view' ? undefined : detachedFields,
-        validationErrors:
-          fullRunMode === 'correction-loop'
-            ? issues.map((issue) => JSON.stringify(issue))
-            : undefined,
-        runtimeErrors:
-          fullRunMode === 'correction-loop'
-            ? buildRuntimeErrors(issues)
-            : undefined,
-      })
-    : '';
+    const userMessage = useViewDsl
+      ? buildViewAuthoringUserMessage({
+          format: authoringFormat,
+          mode,
+          instruction: args.instruction,
+          currentView: mode === 'create-view' ? undefined : snapshot.view,
+          detachedFields: mode === 'create-view' ? undefined : detachedFields,
+          validationErrors,
+          runtimeErrors:
+            mode === 'correction-loop'
+              ? buildRuntimeErrors(issues)
+              : undefined,
+        })
+      : '';
 
-  const result = await args.provider.generate({
-    systemPrompt,
-    userMessage,
-    ...getFullGenerateOptions(args.provider),
-  });
+    const result = await args.provider.generate({
+      systemPrompt,
+      userMessage,
+      ...getFullGenerateOptions(args.provider),
+    });
 
-  let finalResult = result;
-  let parsed = useViewDsl
-    ? parseViewAuthoringToViewDefinition({
-        format: authoringFormat,
-        text: result.text,
-        fallbackView: snapshot.view,
-      })
-    : result.json ?? parseJson(result.text);
+    let finalResult = result;
+    let parsed = useViewDsl
+      ? parseViewAuthoringToViewDefinition({
+          format: authoringFormat,
+          text: result.text,
+          fallbackView: snapshot.view,
+        })
+      : result.json ?? parseJson(result.text);
 
-  if (
-    shouldAttemptRepair({
-      autoApplyView,
-      provider: args.provider,
-    })
-  ) {
-    const candidateErrors: string[] = [];
-    if (!isViewDefinition(parsed)) {
-      candidateErrors.push(
-        'Model output did not compile into a valid ViewDefinition.'
-      );
-    } else {
-      const unsupported = collectUnsupportedNodeTypes(parsed.nodes);
-      if (unsupported.length > 0) {
-        candidateErrors.push(
-          `Unsupported node types: ${unsupported.join(', ')}.`
-        );
-      }
-      candidateErrors.push(...collectStructuralErrors(parsed.nodes));
-    }
-
-    if (candidateErrors.length > 0) {
-      const repairPrompt = useViewDsl
-        ? buildViewAuthoringSystemPrompt({
-            format: authoringFormat,
-            mode: 'correction-loop',
-            addons: args.addons,
-          })
-        : '';
-      const repairUserMessage = useViewDsl
-        ? buildViewAuthoringUserMessage({
-            format: authoringFormat,
-            mode: 'correction-loop',
-            instruction: args.instruction,
-            currentView: snapshot.view,
-            detachedFields,
-            validationErrors: candidateErrors.slice(0, 8),
-            runtimeErrors: buildRuntimeErrors(issues),
-          })
-        : '';
-      finalResult = await args.provider.generate({
-        systemPrompt: repairPrompt,
-        userMessage: repairUserMessage,
-        ...getRepairGenerateOptions(args.provider),
-      });
-      parsed = useViewDsl
-        ? parseViewAuthoringToViewDefinition({
-            format: authoringFormat,
-            text: finalResult.text,
-            fallbackView: snapshot.view,
-          })
-        : finalResult.json ?? parseJson(finalResult.text);
-    }
-  }
-
-  if (autoApplyView && isViewDefinition(parsed)) {
-    const normalizedView = normalizeViewDefinition(parsed);
-    const unsupported = collectUnsupportedNodeTypes(normalizedView.nodes);
-    if (unsupported.length > 0) {
-      throw new Error(
-        `Unsupported node types returned: ${unsupported.join(', ')}. Supported types: ${SUPPORTED_NODE_TYPE_VALUES.join(', ')}.`
-      );
-    }
-    const structuralErrors = collectStructuralErrors(normalizedView.nodes);
-    if (structuralErrors.length > 0) {
-      throw new Error(`Malformed view from model: ${structuralErrors[0]}`);
-    }
     if (
-      !applyThroughStreamingFoundation(
-        args.session,
-        args.provider.label,
-        normalizedView.viewId,
-        buildNormalizedGeneratedStreamParts(snapshot.view, normalizedView)
-      )
+      shouldAttemptRepair({
+        autoApplyView,
+        provider: args.provider,
+      })
     ) {
-      args.session.applyView(normalizedView);
+      const candidateErrors: string[] = [];
+      if (!isViewDefinition(parsed)) {
+        candidateErrors.push(
+          'Model output did not compile into a valid ViewDefinition.'
+        );
+      } else {
+        const identityResult = normalizeContinuumSemanticIdentity({
+          currentView: snapshot.view,
+          nextView: parsed,
+        });
+        candidateErrors.push(...identityResult.errors);
+        const unsupported = collectUnsupportedNodeTypes(parsed.nodes);
+        if (unsupported.length > 0) {
+          candidateErrors.push(
+            `Unsupported node types: ${unsupported.join(', ')}.`
+          );
+        }
+        candidateErrors.push(...collectStructuralErrors(parsed.nodes));
+      }
+
+      if (candidateErrors.length > 0) {
+        finalResult = await args.provider.generate({
+          systemPrompt: useViewDsl
+            ? buildViewAuthoringSystemPrompt({
+                format: authoringFormat,
+                mode: 'correction-loop',
+                addons: args.addons,
+              })
+            : '',
+          userMessage: useViewDsl
+            ? buildViewAuthoringUserMessage({
+                format: authoringFormat,
+                mode: 'correction-loop',
+                instruction: args.instruction,
+                currentView: snapshot.view,
+                detachedFields,
+                validationErrors: candidateErrors.slice(0, 8),
+                runtimeErrors: buildRuntimeErrors(issues),
+              })
+            : '',
+          ...getRepairGenerateOptions(args.provider),
+        });
+        parsed = useViewDsl
+          ? parseViewAuthoringToViewDefinition({
+              format: authoringFormat,
+              text: finalResult.text,
+              fallbackView: snapshot.view,
+            })
+          : finalResult.json ?? parseJson(finalResult.text);
+      }
     }
+
+    if (autoApplyView && isViewDefinition(parsed)) {
+      const normalizedView = normalizeGeneratedView(snapshot.view, parsed);
+      if (
+        !applyThroughStreamingFoundation(
+          args.session,
+          args.provider.label,
+          normalizedView.viewId,
+          [{ kind: 'view', view: normalizedView }],
+          'draft'
+        )
+      ) {
+        args.session.applyView(normalizedView);
+      }
+      return {
+        result: finalResult,
+        parsed,
+        status: `Applied a draft-committed Continuum view ${normalizedView.viewId}@${normalizedView.version} from ${args.provider.label}.`,
+      };
+    }
+
     return {
       result: finalResult,
       parsed,
-      status: `Applied view ${normalizedView.viewId}@${normalizedView.version} from ${args.provider.label}.`,
+      status: `Received response from ${args.provider.label}.`,
     };
-  }
-
-  return {
-    result: finalResult,
-    parsed,
-    status: `Received response from ${args.provider.label}.`,
   };
+
+  return generateFullView(fullRunMode);
 }

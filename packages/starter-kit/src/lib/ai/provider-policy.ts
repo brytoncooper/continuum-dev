@@ -9,10 +9,10 @@ export function shouldUsePatchMode(args: {
   mode: PromptMode;
   provider: AiConnectClient;
 }): boolean {
+  void args.provider;
   return (
     args.autoApplyView &&
-    args.mode === 'evolve-view' &&
-    args.provider.kind === 'openai'
+    args.mode === 'evolve-view'
   );
 }
 

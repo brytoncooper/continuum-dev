@@ -13,6 +13,7 @@ export interface PatchNodeHint {
   id: string;
   parentPath?: string;
   key?: string;
+  semanticKey?: string;
   type?: string;
   label?: string;
   description?: string;
@@ -27,6 +28,7 @@ export interface CompactPatchNode {
   id: string;
   type: string;
   key?: string;
+  semanticKey?: string;
   label?: string;
   description?: string;
   placeholder?: string;
@@ -126,6 +128,7 @@ function toCompactPatchNode(input: unknown): CompactPatchNode {
   };
 
   if (typeof source.key === 'string') compact.key = source.key;
+  if (typeof source.semanticKey === 'string') compact.semanticKey = source.semanticKey;
   if (typeof source.label === 'string') compact.label = truncateString(source.label);
   if (typeof source.description === 'string') {
     compact.description = truncateString(source.description);
@@ -276,6 +279,10 @@ export function buildPatchContext(view: ViewDefinition): PatchContextPayload {
         id,
         parentPath: parentNodePath,
         key: typeof asRecord.key === 'string' ? asRecord.key : undefined,
+        semanticKey:
+          typeof asRecord.semanticKey === 'string'
+            ? asRecord.semanticKey
+            : undefined,
         type: typeof asRecord.type === 'string' ? asRecord.type : undefined,
         label: typeof asRecord.label === 'string' ? truncateString(asRecord.label) : undefined,
         description:

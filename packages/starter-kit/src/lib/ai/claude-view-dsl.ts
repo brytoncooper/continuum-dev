@@ -369,11 +369,15 @@ export function buildClaudeViewDslSystemPrompt(args: {
     'For collection nodes, indent exactly one child node under the collection. That child is the template.',
     'To prefill a collection, set defaultValues="[{"field_key":"value"}]" on the collection node.',
     'If you create or keep a collection, give it at least one initial item via defaultValues unless the user explicitly asks for an empty collection.',
+    'A collection template must be a real node subtree, usually a group, row, or grid containing the repeatable fields.',
+    'Do not create a collection with an empty template or a template that has no actual child fields.',
+    'Do not put action nodes directly inside collection templates unless the user explicitly asks for item-level actions.',
     'Do not put value/defaultValue on template fields when your goal is to prefill collection items.',
     'Keep ids unique.',
     'Prefer simple, valid structures over complex ones.',
     'Use layout structure intentionally.',
     'Prefer group for major sections and semantic clustering.',
+    'Do not create empty groups that only wrap one child without adding meaning.',
     'Use row for 2-3 short related fields that belong on one line, such as first/last name or city/state/zip.',
     'Use grid when there are 4 or more compact peer fields or card-like items that benefit from scanability.',
     'Do not put long text inputs or textarea nodes inside a row unless there is a clear reason.',
@@ -431,6 +435,9 @@ export function buildClaudeViewDslSystemPrompt(args: {
   sections.push('    group id="medication_item" label="Medication"');
   sections.push(
     '      field id="medication_name" key="medication_name" label="Medication name" dataType="string"'
+  );
+  sections.push(
+    '      field id="medication_dose" key="medication_dose" label="Dose" dataType="string"'
   );
   sections.push(
     '  action id="submit_checkin" intentId="submit_checkin.submit" label="Submit"'
