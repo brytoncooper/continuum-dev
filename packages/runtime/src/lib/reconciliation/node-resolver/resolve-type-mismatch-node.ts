@@ -1,22 +1,23 @@
-import type { NodeValue, ViewNode } from '@continuum-dev/contract';
+import type { NodeValue } from '@continuum-dev/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
-import type { ReconciliationContext } from '../../context/index.js';
-import type { NodeResolutionAccumulator } from '../../types.js';
 import { detachedResolution, typeChangedDiff } from '../differ/index.js';
 import { createDetachedValue } from './detached-values.js';
-import type { MatchStrategy } from './shared.js';
+import type { ResolveTypeMismatchedNodeInput } from './types.js';
 
 export function resolveTypeMismatchedNode(
-  acc: NodeResolutionAccumulator,
-  ctx: ReconciliationContext,
-  newId: string,
-  priorNode: ViewNode,
-  priorNodeId: string,
-  newNode: ViewNode,
-  matchedBy: MatchStrategy,
-  priorValue: unknown,
-  now: number
+  input: ResolveTypeMismatchedNodeInput
 ): void {
+  const {
+    acc,
+    ctx,
+    newId,
+    priorNode,
+    priorNodeId,
+    newNode,
+    matchedBy,
+    priorValue,
+    now,
+  } = input;
   acc.issues.push({
     severity: ISSUE_SEVERITY.ERROR,
     nodeId: newId,
@@ -27,14 +28,14 @@ export function resolveTypeMismatchedNode(
     typeChangedDiff(newId, priorValue, priorNode.type, newNode.type)
   );
   acc.resolutions.push(
-    detachedResolution(
-      newId,
-      priorNodeId,
+    detachedResolution({
+      nodeId: newId,
+      priorId: priorNodeId,
       matchedBy,
-      priorNode.type,
-      newNode.type,
-      priorValue
-    )
+      priorType: priorNode.type,
+      newType: newNode.type,
+      priorValue,
+    })
   );
 
   if (priorValue === undefined) {
@@ -42,12 +43,12 @@ export function resolveTypeMismatchedNode(
   }
 
   const detachedKey = priorNode.key ?? priorNodeId;
-  acc.detachedValues[detachedKey] = createDetachedValue(
+  acc.detachedValues[detachedKey] = createDetachedValue({
     ctx,
     priorNode,
     priorNodeId,
-    priorValue as NodeValue,
+    priorValue: priorValue as NodeValue,
     now,
-    'type-mismatch'
-  );
+    reason: 'type-mismatch',
+  });
 }

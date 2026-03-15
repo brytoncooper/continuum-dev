@@ -1,7 +1,4 @@
-import type { ReconciliationResolution } from '../../types.js';
-
-export type MatchStrategy = ReconciliationResolution['matchedBy'];
-export type ConcreteMatchStrategy = Exclude<MatchStrategy, null>;
+import type { ConcreteMatchStrategy, MatchStrategy } from './types.js';
 
 export function toConcreteMatchStrategy(
   matchedBy: MatchStrategy

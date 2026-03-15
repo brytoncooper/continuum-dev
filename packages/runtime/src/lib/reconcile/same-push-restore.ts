@@ -6,7 +6,7 @@ import type {
 import type { ReconciliationContext } from '../context/index.js';
 import type { NodeResolutionAccumulator, StateDiff } from '../types.js';
 import { restoredDiff, restoredResolution } from '../reconciliation/differ/index.js';
-import { findDetachedValueForNode } from '../reconciliation/node-resolver/detached-values.js';
+import { findDetachedValueForNode } from '../reconciliation/node-resolver/index.js';
 
 export function restoreFromSamePushDetachments(
   resolved: NodeResolutionAccumulator,

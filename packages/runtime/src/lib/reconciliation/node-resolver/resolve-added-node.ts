@@ -1,15 +1,15 @@
-import type { DataSnapshot, NodeValue, ViewNode } from '@continuum-dev/contract';
-import type { NodeResolutionAccumulator } from '../../types.js';
+import type { NodeValue, ViewNode } from '@continuum-dev/contract';
 import { addedDiff, addedResolution, restoredDiff, restoredResolution } from '../differ/index.js';
 import { createInitialCollectionValue } from '../collection-resolver/index.js';
 import { findDetachedValueForNode } from './detached-values.js';
+import type { ResolveNewNodeInput } from './types.js';
 
-export function resolveNewNode(
-  acc: NodeResolutionAccumulator,
-  newId: string,
-  newNode: ViewNode,
-  priorData: DataSnapshot
-): void {
+export function resolveNewNode({
+  acc,
+  newId,
+  newNode,
+  priorData,
+}: ResolveNewNodeInput): void {
   const detachedMatch = findDetachedValueForNode(
     priorData.detachedValues,
     newNode,
@@ -35,7 +35,7 @@ export function resolveNewNode(
 }
 
 function initializeNewNodeValue(
-  acc: NodeResolutionAccumulator,
+  acc: ResolveNewNodeInput['acc'],
   newId: string,
   newNode: ViewNode
 ): void {

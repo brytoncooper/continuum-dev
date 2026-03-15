@@ -42,14 +42,14 @@ export function detectRemovedNodes(
 
     if (priorValue !== undefined) {
       const detachedKey = priorNode?.key ?? resolvedPriorId;
-      detachedValues[detachedKey] = createDetachedValue(
+      detachedValues[detachedKey] = createDetachedValue({
         ctx,
         priorNode,
-        resolvedPriorId,
-        priorValue as NodeValue,
+        priorNodeId: resolvedPriorId,
+        priorValue: priorValue as NodeValue,
         now,
-        'node-removed'
-      );
+        reason: 'node-removed',
+      });
     }
 
     if (!options.allowPartialRestore) {

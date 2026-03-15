@@ -7,6 +7,15 @@ interface DetachedMatch {
   detachedValue: DetachedValue;
 }
 
+export interface CreateDetachedValueInput {
+  ctx: ReconciliationContext;
+  priorNode: ViewNode | undefined;
+  priorNodeId: string;
+  priorValue: NodeValue;
+  now: number;
+  reason: DetachedValue['reason'];
+}
+
 export function findDetachedValueForNode(
   detachedValues: Record<string, DetachedValue> | undefined,
   newNode: ViewNode,
@@ -36,24 +45,17 @@ export function findDetachedValueForNode(
   return null;
 }
 
-export function createDetachedValue(
-  ctx: ReconciliationContext,
-  priorNode: ViewNode | undefined,
-  priorNodeId: string,
-  priorValue: NodeValue,
-  now: number,
-  reason: DetachedValue['reason']
-): DetachedValue {
+export function createDetachedValue(input: CreateDetachedValueInput): DetachedValue {
   return {
-    value: priorValue,
-    previousNodeType: priorNode?.type ?? 'unknown',
-    semanticKey: priorNode?.semanticKey,
-    key: priorNode?.key,
-    previousLabel: readNodeLabel(priorNode),
-    previousParentLabel: readParentLabel(ctx, priorNodeId),
-    detachedAt: now,
-    viewVersion: ctx.priorView?.version ?? 'unknown',
-    reason,
+    value: input.priorValue,
+    previousNodeType: input.priorNode?.type ?? 'unknown',
+    semanticKey: input.priorNode?.semanticKey,
+    key: input.priorNode?.key,
+    previousLabel: readNodeLabel(input.priorNode),
+    previousParentLabel: readParentLabel(input.ctx, input.priorNodeId),
+    detachedAt: input.now,
+    viewVersion: input.ctx.priorView?.version ?? 'unknown',
+    reason: input.reason,
   };
 }
 

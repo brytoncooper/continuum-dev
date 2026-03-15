@@ -57,6 +57,54 @@ function makeData(
 }
 
 describe('resolveAllNodes', () => {
+  it('emits diffs and resolutions in deterministic traversal order', () => {
+    const priorView = makeView([
+      makeNode({ id: 'a', key: 'alpha' }),
+      makeNode({ id: 'b', key: 'beta' }),
+    ]);
+    const newView = makeView([
+      makeNode({ id: 'a', key: 'alpha' }),
+      makeNode({ id: 'c', key: 'beta' }),
+      makeNode({ id: 'd', type: 'action' }),
+    ]);
+    const priorData = makeData({
+      a: { value: 'value-a' },
+      b: { value: 'value-b' },
+    });
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.resolutions.map((item) => item.nodeId)).toEqual(['a', 'c', 'd']);
+    expect(result.resolutions.map((item) => item.matchedBy)).toEqual([
+      'id',
+      'key',
+      null,
+    ]);
+    expect(result.diffs.map((item) => `${item.nodeId}:${item.type}`)).toEqual([
+      'd:added',
+    ]);
+  });
+
+  it('produces stable resolver output for repeated identical inputs', () => {
+    const priorView = makeView([makeNode({ id: 'old', key: 'email' })]);
+    const newView = makeView([
+      makeNode({ id: 'new', key: 'email' }),
+      makeNode({ id: 'added', type: 'action' }),
+    ]);
+    const priorData = makeData({ old: { value: 'test@example.com' } });
+    const ctxA = buildReconciliationContext(newView, priorView);
+    const ctxB = buildReconciliationContext(newView, priorView);
+    const priorValuesA = buildPriorValueLookupByIdAndKey(priorData, ctxA);
+    const priorValuesB = buildPriorValueLookupByIdAndKey(priorData, ctxB);
+
+    const first = resolveAllNodes(ctxA, priorValuesA, priorData, 5000, {});
+    const second = resolveAllNodes(ctxB, priorValuesB, priorData, 5000, {});
+
+    expect(first).toEqual(second);
+  });
+
   it('marks new nodes as added', () => {
     const priorView = makeView([makeNode({ id: 'a' })]);
     const newView = makeView([

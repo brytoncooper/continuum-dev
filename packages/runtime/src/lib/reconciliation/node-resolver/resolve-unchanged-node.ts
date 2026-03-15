@@ -1,24 +1,24 @@
-import type { DataSnapshot, NodeValue, ViewNode } from '@continuum-dev/contract';
-import type { NodeResolutionAccumulator } from '../../types.js';
+import type { NodeValue, ViewNode } from '@continuum-dev/contract';
 import { carriedResolution, migratedDiff } from '../differ/index.js';
-import { carryValuesMeta } from '../result-builder/index.js';
+import { carryValuesMeta } from '../lineage-utils.js';
 import {
   areDefaultValuesEqual,
   isProtectedValue,
 } from './helpers.js';
-import type { ConcreteMatchStrategy } from './shared.js';
+import type { ResolveUnchangedNodeInput } from './types.js';
 
-export function resolveUnchangedNode(
-  acc: NodeResolutionAccumulator,
-  newId: string,
-  priorNode: ViewNode,
-  priorNodeId: string,
-  newNode: ViewNode,
-  matchedBy: ConcreteMatchStrategy,
-  priorValue: unknown,
-  priorData: DataSnapshot,
-  now: number
-): void {
+export function resolveUnchangedNode(input: ResolveUnchangedNodeInput): void {
+  const {
+    acc,
+    newId,
+    priorNode,
+    priorNodeId,
+    newNode,
+    matchedBy,
+    priorValue,
+    priorData,
+    now,
+  } = input;
   let reconciledValue: NodeValue | undefined =
     priorValue !== undefined ? (priorValue as NodeValue) : undefined;
 
@@ -33,7 +33,14 @@ export function resolveUnchangedNode(
 
     acc.values[newId] = resolvedValue.value;
     reconciledValue = resolvedValue.value;
-    carryValuesMeta(acc.valueLineage, newId, priorNodeId, priorData, now, false);
+    carryValuesMeta({
+      target: acc.valueLineage,
+      newId,
+      priorId: priorNodeId,
+      priorData,
+      now,
+      isMigrated: false,
+    });
 
     if (resolvedValue.didApplyDefaultChange) {
       acc.diffs.push(migratedDiff(newId, priorValue, resolvedValue.value));
@@ -41,14 +48,14 @@ export function resolveUnchangedNode(
   }
 
   acc.resolutions.push(
-    carriedResolution(
-      newId,
-      priorNodeId,
+    carriedResolution({
+      nodeId: newId,
+      priorId: priorNodeId,
       matchedBy,
-      priorNode.type,
+      nodeType: priorNode.type,
       priorValue,
-      reconciledValue
-    )
+      reconciledValue,
+    })
   );
 }
 
