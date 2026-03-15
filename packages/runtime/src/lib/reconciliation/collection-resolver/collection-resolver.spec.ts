@@ -251,6 +251,76 @@ describe('collection reconciliation', () => {
     expect(items[0].values['addresses-item-value']).toEqual({ value: 'a' });
   });
 
+  it('emits constraint issues in deterministic max-then-min order', () => {
+    const priorView = makeView(
+      [collectionNode('addresses', { minItems: 3, maxItems: 1 })],
+      'view-1',
+      '1.0'
+    );
+    const newView = makeView(
+      [collectionNode('addresses', { minItems: 3, maxItems: 1 })],
+      'view-1',
+      '2.0'
+    );
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [
+            { values: { 'addresses-item-value': { value: 'a' } } },
+            { values: { 'addresses-item-value': { value: 'b' } } },
+            { values: { 'addresses-item-value': { value: 'c' } } },
+          ],
+        },
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+    const issues = result.issues.filter((issue) => issue.nodeId === 'addresses');
+
+    expect(issues).toHaveLength(3);
+    expect(issues[0]).toMatchObject({
+      code: 'COLLECTION_CONSTRAINT_VIOLATED',
+      severity: 'warning',
+      message: 'Collection addresses exceeded maxItems',
+    });
+    expect(issues[1]).toMatchObject({
+      code: 'COLLECTION_CONSTRAINT_VIOLATED',
+      severity: 'info',
+      message: 'Collection addresses filled to minItems',
+    });
+    expect(issues[2]).toMatchObject({
+      code: 'COLLECTION_CONSTRAINT_VIOLATED',
+      severity: 'info',
+      message: 'Collection addresses filled to minItems',
+    });
+  });
+
+  it('keeps carried resolution when collection content is unchanged', () => {
+    const priorView = makeView([collectionNode('addresses')], 'view-1', '1.0');
+    const newView = makeView([collectionNode('addresses')], 'view-1', '2.0');
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'home' } } }],
+        },
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+
+    expect(
+      result.diffs.find(
+        (diff) => diff.nodeId === 'addresses' && diff.type === 'migrated'
+      )
+    ).toBeUndefined();
+    expect(
+      result.resolutions.find(
+        (resolution) =>
+          resolution.nodeId === 'addresses' && resolution.resolution === 'carried'
+      )
+    ).toBeDefined();
+  });
+
   it('seeds minItems carry padding with template defaults', () => {
     const priorView = makeView(
       [
@@ -372,7 +442,7 @@ describe('collection reconciliation', () => {
     });
     const result = reconcile(newView, priorView, priorData, {
       strategyRegistry: {
-        'to-upper': (_nodeId, _priorNode, _newNode, priorValue) => {
+        'to-upper': ({ priorValue }) => {
           const nodeValue = priorValue as NodeValue<string>;
           return { value: nodeValue.value.toUpperCase() };
         },
@@ -411,6 +481,51 @@ describe('collection reconciliation', () => {
     expect(
       (result.reconciledState.values['addresses'] as NodeValue).value
     ).toEqual({ items: [] });
+  });
+
+  it('prioritizes type-mismatch guard over updated defaults branch', () => {
+    const priorView = makeView([
+      collectionNode('addresses', {
+        template: makeNode({ id: 'addresses-item-value', type: 'field' }),
+        defaultValues: [{ 'addresses-item-value': 'first' }],
+      }),
+    ]);
+    const newView = makeView([
+      collectionNode('addresses', {
+        template: makeNode({ id: 'addresses-item-value', type: 'action' }),
+        defaultValues: [{ 'addresses-item-value': 'replacement' }],
+      }),
+    ]);
+    const priorData = makeData({
+      addresses: {
+        value: {
+          items: [{ values: { 'addresses-item-value': { value: 'main' } } }],
+        },
+      },
+    });
+
+    const result = reconcile(newView, priorView, priorData);
+
+    expect(result.issues.map((issue) => issue.code)).toContain('TYPE_MISMATCH');
+    expect(result.issues.map((issue) => issue.code)).not.toContain(
+      'COLLECTION_CONSTRAINT_VIOLATED'
+    );
+    expect(result.reconciledState.values['addresses']).toEqual({
+      value: {
+        items: [
+          {
+            values: {
+              'addresses-item-value': { value: 'replacement' },
+            },
+          },
+        ],
+      },
+    });
+    expect(
+      result.diffs.find(
+        (diff) => diff.nodeId === 'addresses' && diff.type === 'migrated'
+      )
+    ).toBeUndefined();
   });
 
   it('supports nested collections in collection templates', () => {
