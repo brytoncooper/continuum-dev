@@ -29,6 +29,8 @@ Standard state managers are optimized for deterministic single-author UIs. They 
 
 It tracks event history, manages checkpoints, protects dirty user input with proposals, and serializes the entire session into a portable blob for resumable experiences.
 
+Streaming guide: [STREAMING.md](./STREAMING.md)
+
 ```bash
 npm install @continuum-dev/session
 ```
@@ -122,12 +124,18 @@ const stopSnapshot = session.onSnapshot((snapshot) => {
   // update UI
 });
 
+const stopStreams = session.onStreams((streams) => {
+  // inspect open/committed/aborted stream metadata
+});
+
 const stopIssues = session.onIssues((issues) => {
   // handle warnings/errors
 });
 ```
 
 Snapshot listeners receive immutable top-level copies of `view` and `data`.
+
+`session.getSnapshot()` now returns the current renderable snapshot, which can include an active foreground stream. Use `session.getCommittedSnapshot()` when you need the last durable `{ view, data }` pair that has actually been committed.
 
 ### 2) View and State Updates
 
@@ -167,6 +175,60 @@ session.recordIntent({
 session.updateViewportState('table_1', { scrollY: 320, isFocused: true });
 const viewport = session.getViewportState('table_1');
 ```
+
+#### Streaming APIs
+
+Use streaming when you want the session to render partial AI updates before the full response has finished.
+
+```typescript
+const stream = session.beginStream({
+  targetViewId: 'loan-intake',
+  source: 'ai',
+  mode: 'foreground',
+  baseViewVersion: session.getCommittedSnapshot()?.view.version ?? null,
+});
+
+session.applyStreamPart(stream.streamId, {
+  kind: 'patch',
+  patch: {
+    viewId: 'loan-intake',
+    version: '2.0',
+    operations: [
+      {
+        op: 'insert-node',
+        parentId: 'loan_group',
+        node: {
+          id: 'borrower_email',
+          type: 'field',
+          dataType: 'string',
+        },
+      },
+    ],
+  },
+});
+
+session.applyStreamPart(stream.streamId, {
+  kind: 'status',
+  status: 'Building borrower section',
+  level: 'info',
+});
+
+const result = session.commitStream(stream.streamId);
+```
+
+Core rules:
+
+- Only one live stream may target a given `targetViewId` unless you explicitly supersede it.
+- Only one foreground stream drives `getSnapshot()` at a time. Draft streams stay out of the render snapshot.
+- Richer normalized parts such as `insert-node`, `replace-node`, `remove-node`, `append-content`, and `node-status` are supported in addition to `view`, `patch`, `state`, and `status`.
+- Local input stays sacred. If a user types into a streamed node before commit, that value lives in the stream draft and wins over later AI updates.
+- AI `state` parts never clobber protected values. Dirty and sticky committed values become proposals instead.
+- Stream metadata is ephemeral. `serialize()`, checkpoints, and `getCommittedSnapshot()` stay durable-only.
+
+There are two supported ingestion paths:
+
+- Structured transport parts, such as Vercel AI SDK `data-continuum-view`, `data-continuum-patch`, `data-continuum-state`, and `data-continuum-status`
+- Post-processed model text, where you parse DSL, YAML, JSON, or repaired text outside core and then normalize it into `SessionStreamPart`
 
 ### 3) Anti-Clobbering with Proposals
 
