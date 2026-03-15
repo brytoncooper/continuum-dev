@@ -24,6 +24,18 @@ export type ContinuumViewPatchOperation =
       node: ViewNode;
     }
   | {
+      op: 'move-node';
+      nodeId: string;
+      parentId?: string | null;
+      position?: ContinuumViewPatchPosition;
+    }
+  | {
+      op: 'wrap-nodes';
+      parentId?: string | null;
+      nodeIds: string[];
+      wrapper: ViewNode;
+    }
+  | {
       op: 'replace-node';
       nodeId: string;
       node: ViewNode;
@@ -41,7 +53,7 @@ export interface ContinuumViewPatch {
 
 function collectNodeIds(node: ViewNode, ids: Set<string>): void {
   ids.add(node.id);
-  const children = getChildNodes(node);
+  const children = getChildNodes(node) ?? [];
   for (const child of children) {
     collectNodeIds(child, ids);
   }
@@ -59,6 +71,21 @@ export function collectContinuumViewPatchAffectedNodeIds(
           ids.add(operation.parentId);
         }
         collectNodeIds(operation.node, ids);
+        break;
+      case 'move-node':
+        ids.add(operation.nodeId);
+        if (operation.parentId) {
+          ids.add(operation.parentId);
+        }
+        break;
+      case 'wrap-nodes':
+        if (operation.parentId) {
+          ids.add(operation.parentId);
+        }
+        for (const nodeId of operation.nodeIds) {
+          ids.add(nodeId);
+        }
+        collectNodeIds(operation.wrapper, ids);
         break;
       case 'replace-node':
         ids.add(operation.nodeId);
@@ -253,6 +280,12 @@ interface NodeListPatchResult {
   applied: boolean;
 }
 
+interface RemoveNodeResult {
+  nodes: ViewNode[];
+  removedNode: ViewNode | null;
+  applied: boolean;
+}
+
 function applyOperationToNodeList(
   nodes: ViewNode[],
   operation: ContinuumViewPatchOperation
@@ -362,6 +395,226 @@ function applyOperationToNodeList(
   };
 }
 
+function removeNodeFromList(
+  nodes: ViewNode[],
+  nodeId: string
+): RemoveNodeResult {
+  let removedNode: ViewNode | null = null;
+  let applied = false;
+  let changed = false;
+  const nextNodes: ViewNode[] = [];
+
+  for (const node of nodes) {
+    if (!removedNode && node.id === nodeId) {
+      removedNode = node;
+      applied = true;
+      changed = true;
+      continue;
+    }
+
+    if (isChildContainerNode(node)) {
+      const childResult = removeNodeFromList(node.children, nodeId);
+      if (childResult.applied) {
+        nextNodes.push(
+          childResult.nodes === node.children
+            ? node
+            : {
+                ...node,
+                children: childResult.nodes,
+              }
+        );
+        removedNode = childResult.removedNode;
+        applied = true;
+        changed = changed || childResult.nodes !== node.children;
+        continue;
+      }
+    }
+
+    if (isCollectionNode(node)) {
+      if (!removedNode && node.template.id === nodeId) {
+        removedNode = node.template;
+        applied = true;
+        continue;
+      }
+
+      const templateResult = removeNodeFromList([node.template], nodeId);
+      if (templateResult.applied) {
+        const nextTemplate = templateResult.nodes[0] ?? node.template;
+        nextNodes.push(
+          nextTemplate === node.template
+            ? node
+            : {
+                ...node,
+                template: nextTemplate,
+              }
+        );
+        removedNode = templateResult.removedNode;
+        applied = true;
+        changed = changed || nextTemplate !== node.template;
+        continue;
+      }
+    }
+
+    nextNodes.push(node);
+  }
+
+  return {
+    nodes: changed ? nextNodes : nodes,
+    removedNode,
+    applied,
+  };
+}
+
+function applyMoveNode(
+  nodes: ViewNode[],
+  operation: Extract<ContinuumViewPatchOperation, { op: 'move-node' }>
+): NodeListPatchResult {
+  const removed = removeNodeFromList(nodes, operation.nodeId);
+  if (!removed.applied || !removed.removedNode) {
+    return {
+      nodes,
+      applied: false,
+    };
+  }
+
+  const inserted = applyOperationToNodeList(removed.nodes, {
+    op: 'insert-node',
+    parentId:
+      typeof operation.parentId === 'string' ? operation.parentId : operation.parentId ?? null,
+    position: operation.position,
+    node: removed.removedNode,
+  });
+
+  if (!inserted.applied) {
+    return {
+      nodes,
+      applied: false,
+    };
+  }
+
+  return inserted;
+}
+
+function buildWrapperNode(
+  wrapper: ViewNode,
+  children: ViewNode[]
+): ViewNode | null {
+  if (wrapper.type !== 'group' && wrapper.type !== 'row' && wrapper.type !== 'grid') {
+    return null;
+  }
+
+  return {
+    ...wrapper,
+    children,
+  } as ViewNode;
+}
+
+function wrapNodesInList(
+  nodes: ViewNode[],
+  operation: Extract<ContinuumViewPatchOperation, { op: 'wrap-nodes' }>,
+  parentId: string | null
+): NodeListPatchResult {
+  if (operation.parentId === parentId) {
+    const nodeIds = operation.nodeIds;
+    const indexes = nodeIds.map((nodeId) =>
+      nodes.findIndex((candidate) => candidate.id === nodeId)
+    );
+    if (indexes.some((index) => index < 0)) {
+      return {
+        nodes,
+        applied: false,
+      };
+    }
+
+    const sortedIndexes = [...indexes].sort((left, right) => left - right);
+    const firstIndex = sortedIndexes[0]!;
+    const selectedNodes = indexes.map((index) => nodes[index]!);
+    const wrapperNode = buildWrapperNode(operation.wrapper, selectedNodes);
+    if (!wrapperNode) {
+      return {
+        nodes,
+        applied: false,
+      };
+    }
+
+    const nextNodes = nodes.filter((_, index) => !indexes.includes(index));
+    nextNodes.splice(firstIndex, 0, wrapperNode);
+    return {
+      nodes: nextNodes,
+      applied: true,
+    };
+  }
+
+  let applied = false;
+  let changed = false;
+  const nextNodes = nodes.map((node) => {
+    if (node.id === operation.parentId && isChildContainerNode(node)) {
+      const wrappedChildren = wrapNodesInList(
+        node.children,
+        operation,
+        operation.parentId ?? null
+      );
+      if (!wrappedChildren.applied) {
+        return node;
+      }
+      applied = true;
+      changed = wrappedChildren.nodes !== node.children;
+      return wrappedChildren.nodes === node.children
+        ? node
+        : {
+            ...node,
+            children: wrappedChildren.nodes,
+          };
+    }
+
+    if (isChildContainerNode(node)) {
+      const childResult = wrapNodesInList(
+        node.children,
+        operation,
+        node.id
+      );
+      if (!childResult.applied) {
+        return node;
+      }
+      applied = true;
+      changed = changed || childResult.nodes !== node.children;
+      return childResult.nodes === node.children
+        ? node
+        : {
+            ...node,
+            children: childResult.nodes,
+          };
+    }
+
+    if (isCollectionNode(node)) {
+      const templateResult = wrapNodesInList(
+        [node.template],
+        operation,
+        node.id
+      );
+      if (!templateResult.applied) {
+        return node;
+      }
+      const nextTemplate = templateResult.nodes[0] ?? node.template;
+      applied = true;
+      changed = changed || nextTemplate !== node.template;
+      return nextTemplate === node.template
+        ? node
+        : {
+            ...node,
+            template: nextTemplate,
+          };
+    }
+
+    return node;
+  });
+
+  return {
+    nodes: changed ? nextNodes : nodes,
+    applied,
+  };
+}
+
 export function patchViewNode(
   previousNode: ViewNode | null | undefined,
   nextNode: ViewNode
@@ -437,7 +690,12 @@ export function applyContinuumViewPatch(
   let nextNodes = currentView.nodes;
 
   for (const operation of patch.operations) {
-    const result = applyOperationToNodeList(nextNodes, operation);
+    const result =
+      operation.op === 'move-node'
+        ? applyMoveNode(nextNodes, operation)
+        : operation.op === 'wrap-nodes'
+          ? wrapNodesInList(nextNodes, operation, null)
+          : applyOperationToNodeList(nextNodes, operation);
     if (result.applied) {
       nextNodes = result.nodes;
     }

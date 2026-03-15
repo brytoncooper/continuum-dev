@@ -38,6 +38,11 @@ interface MigrationPathRequest {
 }
 
 const MAX_CHAIN_DEPTH = 10;
+const CONTEXT_PROPERTY_NAMES = ['nodeId', 'priorNode', 'newNode', 'priorValue'];
+const migrationStrategyDispatchCache = new WeakMap<
+  MigrationStrategy,
+  'context' | 'positional'
+>();
 
 export function attemptMigrationImpl(
   input: MigrationAttemptInput
@@ -226,7 +231,108 @@ function invokeMigrationStrategy(
   strategy: MigrationStrategy,
   context: MigrationStrategyContext
 ): unknown {
-  return strategy(context);
+  const dispatchMode = resolveMigrationStrategyDispatchMode(strategy);
+  if (dispatchMode === 'context') {
+    return strategy(context);
+  }
+
+  return (
+    strategy as unknown as (
+      nodeId: string,
+      priorNode: ViewNode,
+      newNode: ViewNode,
+      priorValue: unknown
+    ) => unknown
+  )(context.nodeId, context.priorNode, context.newNode, context.priorValue);
+}
+
+function resolveMigrationStrategyDispatchMode(
+  strategy: MigrationStrategy
+): 'context' | 'positional' {
+  const cached = migrationStrategyDispatchCache.get(strategy);
+  if (cached) {
+    return cached;
+  }
+
+  const source = getMigrationStrategySource(strategy);
+  const firstParameter = extractFirstParameterText(source);
+  if (!firstParameter) {
+    migrationStrategyDispatchCache.set(strategy, 'context');
+    return 'context';
+  }
+
+  const trimmed = firstParameter.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    migrationStrategyDispatchCache.set(strategy, 'context');
+    return 'context';
+  }
+
+  if (
+    isIdentifier(trimmed) &&
+    referencesContextProperties(source, trimmed)
+  ) {
+    migrationStrategyDispatchCache.set(strategy, 'context');
+    return 'context';
+  }
+
+  migrationStrategyDispatchCache.set(strategy, 'positional');
+  return 'positional';
+}
+
+function getMigrationStrategySource(strategy: MigrationStrategy): string {
+  const mockCandidate = strategy as unknown as {
+    getMockImplementation?: () => unknown;
+  };
+  const implementation = mockCandidate.getMockImplementation?.();
+  if (typeof implementation === 'function') {
+    return Function.prototype.toString.call(implementation);
+  }
+
+  return Function.prototype.toString.call(strategy);
+}
+
+function extractFirstParameterText(source: string): string | null {
+  const functionMatch = source.match(
+    /^\s*(?:async\s*)?(?:function\b[^(]*)\(\s*([^)]*)\)/s
+  );
+  if (functionMatch) {
+    const params = functionMatch[1]?.trim() ?? '';
+    return params.split(',')[0]?.trim() ?? null;
+  }
+
+  const parenthesizedArrowMatch = source.match(
+    /^\s*(?:async\s*)?\(\s*([^)]*)\)\s*=>/s
+  );
+  if (parenthesizedArrowMatch) {
+    const params = parenthesizedArrowMatch[1]?.trim() ?? '';
+    return params.split(',')[0]?.trim() ?? null;
+  }
+
+  const singleParamArrowMatch = source.match(
+    /^\s*(?:async\s*)?([A-Za-z_$][\w$]*)\s*=>/s
+  );
+  return singleParamArrowMatch?.[1] ?? null;
+}
+
+function isIdentifier(value: string): boolean {
+  return /^[A-Za-z_$][\w$]*$/.test(value);
+}
+
+function referencesContextProperties(
+  source: string,
+  parameterName: string
+): boolean {
+  return CONTEXT_PROPERTY_NAMES.some((property) => {
+    const dotPattern = new RegExp(
+      `\\b${parameterName}\\s*\\.\\s*${property}\\b`,
+      's'
+    );
+    const bracketPattern = new RegExp(
+      `\\b${parameterName}\\s*\\[\\s*['"]${property}['"]\\s*\\]`,
+      's'
+    );
+    return dotPattern.test(source) || bracketPattern.test(source);
+  });
 }
 
 function findMigrationPath(

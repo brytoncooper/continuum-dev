@@ -112,11 +112,91 @@ describe('session streams subsystem', () => {
 
     expect(session.getSnapshot()?.view.version).toBe('1');
     expect(session.getCommittedSnapshot()?.view.version).toBe('1');
-    expect(
-      session.getStreams().find((stream) => stream.streamId === draft.streamId)
-    ).toMatchObject({
+    const previewStream = session
+      .getStreams()
+      .find((stream) => stream.streamId === draft.streamId);
+
+    expect(previewStream).toMatchObject({
       status: 'open',
       mode: 'draft',
+    });
+    expect(previewStream?.previewData?.values['name']).toBeUndefined();
+    expect(previewStream?.previewView?.version).toBe('2');
+    expect(previewStream?.previewView?.nodes).toHaveLength(2);
+  });
+
+  it('syncs committed edits into a draft stream by semanticKey when a field moved', () => {
+    const session = createSession();
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [
+              {
+                id: 'email',
+                type: 'field',
+                dataType: 'string',
+                semanticKey: 'person.email',
+              },
+            ],
+          } as ViewNode,
+        ],
+        'profile',
+        '1'
+      )
+    );
+    session.updateState('profile/email', {
+      value: 'first@example.com',
+      isDirty: true,
+    });
+
+    const draft = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'draft',
+    });
+    session.applyStreamPart(draft.streamId, {
+      kind: 'view',
+      view: makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [
+              {
+                id: 'contact_row',
+                type: 'row',
+                children: [
+                  {
+                    id: 'email',
+                    type: 'field',
+                    dataType: 'string',
+                    semanticKey: 'person.email',
+                  },
+                ],
+              },
+            ],
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      ),
+    });
+
+    session.updateState('profile/email', {
+      value: 'second@example.com',
+      isDirty: true,
+    });
+
+    const previewStream = session
+      .getStreams()
+      .find((stream) => stream.streamId === draft.streamId);
+    expect(
+      previewStream?.previewData?.values['profile/contact_row/email']
+    ).toEqual({
+      value: 'second@example.com',
+      isDirty: true,
     });
   });
 

@@ -166,6 +166,8 @@ export function applyPartToOpenStream(
     }
     case 'patch':
     case 'insert-node':
+    case 'move-node':
+    case 'wrap-nodes':
     case 'replace-node':
     case 'remove-node':
     case 'append-content': {

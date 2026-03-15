@@ -1,4 +1,4 @@
-import type { NodeValue } from '@continuum-dev/contract';
+import { getChildNodes, type NodeValue, type ViewNode } from '@continuum-dev/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
 import { resolveNodeLookupEntry } from '../node-lookup.js';
 import type { SessionState } from '../session-state.js';
@@ -43,6 +43,59 @@ export function resolveStreamNode(
   }
 
   return resolveNodeLookupEntry(stream.workingView.nodes, requestedId);
+}
+
+function collectStreamNodeMatches(
+  nodes: ViewNode[],
+  predicate: (node: ViewNode) => boolean,
+  parentPath = '',
+  matches: Array<{ canonicalId: string; node: ViewNode }> = []
+): Array<{ canonicalId: string; node: ViewNode }> {
+  for (const node of nodes) {
+    const canonicalId =
+      parentPath.length > 0 ? `${parentPath}/${node.id}` : node.id;
+    if (predicate(node)) {
+      matches.push({ canonicalId, node });
+    }
+
+    const children = getChildNodes(node);
+    if (children.length > 0) {
+      collectStreamNodeMatches(children, predicate, canonicalId, matches);
+    }
+  }
+
+  return matches;
+}
+
+export function resolveStreamNodeForCommittedUpdate(
+  internal: SessionState,
+  stream: InternalSessionStreamState,
+  requestedId: string
+) {
+  const direct = resolveStreamNode(stream, requestedId);
+  if (direct) {
+    return direct;
+  }
+
+  const committedLookup = resolveCommittedNode(internal, requestedId);
+  const semanticKey = committedLookup?.node.semanticKey;
+  if (!semanticKey || !stream.workingView) {
+    return null;
+  }
+
+  const semanticMatches = collectStreamNodeMatches(
+    stream.workingView.nodes,
+    (node) => node.semanticKey === semanticKey
+  );
+  if (semanticMatches.length !== 1) {
+    return null;
+  }
+
+  return {
+    canonicalId: semanticMatches[0].canonicalId,
+    node: semanticMatches[0].node,
+    parentNode: null,
+  };
 }
 
 export function isProtectedValue(value: NodeValue | undefined): boolean {

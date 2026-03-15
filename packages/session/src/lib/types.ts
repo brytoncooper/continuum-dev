@@ -193,6 +193,8 @@ export interface SessionStream {
       subtree?: boolean;
     }
   >;
+  previewData: ContinuitySnapshot['data'] | null;
+  previewView: ViewDefinition | null;
   viewVersion?: string | null;
   affectedNodeIds: string[];
   partCount: number;

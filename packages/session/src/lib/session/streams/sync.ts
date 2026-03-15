@@ -9,7 +9,11 @@ import {
 } from '../listeners.js';
 import type { SessionState } from '../session-state.js';
 import { getActiveForegroundStream } from './state.js';
-import { resolveCommittedNode, resolveStreamNode } from './helpers.js';
+import {
+  resolveCommittedNode,
+  resolveStreamNode,
+  resolveStreamNodeForCommittedUpdate,
+} from './helpers.js';
 import type { InternalSessionStreamState } from './types.js';
 
 export function syncIssuesForStreamStateUpdate(
@@ -40,7 +44,11 @@ export function syncCommittedValueToStreams(
       continue;
     }
 
-    const lookup = resolveStreamNode(stream, canonicalId);
+    const lookup = resolveStreamNodeForCommittedUpdate(
+      internal,
+      stream,
+      canonicalId
+    );
     if (!lookup) {
       continue;
     }
@@ -76,7 +84,11 @@ export function syncCommittedViewportToStreams(
       continue;
     }
 
-    const lookup = resolveStreamNode(stream, canonicalId);
+    const lookup = resolveStreamNodeForCommittedUpdate(
+      internal,
+      stream,
+      canonicalId
+    );
     if (!lookup) {
       continue;
     }

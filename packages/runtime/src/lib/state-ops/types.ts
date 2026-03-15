@@ -136,6 +136,18 @@ export type ContinuumViewStreamPart =
       node: ViewNode;
     }
   | {
+      kind: 'move-node';
+      nodeId: string;
+      parentId?: string | null;
+      position?: ContinuumViewPatchPosition;
+    }
+  | {
+      kind: 'wrap-nodes';
+      parentId?: string | null;
+      nodeIds: string[];
+      wrapper: ViewNode;
+    }
+  | {
       kind: 'replace-node';
       nodeId: string;
       node: ViewNode;

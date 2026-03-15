@@ -99,6 +99,42 @@ function buildPatchForStructuralPart(
         affectedNodeIds: collectContinuumViewPatchAffectedNodeIds(patch),
       };
     }
+    case 'move-node': {
+      const patch: ContinuumViewPatch = {
+        viewId: currentView.viewId,
+        version: currentView.version,
+        operations: [
+          {
+            op: 'move-node',
+            nodeId: part.nodeId,
+            parentId: part.parentId,
+            position: part.position,
+          },
+        ],
+      };
+      return {
+        patch,
+        affectedNodeIds: collectContinuumViewPatchAffectedNodeIds(patch),
+      };
+    }
+    case 'wrap-nodes': {
+      const patch: ContinuumViewPatch = {
+        viewId: currentView.viewId,
+        version: currentView.version,
+        operations: [
+          {
+            op: 'wrap-nodes',
+            parentId: part.parentId,
+            nodeIds: part.nodeIds,
+            wrapper: part.wrapper,
+          },
+        ],
+      };
+      return {
+        patch,
+        affectedNodeIds: collectContinuumViewPatchAffectedNodeIds(patch),
+      };
+    }
     case 'replace-node': {
       const patch: ContinuumViewPatch = {
         viewId: currentView.viewId,
