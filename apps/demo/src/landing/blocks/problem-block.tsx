@@ -4,13 +4,13 @@ import { problemContent } from '../content/landing-content';
 import { LandingCard, LandingGrid, LandingSection } from '../landing-layout';
 
 const titleStyle: CSSProperties = {
-  ...type.title,
+  ...type.section,
   color: color.text,
 };
 
 const bodyStyle: CSSProperties = {
   ...type.body,
-  color: color.text,
+  color: color.textMuted,
 };
 
 export function ProblemBlock() {
@@ -22,7 +22,7 @@ export function ProblemBlock() {
             <LandingCard
               key={callout.title}
               span={4}
-              tone={index === 0 ? 'strong' : index === 1 ? 'soft' : 'default'}
+              tone={index === 0 ? 'strong' : 'soft'}
               fullHeight
             >
               <div style={titleStyle}>{callout.title}</div>

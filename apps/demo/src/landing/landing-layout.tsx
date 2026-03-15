@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { color, page, radius, space, type } from '../ui/tokens';
+import { color, page, radius, shadow, space, type } from '../ui/tokens';
 import { useResponsiveState } from '../ui/responsive';
 
 const shellStyle: CSSProperties = {
@@ -24,36 +24,39 @@ const navRowStyle: CSSProperties = {
   padding: `${space.sm}px ${space.md}px`,
   borderRadius: radius.md,
   border: `1px solid ${color.borderSoft}`,
-  background: 'rgba(255, 255, 255, 0.88)',
-  backdropFilter: 'blur(8px)',
+  background: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: shadow.panel,
 };
 
 const heroStyle: CSSProperties = {
   display: 'grid',
-  gap: space.lg,
+  gap: space.xl,
 };
 
 const eyebrowStyle: CSSProperties = {
   ...type.label,
-  color: color.text,
+  color: color.textSoft,
 };
 
 const headlineStyle: CSSProperties = {
   ...type.hero,
   color: color.text,
-  maxWidth: 860,
+  maxWidth: 780,
 };
 
 const supportingStyle: CSSProperties = {
-  ...type.title,
-  color: color.text,
-  maxWidth: 860,
+  fontSize: 18,
+  lineHeight: 1.55,
+  fontWeight: 500,
+  color: color.textMuted,
+  maxWidth: 720,
 };
 
 const sectionStyle: CSSProperties = {
   display: 'grid',
   gap: space.lg,
-  paddingTop: space.lg,
+  paddingTop: space.xxl,
   borderTop: `1px solid ${color.borderSoft}`,
 };
 
@@ -66,13 +69,13 @@ const sectionHeaderStyle: CSSProperties = {
 const sectionTitleStyle: CSSProperties = {
   ...type.title,
   color: color.text,
-  maxWidth: 900,
+  maxWidth: 760,
 };
 
 const sectionTextStyle: CSSProperties = {
   ...type.body,
-  color: color.text,
-  maxWidth: 860,
+  color: color.textMuted,
+  maxWidth: 720,
 };
 
 const gridStyle: CSSProperties = {
@@ -84,23 +87,26 @@ const gridStyle: CSSProperties = {
 
 const cardStyle: CSSProperties = {
   display: 'grid',
-  gap: space.lg,
+  gap: space.md,
   padding: space.xxl,
   border: `1px solid ${color.borderSoft}`,
   borderRadius: radius.lg,
   minWidth: 0,
   background: color.surface,
+  boxShadow: shadow.panel,
 };
 
 export function LandingShell({
   nav,
+  heroVisual,
   eyebrow,
   title,
   description,
   children,
 }: {
   nav?: ReactNode;
-  eyebrow: string;
+  heroVisual?: ReactNode;
+  eyebrow?: string;
   title: string;
   description: string;
   children: ReactNode;
@@ -135,7 +141,8 @@ export function LandingShell({
           </div>
         ) : null}
         <header style={heroStyle}>
-          <div style={eyebrowStyle}>{eyebrow}</div>
+          {heroVisual}
+          {eyebrow ? <div style={eyebrowStyle}>{eyebrow}</div> : null}
           <div
             style={{
               ...headlineStyle,
@@ -166,11 +173,12 @@ export function LandingSection({
   description,
   children,
 }: {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   children: ReactNode;
 }) {
   const { isMobile } = useResponsiveState();
+  const showHeader = Boolean(title || description);
 
   return (
     <section
@@ -179,15 +187,17 @@ export function LandingSection({
         gap: isMobile ? space.md : sectionStyle.gap,
       }}
     >
-      <div
-        style={{
-          ...sectionHeaderStyle,
-          paddingLeft: isMobile ? 0 : sectionHeaderStyle.paddingLeft,
-        }}
-      >
-        <div style={sectionTitleStyle}>{title}</div>
-        <div style={sectionTextStyle}>{description}</div>
-      </div>
+      {showHeader ? (
+        <div
+          style={{
+            ...sectionHeaderStyle,
+            paddingLeft: 0,
+          }}
+        >
+          {title ? <div style={sectionTitleStyle}>{title}</div> : null}
+          {description ? <div style={sectionTextStyle}>{description}</div> : null}
+        </div>
+      ) : null}
       {children}
     </section>
   );
@@ -229,9 +239,9 @@ export function LandingCard({
   const { isMobile } = useResponsiveState();
   const background =
     tone === 'strong'
-      ? color.surfaceMuted
+      ? color.surfaceAccent
       : tone === 'soft'
-        ? color.surface
+        ? color.surfaceMuted
         : color.surface;
 
   const borderColor = tone === 'strong' ? color.border : color.borderSoft;

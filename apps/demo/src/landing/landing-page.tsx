@@ -1,6 +1,5 @@
 import { SiteNav } from '../ui/site-nav';
 import { ClosingCtaBlock } from './blocks/closing-cta-block';
-import { CtaBlock } from './blocks/cta-block';
 import { HeroBlock } from './blocks/hero-block';
 import { HowItWorksBlock } from './blocks/how-it-works-block';
 import { ProblemBlock } from './blocks/problem-block';
@@ -16,7 +15,6 @@ export function LandingPage() {
       description={heroContent.description}
     >
       <HeroBlock />
-      <CtaBlock />
       <ProblemBlock />
       <HowItWorksBlock />
       <ClosingCtaBlock />

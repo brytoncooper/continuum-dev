@@ -7,11 +7,19 @@ import { LandingCard, LandingGrid, LandingSection } from '../landing-layout';
 const headlineStyle: CSSProperties = {
   ...type.title,
   color: color.text,
+  maxWidth: 620,
 };
 
 const bodyStyle: CSSProperties = {
   ...type.body,
   color: color.textMuted,
+  maxWidth: 620,
+};
+
+const actionsStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: space.sm,
 };
 
 const actionStyle = (tone: 'default' | 'soft' | 'strong' = 'default'): CSSProperties => ({
@@ -19,27 +27,28 @@ const actionStyle = (tone: 'default' | 'soft' | 'strong' = 'default'): CSSProper
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: tone === 'strong' ? color.surface : tone === 'soft' ? color.highlight : color.text,
+  color: tone === 'strong' ? color.surface : color.text,
   textDecoration: 'none',
   padding: `${space.sm}px ${space.md}px`,
   border: `1px solid ${
-    tone === 'strong' ? color.accentStrong : tone === 'soft' ? color.highlight : color.border
+    tone === 'strong' ? color.accentStrong : color.border
   }`,
   borderRadius: radius.pill,
   background:
-    tone === 'strong' ? color.accent : tone === 'soft' ? color.highlightSoft : color.surface,
+    tone === 'strong' ? color.accent : color.surface,
 });
 
 export function ClosingCtaBlock() {
   return (
-    <LandingSection title={closingCtaContent.title} description={closingCtaContent.description}>
+    <LandingSection>
       <LandingGrid alignItems="stretch">
-        {closingCtaContent.actions.map((action) => (
-          <LandingCard key={action.title} span={4} tone={action.tone ?? 'default'} fullHeight>
-            <div style={headlineStyle}>{action.title}</div>
-            <div style={{ ...bodyStyle, marginTop: space.sm }}>{action.body}</div>
-            <div style={{ marginTop: space.lg }}>
+        <LandingCard span={12} tone="strong">
+          <div style={headlineStyle}>{closingCtaContent.title}</div>
+          <div style={{ ...bodyStyle, marginTop: space.sm }}>{closingCtaContent.description}</div>
+          <div style={{ ...actionsStyle, marginTop: space.lg }}>
+            {closingCtaContent.actions.map((action) => (
               <a
+                key={action.title}
                 href={action.href === 'github' ? repositoryUrl : action.href}
                 target={action.external ? '_blank' : undefined}
                 rel={action.external ? 'noreferrer' : undefined}
@@ -47,9 +56,9 @@ export function ClosingCtaBlock() {
               >
                 {action.label}
               </a>
-            </div>
-          </LandingCard>
-        ))}
+            ))}
+          </div>
+        </LandingCard>
       </LandingGrid>
     </LandingSection>
   );

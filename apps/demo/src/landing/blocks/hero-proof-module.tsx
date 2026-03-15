@@ -315,6 +315,7 @@ const moduleStyle: CSSProperties = {
   display: 'grid',
   gap: space.md,
   position: 'relative',
+  overflowAnchor: 'none',
 };
 
 const chatShellStyle: CSSProperties = {
@@ -387,6 +388,7 @@ const panelHeaderStyle: CSSProperties = {
   justifyContent: 'space-between',
   gap: space.sm,
   flexWrap: 'wrap',
+  minHeight: 36,
 };
 
 const panelTitleStyle = (tone: 'naive' | 'continuum'): CSSProperties => ({
@@ -399,12 +401,19 @@ const panelTitleStyle = (tone: 'naive' | 'continuum'): CSSProperties => ({
 
 const statusStyle = (tone: 'naive' | 'continuum', isPositive: boolean): CSSProperties => ({
   ...type.small,
+  display: 'inline-flex',
+  alignItems: 'center',
+  minWidth: 0,
+  maxWidth: 220,
   color: tone === 'continuum' ? color.success : isPositive ? color.text : color.danger,
   border: `1px solid ${
     tone === 'continuum' ? color.success : isPositive ? color.border : color.danger
   }`,
   borderRadius: radius.pill,
   padding: `${space.xs}px ${space.sm}px`,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
   background:
     tone === 'continuum' ? color.successSoft : isPositive ? color.surfaceMuted : color.dangerSoft,
 });
@@ -412,19 +421,32 @@ const statusStyle = (tone: 'naive' | 'continuum', isPositive: boolean): CSSPrope
 const previewStyle = (
   tone: 'naive' | 'continuum',
   isAnimating: boolean,
-  morphOpacity: number
+  morphOpacity: number,
+  height: number
 ): CSSProperties => ({
   border: `1px solid ${tone === 'continuum' ? color.success : color.border}`,
   borderRadius: radius.md,
   padding: space.md,
   background: tone === 'continuum' ? color.successSoft : color.surfaceMuted,
-  minHeight: 160,
+  height,
   pointerEvents: 'none',
+  overflow: 'visible',
   transition: 'transform 360ms ease, opacity 360ms ease, border-color 360ms ease',
   transform: isAnimating ? 'scale(0.985) translateY(1px)' : 'scale(1)',
   opacity: (isAnimating ? 0.72 : 1) * morphOpacity,
   position: 'relative',
 });
+
+function proofPreviewHeight(isMobile: boolean) {
+  return isMobile ? 700 : 580;
+}
+
+const previewViewportStyle: CSSProperties = {
+  position: 'relative',
+  height: '100%',
+  overflow: 'hidden',
+  borderRadius: radius.sm,
+};
 
 const overlayStyle: CSSProperties = {
   position: 'absolute',
@@ -669,6 +691,7 @@ function ContinuumRuntimePreview({
   companyRoleValue,
   panelRef,
   isMobile,
+  previewHeight,
 }: {
   stepIndex: number;
   isAnimating: boolean;
@@ -678,6 +701,7 @@ function ContinuumRuntimePreview({
   companyRoleValue: string;
   panelRef?: RefObject<HTMLDivElement | null>;
   isMobile: boolean;
+  previewHeight: number;
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
@@ -754,8 +778,10 @@ function ContinuumRuntimePreview({
         <div style={panelTitleStyle('continuum')}>WITH CONTINUUM</div>
         <div style={statusStyle('continuum', true)}>{status}</div>
       </div>
-      <div style={previewStyle('continuum', isAnimating, morphOpacity)}>
-        <ContinuumRenderer view={currentView} />
+      <div style={previewStyle('continuum', isAnimating, morphOpacity, previewHeight)}>
+        <div style={previewViewportStyle}>
+          <ContinuumRenderer view={currentView} />
+        </div>
         {renderOutcomePopover('continuum', boundedStepIndex, phase, isMobile)}
         {phase === 'thinking' ? (
           <div style={overlayStyle}>
@@ -792,6 +818,7 @@ export function HeroProofModule({
     visible: false,
   });
   const [cursorPressed, setCursorPressed] = useState(false);
+  const [isModuleVisible, setIsModuleVisible] = useState(true);
   const viewedRef = useRef(false);
   const cycleVersionRef = useRef(0);
 
@@ -803,6 +830,25 @@ export function HeroProofModule({
     viewedRef.current = true;
     onInteraction?.('viewed');
   }, [onInteraction]);
+
+  useEffect(() => {
+    const moduleElement = moduleRef.current;
+    if (!moduleElement || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsModuleVisible(entry.isIntersecting);
+      },
+      {
+        threshold: 0.2,
+      }
+    );
+
+    observer.observe(moduleElement);
+    return () => observer.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const moduleElement = moduleRef.current;
@@ -957,6 +1003,10 @@ export function HeroProofModule({
   }, [companyNameLength, companyRoleLength, cursorTarget, isMobile, morphOpacity, stepIndex]);
 
   useEffect(() => {
+    if (!isModuleVisible) {
+      return;
+    }
+
     const cycleId = cycleVersionRef.current + 1;
     cycleVersionRef.current = cycleId;
 
@@ -1190,10 +1240,11 @@ export function HeroProofModule({
 
     runCycle();
     return clearTimers;
-  }, [onInteraction]);
+  }, [isModuleVisible, onInteraction]);
 
   const companyNameValue = inputValues['company.name'].slice(0, companyNameLength);
   const companyRoleValue = inputValues['company.role'].slice(0, companyRoleLength);
+  const previewHeight = proofPreviewHeight(isMobile);
   const naiveReplay = useMemo(
     () => buildNaiveReplay(stepIndex, companyNameValue, companyRoleValue),
     [companyNameValue, companyRoleValue, stepIndex]
@@ -1238,7 +1289,7 @@ export function HeroProofModule({
           </div>
           <div
             style={{
-              ...previewStyle('naive', isAnimating, morphOpacity),
+              ...previewStyle('naive', isAnimating, morphOpacity, previewHeight),
               borderColor:
                 naiveReplay.hasStructuralLoss || stepIndex >= 2 ? color.danger : color.border,
               background:
@@ -1247,11 +1298,13 @@ export function HeroProofModule({
                   : color.surfaceMuted,
             }}
           >
-            <StaticViewRenderer
-              view={naiveReplay.view}
-              values={naiveReplay.values as Record<string, NodeValue>}
-              onChange={() => undefined}
-            />
+            <div style={previewViewportStyle}>
+              <StaticViewRenderer
+                view={naiveReplay.view}
+                values={naiveReplay.values as Record<string, NodeValue>}
+                onChange={() => undefined}
+              />
+            </div>
             {renderOutcomePopover('naive', stepIndex, phase, isMobile)}
             {phase === 'thinking' ? (
               <div style={overlayStyle}>
@@ -1270,6 +1323,7 @@ export function HeroProofModule({
             companyRoleValue={companyRoleValue}
             panelRef={continuumPanelRef}
             isMobile={isMobile}
+            previewHeight={previewHeight}
           />
         </ContinuumProvider>
       </div>

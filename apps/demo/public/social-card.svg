@@ -1,33 +1,73 @@
-<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="630" rx="36" fill="#F6F4EF" />
-  <rect x="48" y="48" width="1104" height="534" rx="28" fill="#FFFFFF" stroke="#D8D2C5" stroke-width="2" />
-  <rect x="96" y="96" width="180" height="44" rx="22" fill="#F1EEE8" />
-  <text x="126" y="125" fill="#294D7A" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">
-    CONTINUUM
-  </text>
-  <text x="96" y="214" fill="#162033" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="700">
-    The view changed.
-  </text>
-  <text x="96" y="286" fill="#162033" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="700">
-    The user lost work.
-  </text>
-  <text x="96" y="362" fill="#5D6678" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="500">
-    Deterministic reconciliation for AI-generated,
-  </text>
-  <text x="96" y="404" fill="#5D6678" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="500">
-    view-driven, and server-driven UI continuity.
-  </text>
-  <rect x="96" y="458" width="250" height="56" rx="28" fill="#294D7A" />
-  <text x="132" y="494" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">
-    View on GitHub
-  </text>
-  <rect x="366" y="458" width="270" height="56" rx="28" fill="#F5EDE1" stroke="#B08A5B" stroke-width="2" />
-  <text x="402" y="494" fill="#B08A5B" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">
-    Try Static Demo
-  </text>
-  <rect x="882" y="118" width="180" height="180" rx="32" fill="#EEF3FB" />
-  <rect x="918" y="154" width="108" height="108" rx="24" fill="#294D7A" />
-  <rect x="864" y="340" width="238" height="48" rx="24" fill="#F5EDE1" />
-  <rect x="864" y="406" width="184" height="48" rx="24" fill="#F1EEE8" />
-  <rect x="864" y="472" width="262" height="48" rx="24" fill="#FBFAF7" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#f6f4ef" />
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="#d8d2c5" opacity="0.7" />
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)" />
+
+  <g transform="translate(120, 260)">
+    <text
+      x="0"
+      y="0"
+      font-family="system-ui, -apple-system, sans-serif"
+      font-size="88"
+      font-weight="700"
+      fill="#162033"
+      letter-spacing="-0.04em"
+    >
+      Continuum
+    </text>
+    <text
+      x="4"
+      y="80"
+      font-family="system-ui, -apple-system, sans-serif"
+      font-size="36"
+      font-weight="650"
+      fill="#b08a5b"
+      letter-spacing="-0.02em"
+    >
+      Deterministic State Reconciliation
+    </text>
+    <text
+      x="4"
+      y="130"
+      font-family="system-ui, -apple-system, sans-serif"
+      font-size="36"
+      font-weight="500"
+      fill="#5d6678"
+      letter-spacing="-0.01em"
+    >
+      across unpredictable AI mutations.
+    </text>
+  </g>
+
+  <g transform="translate(680, 75) scale(4)">
+    <rect width="120" height="120" rx="28" fill="#ffffff" stroke="#ebe6dc" stroke-width="1" />
+
+    <g stroke-linecap="round" fill="none">
+      <rect x="12" y="32" width="8" height="8" rx="2" fill="#294d7a" stroke="none" />
+      <rect x="12" y="80" width="8" height="8" rx="2" fill="#162033" stroke="none" />
+
+      <path
+        d="M 16 84 C 36 84, 38 36, 58 36 C 68 36, 74 60, 84 60"
+        stroke="#162033"
+        stroke-width="10"
+      />
+      <path
+        d="M 16 36 C 36 36, 38 84, 58 84 C 68 84, 74 60, 84 60"
+        stroke="#ffffff"
+        stroke-width="18"
+      />
+      <path
+        d="M 16 36 C 36 36, 38 84, 58 84 C 68 84, 74 60, 84 60"
+        stroke="#294d7a"
+        stroke-width="10"
+      />
+
+      <path d="M 84 60 L 100 60" stroke="#b08a5b" stroke-width="10" />
+      <circle cx="102" cy="60" r="10" fill="#b08a5b" stroke="#ffffff" stroke-width="4" />
+    </g>
+  </g>
 </svg>

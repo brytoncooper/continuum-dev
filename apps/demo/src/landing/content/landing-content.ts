@@ -30,232 +30,232 @@ export type LandingAction = {
 };
 
 export const heroContent = {
-  eyebrow: 'For AI-generated and server-driven UI',
-  title: 'Regenerate UI without making users start over.',
+  eyebrow: 'The continuity layer for dynamic UI',
+  title: 'Lose their work, lose their trust.',
   description:
-    'When your UI changes shape, users should keep what they already entered. Continuum carries user work forward safely as fields move, rename, and regroup.',
+    'When you clear user state because the UI changed, it does not feel like a technical limitation. It feels like the app broke. Continuum preserves user work so your app stays trustworthy.',
   callouts: [
     {
       title: 'Rename a field',
-      body: 'The value stays with the field meaning.',
+      body: 'The value follows meaning.',
     },
     {
-      title: 'Reorder steps',
-      body: 'In-progress work survives step changes.',
+      title: 'Reshape the flow',
+      body: 'The work stays with the user.',
     },
     {
-      title: 'Change schema',
-      body: 'Safe values carry forward, unsafe values detach.',
+      title: 'Remove a field',
+      body: 'Risky input stays recoverable.',
     },
   ] satisfies LandingCallout[],
 } satisfies { eyebrow: string; title: string; description: string; callouts: LandingCallout[] };
 
 export const problemContent = {
-  title: 'Why standard state tools fail here',
+  title: 'Why that feeling matters',
   description:
-    'The UI changed, but the user was still doing the same task. Most state tools only track the current tree, so they cannot decide what should safely carry into the new structure.',
+    'When a field disappears or a flow changes, users do not think about reconciliation. They think the product lost what they already did.',
   callouts: [
     {
-      title: 'Structure evolves',
-      body: 'Fields rename, sections reorder, schema shifts. Your UI adapts in real time.',
+      title: 'Losing user work feels like failure',
+      body: "A reset does not feel technical. It feels like your product just threw away the user's work.",
     },
     {
-      title: 'State tools stay local',
-      body: 'Redux, forms, persistence only guard the current shape. No mapping across change.',
+      title: 'Wrong carry-forward feels unsafe',
+      body: 'A value in the wrong place looks valid until it creates a harder problem later.',
     },
     {
-      title: 'Unsafe carry-forward breaks trust',
-      body: 'Blind recovery can put values in the wrong place. Discarding them feels like a bug.',
+      title: 'Dynamic UI makes this constant',
+      body: 'AI generation, server-driven screens, and adaptive workflows turn structural change into a normal product behavior.',
     },
   ] satisfies LandingCallout[],
 };
 
 export const continuityContent = {
-  title: 'How Continuum preserves state when the UI changes',
+  title: 'Why this needs its own layer',
   description:
-    'Continuum separates generated view structure from durable user state, turning that boundary into a first-class contract so the interface can keep evolving while the session stays coherent.',
+    "Continuum separates changing view structure from durable user data so user work does not rise and fall with the current tree.",
   columns: [
     {
       title: 'ViewDefinition',
-      body: 'The generated structure that describes layout, flow, semantics, and what the interface looks like right now.',
+      body: 'The current structure of the interface: layout, flow, semantics, and what the user sees right now.',
     },
     {
       title: 'DataSnapshot',
-      body: 'The durable session state that carries values, proposals, dirty flags, lineage, and detached data through structural change.',
+      body: 'The durable record of what the user has done so far: values, proposals, dirty state, lineage, and detached data.',
     },
   ] satisfies LandingCallout[],
   summary:
-    'That separation is the unlock: dynamic UI stops feeling fragile because continuity is handled intentionally instead of by accident.',
+    'That separation is the unlock. UI changes stop reading like failure when continuity is handled intentionally instead of by accident.',
 };
 
 export const howItWorksContent = {
-  title: 'How Continuum handles changing UI',
+  title: 'How Continuum protects the work',
   description:
-    'Each update is checked so user work can carry forward when safe and stay detached when it is not.',
+    'It turns continuity into infrastructure so UI changes stop reading like product failure.',
   steps: [
     {
       label: '1',
-      title: 'Structure arrives',
-      body: 'New view from model, server, or workflow.',
+      title: 'Recognize what still means the same thing',
+      body: 'Match nodes across versions by identity, key, and semantics.',
     },
     {
       label: '2',
-      title: 'Intent maps',
-      body: 'Runtime matches old structure to new. Identity, semantics, safety all matter.',
+      title: 'Keep what still belongs',
+      body: 'Keep input only when the destination still means the same thing.',
     },
     {
       label: '3',
-      title: 'Decide per value',
-      body: 'Carry forward, migrate, detach, or reject based on safety rules.',
+      title: 'Hold onto what no longer fits',
+      body: 'Detach removed or incompatible input so it is preserved, not forced into the wrong place.',
     },
     {
       label: '4',
-      title: 'User keeps going',
-      body: 'Session intact. Progress saved. Trust earned.',
+      title: 'Bring it back when it fits again',
+      body: 'If the structure returns later, the preserved input can come back with it.',
     },
   ] satisfies LandingStep[],
 };
 
 export const packageStackContent = {
-  title: 'Install the layer that matches your team',
+  title: 'Adopt only the layer you need',
   description:
-    'Continuum is intentionally layered so teams can start with the install path that fits their workflow, from low-level contracts to headless React and the opinionated Starter Kit.',
+    'Start at the contract, drop in reconciliation, or take the full stack if you want dynamic UI continuity without building it all yourself.',
   items: [
     {
       name: 'contract',
-      title: 'Defines the language',
-      body: 'Owns the view and data boundary, shared types, node model, and the contract that the rest of the stack depends on.',
+      title: 'Defines durable meaning',
+      body: 'Owns the boundary between changing UI structure and durable user data so every other layer has a stable foundation.',
     },
     {
       name: 'runtime',
-      title: 'Reconciles change',
-      body: 'Applies stateless reconciliation so evolving views can preserve continuity instead of resetting the session.',
+      title: 'Prevents destructive resets',
+      body: 'Applies reconciliation across structural change so evolving views preserve continuity instead of wiping user work.',
     },
     {
       name: 'session',
-      title: 'Owns the timeline',
-      body: 'Adds persistence, checkpoints, event history, proposals, and a practical stateful shell around the runtime.',
+      title: 'Keeps work recoverable',
+      body: 'Adds persistence, checkpoints, event history, proposals, and the practical stateful layer teams need in production.',
     },
     {
       name: 'core',
-      title: 'Bundles the runtime spine',
-      body: 'Collects contract, runtime, and session into one convenience package so the lower-level Continuum stack ships as a single dependency edge.',
+      title: 'Bundles the critical path',
+      body: 'Collects the lower-level Continuum stack into one dependency edge for teams that want the essentials together.',
     },
     {
       name: 'react',
-      title: 'Renders headlessly',
-      body: 'Binds the model into React so teams can bring their own design system without surrendering continuity.',
+      title: 'Fits your design system',
+      body: 'Binds the model into React so you can keep your UI layer while Continuum handles continuity.',
     },
     {
       name: 'prompts',
-      title: 'Model prompt contracts',
-      body: 'Provides create/evolve/correction prompt templates and output contracts for Continuum ViewDefinition generation.',
+      title: 'Guides stable generation',
+      body: 'Provides prompt templates and output contracts for creating and evolving Continuum views with more predictable structure.',
     },
     {
       name: 'ai-connect',
-      title: 'Provider connections',
-      body: 'Headless provider clients and model catalogs for OpenAI and Google, with optional Anthropic support.',
+      title: 'Connects model providers',
+      body: 'Supplies headless provider clients and model catalogs so teams can wire Continuum into their AI stack.',
     },
     {
       name: 'vercel-ai-sdk',
-      title: 'Plugs into Vercel AI SDK',
-      body: 'Lets teams keep Vercel AI SDK transport and message streaming while Continuum owns reconciliation and session continuity.',
+      title: 'Adds continuity to streaming apps',
+      body: 'Lets teams keep Vercel AI SDK transport and streaming while Continuum owns reconciliation and durable user state.',
     },
     {
       name: 'starter-kit',
-      title: 'Gets teams moving fast',
-      body: 'Provides an opinionated component map, primitives, and proposal-friendly UI for teams that want a polished starting point before customizing.',
+      title: 'Starts from a working system',
+      body: 'Provides an opinionated component map, primitives, and proposal-friendly UI so teams can ship faster before customizing.',
     },
   ] satisfies PackageItem[],
 };
 
 export const useCasesContent = {
-  title: 'Where developers use Continuum',
+  title: 'Where this becomes urgent',
   description:
-    'Continuum matters anywhere the interface can change after the session has already started.',
+    'Anywhere losing input would feel like product failure.',
   callouts: [
     {
       title: 'AI-generated forms',
-      body: 'Regenerate prompts, sections, or validations without resetting in-progress answers.',
+      body: 'Regenerate prompts, sections, or validations without dumping in-progress answers.',
     },
     {
       title: 'Server-driven screens',
-      body: 'Let backends ship new structures while active sessions keep their continuity.',
+      body: 'Ship new structures from the backend while active user work keeps its place.',
     },
     {
       title: 'Workflow experiences',
-      body: 'Insert, remove, or reorder steps as the process changes without losing progress.',
+      body: 'Insert, remove, or reorder steps as the process changes without breaking the flow.',
     },
     {
       title: 'Long-lived sessions',
-      body: 'Persist history, restore detached values, and make resumable work feel dependable.',
+      body: 'Persist history, restore detached values, and make resumable work feel reliable instead of risky.',
     },
   ] satisfies LandingCallout[],
 };
 
 export const featureListContent = {
-  title: 'What you get when you install Continuum',
+  title: 'What you get',
   description:
-    'Continuum gives developers the continuity infrastructure that dynamic UI products usually have to build for themselves once views start changing at runtime.',
+    'The continuity layer teams usually realize they needed only after users start losing work.',
   items: [
     {
       title: 'Deterministic reconciliation',
-      body: 'Match nodes by id, key, and semantics so state survives layout churn instead of resetting on every regeneration.',
+      body: 'Match nodes by id, key, and semantics so state survives layout churn instead of resetting on every regenerate.',
     },
     {
       title: 'Detached-value recovery',
-      body: 'Removed or incompatible nodes do not silently destroy user work. Their state is preserved and can be restored later.',
+      body: 'Removed or incompatible nodes do not silently destroy user work. Their state is preserved and can return later.',
     },
     {
       title: 'Conflict-safe proposals',
-      body: 'Dirty user input is protected from AI clobbering by staged suggestions and explicit accept or reject flows.',
+      body: 'Dirty user input is protected from AI clobbering through staged suggestions and explicit accept-or-reject flows.',
     },
     {
       title: 'Persistence and hydration',
-      body: 'Sessions can persist to storage, survive refresh, and rehydrate with state, history, and continuity intact.',
+      body: 'User work can persist to storage, survive refresh, and rehydrate with state, history, and continuity intact.',
     },
     {
       title: 'Checkpoints and rewind',
-      body: 'Every push can create a recoverable timeline so teams get undo, rewind, and safer iteration on generated flows.',
+      body: 'Each push can create a recoverable timeline so teams get undo, rewind, and safer iteration on generated flows.',
     },
     {
       title: 'Diagnostics and audit trail',
-      body: 'Diffs, issues, resolutions, and event history make the system debuggable instead of mysterious.',
+      body: 'Diffs, issues, resolutions, and event history make continuity failures debuggable instead of mysterious.',
     },
     {
       title: 'Headless React rendering',
-      body: 'Bring your own design system while Continuum owns the session wiring, collection behavior, and dynamic rendering contract.',
+      body: 'Bring your own design system while Continuum owns the state wiring, collection behavior, and dynamic rendering contract.',
     },
     {
       title: 'Per-node failure isolation',
-      body: 'Unknown or broken generated nodes fail safer so one bad component does not blank the entire screen.',
+      body: 'Unknown or broken generated nodes fail safer so one bad component does not take down the whole screen.',
     },
   ] satisfies FeatureItem[],
 };
 
 export const ctaContent = {
-  title: 'Start shipping durable UI',
+  title: 'Keep UI changes from feeling like failure',
   description:
-    'Install in minutes. Then run the demo to see how it all works.',
+    'Start with the docs, then run the demo to see the breakage and the fix.',
   actions: [
     {
       title: 'Install Continuum',
-      body: 'Choose Starter Kit or headless React. Setup docs walk you through.',
-      label: 'Read install docs',
+      body: 'Choose Starter Kit or headless React and add continuity where your UI changes.',
+      label: 'Read the docs',
       href: '/docs',
       tone: 'strong',
     },
     {
-      title: 'See it in action',
-      body: 'No API key needed. Watch intent survive a regeneration.',
-      label: 'Try demo',
+      title: 'See the failure and the fix',
+      body: 'No API key needed. Watch one version lose the work and the other preserve it.',
+      label: 'Open demo',
       href: '/playground',
       tone: 'default',
     },
     {
-      title: 'Review source',
-      body: 'Open-source runtime on GitHub.',
-      label: 'View on GitHub',
+      title: 'Inspect the runtime',
+      body: 'Read the open-source implementation and decide where it fits in your stack.',
+      label: 'View GitHub',
       href: 'github',
       external: true,
       tone: 'soft',
@@ -264,27 +264,27 @@ export const ctaContent = {
 };
 
 export const closingCtaContent = {
-  title: 'Make your UI reliable.',
+  title: 'Protect the work. Protect the trust.',
   description:
-    'Install and start protecting user progress today.',
+    'Continuum keeps dynamic UI changes from turning into resets, silent mistakes, and broken trust.',
   actions: [
     {
-      title: 'Install now',
-      body: 'Setup takes minutes.',
-      label: 'Read docs',
+      title: 'Read the docs',
+      body: 'See where the stack fits and how to adopt it.',
+      label: 'Open docs',
       href: '/docs',
       tone: 'strong',
     },
     {
-      title: 'See the demo',
-      body: 'No signup required.',
-      label: 'Try it',
+      title: 'Run the demo',
+      body: 'See the breakage, then see the preserved outcome.',
+      label: 'Open demo',
       href: '/playground',
       tone: 'default',
     },
     {
-      title: 'Explore the code',
-      body: 'Open-source and built for scale.',
+      title: 'Browse the code',
+      body: 'Inspect the runtime and integration points yourself.',
       label: 'GitHub',
       href: 'github',
       external: true,

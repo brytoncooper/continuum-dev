@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" width="240" height="48">
+  <g transform="scale(0.4)">
+    <g stroke-linecap="round" fill="none">
+      <rect x="12" y="32" width="8" height="8" rx="2" fill="#294d7a" stroke="none" />
+      <rect x="12" y="80" width="8" height="8" rx="2" fill="#162033" stroke="none" />
+      <path
+        d="M 16 84 C 36 84, 38 36, 58 36 C 68 36, 74 60, 84 60"
+        stroke="#162033"
+        stroke-width="10"
+      />
+      <path
+        d="M 16 36 C 36 36, 38 84, 58 84 C 68 84, 74 60, 84 60"
+        stroke="#f6f4ef"
+        stroke-width="18"
+      />
+      <path
+        d="M 16 36 C 36 36, 38 84, 58 84 C 68 84, 74 60, 84 60"
+        stroke="#294d7a"
+        stroke-width="10"
+      />
+      <path d="M 84 60 L 100 60" stroke="#b08a5b" stroke-width="10" />
+      <circle cx="102" cy="60" r="10" fill="#b08a5b" stroke="#f6f4ef" stroke-width="4" />
+    </g>
+  </g>
+  <text
+    x="56"
+    y="34"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="24"
+    font-weight="700"
+    fill="#162033"
+    letter-spacing="-0.04em"
+  >
+    Continuum
+  </text>
+</svg>
