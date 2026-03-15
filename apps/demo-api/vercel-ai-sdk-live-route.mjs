@@ -10,19 +10,23 @@ import {
   buildContinuumStateTargetCatalog,
   CONTINUUM_VIEW_OUTPUT_SCHEMA,
   VERCEL_AI_SDK_LIVE_PATH,
+  buildContinuumExecutionPlannerSystemPrompt,
+  buildContinuumExecutionPlannerUserPrompt,
+  buildContinuumPatchTargetCatalog,
   buildContinuumSystemPrompt,
   buildContinuumUserPrompt,
   coerceContinuumViewDefinition,
   extractLatestUserInstruction,
   formatRouteError,
+  getAvailableContinuumExecutionModes,
   isVercelAiSdkLivePath,
   methodNotAllowed,
+  parseContinuumExecutionPlan,
   parseContinuumStateResponse,
   parseContinuumViewDefinition,
   parseContinuumModelResponse,
+  normalizeContinuumViewIdentity,
   resolveLiveProvider,
-  shouldPreferContinuumState,
-  shouldPreferContinuumPatch,
   textErrorResponse,
 } from './vercel-ai-sdk-shared.mjs';
 
@@ -110,6 +114,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       ? body.currentData
       : undefined;
   const stateTargets = buildContinuumStateTargetCatalog(currentView);
+  const patchTargets = buildContinuumPatchTargetCatalog(currentView);
   const providerId =
     typeof body?.providerId === 'string' ? body.providerId : 'openai';
   const requestedModel =
@@ -132,10 +137,12 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
-      const preferState = shouldPreferContinuumState(instruction);
-      const preferPatch = shouldPreferContinuumPatch(instruction);
+      const availableExecutionModes = getAvailableContinuumExecutionModes({
+        currentView,
+        stateTargets,
+      });
 
-      const repairFullViewGeneration = async (invalidText) => {
+      const repairFullViewGeneration = async (invalidText, validationErrors = []) => {
         writer.write({
           type: 'data-continuum-status',
           data: {
@@ -158,6 +165,11 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
             '',
             'Instruction:',
             instruction,
+            validationErrors.length > 0
+              ? ['', 'Validation errors:', JSON.stringify(validationErrors, null, 2)]
+                  .flat()
+                  .join('\n')
+              : '',
             '',
             'Previous invalid output:',
             invalidText,
@@ -171,7 +183,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
         });
       };
 
-      const repairStatePopulation = async (invalidText) => {
+      const repairStatePopulation = async (invalidText, selectedTargets = []) => {
         writer.write({
           type: 'data-continuum-status',
           data: {
@@ -192,6 +204,9 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
             'State targets:',
             JSON.stringify(stateTargets, null, 2),
             '',
+            'Planner-selected targets:',
+            JSON.stringify(selectedTargets, null, 2),
+            '',
             'Current state values:',
             JSON.stringify(currentData ?? null, null, 2),
             '',
@@ -210,18 +225,70 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
         });
       };
 
-      const runStatePopulation = async () => {
+      const repairPatchGeneration = async (invalidText, selectedTargets = []) => {
+        writer.write({
+          type: 'data-continuum-status',
+          data: {
+            status:
+              'Patch mode drifted away from valid localized Continuum operations. Repairing it into update parts before apply...',
+            level: 'warning',
+          },
+          transient: true,
+        });
+
+        const repair = await generateText({
+          model: resolvedProvider.languageModel,
+          system: buildContinuumSystemPrompt({ mode: 'patch' }),
+          prompt: [
+            'Repair the previous model output into a valid Continuum patch response JSON object.',
+            'Return JSON only.',
+            'Return kind="patch".',
+            'Do not return a full view.',
+            'Use the smallest valid operation list that satisfies the request.',
+            'If the request is "add a secondary email", that should normally be one insert-node near the existing email field.',
+            '',
+            buildContinuumUserPrompt(
+              {
+                instruction,
+                currentView,
+              },
+              { mode: 'patch' }
+            ),
+            '',
+            'Planner-selected localized targets:',
+            JSON.stringify(selectedTargets, null, 2),
+            '',
+            'Previous invalid output:',
+            invalidText,
+          ].join('\n'),
+          maxOutputTokens: 2500,
+        });
+
+        const repaired = parseContinuumModelResponse({
+          text: repair.text,
+          fallbackView: currentView,
+        });
+
+        return repaired?.kind === 'parts' ? repaired : null;
+      };
+
+      const runStatePopulation = async (selectedTargets = []) => {
         const result = await generateText({
           model: resolvedProvider.languageModel,
           system: buildContinuumSystemPrompt({ mode: 'state' }),
-          prompt: buildContinuumUserPrompt(
-            {
-              instruction,
-              currentData,
-              stateTargets,
-            },
-            { mode: 'state' }
-          ),
+          prompt: [
+            buildContinuumUserPrompt(
+              {
+                instruction,
+                currentData,
+                stateTargets,
+              },
+              { mode: 'state' }
+            ),
+            '',
+            'Planner-selected targets:',
+            JSON.stringify(selectedTargets, null, 2),
+          ].join('\n'),
           maxOutputTokens: 2500,
         });
 
@@ -234,7 +301,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           return parsed;
         }
 
-        return repairStatePopulation(result.text);
+        return repairStatePopulation(result.text, selectedTargets);
       };
 
       const runFullViewGeneration = async ({
@@ -242,6 +309,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
         maxOutputTokens = 4000,
       } = {}) => {
         let hasPreviewedDraft = false;
+        let previewDraftSequence = 0;
         let lastPreviewMetrics = null;
         let lastPreviewAt = 0;
         let pendingGeneratedText = '';
@@ -255,10 +323,11 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
 
           if (announceStreaming && !hasPreviewedDraft) {
             writer.write({
+              id: 'continuum-preview-status',
               type: 'data-continuum-status',
               data: {
                 status:
-                  'Streaming draft Continuum view snapshots into the client preview...',
+                  'Streaming draft Continuum view snapshots into a non-live preview stream...',
                 level: 'info',
               },
               transient: true,
@@ -267,12 +336,15 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
 
           if (announceStreaming) {
             writer.write({
+              id: `continuum-preview-view-${previewDraftSequence + 1}`,
               type: 'data-continuum-view',
               data: {
                 view: previewView,
+                streamMode: 'draft',
               },
               transient: true,
             });
+            previewDraftSequence += 1;
           }
 
           hasPreviewedDraft = true;
@@ -280,6 +352,48 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           lastPreviewAt = Date.now();
           pendingGeneratedText = '';
           return true;
+        };
+
+        const finalizeGeneratedView = async (candidateView) => {
+          if (!candidateView) {
+            return null;
+          }
+
+          const normalizedIdentity = normalizeContinuumViewIdentity({
+            currentView,
+            nextView: candidateView,
+          });
+
+          if (normalizedIdentity.errors.length === 0 && normalizedIdentity.view) {
+            return normalizedIdentity.view;
+          }
+
+          writer.write({
+            type: 'data-continuum-status',
+            data: {
+              status:
+                'The generated view broke Continuum semantic identity rules. Repairing it before apply...',
+              level: 'warning',
+            },
+            transient: true,
+          });
+
+          const repairedView = await repairFullViewGeneration(
+            JSON.stringify(candidateView, null, 2),
+            normalizedIdentity.errors
+          );
+          if (!repairedView) {
+            return null;
+          }
+
+          const repairedIdentity = normalizeContinuumViewIdentity({
+            currentView,
+            nextView: repairedView,
+          });
+
+          return repairedIdentity.errors.length === 0
+            ? repairedIdentity.view
+            : null;
         };
 
         const runTextViewGeneration = async () => {
@@ -341,7 +455,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           });
 
           if (parsedView) {
-            return parsedView;
+            return finalizeGeneratedView(parsedView);
           }
 
           const partial = await parsePartialJson(generatedText);
@@ -351,10 +465,11 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           );
 
           if (coercedPartialView) {
-            return coercedPartialView;
+            return finalizeGeneratedView(coercedPartialView);
           }
 
-          return repairFullViewGeneration(generatedText);
+          const repairedView = await repairFullViewGeneration(generatedText);
+          return finalizeGeneratedView(repairedView);
         };
 
         const runAnthropicStructuredViewGeneration = async () => {
@@ -401,7 +516,9 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           }
 
           const completedOutput = await result.output;
-          return coerceContinuumViewDefinition(completedOutput, currentView);
+          return finalizeGeneratedView(
+            coerceContinuumViewDefinition(completedOutput, currentView)
+          );
         };
 
         if (resolvedProvider.provider.id === 'anthropic') {
@@ -421,6 +538,62 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
         }
 
         return runTextViewGeneration();
+      };
+
+        const planExecutionMode = async () => {
+          if (availableExecutionModes.length === 1) {
+            return {
+              mode: availableExecutionModes[0],
+              fallback: 'view',
+              targetNodeIds: [],
+              targetSemanticKeys: [],
+              validation: 'accepted',
+              reason: 'only available mode',
+            };
+          }
+
+        writer.write({
+          type: 'data-continuum-status',
+          data: {
+            status:
+              'Planning the fastest Continuum execution path for this request...',
+            level: 'info',
+          },
+          transient: true,
+        });
+
+        const plan = await generateText({
+          model: resolvedProvider.languageModel,
+          system: buildContinuumExecutionPlannerSystemPrompt(),
+          prompt: buildContinuumExecutionPlannerUserPrompt({
+            instruction,
+            currentView,
+            currentData,
+            stateTargets,
+          }),
+          temperature: 0,
+          maxOutputTokens: 120,
+        });
+
+        const parsedPlan = parseContinuumExecutionPlan({
+          text: plan.text,
+          currentView,
+          stateTargets,
+        });
+
+        if (parsedPlan.validation !== 'accepted') {
+          writer.write({
+            type: 'data-continuum-status',
+            data: {
+              status:
+                'The planner returned an invalid or unsafe execution target, so the route escalated to full-view generation for safety.',
+              level: 'warning',
+            },
+            transient: true,
+          });
+        }
+
+        return parsedPlan;
       };
 
       writer.write({
@@ -445,7 +618,32 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           transient: true,
         });
 
-        if (preferState) {
+        const executionPlan = await planExecutionMode();
+
+        writer.write({
+          type: 'data-continuum-status',
+          data: {
+            status:
+              executionPlan.mode === 'state'
+                ? `Planner chose state mode${executionPlan.reason ? `: ${executionPlan.reason}.` : '.'}`
+                : executionPlan.mode === 'patch'
+                  ? `Planner chose targeted patch mode${executionPlan.reason ? `: ${executionPlan.reason}.` : '.'}`
+                  : `Planner chose full-view mode${executionPlan.reason ? `: ${executionPlan.reason}.` : '.'}`,
+            level: 'info',
+          },
+          transient: true,
+        });
+
+        const selectedExecutionTargets = [
+          ...(Array.isArray(executionPlan.targetNodeIds)
+            ? executionPlan.targetNodeIds
+            : []),
+          ...(Array.isArray(executionPlan.targetSemanticKeys)
+            ? executionPlan.targetSemanticKeys
+            : []),
+        ];
+
+        if (executionPlan.mode === 'state') {
           writer.write({
             type: 'data-continuum-status',
             data: {
@@ -456,7 +654,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
             transient: true,
           });
 
-          const response = await runStatePopulation();
+          const response = await runStatePopulation(selectedExecutionTargets);
 
           if (!response || !Array.isArray(response.updates) || response.updates.length === 0) {
             const stateError =
@@ -497,7 +695,7 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           return;
         }
 
-        if (preferPatch) {
+        if (executionPlan.mode === 'patch') {
           writer.write({
             type: 'data-continuum-status',
             data: {
@@ -511,13 +709,18 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           const result = streamText({
             model: resolvedProvider.languageModel,
             system: buildContinuumSystemPrompt({ mode: 'patch' }),
-            prompt: buildContinuumUserPrompt(
-              {
-                instruction,
-                currentView,
-              },
-              { mode: 'patch' }
-            ),
+            prompt: [
+              buildContinuumUserPrompt(
+                {
+                  instruction,
+                  currentView,
+                },
+                { mode: 'patch' }
+              ),
+              '',
+              'Planner-selected localized targets:',
+              JSON.stringify(selectedExecutionTargets, null, 2),
+            ].join('\n'),
             maxOutputTokens: 4000,
           });
 
@@ -531,24 +734,32 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
             fallbackView: currentView,
           });
 
-          if (!response) {
+          let localizedResponse =
+            response?.kind === 'parts'
+              ? response
+              : await repairPatchGeneration(
+                  generatedText,
+                  selectedExecutionTargets
+                );
+
+          if (!localizedResponse) {
             writer.write({
               type: 'data-continuum-status',
               data: {
                 status:
-                  'Patch mode did not produce a valid edit. Retrying as a streamed Continuum view update...',
+                  'Patch mode did not produce a valid localized edit. Regenerating the next view in one shot so populated fields do not appear to clear during preview...',
                 level: 'info',
               },
               transient: true,
             });
 
             const fallbackView = await runFullViewGeneration({
-              announceStreaming: true,
+              announceStreaming: false,
             });
 
             if (!fallbackView) {
               const parseError =
-                'The model response did not contain a valid Continuum patch or view. The session was left unchanged.';
+                'The model response did not contain valid Continuum update parts or a fallback view. The session was left unchanged.';
 
               writer.write({
                 type: 'data-continuum-status',
@@ -568,41 +779,121 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
               type: 'data-continuum-view',
               data: {
                 view: fallbackView,
+                streamMode: 'draft',
               },
             });
             writer.write({
               type: 'data-continuum-status',
               data: {
-                status: `Applied a live ${resolvedProvider.provider.label} view update after patch mode fell back to the streamed view path.`,
+                status: `Applied a live ${resolvedProvider.provider.label} view update after patch mode fell back to a one-shot draft-commit view path.`,
                 level: 'success',
               },
             });
             return;
           }
 
-          if (response.kind === 'patch') {
-            writer.write({
-              type: 'data-continuum-patch',
-              data: {
-                patch: response.patch,
-              },
-            });
-          } else {
-            writer.write({
-              type: 'data-continuum-view',
-              data: {
-                view: response.view,
-              },
-            });
+          for (const part of localizedResponse.parts) {
+            if (part.kind === 'insert-node') {
+              writer.write({
+                type: 'data-continuum-insert-node',
+                data: {
+                  node: part.node,
+                  ...(typeof part.parentId === 'string'
+                    ? { parentId: part.parentId }
+                    : {}),
+                  ...(part.parentId === null ? { parentId: null } : {}),
+                  ...(part.position ? { position: part.position } : {}),
+                  ...(localizedResponse.viewId
+                    ? { targetViewId: localizedResponse.viewId }
+                    : {}),
+                },
+              });
+              continue;
+            }
+
+            if (part.kind === 'replace-node') {
+              writer.write({
+                type: 'data-continuum-replace-node',
+                data: {
+                  nodeId: part.nodeId,
+                  node: part.node,
+                  ...(localizedResponse.viewId
+                    ? { targetViewId: localizedResponse.viewId }
+                    : {}),
+                },
+              });
+              continue;
+            }
+
+            if (part.kind === 'remove-node') {
+              writer.write({
+                type: 'data-continuum-remove-node',
+                data: {
+                  nodeId: part.nodeId,
+                  ...(localizedResponse.viewId
+                    ? { targetViewId: localizedResponse.viewId }
+                    : {}),
+                },
+              });
+              continue;
+            }
+
+            if (part.kind === 'append-content') {
+              writer.write({
+                type: 'data-continuum-append-content',
+                data: {
+                  nodeId: part.nodeId,
+                  text: part.text,
+                  ...(localizedResponse.viewId
+                    ? { targetViewId: localizedResponse.viewId }
+                    : {}),
+                },
+              });
+              continue;
+            }
+
+            if (part.kind === 'move-node' || part.kind === 'wrap-nodes') {
+              writer.write({
+                type: 'data-continuum-patch',
+                data: {
+                  patch: {
+                    ...(localizedResponse.viewId
+                      ? { viewId: localizedResponse.viewId }
+                      : {}),
+                    ...(localizedResponse.version
+                      ? { version: localizedResponse.version }
+                      : {}),
+                    operations: [
+                      part.kind === 'move-node'
+                        ? {
+                            op: 'move-node',
+                            nodeId: part.nodeId,
+                            ...(typeof part.parentId === 'string'
+                              ? { parentId: part.parentId }
+                              : {}),
+                            ...(part.parentId === null ? { parentId: null } : {}),
+                            ...(part.position ? { position: part.position } : {}),
+                          }
+                        : {
+                            op: 'wrap-nodes',
+                            ...(typeof part.parentId === 'string'
+                              ? { parentId: part.parentId }
+                              : {}),
+                            ...(part.parentId === null ? { parentId: null } : {}),
+                            nodeIds: part.nodeIds,
+                            wrapper: part.wrapper,
+                          },
+                    ],
+                  },
+                },
+              });
+            }
           }
 
           writer.write({
             type: 'data-continuum-status',
             data: {
-              status:
-                response.kind === 'patch'
-                  ? `Applied a live ${resolvedProvider.provider.label} patch suggestion. Continuum kept reconciliation on the client.`
-                  : `Applied a live ${resolvedProvider.provider.label} view update. Continuum kept reconciliation on the client.`,
+              status: `Applied live ${resolvedProvider.provider.label} Continuum update operations without regenerating the whole view.`,
               level: 'success',
             },
           });
@@ -634,12 +925,13 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
           type: 'data-continuum-view',
           data: {
             view: nextView,
+            streamMode: 'draft',
           },
         });
         writer.write({
           type: 'data-continuum-status',
           data: {
-            status: `Applied a live ${resolvedProvider.provider.label} view update. Continuum kept reconciliation on the client.`,
+            status: `Applied a live ${resolvedProvider.provider.label} view update through a draft commit. Continuum kept reconciliation on the client.`,
             level: 'success',
           },
         });

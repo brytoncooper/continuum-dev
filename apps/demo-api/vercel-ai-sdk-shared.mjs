@@ -1,6 +1,13 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
+import {
+  buildContinuumExecutionPlannerSystemPrompt as buildSharedContinuumExecutionPlannerSystemPrompt,
+  buildContinuumExecutionPlannerUserPrompt as buildSharedContinuumExecutionPlannerUserPrompt,
+  getAvailableContinuumExecutionModes as getSharedContinuumExecutionModes,
+  normalizeContinuumSemanticIdentity,
+  resolveContinuumExecutionPlan as resolveSharedContinuumExecutionPlan,
+} from '../../packages/starter-kit/src/lib/ai/continuum-execution.mjs';
 
 export const VERCEL_AI_SDK_DEMO_PATH = '/api/vercel-ai-sdk/demo';
 export const VERCEL_AI_SDK_LEGACY_DEMO_PATH = '/api/vercel-ai-sdk-demo';
@@ -258,6 +265,8 @@ function collectCollectionTemplateTargets(node, parentPath = '') {
       {
         nodeId: canonicalNodeId,
         key: typeof node.key === 'string' ? node.key : undefined,
+        semanticKey:
+          typeof node.semanticKey === 'string' ? node.semanticKey : undefined,
         nodeType: node.type,
         label: typeof node.label === 'string' ? node.label : undefined,
         dataType: typeof node.dataType === 'string' ? node.dataType : undefined,
@@ -288,6 +297,8 @@ export function buildContinuumStateTargetCatalog(view) {
         {
           nodeId: canonicalNodeId,
           key: typeof node.key === 'string' ? node.key : undefined,
+          semanticKey:
+            typeof node.semanticKey === 'string' ? node.semanticKey : undefined,
           nodeType: node.type,
           label: typeof node.label === 'string' ? node.label : undefined,
           minItems:
@@ -304,6 +315,8 @@ export function buildContinuumStateTargetCatalog(view) {
         {
           nodeId: canonicalNodeId,
           key: typeof node.key === 'string' ? node.key : undefined,
+          semanticKey:
+            typeof node.semanticKey === 'string' ? node.semanticKey : undefined,
           nodeType: node.type,
           label: typeof node.label === 'string' ? node.label : undefined,
           dataType: typeof node.dataType === 'string' ? node.dataType : undefined,
@@ -318,6 +331,144 @@ export function buildContinuumStateTargetCatalog(view) {
   };
 
   return view.nodes.flatMap((node) => visit(node));
+}
+
+function buildPatchNodeHint(node, parentId = null) {
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+
+  const children = getNodeChildren(node);
+
+  return {
+    id: typeof node.id === 'string' ? node.id : undefined,
+    type: typeof node.type === 'string' ? node.type : undefined,
+    ...(typeof node.key === 'string' ? { key: node.key } : {}),
+    ...(typeof node.semanticKey === 'string'
+      ? { semanticKey: node.semanticKey }
+      : {}),
+    ...(typeof node.label === 'string' ? { label: node.label } : {}),
+    ...(typeof node.dataType === 'string' ? { dataType: node.dataType } : {}),
+    ...(typeof parentId === 'string' ? { parentId } : {}),
+    ...(parentId === null ? { parentId: null } : {}),
+    ...(children.length > 0
+      ? {
+          childIds: children
+            .map((child) =>
+              child && typeof child === 'object' && typeof child.id === 'string'
+                ? child.id
+                : null
+            )
+            .filter(Boolean),
+        }
+      : {}),
+    ...(node.type === 'collection' &&
+    node.template &&
+    typeof node.template === 'object' &&
+    typeof node.template.id === 'string'
+      ? { templateId: node.template.id }
+      : {}),
+  };
+}
+
+function toCompactPatchNode(node) {
+  if (!node || typeof node !== 'object') {
+    return null;
+  }
+
+  const compact = {
+    id: typeof node.id === 'string' ? node.id : 'node',
+    type: typeof node.type === 'string' ? node.type : 'presentation',
+    ...(typeof node.key === 'string' ? { key: node.key } : {}),
+    ...(typeof node.semanticKey === 'string'
+      ? { semanticKey: node.semanticKey }
+      : {}),
+    ...(typeof node.label === 'string' ? { label: node.label } : {}),
+    ...(typeof node.dataType === 'string' ? { dataType: node.dataType } : {}),
+    ...(typeof node.placeholder === 'string'
+      ? { placeholder: node.placeholder }
+      : {}),
+    ...(typeof node.contentType === 'string'
+      ? { contentType: node.contentType }
+      : {}),
+    ...(typeof node.content === 'string' ? { content: node.content } : {}),
+  };
+
+  if (
+    (node.type === 'group' || node.type === 'row' || node.type === 'grid') &&
+    Array.isArray(node.children)
+  ) {
+    compact.children = node.children
+      .map((child) => toCompactPatchNode(child))
+      .filter(Boolean);
+  }
+
+  if (node.type === 'collection' && node.template) {
+    const template = toCompactPatchNode(node.template);
+    if (template) {
+      compact.template = template;
+    }
+    if (Array.isArray(node.defaultValues) && node.defaultValues.length > 0) {
+      compact.defaultValues = node.defaultValues;
+    }
+  }
+
+  return compact;
+}
+
+export function buildContinuumPatchContext(view) {
+  if (!view || typeof view !== 'object' || !Array.isArray(view.nodes)) {
+    return {
+      nodeHints: [],
+      compactTree: [],
+    };
+  }
+
+  const nodeHints = [];
+
+  const visit = (node, parentId = null) => {
+    if (!node || typeof node !== 'object') {
+      return;
+    }
+
+    const hint = buildPatchNodeHint(node, parentId);
+    if (hint) {
+      nodeHints.push(hint);
+    }
+
+    if (node.type === 'collection' && node.template) {
+      visit(node.template, typeof node.id === 'string' ? node.id : null);
+      return;
+    }
+
+    for (const child of getNodeChildren(node)) {
+      visit(child, typeof node.id === 'string' ? node.id : null);
+    }
+  };
+
+  for (const node of view.nodes) {
+    visit(node, null);
+  }
+
+  return {
+    nodeHints,
+    compactTree: view.nodes
+      .map((node) => toCompactPatchNode(node))
+      .filter(Boolean),
+  };
+}
+
+export function buildContinuumPatchTargetCatalog(view) {
+  const patchContext = buildContinuumPatchContext(view);
+  return patchContext.nodeHints
+    .map((target) => ({
+      nodeId: target.id,
+      key: target.key,
+      semanticKey: target.semanticKey,
+      label: target.label,
+      nodeType: target.type,
+    }))
+    .filter((target) => typeof target.nodeId === 'string' && target.nodeId.length > 0);
 }
 
 export function isVercelAiSdkDemoPath(pathname) {
@@ -749,7 +900,12 @@ function normalizePatchOperation(input) {
   }
 
   const source = input;
-  const op = typeof source.op === 'string' ? source.op : '';
+  const op =
+    typeof source.kind === 'string'
+      ? source.kind
+      : typeof source.op === 'string'
+        ? source.op
+        : '';
 
   if (op === 'insert-node') {
     if (!source.node || typeof source.node !== 'object') {
@@ -772,11 +928,67 @@ function normalizePatchOperation(input) {
         : undefined;
 
     return {
-      op,
+      kind: op,
       ...(typeof source.parentId === 'string' ? { parentId: source.parentId } : {}),
       ...(source.parentId === null ? { parentId: null } : {}),
       ...(position && Object.keys(position).length > 0 ? { position } : {}),
       node: normalizePatchNode(source.node),
+    };
+  }
+
+  if (op === 'move-node') {
+    if (typeof source.nodeId !== 'string' || !source.nodeId.trim()) {
+      return null;
+    }
+
+    const position =
+      source.position && typeof source.position === 'object'
+        ? {
+            ...(typeof source.position.index === 'number'
+              ? { index: source.position.index }
+              : {}),
+            ...(typeof source.position.beforeId === 'string'
+              ? { beforeId: source.position.beforeId }
+              : {}),
+            ...(typeof source.position.afterId === 'string'
+              ? { afterId: source.position.afterId }
+              : {}),
+          }
+        : undefined;
+
+    return {
+      kind: op,
+      nodeId: source.nodeId,
+      ...(typeof source.parentId === 'string' ? { parentId: source.parentId } : {}),
+      ...(source.parentId === null ? { parentId: null } : {}),
+      ...(position && Object.keys(position).length > 0 ? { position } : {}),
+    };
+  }
+
+  if (op === 'wrap-nodes') {
+    if (
+      !Array.isArray(source.nodeIds) ||
+      source.nodeIds.length === 0 ||
+      source.nodeIds.some(
+        (nodeId) => typeof nodeId !== 'string' || !nodeId.trim()
+      ) ||
+      !source.wrapper ||
+      typeof source.wrapper !== 'object'
+    ) {
+      return null;
+    }
+
+    const wrapper = normalizePatchNode(source.wrapper);
+    if (!wrapper || (wrapper.type !== 'group' && wrapper.type !== 'row' && wrapper.type !== 'grid')) {
+      return null;
+    }
+
+    return {
+      kind: op,
+      ...(typeof source.parentId === 'string' ? { parentId: source.parentId } : {}),
+      ...(source.parentId === null ? { parentId: null } : {}),
+      nodeIds: source.nodeIds,
+      wrapper,
     };
   }
 
@@ -790,7 +1002,7 @@ function normalizePatchOperation(input) {
     }
 
     return {
-      op,
+      kind: op,
       nodeId: source.nodeId,
       node: normalizePatchNode(source.node, source.nodeId),
     };
@@ -802,8 +1014,25 @@ function normalizePatchOperation(input) {
     }
 
     return {
-      op,
+      kind: op,
       nodeId: source.nodeId,
+    };
+  }
+
+  if (op === 'append-content') {
+    if (
+      typeof source.nodeId !== 'string' ||
+      !source.nodeId.trim() ||
+      typeof source.text !== 'string' ||
+      source.text.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      kind: op,
+      nodeId: source.nodeId,
+      text: source.text,
     };
   }
 
@@ -840,20 +1069,18 @@ function coercePatchResponse(value, fallbackView) {
     }
 
     return {
-      kind: 'patch',
-      patch: {
-        viewId:
-          typeof record.viewId === 'string'
-            ? record.viewId
-            : fallbackView?.viewId,
-        version:
-          typeof record.version === 'string'
-            ? record.version
-            : fallbackView?.version
-              ? bumpVersion(fallbackView.version)
-              : '1',
-        operations,
-      },
+      kind: 'parts',
+      viewId:
+        typeof record.viewId === 'string'
+          ? record.viewId
+          : fallbackView?.viewId,
+      version:
+        typeof record.version === 'string'
+          ? record.version
+          : fallbackView?.version
+            ? bumpVersion(fallbackView.version)
+            : '1',
+      parts: operations,
     };
   }
 
@@ -899,6 +1126,20 @@ function resolveStateTarget(targetCatalog, reference) {
     }
   }
 
+  const preferredSemanticKey =
+    typeof reference.semanticKey === 'string' &&
+    reference.semanticKey.trim().length > 0
+      ? reference.semanticKey.trim()
+      : null;
+  if (preferredSemanticKey) {
+    const bySemanticKey = targetCatalog.find(
+      (target) => target.semanticKey === preferredSemanticKey
+    );
+    if (bySemanticKey) {
+      return bySemanticKey;
+    }
+  }
+
   return null;
 }
 
@@ -916,6 +1157,9 @@ function resolveCollectionTemplateTarget(collectionTarget, referenceKey) {
   return (
     collectionTarget.templateFields.find(
       (target) => target.nodeId === normalizedReference
+    ) ??
+    collectionTarget.templateFields.find(
+      (target) => target.semanticKey === normalizedReference
     ) ??
     collectionTarget.templateFields.find(
       (target) => target.key === normalizedReference
@@ -1114,42 +1358,111 @@ export function parseContinuumStateResponse(args) {
   return coerceContinuumStateResponse(parsed, args.targetCatalog);
 }
 
-export function shouldPreferContinuumState(instruction) {
-  const normalized = typeof instruction === 'string' ? instruction.trim() : '';
-  if (!normalized) {
-    return false;
-  }
-
-  const broadSignals =
-    /\b(rework|redesign|rewrite|overhaul|transform|turn this into|make this (?:into|feel)|whole form|entire form|full form|from scratch|workflow|wizard|multi-step|stepper|mobile-first|less crowded|add a section|add a field|remove a field)\b/i;
-  if (broadSignals.test(normalized)) {
-    return false;
-  }
-
-  return /\b(populate|prepopulate|prefill|pre-fill|fill (?:out|in)|fill the form|seed .*data|sample data|autofill|auto-fill)\b/i.test(
-    normalized
-  );
+export function normalizeContinuumViewIdentity(args = {}) {
+  return normalizeContinuumSemanticIdentity({
+    currentView: args.currentView,
+    nextView: args.nextView,
+  });
 }
 
-export function shouldPreferContinuumPatch(instruction) {
-  const normalized = typeof instruction === 'string' ? instruction.trim() : '';
-  if (!normalized) {
-    return false;
+export function getAvailableContinuumExecutionModes(args = {}) {
+  const hasCurrentView =
+    args.currentView &&
+    typeof args.currentView === 'object' &&
+    Array.isArray(args.currentView.nodes) &&
+    args.currentView.nodes.length > 0;
+  const hasStateTargets =
+    Array.isArray(args.stateTargets) && args.stateTargets.length > 0;
+  return getSharedContinuumExecutionModes({
+    hasCurrentView,
+    hasStateTargets,
+  });
+}
+
+function previewPlannerValue(value) {
+  if (value === undefined || value === null) {
+    return value;
   }
 
-  const broadSignals =
-    /\b(rework|redesign|rewrite|overhaul|transform|turn this into|make this (?:into|feel)|whole form|entire form|full form|from scratch|workflow|wizard|multi-step|stepper|mobile-first|less crowded)\b/i;
-  if (broadSignals.test(normalized)) {
-    return false;
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized.length > 60
+      ? `${normalized.slice(0, 57)}...`
+      : normalized;
   }
 
-  const localizedVerbs =
-    /\b(add|insert|append|remove|delete|rename|change|update|replace|move|swap)\b/i;
-  const localizedTargets =
-    /\b(field|input|question|button|action|toggle|slider|select|radio|textarea|date|phone|email|address|zip|budget|timeline|name|notes?|section|group|row|column)\b/i;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
 
-  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  return localizedVerbs.test(normalized) && (localizedTargets.test(normalized) || wordCount <= 12);
+  if (Array.isArray(value)) {
+    return `[${value.length} item${value.length === 1 ? '' : 's'}]`;
+  }
+
+  if (typeof value === 'object') {
+    const keys = Object.keys(value);
+    return `{${keys.slice(0, 4).join(', ')}${keys.length > 4 ? ', ...' : ''}}`;
+  }
+
+  return String(value);
+}
+
+function buildContinuumStateTargetSummary(targets, limit = 40) {
+  if (!Array.isArray(targets) || targets.length === 0) {
+    return [];
+  }
+
+  return targets.slice(0, limit).map((target) => ({
+    nodeId: target.nodeId,
+    key: target.key,
+    semanticKey: target.semanticKey,
+    label: target.label,
+    nodeType: target.nodeType,
+  }));
+}
+
+function buildContinuumPatchTargetSummary(view, limit = 80) {
+  return buildContinuumPatchTargetCatalog(view).slice(0, limit);
+}
+
+function buildContinuumCurrentDataSummary(currentData, limit = 20) {
+  if (!currentData || typeof currentData !== 'object') {
+    return [];
+  }
+
+  return Object.entries(currentData)
+    .filter(([, entry]) => entry && typeof entry === 'object' && 'value' in entry)
+    .slice(0, limit)
+    .map(([nodeId, entry]) => ({
+      nodeId,
+      value: previewPlannerValue(entry.value),
+      isDirty: entry.isDirty === true,
+    }));
+}
+
+export function buildContinuumExecutionPlannerSystemPrompt() {
+  return buildSharedContinuumExecutionPlannerSystemPrompt();
+}
+
+export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
+  const patchContext = buildContinuumPatchContext(args.currentView);
+  return buildSharedContinuumExecutionPlannerUserPrompt({
+    availableModes: getAvailableContinuumExecutionModes(args),
+    patchTargets: buildContinuumPatchTargetSummary(args.currentView),
+    stateTargets: buildContinuumStateTargetSummary(args.stateTargets),
+    compactTree: patchContext.compactTree,
+    currentData: args.currentData,
+    instruction: args.instruction,
+  });
+}
+
+export function parseContinuumExecutionPlan(args) {
+  return resolveSharedContinuumExecutionPlan({
+    text: args.text,
+    availableModes: getAvailableContinuumExecutionModes(args),
+    patchTargets: buildContinuumPatchTargetCatalog(args.currentView),
+    stateTargets: args.stateTargets,
+  });
 }
 
 export function buildContinuumSystemPrompt(options = {}) {
@@ -1166,19 +1479,37 @@ export function buildContinuumSystemPrompt(options = {}) {
       'Return exactly one JSON object and nothing else.',
       'Do not wrap the JSON in markdown fences.',
       'Return a patch response, not a full view.',
+      'When the current view is present and usable, returning a full view in patch mode is invalid.',
       'Patch response shape: {"kind":"patch","viewId":"...","version":"...","operations":[...]}.',
-      'Supported patch operations are insert-node, replace-node, and remove-node.',
+      'Supported patch operations are insert-node, move-node, wrap-nodes, replace-node, remove-node, and append-content.',
       'insert-node requires parentId null for top-level inserts or a parent group/row/grid/template node id, plus a node payload and optional position.beforeId / position.afterId / position.index.',
+      'move-node requires nodeId plus a parentId or null for the top level, with optional position.beforeId / position.afterId / position.index.',
+      'wrap-nodes requires parentId or null for the top level, a nodeIds array of existing siblings, and a wrapper node whose type is group, row, or grid.',
       'replace-node requires nodeId and a full replacement node subtree.',
       'remove-node requires nodeId.',
+      'append-content requires nodeId of an existing presentation node and a text suffix to append.',
       'For small edits like adding one field, return a minimal operation list.',
+      'For localized requests like adding, removing, renaming, or repositioning one field, you must return kind="patch" with the smallest valid operation list.',
+      'If the user asks to add one field near an existing field, prefer one insert-node into the existing parent and position it near the sibling it relates to.',
+      'Example: adding a secondary email should usually be a single insert-node into the existing contact/profile group positioned after the current email field.',
+      'Layout regroupings like "put email and phone on one line" should usually be a small localized patch using wrap-nodes or move-node rather than replacing a large subtree.',
       'Supported node types are: group, row, grid, collection, field, textarea, date, select, radio-group, slider, toggle, action, presentation.',
       'Every node must include id and type.',
-      'Use key whenever semantic continuity matters.',
-      'Preserve existing ids and keys for semantically unchanged fields whenever possible.',
+      'Use semanticKey when a field should preserve identity across structural moves, parent changes, or collection/top-level reshapes.',
+      'Preserve existing ids and semanticKeys for semantically unchanged fields whenever possible.',
+      'Treat key as data binding, not as the primary continuity mechanism.',
+      'When you wrap or reposition an existing field, keep the same field id if possible and preserve semantic continuity metadata.',
+      'Use the provided node index and compact tree to target existing nodes precisely. Do not invent parent ids or sibling ids that are not present there.',
       'For field nodes, include dataType when it is missing.',
       'For presentation nodes, include contentType and content.',
       'For action nodes, include intentId and label.',
+      'Use groups for real sections and semantic clustering, not empty wrappers.',
+      'Use rows for 2-3 short related fields and grids for compact peer fields.',
+      'Use collections only for repeatable user-managed items.',
+      'Every collection must include a complete template subtree with actual child fields.',
+      'Do not create a collection with an empty template or a template that only contains another empty container.',
+      'If you add or keep a collection, include defaultValues with at least one initial item unless the user explicitly wants an empty collection.',
+      'For small property edits on an existing node, prefer replace-node with the full updated node over regenerating the full view.',
       'Never return placeholder, incomplete, or partially redacted nodes.',
       'Keep structures valid, concise, and ready for reconciliation.',
     ].join('\n');
@@ -1209,14 +1540,20 @@ export function buildContinuumSystemPrompt(options = {}) {
     'Return exactly one JSON object and nothing else.',
     'Do not wrap the JSON in markdown fences.',
     'Start the response with { and end the response with }.',
-    'The object must be a full ViewDefinition with top-level keys: viewId, version, nodes.',
-    'Return the full next view, not a partial fragment.',
-    'Supported node types are: group, row, grid, collection, field, textarea, date, select, radio-group, slider, toggle, action, presentation.',
-    'Every node must include id and type.',
-    'Use key whenever semantic continuity matters.',
-    'Preserve existing ids and keys for semantically unchanged fields whenever possible.',
-    'If the user asks for a small change, evolve the current view instead of replacing the workflow wholesale.',
+      'The object must be a full ViewDefinition with top-level keys: viewId, version, nodes.',
+      'Return the full next view, not a partial fragment.',
+      'Supported node types are: group, row, grid, collection, field, textarea, date, select, radio-group, slider, toggle, action, presentation.',
+      'Every node must include id and type.',
+      'Use semanticKey when a field should preserve identity across structural moves, parent changes, or collection/top-level reshapes.',
+      'Preserve existing ids and semanticKeys for semantically unchanged fields whenever possible.',
+      'Treat key as data binding, not as the primary continuity mechanism.',
+      'When you restructure existing fields into new rows or groups, keep the same field ids if possible and preserve semantic continuity metadata.',
+      'If the user asks for a small change, evolve the current view instead of replacing the workflow wholesale.',
     'Prefer groups for sections, rows for a few short related fields, and collections for repeatable user-managed items.',
+    'Do not create empty groups that only wrap one child without adding meaning.',
+    'Every collection must include a complete template subtree with actual child fields.',
+    'Do not create a collection with an empty template or a template that only contains another empty container.',
+    'If you add or keep a collection, include defaultValues with at least one initial item unless the user explicitly wants an empty collection.',
     'For field nodes, include dataType when it is missing.',
     'For presentation nodes, include contentType and content.',
     'For action nodes, include intentId and label.',
@@ -1234,13 +1571,27 @@ export function buildContinuumUserPrompt(args, options = {}) {
         : 'view';
 
   if (mode === 'patch') {
+    const patchContext = buildContinuumPatchContext(args.currentView);
     const sections = [
       'Return the next Continuum edit as JSON only.',
+      'This request is in localized patch mode.',
       'Return kind="patch".',
       'Do not return a full view unless the current view is missing or unusable.',
       'Use the smallest operation list that correctly applies the user request.',
+      'If the instruction is something like "add a secondary email", the correct shape is usually one insert-node into the existing profile/contact group near the current email field.',
+      'If the instruction is a layout regrouping like putting email and phone on one line, prefer wrap-nodes or move-node rather than replacing a large subtree.',
+      'Use existing node ids from the node index and compact tree when you target current parents, siblings, or nodes to replace.',
+      'Keep the ids and semanticKeys of semantically unchanged fields when you wrap them in a new row or group.',
+      'If you add or replace a collection, include its full valid template subtree and any required defaultValues.',
+      'If you only need to change one existing node, prefer replace-node over rewriting the whole workflow.',
       '',
-      'Current view:',
+      'Node index:',
+      JSON.stringify(patchContext.nodeHints, null, 2),
+      '',
+      'Compact tree snapshot:',
+      JSON.stringify(patchContext.compactTree, null, 2),
+      '',
+      'Full current view reference:',
       JSON.stringify(args.currentView ?? null, null, 2),
       '',
       'Instruction:',
