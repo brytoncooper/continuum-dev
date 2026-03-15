@@ -14,6 +14,7 @@ import type {
   ActionResult,
 } from '@continuum-dev/contract';
 import type {
+  ContinuumViewStreamPart,
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResolution,
@@ -125,6 +126,84 @@ export interface SessionViewApplyOptions {
   transient?: boolean;
 }
 
+export type SessionStreamMode = 'foreground' | 'draft';
+
+export type SessionStreamStatus =
+  | 'open'
+  | 'committed'
+  | 'aborted'
+  | 'stale'
+  | 'superseded';
+
+export type SessionStreamStatusLevel =
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error';
+
+export interface SessionStreamStartOptions {
+  streamId?: string;
+  source?: string;
+  targetViewId: string;
+  baseViewVersion?: string | null;
+  mode?: SessionStreamMode;
+  supersede?: boolean;
+  initialView?: ViewDefinition;
+}
+
+export type SessionStreamPart =
+  | ContinuumViewStreamPart
+  | {
+      kind: 'state';
+      nodeId: string;
+      value: NodeValue;
+      source?: string;
+    }
+  | {
+      kind: 'status';
+      status: string;
+      level?: SessionStreamStatusLevel;
+    }
+  | {
+      kind: 'node-status';
+      nodeId: string;
+      status: string;
+      level?: SessionStreamStatusLevel;
+      subtree?: boolean;
+    };
+
+export interface SessionStream {
+  streamId: string;
+  source?: string;
+  targetViewId: string;
+  baseViewVersion: string | null;
+  mode: SessionStreamMode;
+  status: SessionStreamStatus;
+  startedAt: number;
+  updatedAt: number;
+  latestStatus?: {
+    status: string;
+    level: SessionStreamStatusLevel;
+  };
+  nodeStatuses: Record<
+    string,
+    {
+      status: string;
+      level: SessionStreamStatusLevel;
+      subtree?: boolean;
+    }
+  >;
+  viewVersion?: string | null;
+  affectedNodeIds: string[];
+  partCount: number;
+}
+
+export interface SessionStreamResult {
+  streamId: string;
+  status: Exclude<SessionStreamStatus, 'open'>;
+  reason?: string;
+}
+
 /**
  * Stateful session API for generative UI timelines.
  */
@@ -142,6 +221,10 @@ export interface Session {
    */
   getSnapshot(): ContinuitySnapshot | null;
   /**
+   * Returns the last durable committed view/data snapshot.
+   */
+  getCommittedSnapshot(): ContinuitySnapshot | null;
+  /**
    * Returns reconciliation and validation issues collected so far.
    */
   getIssues(): ReconciliationIssue[];
@@ -157,6 +240,26 @@ export interface Session {
    * Pushes a new view and reconciles existing data against it.
    */
   pushView(view: ViewDefinition, options?: SessionViewApplyOptions): void;
+  /**
+   * Starts a new deterministic stream scoped to a target view id.
+   */
+  beginStream(options: SessionStreamStartOptions): SessionStream;
+  /**
+   * Applies a normalized stream part to an open stream.
+   */
+  applyStreamPart(streamId: string, part: SessionStreamPart): void;
+  /**
+   * Commits an open stream into durable session state.
+   */
+  commitStream(streamId: string): SessionStreamResult;
+  /**
+   * Aborts an open stream and drops its render overlay.
+   */
+  abortStream(streamId: string, reason?: string): SessionStreamResult;
+  /**
+   * Returns stream metadata for live and recently terminated streams.
+   */
+  getStreams(): SessionStream[];
   /**
    * Appends a raw interaction event to the event log and applies its payload.
    */
@@ -257,6 +360,12 @@ export interface Session {
   onSnapshot(
     listener: (snapshot: ContinuitySnapshot | null) => void
   ): () => void;
+  /**
+   * Subscribes to stream metadata updates.
+   *
+   * Returns an unsubscribe function.
+   */
+  onStreams(listener: (streams: SessionStream[]) => void): () => void;
   /**
    * Subscribes to issue updates.
    *
