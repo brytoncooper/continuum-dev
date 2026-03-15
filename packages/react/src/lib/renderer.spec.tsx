@@ -10,7 +10,11 @@ import { createSession } from '@continuum-dev/session';
 import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi } from 'vitest';
 import { ContinuumProvider } from './context.js';
-import { useContinuumSession, useContinuumState } from './hooks.js';
+import {
+  useContinuumSession,
+  useContinuumSnapshot,
+  useContinuumState,
+} from './hooks.js';
 import { ContinuumRenderer } from './renderer.js';
 
 (
@@ -432,6 +436,63 @@ describe('renderer', () => {
         </ContinuumProvider>
       );
       expect(nodeIds).toContain('a/b/c');
+      rendered.unmount();
+    });
+  });
+
+  describe('streaming props', () => {
+    it('passes build state and stream status into node components during active streams', () => {
+      const view: ViewDefinition = {
+        viewId: 'profile',
+        version: '1',
+        nodes: [{ id: 'name', type: 'field', dataType: 'string' } as ViewNode],
+      };
+      let capturedSession: Session | null = null;
+      let latestProps: Record<string, unknown> | null = null;
+
+      function App() {
+        const session = useContinuumSession();
+        const snapshot = useContinuumSnapshot();
+        capturedSession = session;
+        if (!session.getSnapshot()) {
+          session.pushView(view);
+        }
+        return snapshot ? <ContinuumRenderer view={snapshot.view} /> : null;
+      }
+
+      const rendered = renderIntoDom(
+        <ContinuumProvider
+          components={{
+            field: (props) => {
+              latestProps = props;
+              return <div data-testid="field" />;
+            },
+          }}
+        >
+          <App />
+        </ContinuumProvider>
+      );
+
+      act(() => {
+        const stream = requireSession(capturedSession).beginStream({
+          targetViewId: 'profile',
+          mode: 'foreground',
+        });
+        requireSession(capturedSession).applyStreamPart(stream.streamId, {
+          kind: 'node-status',
+          nodeId: 'name',
+          status: 'ready',
+          level: 'success',
+        });
+      });
+
+      expect(latestProps?.isStreaming).toBe(true);
+      expect(latestProps?.buildState).toBe('ready');
+      expect(latestProps?.streamStatus).toEqual({
+        status: 'ready',
+        level: 'success',
+      });
+
       rendered.unmount();
     });
   });

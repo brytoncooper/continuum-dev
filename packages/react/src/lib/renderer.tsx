@@ -2,15 +2,20 @@ import { memo, useCallback, useContext, useMemo } from 'react';
 import type {
   CollectionNode,
   CollectionNodeState,
+  SessionStream,
   NodeValue,
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/core';
 import { getChildNodes } from '@continuum-dev/core';
 import { ContinuumContext } from './context.js';
-import { NodeStateScopeContext, useContinuumState } from './hooks.js';
+import { NodeStateScopeContext, useContinuumState, useContinuumStreaming } from './hooks.js';
 import { FallbackComponent } from './fallback.js';
 import { NodeErrorBoundary } from './error-boundary.js';
+import type {
+  ContinuumNodeBuildState,
+  ContinuumNodeStreamStatus,
+} from './types.js';
 
 const noopOnChange = () => undefined;
 
@@ -22,6 +27,92 @@ function deepCloneValues(
 
 function toCanonicalId(id: string, parentPath: string): string {
   return parentPath.length > 0 ? `${parentPath}/${id}` : id;
+}
+
+function isNodeWithinScope(nodeId: string, scopeId: string): boolean {
+  return (
+    nodeId === scopeId ||
+    nodeId.startsWith(`${scopeId}/`) ||
+    scopeId.startsWith(`${nodeId}/`)
+  );
+}
+
+function resolveStreamStatus(
+  activeStream: SessionStream | null,
+  nodeId: string
+): ContinuumNodeStreamStatus | undefined {
+  if (!activeStream) {
+    return undefined;
+  }
+
+  const exact = activeStream.nodeStatuses[nodeId];
+  if (exact) {
+    return exact;
+  }
+
+  const segments = nodeId.split('/');
+  while (segments.length > 1) {
+    segments.pop();
+    const ancestorId = segments.join('/');
+    const status = activeStream.nodeStatuses[ancestorId];
+    if (status?.subtree) {
+      return status;
+    }
+  }
+
+  return undefined;
+}
+
+function deriveNodeBuildState(
+  activeStream: SessionStream | null,
+  nodeId: string,
+  streamStatus: ContinuumNodeStreamStatus | undefined
+): ContinuumNodeBuildState {
+  if (!activeStream) {
+    return 'committed';
+  }
+
+  if (streamStatus?.level === 'error' || streamStatus?.status === 'error') {
+    return 'error';
+  }
+
+  if (streamStatus?.status === 'ready') {
+    return 'ready';
+  }
+
+  if (streamStatus?.status === 'committed') {
+    return 'committed';
+  }
+
+  if (
+    streamStatus ||
+    activeStream.affectedNodeIds.some((affectedNodeId) =>
+      isNodeWithinScope(nodeId, affectedNodeId)
+    )
+  ) {
+    return 'building';
+  }
+
+  return 'committed';
+}
+
+function useStreamingMappedProps(
+  canonicalId: string,
+  mappedProps?: Record<string, unknown>
+): Record<string, unknown> {
+  const { activeStream, isStreaming } = useContinuumStreaming();
+  const streamStatus = resolveStreamStatus(activeStream, canonicalId);
+  const buildState = deriveNodeBuildState(activeStream, canonicalId, streamStatus);
+
+  return useMemo(
+    () => ({
+      isStreaming: isStreaming && buildState !== 'committed',
+      buildState,
+      ...(streamStatus ? { streamStatus } : {}),
+      ...(mappedProps ?? {}),
+    }),
+    [buildState, isStreaming, mappedProps, streamStatus]
+  );
 }
 
 function useResolvedComponent(definition: ViewNode) {
@@ -210,6 +301,7 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
 }: NodeRendererProps) {
   const Component = useResolvedComponent(definition);
   const canonicalId = toCanonicalId(definition.id, parentPath);
+  const streamingProps = useStreamingMappedProps(canonicalId, mappedProps);
 
   const [value, setValue] = useContinuumState(canonicalId);
   const hasSuggestion = (value as NodeValue | undefined)?.suggestion !== undefined;
@@ -229,7 +321,7 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
           onChange={setValue}
           definition={definition}
           nodeId={canonicalId}
-          {...mappedProps}
+          {...streamingProps}
         />
       </NodeErrorBoundary>
     </>
@@ -248,6 +340,7 @@ const ContainerNodeRenderer = memo(function ContainerNodeRenderer({
   }
 
   const canonicalId = toCanonicalId(definition.id, parentPath);
+  const streamingProps = useStreamingMappedProps(canonicalId, mappedProps);
   const childNodes = getChildNodes(definition).map((child) => (
     <NodeRenderer
       key={child.id}
@@ -265,7 +358,7 @@ const ContainerNodeRenderer = memo(function ContainerNodeRenderer({
           onChange={noopOnChange}
           definition={definition}
           nodeId={canonicalId}
-          {...mappedProps}
+          {...streamingProps}
         >
           {childNodes}
         </Component>
@@ -423,6 +516,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
   const { store } = ctx;
   const Component = useResolvedComponent(definition);
   const canonicalId = toCanonicalId(definition.id, parentPath);
+  const streamingProps = useStreamingMappedProps(canonicalId);
   const [collectionValue, setCollectionValue] = useContinuumState(canonicalId);
   const normalizedCollection = normalizeCollectionNodeValue(collectionValue);
   const hasSuggestion = normalizedCollection.suggestion !== undefined;
@@ -515,6 +609,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
           canRemove={canRemove}
           onAdd={addItem}
           onRemove={removeItem}
+          {...streamingProps}
         >
           {renderedItems}
         </Component>
