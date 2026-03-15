@@ -209,6 +209,26 @@ Behavior notes:
 - Anthropic support is optional
 - the chat box can auto-apply valid generated views into the active session
 
+## Post-processed model text and streaming
+
+The starter kit keeps raw model text parsing outside the session/runtime core.
+
+For the full render-vs-committed snapshot model and richer stream-part vocabulary, see [@continuum-dev/session streaming guide](../session/STREAMING.md).
+
+That means you can:
+
+- stream structured transport parts with `@continuum-dev/vercel-ai-sdk`
+- or generate text, repair/parse it into a `ViewDefinition` or patch plan, and then normalize that into the same session streaming foundation
+
+The built-in view generation engine now routes normalized outputs through the session stream API when it is available, so parsed AI results and structured transport chunks converge on the same deterministic foundation.
+
+Why that matters:
+
+- partial UI can render before the full response finishes
+- user typing and browser autofill remain sacred while the UI is still building
+- committed session state stays durable and checkpoint-friendly
+- later renderer work can animate build states without changing the foundation again
+
 ## Vercel AI SDK option
 
 If you want Vercel AI SDK to be the streaming transport while Continuum remains the runtime and session layer, use `StarterKitVercelAiSdkChatBox`.

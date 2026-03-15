@@ -2,6 +2,8 @@ import type {
   AiConnectClient,
   AiConnectGenerateResult,
 } from '@continuum-dev/ai-connect';
+import type { SessionStreamPart } from '@continuum-dev/core';
+import { getChildNodes, type ViewDefinition, type ViewNode } from '@continuum-dev/core';
 import {
   type PromptAddon,
   type PromptMode,
@@ -60,6 +62,115 @@ function shouldUseViewDsl(provider: AiConnectClient): boolean {
   return true;
 }
 
+function applyThroughStreamingFoundation(
+  session: StarterKitSessionAdapter,
+  source: string,
+  targetViewId: string,
+  parts: SessionStreamPart[]
+): boolean {
+  if (
+    typeof session.beginStream !== 'function' ||
+    typeof session.applyStreamPart !== 'function' ||
+    typeof session.commitStream !== 'function'
+  ) {
+    return false;
+  }
+
+  const baseSnapshot = session.getCommittedSnapshot?.() ?? session.getSnapshot();
+  const stream = session.beginStream({
+    targetViewId,
+    source,
+    mode: 'foreground',
+    supersede: true,
+    baseViewVersion: baseSnapshot?.view.version ?? null,
+  });
+  for (const part of parts) {
+    session.applyStreamPart(stream.streamId, part);
+  }
+  const result = session.commitStream(stream.streamId);
+  if (result.status !== 'committed') {
+    throw new Error(
+      `Continuum stream commit failed with status "${result.status}"${result.reason ? `: ${result.reason}` : ''}.`
+    );
+  }
+  return true;
+}
+
+function collectPresentationNodes(
+  nodes: ViewNode[],
+  parentPath = '',
+  result = new Map<string, string>()
+): Map<string, string> {
+  for (const node of nodes) {
+    const canonicalId = parentPath.length > 0 ? `${parentPath}/${node.id}` : node.id;
+    if (node.type === 'presentation') {
+      result.set(canonicalId, node.content);
+    }
+    const children = getChildNodes(node);
+    if (children.length > 0) {
+      collectPresentationNodes(children, canonicalId, result);
+    }
+    if (node.type === 'collection') {
+      collectPresentationNodes([node.template], canonicalId, result);
+    }
+  }
+  return result;
+}
+
+function buildNormalizedGeneratedStreamParts(
+  currentView: ViewDefinition,
+  nextView: ViewDefinition
+): SessionStreamPart[] {
+  if (currentView.viewId !== nextView.viewId) {
+    return [{ kind: 'view', view: nextView }];
+  }
+
+  const currentPresentation = collectPresentationNodes(currentView.nodes);
+  const nextPresentation = collectPresentationNodes(nextView.nodes);
+  if (currentPresentation.size !== nextPresentation.size) {
+    return [{ kind: 'view', view: nextView }];
+  }
+
+  let appendCandidate:
+    | {
+        nodeId: string;
+        text: string;
+      }
+    | null = null;
+
+  for (const [nodeId, currentContent] of currentPresentation) {
+    const nextContent = nextPresentation.get(nodeId);
+    if (nextContent === undefined) {
+      return [{ kind: 'view', view: nextView }];
+    }
+    if (nextContent === currentContent) {
+      continue;
+    }
+    if (!nextContent.startsWith(currentContent)) {
+      return [{ kind: 'view', view: nextView }];
+    }
+    if (appendCandidate) {
+      return [{ kind: 'view', view: nextView }];
+    }
+    appendCandidate = {
+      nodeId,
+      text: nextContent.slice(currentContent.length),
+    };
+  }
+
+  if (appendCandidate && appendCandidate.text.length > 0) {
+    return [
+      {
+        kind: 'append-content',
+        nodeId: appendCandidate.nodeId,
+        text: appendCandidate.text,
+      },
+    ];
+  }
+
+  return [{ kind: 'view', view: nextView }];
+}
+
 export async function runStarterKitViewGeneration(
   args: StarterKitRunViewGenerationArgs
 ): Promise<StarterKitRunViewGenerationResult> {
@@ -116,7 +227,19 @@ export async function runStarterKitViewGeneration(
             patchUnsupported.length === 0 &&
             patchStructuralErrors.length === 0
           ) {
-            args.session.applyView(normalizedPatchedView);
+            if (
+              !applyThroughStreamingFoundation(
+                args.session,
+                args.provider.label,
+                normalizedPatchedView.viewId,
+                buildNormalizedGeneratedStreamParts(
+                  snapshot.view,
+                  normalizedPatchedView
+                )
+              )
+            ) {
+              args.session.applyView(normalizedPatchedView);
+            }
             return {
               result: patchResult,
               parsed: patchParsed,
@@ -247,7 +370,16 @@ export async function runStarterKitViewGeneration(
     if (structuralErrors.length > 0) {
       throw new Error(`Malformed view from model: ${structuralErrors[0]}`);
     }
-    args.session.applyView(normalizedView);
+    if (
+      !applyThroughStreamingFoundation(
+        args.session,
+        args.provider.label,
+        normalizedView.viewId,
+        buildNormalizedGeneratedStreamParts(snapshot.view, normalizedView)
+      )
+    ) {
+      args.session.applyView(normalizedView);
+    }
     return {
       result: finalResult,
       parsed,
