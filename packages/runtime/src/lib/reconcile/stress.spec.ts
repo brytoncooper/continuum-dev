@@ -1,67 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import type {
-  ViewDefinition,
   ViewNode,
   DataSnapshot,
   NodeValue,
 } from '@continuum-dev/contract';
 import { ISSUE_CODES } from '@continuum-dev/contract';
+import {
+  makeNode,
+  makeView,
+  reconcileWithFixedClock as reconcile,
+} from './test-fixtures.js';
 import { reconcile as runtimeReconcile } from './index.js';
-import type { ReconciliationOptions } from '../types.js';
-
-const TEST_NOW = 2000;
-
-function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions = {}
-) {
-  return runtimeReconcile(newView, priorView, priorData, {
-    clock: () => TEST_NOW,
-    ...options,
-  });
-}
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-function makeView(
-  nodes: ViewNode[],
-  viewId = 'view-1',
-  version = '1.0'
-): ViewDefinition {
-  return { viewId, version, nodes };
-}
-
-function makeNode(
-  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
-): ViewNode {
-  const type = overrides.type ?? 'field';
-  return {
-    id: overrides.id,
-    key: overrides.key,
-    hash: overrides.hash,
-    hidden: overrides.hidden,
-    migrations: overrides.migrations,
-    type,
-    ...(type === 'field' ? { dataType: 'string' } : {}),
-    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'row' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'grid' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'collection'
-      ? {
-          template: {
-            id: `${overrides.id}-tpl`,
-            type: 'field',
-            dataType: 'string',
-          } as ViewNode,
-        }
-      : {}),
-    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
-    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
-    ...overrides,
-  } as ViewNode;
-}
 
 function makeData(
   values: Record<string, NodeValue>,
@@ -98,6 +47,23 @@ function getItems(
 }
 
 // ─── 1. Collection Template Path Remapping ────────────────────────────────────
+
+describe('api signature smoke', () => {
+  it('object signature works for transition path', () => {
+    const priorView = makeView([makeNode({ id: 'a', key: 'stable' })], 'view-smoke', '1');
+    const newView = makeView([makeNode({ id: 'b', key: 'stable' })], 'view-smoke', '2');
+    const priorData = makeData({ a: { value: 'x' } });
+
+    const result = runtimeReconcile({
+      newView,
+      priorView,
+      priorData,
+      options: { clock: () => 2000 },
+    });
+
+    expect(result.reconciledState.values['b']).toEqual({ value: 'x' });
+  });
+});
 
 describe('collection template path remapping', () => {
   it('carries item values when template container ID changes', () => {

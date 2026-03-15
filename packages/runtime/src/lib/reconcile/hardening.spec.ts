@@ -9,42 +9,13 @@ import {
   buildPriorValueLookupByIdAndKey,
   buildReconciliationContext,
 } from '../context/index.js';
-import { reconcile as runtimeReconcile } from './index.js';
 import { computeViewHash } from '../reconciliation/result-builder/index.js';
-import type { ReconciliationOptions } from '../types.js';
-
-const TEST_NOW = 2000;
-
-function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions = {}
-) {
-  return runtimeReconcile(newView, priorView, priorData, {
-    clock: () => TEST_NOW,
-    ...options,
-  });
-}
-
-function makeNode(
-  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
-): ViewNode {
-  const type = overrides.type ?? 'field';
-  return {
-    id: overrides.id,
-    key: overrides.key,
-    hash: overrides.hash,
-    hidden: overrides.hidden,
-    migrations: overrides.migrations,
-    type,
-    ...(type === 'field' ? { dataType: 'string' } : {}),
-    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
-    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
-    ...overrides,
-  } as ViewNode;
-}
+import {
+  TEST_NOW,
+  makeNode,
+  reconcileWithFixedClock as reconcile,
+} from './test-fixtures.js';
+import { reconcile as runtimeReconcile } from './index.js';
 
 const priorView: ViewDefinition = {
   viewId: 'view-1',
@@ -58,6 +29,26 @@ const priorData: DataSnapshot = {
 };
 
 describe('runtime hardening', () => {
+  it('supports object signature in fresh-session flow', () => {
+    const view: ViewDefinition = {
+      viewId: 'view-obj',
+      version: '1',
+      nodes: [makeNode({ id: 'fresh' })],
+    };
+
+    const result = runtimeReconcile({
+      newView: view,
+      priorView: null,
+      priorData: null,
+      options: { clock: () => TEST_NOW },
+    });
+
+    expect(result.reconciledState.lineage.timestamp).toBe(TEST_NOW);
+    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.NO_PRIOR_DATA)).toBe(
+      true
+    );
+  });
+
   it('treats null as a valid migrated value', () => {
     const nextView: ViewDefinition = {
       viewId: 'view-1',

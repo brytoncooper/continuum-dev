@@ -1,33 +1,35 @@
-import type {
-  DataSnapshot,
-  ViewDefinition,
-} from '@continuum-dev/contract';
-import type {
-  ReconciliationOptions,
-  ReconciliationResult,
-} from '../types.js';
-import {
-  buildBlindCarryResult,
-  buildFreshSessionResult,
-} from '../reconciliation/result-builder/index.js';
-import { resolveReconciliationTimestamp } from './time.js';
-import { reconcileViewTransition } from './transition.js';
+import { reconcileImpl } from './reconcile-core.js';
 
-export function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions
-): ReconciliationResult {
-  const now = resolveReconciliationTimestamp(priorData, options);
-
-  if (!priorData) {
-    return buildFreshSessionResult(newView, now);
-  }
-
-  if (!priorView) {
-    return buildBlindCarryResult(newView, priorData, now, options);
-  }
-
-  return reconcileViewTransition(newView, priorView, priorData, now, options);
-}
+/**
+ * Reconciles a pushed `newView` against prior view/data state while preserving
+ * user-entered values whenever matching and type compatibility allow it.
+ *
+ * Preferred call form:
+ * - `reconcile({ newView, priorView, priorData, options })`
+ *
+ * Legacy call form (supported, deprecated):
+ * - `reconcile(newView, priorView, priorData, options)`
+ *
+ * Behavior by input shape:
+ * - `priorData === null`: returns fresh-session output for the new view.
+ * - `priorView === null` with prior data: runs blind carry behavior (option-gated).
+ * - `priorView` + `priorData`: runs full transition reconciliation including
+ *   matching, migrations, detached-value restore, semantic-key moves, and diff
+ *   emission.
+ *
+ * Determinism:
+ * - Timestamp is derived from `options.clock` when provided.
+ * - If `options.clock` is missing and `priorData` exists, timestamp is
+ *   `priorData.lineage.timestamp + 1`.
+ *
+ * Output contract:
+ * - `reconciledState` contains the next canonical snapshot.
+ * - `diffs` explain added/removed/migrated/restored/type-changed nodes.
+ * - `resolutions` explain how each node in `newView` was resolved.
+ * - `issues` contains warnings/errors/info discovered during reconciliation.
+ *
+ * Import boundary:
+ * - This is the only supported entrypoint for reconcile execution.
+ * - Internal reconcile modules are intentionally not part of the public API.
+ */
+export const reconcile = reconcileImpl;

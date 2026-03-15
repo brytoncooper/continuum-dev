@@ -1,5 +1,6 @@
 import type {
   ViewNode,
+  ViewDefinition,
   NodeValue,
   ViewDiff,
   IssueCode,
@@ -141,6 +142,13 @@ export interface ReconciliationOptions {
    * Provide this when fresh reconciliation does not have prior lineage to derive from.
    */
   clock?: () => number;
+}
+
+export interface ReconcileInput {
+  newView: ViewDefinition;
+  priorView: ViewDefinition | null;
+  priorData: DataSnapshot | null;
+  options: ReconciliationOptions;
 }
 
 /**

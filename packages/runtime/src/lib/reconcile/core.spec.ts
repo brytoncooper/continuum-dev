@@ -1,81 +1,39 @@
 import { describe, it, expect, vi } from 'vitest';
 import type {
   ViewDefinition,
-  ViewNode,
   DataSnapshot,
   NodeValue,
 } from '@continuum-dev/contract';
-import { reconcile as runtimeReconcile } from './index.js';
 import { computeViewHash } from '../reconciliation/result-builder/index.js';
-import type { MigrationStrategy, ReconciliationOptions } from '../types.js';
-
-const TEST_NOW = 2000;
-
-function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions = {}
-) {
-  return runtimeReconcile(newView, priorView, priorData, {
-    clock: () => TEST_NOW,
-    ...options,
-  });
-}
-
-function makeView(
-  nodes: ViewNode[],
-  viewId = 'view-1',
-  version = '1.0'
-): ViewDefinition {
-  return { viewId, version, nodes };
-}
-
-function makeNode(
-  overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
-): ViewNode {
-  const type = overrides.type ?? 'field';
-  return {
-    id: overrides.id,
-    key: overrides.key,
-    hash: overrides.hash,
-    hidden: overrides.hidden,
-    migrations: overrides.migrations,
-    type,
-    ...(type === 'field' ? { dataType: 'string' } : {}),
-    ...(type === 'group' ? { children: [] as ViewNode[] } : {}),
-    ...(type === 'collection'
-      ? {
-          template: {
-            id: `${overrides.id}-tpl`,
-            type: 'field',
-            dataType: 'string',
-          } as ViewNode,
-        }
-      : {}),
-    ...(type === 'action' ? { intentId: 'intent-1', label: 'Run' } : {}),
-    ...(type === 'presentation' ? { contentType: 'text', content: '' } : {}),
-    ...overrides,
-  } as ViewNode;
-}
-
-function makeData(
-  values: Record<string, NodeValue>,
-  lineage?: Partial<DataSnapshot['lineage']>,
-  valueLineage?: DataSnapshot['valueLineage']
-): DataSnapshot {
-  return {
-    values,
-    lineage: {
-      timestamp: 1000,
-      sessionId: 'test-session',
-      ...lineage,
-    },
-    valueLineage,
-  };
-}
+import type { MigrationStrategy } from '../types.js';
+import { reconcile as runtimeReconcile } from './index.js';
+import {
+  makeData,
+  makeNode,
+  makeView,
+  reconcileWithFixedClock as reconcile,
+} from './test-fixtures.js';
 
 describe('reconcile', () => {
+  describe('api signatures', () => {
+    it('produces identical output for object and positional signatures', () => {
+      const priorView = makeView([makeNode({ id: 'a', key: 'k1' })], 'view-1', '1.0');
+      const newView = makeView([makeNode({ id: 'a2', key: 'k1' })], 'view-1', '2.0');
+      const priorData = makeData({ a: { value: 'hello' } });
+      const options = { clock: () => 2000 };
+
+      const fromObject = runtimeReconcile({
+        newView,
+        priorView,
+        priorData,
+        options,
+      });
+      const fromPositional = runtimeReconcile(newView, priorView, priorData, options);
+
+      expect(fromObject).toEqual(fromPositional);
+    });
+  });
+
   describe('edge cases', () => {
     it('returns fresh state with NO_PRIOR_DATA info when no prior data exists', () => {
       const view = makeView([makeNode({ id: 'a' })]);
