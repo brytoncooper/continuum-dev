@@ -23,9 +23,32 @@ function makeNode(
 }
 
 describe('attemptMigration', () => {
+  it('accepts object input with context-style explicit strategies', () => {
+    const strategy: MigrationStrategy = vi.fn(({ priorValue }) => {
+      return { value: (priorValue as { value: string }).value.toUpperCase() };
+    });
+
+    const result = attemptMigration({
+      nodeId: 'node-1',
+      priorNode: makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      newNode: makeNode({ id: 'node-1', type: 'field', hash: 'v2' }),
+      priorValue: { value: 'hello' },
+      options: { migrationStrategies: { 'node-1': strategy } },
+    });
+
+    expect(strategy).toHaveBeenCalledOnce();
+    expect(strategy).toHaveBeenCalledWith({
+      nodeId: 'node-1',
+      priorNode: makeNode({ id: 'node-1', type: 'field', hash: 'v1' }),
+      newNode: makeNode({ id: 'node-1', type: 'field', hash: 'v2' }),
+      priorValue: { value: 'hello' },
+    });
+    expect(result).toEqual({ kind: 'migrated', value: { value: 'HELLO' } });
+  });
+
   it('uses explicit migrationStrategies when provided', () => {
-    const strategy: MigrationStrategy = vi.fn((_id, _old, _new, state) => {
-      return { value: (state as { value: string }).value.toUpperCase() };
+    const strategy: MigrationStrategy = vi.fn(({ priorValue }) => {
+      return { value: (priorValue as { value: string }).value.toUpperCase() };
     });
 
     const result = attemptMigration(

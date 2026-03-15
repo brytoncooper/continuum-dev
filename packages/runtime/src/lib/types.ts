@@ -151,24 +151,15 @@ export interface ReconcileInput {
   options: ReconciliationOptions;
 }
 
-/**
- * User-provided transformation function used when a node schema changes.
- *
- * A strategy should return the value shape expected by the new node. The runtime
- * passes raw prior value payloads so strategies can handle both simple and nested
- * structures. Throwing from this function reports a migration failure issue.
- *
- * @param nodeId Node id in the new view being reconciled.
- * @param priorNode Prior view node definition.
- * @param newNode New view node definition.
- * @param priorValue Previous value payload associated with the node.
- * @returns Reconciled value payload for the new node.
- */
+export interface MigrationStrategyContext {
+  nodeId: string;
+  priorNode: ViewNode;
+  newNode: ViewNode;
+  priorValue: unknown;
+}
+
 export type MigrationStrategy = (
-  nodeId: string,
-  priorNode: ViewNode,
-  newNode: ViewNode,
-  priorValue: unknown
+  context: MigrationStrategyContext
 ) => unknown;
 
 export interface NodeResolutionAccumulator {
