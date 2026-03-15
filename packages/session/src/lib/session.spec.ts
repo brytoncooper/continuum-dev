@@ -1227,6 +1227,7 @@ describe('Session Ledger', () => {
         value: 'legacy',
       });
     });
+
   });
 
   describe('checkpoint stack and rewind', () => {
@@ -1545,6 +1546,7 @@ describe('Session Ledger', () => {
       expect(session.getCheckpoints()).toHaveLength(0);
       expect(listener).toHaveBeenCalledWith(null);
     });
+
   });
 
   describe('event log capping', () => {

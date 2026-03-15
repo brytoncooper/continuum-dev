@@ -8,6 +8,11 @@ import type {
   ActionResult,
   ActionSessionRef,
 } from '@continuum-dev/contract';
+import {
+  applyContinuumViewportStateUpdate,
+  classifyContinuumValueIngress,
+  resolveNodeLookupEntry,
+} from '@continuum-dev/runtime';
 import type { Session, SessionOptions, SessionFactory } from './types.js';
 import {
   createEmptySessionState,
@@ -16,9 +21,13 @@ import {
 } from './session/session-state.js';
 import type { SessionState } from './session/session-state.js';
 import {
-  buildSnapshotFromCurrentState,
+  buildCommittedSnapshotFromCurrentState,
+  buildRenderSnapshotFromCurrentState,
+  notifySnapshotAndIssueListeners,
   notifySnapshotListeners,
+  notifyStreamListeners,
   subscribeSnapshot,
+  subscribeStreams,
   subscribeIssues,
 } from './session/listeners.js';
 import {
@@ -37,6 +46,15 @@ import { pushView } from './session/view-pusher.js';
 import { serializeSession, deserializeToState } from './session/serializer.js';
 import { teardownSessionAndClearState } from './session/destroyer.js';
 import { attachPersistence } from './session/persistence.js';
+import {
+  abortStream,
+  applyRenderOnlyViewportUpdateIfPossible,
+  applyStreamPart,
+  beginStream,
+  commitStream,
+  getPublicStreams,
+  syncCommittedViewportToStreams,
+} from './session/streams/index.js';
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
 const SESSION_DESTROYED_ERROR = 'Session has been destroyed';
@@ -52,27 +70,28 @@ function applyViewportStateUpdate(
   nodeId: string,
   state: ViewportState
 ): void {
-  if (!internal.currentData) {
+  const applied = applyContinuumViewportStateUpdate({
+    view: internal.currentView,
+    data: internal.currentData,
+    nodeId,
+    state,
+    sessionId: internal.sessionId,
+    timestamp: internal.clock(),
+  });
+
+  if (applied.kind === 'unknown-node') {
+    applyRenderOnlyViewportUpdateIfPossible(internal, nodeId, state);
     return;
   }
-  const now = internal.clock();
-  internal.currentData = {
-    ...internal.currentData,
-    viewContext: {
-      ...(internal.currentData.viewContext ?? {}),
-      [nodeId]: state,
-    },
-    lineage: {
-      ...internal.currentData.lineage,
-      timestamp: now,
-    },
-  };
+
+  internal.currentData = applied.data;
+  syncCommittedViewportToStreams(internal, applied.canonicalId, state);
 
   const lastAutoCheckpoint = [...internal.checkpoints]
     .reverse()
     .find((checkpoint) => checkpoint.trigger === 'auto');
   if (lastAutoCheckpoint) {
-    const snapshot = buildSnapshotFromCurrentState(internal);
+    const snapshot = buildCommittedSnapshotFromCurrentState(internal);
     if (snapshot) {
       lastAutoCheckpoint.snapshot = cloneCheckpointSnapshot(snapshot);
     }
@@ -94,19 +113,38 @@ function assembleSessionFromInternalState(
     },
     getSnapshot() {
       assertNotDestroyed(internal);
-      return buildSnapshotFromCurrentState(internal);
+      return buildRenderSnapshotFromCurrentState(internal);
+    },
+    getCommittedSnapshot() {
+      assertNotDestroyed(internal);
+      return buildCommittedSnapshotFromCurrentState(internal);
     },
     getIssues() {
       assertNotDestroyed(internal);
-      return [...internal.issues];
+      return [
+        ...(internal.activeForegroundStreamId &&
+        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
+          ? internal.streams.get(internal.activeForegroundStreamId)?.issues ?? []
+          : internal.issues),
+      ];
     },
     getDiffs() {
       assertNotDestroyed(internal);
-      return [...internal.diffs];
+      return [
+        ...(internal.activeForegroundStreamId &&
+        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
+          ? internal.streams.get(internal.activeForegroundStreamId)?.diffs ?? []
+          : internal.diffs),
+      ];
     },
     getResolutions() {
       assertNotDestroyed(internal);
-      return [...internal.resolutions];
+      return [
+        ...(internal.activeForegroundStreamId &&
+        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
+          ? internal.streams.get(internal.activeForegroundStreamId)?.resolutions ?? []
+          : internal.resolutions),
+      ];
     },
     getEventLog() {
       assertNotDestroyed(internal);
@@ -126,7 +164,8 @@ function assembleSessionFromInternalState(
       assertNotDestroyed(internal);
       if (!internal.currentData?.detachedValues) return;
       if (!filter) {
-        const { detachedValues: _, ...rest } = internal.currentData;
+        const rest = { ...internal.currentData };
+        delete rest.detachedValues;
         internal.currentData = rest;
       } else {
         const remaining: Record<string, DetachedValue> = {};
@@ -138,7 +177,8 @@ function assembleSessionFromInternalState(
           }
         }
         if (Object.keys(remaining).length === 0) {
-          const { detachedValues: _, ...rest } = internal.currentData;
+          const rest = { ...internal.currentData };
+          delete rest.detachedValues;
           internal.currentData = rest;
         } else {
           internal.currentData = {
@@ -151,15 +191,21 @@ function assembleSessionFromInternalState(
     },
     proposeValue(nodeId: string, value: NodeValue, source?: string) {
       assertNotDestroyed(internal);
-      if (!internal.currentData) return;
-      const existing = internal.currentData.values[nodeId] as
-        | NodeValue
-        | undefined;
-      if (existing && (existing.isDirty || existing.isSticky)) {
-        internal.pendingProposals[nodeId] = {
-          nodeId,
+      const decision = classifyContinuumValueIngress({
+        view: internal.currentView,
+        data: internal.currentData,
+        nodeId,
+      });
+
+      if (decision.kind === 'unknown-node') {
+        return;
+      }
+
+      if (decision.kind === 'proposal') {
+        internal.pendingProposals[decision.canonicalId] = {
+          nodeId: decision.canonicalId,
           proposedValue: value,
-          currentValue: existing,
+          currentValue: decision.currentValue ?? { value: undefined },
           proposedAt: internal.clock(),
           source,
         };
@@ -170,26 +216,34 @@ function assembleSessionFromInternalState(
           type: INTERACTION_TYPES.DATA_UPDATE,
           payload: value,
         });
-        delete internal.pendingProposals[nodeId];
+        delete internal.pendingProposals[decision.canonicalId];
       }
     },
     acceptProposal(nodeId: string) {
       assertNotDestroyed(internal);
-      const proposal = internal.pendingProposals[nodeId];
+      const proposalKey =
+        internal.currentView && resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
+          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!.canonicalId
+          : nodeId;
+      const proposal = internal.pendingProposals[proposalKey];
       if (!proposal) return;
       recordIntent(internal, {
         nodeId,
         type: INTERACTION_TYPES.DATA_UPDATE,
         payload: { ...proposal.proposedValue, isDirty: true },
       });
-      delete internal.pendingProposals[nodeId];
+      delete internal.pendingProposals[proposalKey];
     },
     rejectProposal(nodeId: string) {
       assertNotDestroyed(internal);
-      if (!internal.pendingProposals[nodeId]) {
+      const proposalKey =
+        internal.currentView && resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
+          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!.canonicalId
+          : nodeId;
+      if (!internal.pendingProposals[proposalKey]) {
         return;
       }
-      delete internal.pendingProposals[nodeId];
+      delete internal.pendingProposals[proposalKey];
       notifySnapshotListeners(internal);
     },
     getPendingProposals() {
@@ -199,6 +253,27 @@ function assembleSessionFromInternalState(
     getCheckpoints() {
       assertNotDestroyed(internal);
       return [...internal.checkpoints];
+    },
+
+    beginStream(options) {
+      assertNotDestroyed(internal);
+      return beginStream(internal, options);
+    },
+    applyStreamPart(streamId, part) {
+      assertNotDestroyed(internal);
+      applyStreamPart(internal, streamId, part);
+    },
+    commitStream(streamId) {
+      assertNotDestroyed(internal);
+      return commitStream(internal, streamId);
+    },
+    abortStream(streamId, reason) {
+      assertNotDestroyed(internal);
+      return abortStream(internal, streamId, reason);
+    },
+    getStreams() {
+      assertNotDestroyed(internal);
+      return getPublicStreams(internal);
     },
 
     pushView(view, options) {
@@ -219,7 +294,11 @@ function assembleSessionFromInternalState(
     },
     getViewportState(nodeId) {
       assertNotDestroyed(internal);
-      return internal.currentData?.viewContext?.[nodeId];
+      const canonicalId =
+        internal.currentView && resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
+          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!.canonicalId
+          : nodeId;
+      return internal.currentData?.viewContext?.[canonicalId];
     },
     updateViewportState(nodeId, state) {
       assertNotDestroyed(internal);
@@ -254,12 +333,17 @@ function assembleSessionFromInternalState(
     reset() {
       assertNotDestroyed(internal);
       resetSessionState(internal);
-      notifySnapshotListeners(internal);
+      notifySnapshotAndIssueListeners(internal);
+      notifyStreamListeners(internal);
     },
 
     onSnapshot(listener) {
       assertNotDestroyed(internal);
       return subscribeSnapshot(internal, listener);
+    },
+    onStreams(listener) {
+      assertNotDestroyed(internal);
+      return subscribeStreams(internal, listener);
     },
     onIssues(listener) {
       assertNotDestroyed(internal);
@@ -310,7 +394,7 @@ function assembleSessionFromInternalState(
           error: `No handler registered for intentId "${intentId}"`,
         };
       }
-      const snapshot = buildSnapshotFromCurrentState(internal);
+      const snapshot = session.getSnapshot();
       if (!snapshot) {
         return { success: false, error: 'No active snapshot' };
       }
