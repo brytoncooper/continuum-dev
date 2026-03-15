@@ -6,6 +6,7 @@ import type {
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/contract';
+import { getChildNodes } from '@continuum-dev/contract';
 
 type ChildContainerNode = GroupNode | RowNode | GridNode;
 
@@ -36,6 +37,40 @@ export interface ContinuumViewPatch {
   viewId?: string;
   version?: string;
   operations: ContinuumViewPatchOperation[];
+}
+
+function collectNodeIds(node: ViewNode, ids: Set<string>): void {
+  ids.add(node.id);
+  const children = getChildNodes(node);
+  for (const child of children) {
+    collectNodeIds(child, ids);
+  }
+}
+
+export function collectContinuumViewPatchAffectedNodeIds(
+  patch: ContinuumViewPatch
+): string[] {
+  const ids = new Set<string>();
+
+  for (const operation of patch.operations) {
+    switch (operation.op) {
+      case 'insert-node':
+        if (operation.parentId) {
+          ids.add(operation.parentId);
+        }
+        collectNodeIds(operation.node, ids);
+        break;
+      case 'replace-node':
+        ids.add(operation.nodeId);
+        collectNodeIds(operation.node, ids);
+        break;
+      case 'remove-node':
+        ids.add(operation.nodeId);
+        break;
+    }
+  }
+
+  return [...ids];
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
