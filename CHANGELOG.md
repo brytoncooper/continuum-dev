@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Session streaming lifecycle APIs:
+  - `beginStream`, `applyStreamPart`, `commitStream`, `abortStream`
+  - `getStreams`, `onStreams`
+  - `getCommittedSnapshot`
+- React streaming consumption APIs:
+  - `useContinuumCommittedSnapshot`
+  - `useContinuumStreams`
+  - `useContinuumStreaming`
+  - renderer node props `isStreaming`, `buildState`, `streamStatus`
+- Runtime state operation exports and patch helpers:
+  - `state-ops` surface on runtime root export
+  - `view-patch` helpers on runtime root export
+  - `@continuum-dev/runtime/validator` subpath
+- New `@continuum-dev/vercel-ai-sdk` package for stream-aware Continuum transport with typed data parts.
+- Starter-kit AI/chat additions:
+  - `StarterKitVercelAiSdkChatBox`
+  - `StarterKitChatBox`
+
+### Changed
+
+- Runtime reconciliation docs now prefer object-form `reconcile({ newView, priorView, priorData, options })`.
+- Session snapshot model now distinguishes render snapshot from durable committed snapshot.
+- Stream-aware integrations now route partial AI updates through session stream lifecycle semantics.
+- Demo topology split is documented as:
+  - `apps/demo` for frontend SPA
+  - `apps/demo-api` for Cloudflare Worker `/api/*` routes
+
+### Deprecated
+
+- Positional `reconcile(newView, priorView, priorData, options)` usage is deprecated in favor of object-form input.
+
+### Upgrade Notes
+
+- Runtime migration callbacks changed from positional arguments to context object shape.
+- Any durability-sensitive `getSnapshot()` or `useContinuumSnapshot()` usage should be audited and moved to committed snapshot APIs where needed.
+
+### Docs
+
+- Added [docs/API_DELTA_0.3.x_TO_NEXT.md](docs/API_DELTA_0.3.x_TO_NEXT.md)
+- Added [docs/UPGRADING_FROM_0.3.x_TO_NEXT.md](docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- Added [packages/session/STREAMING.md](packages/session/STREAMING.md)
+
 ## 0.3.0 - 2026-03-09
 
 ### Added

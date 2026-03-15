@@ -16,6 +16,14 @@ That means:
 > [!WARNING]
 > Continuum is pre-release. The package surfaces are usable, but APIs and docs may continue to evolve quickly.
 
+## Upgrading from 0.3.x
+
+If you are upgrading an existing Continuum integration, start here:
+
+- [Upgrade Guide](docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- [API Delta](docs/API_DELTA_0.3.x_TO_NEXT.md)
+- [Session Streaming Guide](packages/session/STREAMING.md)
+
 ## Why this exists
 
 Modern apps increasingly treat UI as generated output:

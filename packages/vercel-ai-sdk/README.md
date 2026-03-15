@@ -4,6 +4,11 @@ Bridge Vercel AI SDK message streams into Continuum sessions.
 
 See the shared streaming guide in [@continuum-dev/session](../session/STREAMING.md) for the snapshot model, conflict rules, and richer stream-part vocabulary.
 
+Upgrade references:
+
+- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+
 This package is intentionally Continuum-first.
 
 It does not try to become a provider-routing layer. Instead it gives you:
@@ -111,6 +116,8 @@ The structured parts normalize into the session streaming foundation:
 
 When you mark a chunk as `transient: true`, the adapter keeps it in the render snapshot until the stream is committed. That means UI can build incrementally without mutating the durable committed snapshot too early.
 
+For streamed full-view regeneration, prefer `streamMode: 'draft'`. Draft-mode parts build a non-live preview stream and only mutate the committed session when the final non-transient draft part is committed.
+
 ```ts
 import {
   applyContinuumVercelAiSdkDataPart,
@@ -139,6 +146,22 @@ const application = applyContinuumVercelAiSdkDataPart(
     { transient: true }
   ),
   adapter
+);
+```
+
+Draft preview example:
+
+```ts
+import { createContinuumVercelAiSdkViewDataChunk } from '@continuum-dev/vercel-ai-sdk';
+
+createContinuumVercelAiSdkViewDataChunk(
+  {
+    view: nextView,
+  },
+  {
+    transient: true,
+    streamMode: 'draft',
+  }
 );
 ```
 

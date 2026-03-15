@@ -22,6 +22,11 @@ It gives you:
 npm install @continuum-dev/starter-kit react
 ```
 
+Upgrade references:
+
+- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+
 ## Use the starter kit when
 
 - you want the fastest possible React integration
@@ -208,6 +213,13 @@ Behavior notes:
 - if multiple providers are configured, the chat box shows a provider selector automatically
 - Anthropic support is optional
 - the chat box can auto-apply valid generated views into the active session
+
+Execution notes:
+
+- AI edits now flow through a shared Continuum execution planner: `state`, `patch`, or `view`
+- localized edits stream directly, while full-view regenerations stay in a draft stream until final commit
+- stateful nodes that must survive structural moves should keep a stable `semanticKey`
+- `key` is still useful for binding data, but continuity across reshapes should not rely on `key` alone
 
 ## Post-processed model text and streaming
 

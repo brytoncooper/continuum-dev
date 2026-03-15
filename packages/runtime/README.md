@@ -50,6 +50,17 @@ This package is pure TypeScript, framework-agnostic, and side-effect free inside
 npm install @continuum-dev/runtime
 ```
 
+## Upgrade Note (0.3.x to Next)
+
+- Preferred reconcile call form is object-shaped: `reconcile({ newView, priorView, priorData, options })`.
+- Migration strategy callbacks now prefer a context object argument.
+- Legacy positional migration callbacks remain supported for backward compatibility.
+
+Upgrade references:
+
+- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+
 ## Why Reconciliation Matters
 
 Suppose a user typed an email into a field keyed as `user_email`. On the next model push, that field is moved under a new layout group and gets a different node ID.
@@ -146,6 +157,8 @@ Important details:
 
 - Matching is path-aware, not just raw local ID matching.
 - Semantic-key matching is only used when the semantic key is unique on both sides.
+- `semanticKey` is the reshape-safe continuity contract for stateful nodes.
+- `key` remains a scoped data-binding signal, not a substitute for `semanticKey` during structural moves.
 - If carry would be unsafe, the runtime keeps the value in `detachedValues` instead of forcing it into the wrong node.
 - If a compatible node reappears later, that detached value can be restored.
 
