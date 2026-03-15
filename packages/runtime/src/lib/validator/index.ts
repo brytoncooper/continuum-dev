@@ -1,114 +1,124 @@
-import type { NodeValue, ViewNode } from '@continuum-dev/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
-import type { ReconciliationIssue } from '../types.js';
-
-function readStateValue(state: NodeValue | undefined): unknown {
-  if (!state) {
-    return undefined;
-  }
-  return state.value;
-}
-
-function isEmptyValue(value: unknown): boolean {
-  if (value == null) return true;
-  if (typeof value === 'string') return value.trim().length === 0;
-  if (Array.isArray(value)) return value.length === 0;
-  return false;
-}
+import { validateNodeValue as validateNodeValueImpl } from './validate-node-value.js';
+import type {
+  IsEmptyValueInput as IsEmptyValueInputModel,
+  NodeValidationInput as NodeValidationInputModel,
+  NumericConstraintEvaluationInput as NumericConstraintEvaluationInputModel,
+  ReadStateValueInput as ReadStateValueInputModel,
+  RequiredConstraintEvaluationInput as RequiredConstraintEvaluationInputModel,
+  StringConstraintEvaluationInput as StringConstraintEvaluationInputModel,
+  ValidationIssueInput as ValidationIssueInputModel,
+} from './types.js';
 
 /**
- * Validates a node value against contract constraints and emits runtime issues.
+ * Stable public boundary for contract-driven node validation.
  *
- * This helper is exported so host applications can run the same validation
- * semantics used during reconciliation for custom workflows.
+ * Why this boundary exists:
+ * - keeps callers off validator implementation files
+ * - centralizes validation semantics shared by reconciliation and session flows
+ * - exposes typed object contracts for internal evaluator/readers
  *
- * @param node View node containing optional constraint metadata.
- * @param state Current node state value to validate.
- * @returns Zero or more validation issues.
+ * Import policy:
+ * - import from `../validator/index.js`
+ * - avoid deep imports into files under `validator/`
  */
-export function validateNodeValue(
-  node: ViewNode,
-  state: NodeValue | undefined
-): ReconciliationIssue[] {
-  const constraints = 'constraints' in node ? node.constraints : undefined;
-  if (!constraints) return [];
 
-  const value = readStateValue(state);
-  const issues: ReconciliationIssue[] = [];
+/**
+ * Validates a node value against field constraints and emits validation issues.
+ *
+ * Input contract:
+ * - `node`: any `ViewNode`; only `field` nodes with `constraints` are evaluated
+ * - `state`: optional `NodeValue`; validation reads `state?.value`
+ *
+ * Output contract:
+ * - returns `ReconciliationIssue[]`
+ * - all emitted issues use `ISSUE_CODES.VALIDATION_FAILED`
+ * - all emitted issues use `ISSUE_SEVERITY.WARNING`
+ *
+ * Behavior guarantees:
+ * - non-field nodes or field nodes without constraints return `[]`
+ * - required check runs first and short-circuits on failure
+ * - numeric constraints (`min`, `max`) apply only when value is a number
+ * - string constraints (`minLength`, `maxLength`, `pattern`) apply only when value is a string
+ * - invalid regex patterns are reported as issues instead of throwing
+ *
+ * Deterministic ordering:
+ * - required failure returns a single issue and exits
+ * - numeric issues emit in `min` then `max` order
+ * - string issues emit in `minLength`, `maxLength`, then `pattern` order
+ *
+ * Example:
+ * ```ts
+ * const issues = validateNodeValue(
+ *   { id: 'email', type: 'field', dataType: 'string', constraints: { pattern: '^.+@.+$' } },
+ *   { value: 'not-an-email' }
+ * );
+ * ```
+ */
+export const validateNodeValue = validateNodeValueImpl;
 
-  if (constraints.required && isEmptyValue(value)) {
-    issues.push({
-      severity: ISSUE_SEVERITY.WARNING,
-      nodeId: node.id,
-      message: `Node ${node.id} failed required validation`,
-      code: ISSUE_CODES.VALIDATION_FAILED,
-    });
-    return issues;
-  }
+/**
+ * Object input contract for reading `state?.value` from validator state.
+ *
+ * Shape:
+ * - `state: NodeValue | undefined`
+ */
+export type ReadStateValueInput = ReadStateValueInputModel;
 
-  if (typeof value === 'number') {
-    if (typeof constraints.min === 'number' && value < constraints.min) {
-      issues.push({
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: node.id,
-        message: `Node ${node.id} is below minimum ${constraints.min}`,
-        code: ISSUE_CODES.VALIDATION_FAILED,
-      });
-    }
-    if (typeof constraints.max === 'number' && value > constraints.max) {
-      issues.push({
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: node.id,
-        message: `Node ${node.id} is above maximum ${constraints.max}`,
-        code: ISSUE_CODES.VALIDATION_FAILED,
-      });
-    }
-  }
+/**
+ * Object input contract for required-rule emptiness checks.
+ *
+ * Shape:
+ * - `value: unknown`
+ */
+export type IsEmptyValueInput = IsEmptyValueInputModel;
 
-  if (typeof value === 'string') {
-    if (
-      typeof constraints.minLength === 'number' &&
-      value.length < constraints.minLength
-    ) {
-      issues.push({
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: node.id,
-        message: `Node ${node.id} is shorter than minLength ${constraints.minLength}`,
-        code: ISSUE_CODES.VALIDATION_FAILED,
-      });
-    }
-    if (
-      typeof constraints.maxLength === 'number' &&
-      value.length > constraints.maxLength
-    ) {
-      issues.push({
-        severity: ISSUE_SEVERITY.WARNING,
-        nodeId: node.id,
-        message: `Node ${node.id} is longer than maxLength ${constraints.maxLength}`,
-        code: ISSUE_CODES.VALIDATION_FAILED,
-      });
-    }
-    if (constraints.pattern) {
-      try {
-        const pattern = new RegExp(constraints.pattern);
-        if (!pattern.test(value)) {
-          issues.push({
-            severity: ISSUE_SEVERITY.WARNING,
-            nodeId: node.id,
-            message: `Node ${node.id} does not match pattern ${constraints.pattern}`,
-            code: ISSUE_CODES.VALIDATION_FAILED,
-          });
-        }
-      } catch {
-        issues.push({
-          severity: ISSUE_SEVERITY.WARNING,
-          nodeId: node.id,
-          message: `Node ${node.id} has invalid validation pattern`,
-          code: ISSUE_CODES.VALIDATION_FAILED,
-        });
-      }
-    }
-  }
+/**
+ * Object input contract for validation issue creation.
+ *
+ * Shape:
+ * - `nodeId: string`
+ * - `message: string`
+ */
+export type ValidationIssueInput = ValidationIssueInputModel;
 
-  return issues;
-}
+/**
+ * Object input contract for required-rule evaluation.
+ *
+ * Shape:
+ * - `nodeId: string`
+ * - `value: unknown`
+ * - `constraints: FieldConstraints`
+ */
+export type RequiredConstraintEvaluationInput =
+  RequiredConstraintEvaluationInputModel;
+
+/**
+ * Object input contract for numeric constraint evaluation.
+ *
+ * Shape:
+ * - `nodeId: string`
+ * - `value: number`
+ * - `constraints: FieldConstraints`
+ */
+export type NumericConstraintEvaluationInput =
+  NumericConstraintEvaluationInputModel;
+
+/**
+ * Object input contract for string constraint evaluation.
+ *
+ * Shape:
+ * - `nodeId: string`
+ * - `value: string`
+ * - `constraints: FieldConstraints`
+ */
+export type StringConstraintEvaluationInput =
+  StringConstraintEvaluationInputModel;
+
+/**
+ * Object input contract for orchestration-level validation calls.
+ *
+ * Shape:
+ * - `node: FieldNode`
+ * - `state: NodeValue | undefined`
+ */
+export type NodeValidationInput = NodeValidationInputModel;

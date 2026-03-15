@@ -12,7 +12,7 @@ function makeField(overrides: Partial<ViewNode>): ViewNode {
   } as ViewNode;
 }
 
-function val(value: any): NodeValue {
+function val(value: unknown): NodeValue {
   return { value };
 }
 
@@ -30,6 +30,8 @@ describe('validateNodeValue', () => {
       const issues = validateNodeValue(node, undefined);
       expect(issues).toHaveLength(1);
       expect(issues[0].code).toBe(ISSUE_CODES.VALIDATION_FAILED);
+      expect(issues[0].severity).toBe(ISSUE_SEVERITY.WARNING);
+      expect(issues[0].nodeId).toBe('f1');
     });
 
     it('reports an issue if the value is null', () => {
@@ -120,12 +122,38 @@ describe('validateNodeValue', () => {
   });
 
   it('ignores constraint types that do not match the value type', () => {
-    // pattern on a number
     const node = makeField({ constraints: { pattern: '^[A-Z]+$' } });
     expect(validateNodeValue(node, val(123))).toHaveLength(0);
 
-    // min/max on a string
     const node2 = makeField({ constraints: { min: 5 } });
-    expect(validateNodeValue(node2, val('1'))).toHaveLength(0); // '1' is length 1, but value is string "1", so min check is skipped
+    expect(validateNodeValue(node2, val('1'))).toHaveLength(0);
+  });
+
+  it('returns only required issue when required fails', () => {
+    const node = makeField({
+      constraints: { required: true, minLength: 5, pattern: '^[A-Z]+$' },
+    });
+    const issues = validateNodeValue(node, val(''));
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('failed required validation');
+  });
+
+  it('emits numeric violations in deterministic min then max order', () => {
+    const node = makeField({ constraints: { min: 10, max: 5 } });
+    const issues = validateNodeValue(node, val(7));
+    expect(issues).toHaveLength(2);
+    expect(issues[0].message).toContain('below minimum 10');
+    expect(issues[1].message).toContain('above maximum 5');
+  });
+
+  it('emits string violations in deterministic minLength then maxLength then pattern order', () => {
+    const node = makeField({
+      constraints: { minLength: 5, maxLength: 3, pattern: '^[A-Z]+$' },
+    });
+    const issues = validateNodeValue(node, val('abcd'));
+    expect(issues).toHaveLength(3);
+    expect(issues[0].message).toContain('shorter than minLength 5');
+    expect(issues[1].message).toContain('longer than maxLength 3');
+    expect(issues[2].message).toContain('does not match pattern');
   });
 });

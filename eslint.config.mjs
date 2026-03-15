@@ -191,6 +191,42 @@ export default [
               message:
                 'Use ../reconcile/index.js so reconcile internals stay encapsulated.',
             },
+            {
+              group: [
+                '../differ/**/*.js',
+                '../differ/*.js',
+                './differ/**/*.js',
+                './differ/*.js',
+                '../differ/**/*.ts',
+                '../differ/*.ts',
+                './differ/**/*.ts',
+                './differ/*.ts',
+                '!../differ/index.js',
+                '!./differ/index.js',
+                '!../differ/index.ts',
+                '!./differ/index.ts',
+              ],
+              message:
+                'Use ../differ/index.js so differ internals stay encapsulated.',
+            },
+            {
+              group: [
+                '../validator/**/*.js',
+                '../validator/*.js',
+                './validator/**/*.js',
+                './validator/*.js',
+                '../validator/**/*.ts',
+                '../validator/*.ts',
+                './validator/**/*.ts',
+                './validator/*.ts',
+                '!../validator/index.js',
+                '!./validator/index.js',
+                '!../validator/index.ts',
+                '!./validator/index.ts',
+              ],
+              message:
+                'Use ../validator/index.js so validator internals stay encapsulated.',
+            },
           ],
         },
       ],
