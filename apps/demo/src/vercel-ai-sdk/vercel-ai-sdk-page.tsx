@@ -1,4 +1,4 @@
-import type { CSSProperties, FocusEvent as ReactFocusEvent } from 'react';
+import type { CSSProperties } from 'react';
 import {
   useCallback,
   useEffect,
@@ -8,7 +8,6 @@ import {
 } from 'react';
 import { DefaultChatTransport } from 'ai';
 import {
-  applyContinuumViewPatch,
   ContinuumProvider,
   ContinuumRenderer,
   StarterKitChatBox,
@@ -17,7 +16,8 @@ import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
-import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
+import { useContinuumStreaming, useContinuumStreams } from '@continuum-dev/react';
+import type { ContinuitySnapshot, ViewDefinition } from '@continuum-dev/core';
 import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { repositoryUrl } from '../site-config';
 import { SiteNav } from '../ui/site-nav';
@@ -29,13 +29,6 @@ const VERCEL_AI_SDK_SETTINGS_STORAGE_KEY =
 const VERCEL_AI_SDK_SESSION_STORAGE_KEY =
   'continuum_demo_vercel_ai_sdk_session_v1';
 const VERCEL_AI_SDK_API_KEY_HEADER = 'x-demo-provider-api-key';
-
-const demoPrompts = [
-  'Make this feel mobile-first and less crowded.',
-  'Add a household members section where someone can add multiple people.',
-  'Turn this into a business lead form with company, budget, and timeline.',
-  'Rework this into an urgent care patient intake flow with insurance and medications.',
-];
 
 const initialView = {
   viewId: 'vercel-ai-sdk-demo',
@@ -116,60 +109,6 @@ interface ProvidersPayload {
   apiKeyHeader?: string;
   providers?: DemoProviderOption[];
 }
-
-interface DemoContinuumViewPart {
-  type: 'data-continuum-view';
-  data: {
-    view: ViewDefinition;
-  };
-  transient?: boolean;
-}
-
-interface DemoContinuumStatePart {
-  type: 'data-continuum-state';
-  data: {
-    nodeId: string;
-    value: NodeValue;
-  };
-  transient?: boolean;
-}
-
-interface DemoContinuumPatchPart {
-  type: 'data-continuum-patch';
-  data: {
-    patch: Parameters<typeof applyContinuumViewPatch>[1];
-  };
-  transient?: boolean;
-}
-
-interface DemoContinuumResetPart {
-  type: 'data-continuum-reset';
-  data: {
-    reason?: string;
-  };
-  transient?: boolean;
-}
-
-interface DemoContinuumStatusPart {
-  type: 'data-continuum-status';
-  data: {
-    status: string;
-    level?: 'info' | 'success' | 'warning' | 'error';
-  };
-  transient?: boolean;
-}
-
-type DemoContinuumDataPart =
-  | DemoContinuumViewPart
-  | DemoContinuumPatchPart
-  | DemoContinuumStatePart
-  | DemoContinuumResetPart
-  | DemoContinuumStatusPart;
-
-type PreviewControlElement =
-  | HTMLInputElement
-  | HTMLTextAreaElement
-  | HTMLSelectElement;
 
 interface StoredSettings {
   mode?: DemoMode;
@@ -410,33 +349,6 @@ function normalizeProvidersPayload(payload: unknown): DemoProviderOption[] | nul
   return normalized.length > 0 ? normalized : null;
 }
 
-function isDemoContinuumDataPart(value: unknown): value is DemoContinuumDataPart {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const record = value as { type?: unknown; data?: unknown };
-  return (
-    typeof record.type === 'string' &&
-    (record.type === 'data-continuum-view' ||
-      record.type === 'data-continuum-patch' ||
-      record.type === 'data-continuum-state' ||
-      record.type === 'data-continuum-reset' ||
-      record.type === 'data-continuum-status') &&
-    'data' in record
-  );
-}
-
-function isPreviewControlElement(
-  element: Element | null
-): element is PreviewControlElement {
-  return (
-    element instanceof HTMLInputElement ||
-    element instanceof HTMLTextAreaElement ||
-    element instanceof HTMLSelectElement
-  );
-}
-
 function getApiKeyValidationMessage(rawValue: string): string | null {
   const value = rawValue.trim();
 
@@ -459,11 +371,9 @@ function Studio() {
   const storedSettings = useMemo(() => readStoredSettings(), []);
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
+  const streaming = useContinuumStreaming();
+  const streams = useContinuumStreams();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewView, setPreviewView] = useState<ViewDefinition | null>(null);
-  const [isPreviewTransient, setIsPreviewTransient] = useState(false);
-  const [isPreviewInteractionPaused, setIsPreviewInteractionPaused] =
-    useState(false);
   const [mode, setMode] = useState<DemoMode>(storedSettings.mode ?? 'mock');
   const [providerId, setProviderId] = useState<DemoProviderId>(
     storedSettings.providerId ?? 'openai'
@@ -479,12 +389,6 @@ function Studio() {
   const [providerCatalog, setProviderCatalog] =
     useState<DemoProviderOption[]>(fallbackProviderCatalog);
   const { isMobile } = useResponsiveState();
-  const previewFrameRef = useRef<HTMLDivElement | null>(null);
-  const previewInteractionPausedRef = useRef(false);
-  const queuedPreviewRef = useRef<{
-    view: ViewDefinition;
-    isTransient: boolean;
-  } | null>(null);
 
   useEffect(() => {
     if (!snapshot) {
@@ -541,12 +445,36 @@ function Studio() {
     };
   }, []);
 
-  const activeView = snapshot?.view ?? initialView;
-  const latestViewRef = useRef<ViewDefinition>(activeView);
+  const liveView = snapshot?.view ?? initialView;
+  const draftPreviewStream = useMemo(
+    () =>
+      [...streams]
+        .filter(
+          (stream) =>
+            stream.mode === 'draft' &&
+            stream.status === 'open' &&
+            stream.previewView !== null &&
+            stream.previewData !== null
+        )
+        .sort((left, right) => right.updatedAt - left.updatedAt)[0] ?? null,
+    [streams]
+  );
+  const draftPreviewSnapshot = useMemo<ContinuitySnapshot | null>(
+    () =>
+      draftPreviewStream?.previewView && draftPreviewStream.previewData
+        ? {
+            view: draftPreviewStream.previewView,
+            data: draftPreviewStream.previewData,
+          }
+        : null,
+    [draftPreviewStream]
+  );
+  const renderedView = draftPreviewStream?.previewView ?? liveView;
+  const latestViewRef = useRef<ViewDefinition>(liveView);
 
   useEffect(() => {
-    latestViewRef.current = activeView;
-  }, [activeView]);
+    latestViewRef.current = liveView;
+  }, [liveView]);
 
   const selectedProvider =
     providerCatalog.find((provider) => provider.id === providerId) ??
@@ -605,174 +533,21 @@ function Studio() {
     activeApiKey.trim(),
     selectedProvider.serverKeyAvailable ? 'env' : 'no-env',
   ].join(':');
-  const hasQueuedPreview = queuedPreviewRef.current !== null;
-  const previewStatusText = isGenerating || previewView
-    ? isPreviewInteractionPaused
-      ? hasQueuedPreview
-        ? 'Streaming view updates are paused while you edit. Blur the field to apply the latest streamed change.'
-        : 'You can type into the live streamed form. New structural updates will wait until you blur the field.'
-      : isPreviewTransient
-        ? 'Streaming draft view updates directly into the durable Continuum session.'
-        : 'Applying the final streamed view into the durable Continuum session.'
-    : null;
-
-  const handleChatData = useCallback((part: unknown) => {
-    if (!isDemoContinuumDataPart(part)) {
-      return;
-    }
-
-    const isTransient = 'transient' in part && part.transient === true;
-
-    if (part.type === 'data-continuum-view') {
-      if (previewInteractionPausedRef.current) {
-        queuedPreviewRef.current = {
-          view: part.data.view,
-          isTransient,
-        };
-        setPreviewView(part.data.view);
-        setIsPreviewTransient(isTransient);
-        return;
-      }
-
-      session.pushView(
-        part.data.view,
-        isTransient ? { transient: true } : undefined
-      );
-      setPreviewView(isTransient ? part.data.view : null);
-      setIsPreviewTransient(isTransient);
-      if (!isTransient) {
-        queuedPreviewRef.current = null;
-      }
-      return;
-    }
-
-    if (part.type === 'data-continuum-patch') {
-      const currentView = session.getSnapshot()?.view ?? latestViewRef.current;
-      const nextView = applyContinuumViewPatch(currentView, part.data.patch);
-
-      if (previewInteractionPausedRef.current) {
-        queuedPreviewRef.current = {
-          view: nextView,
-          isTransient,
-        };
-        setPreviewView(nextView);
-        setIsPreviewTransient(isTransient);
-        return;
-      }
-
-      session.pushView(nextView, isTransient ? { transient: true } : undefined);
-      setPreviewView(isTransient ? nextView : null);
-      setIsPreviewTransient(isTransient);
-      if (!isTransient) {
-        queuedPreviewRef.current = null;
-      }
-      return;
-    }
-
-    if (part.type === 'data-continuum-state') {
-      session.proposeValue(part.data.nodeId, part.data.value, 'vercel-ai-sdk');
-      return;
-    }
-
-    if (!isTransient && part.type === 'data-continuum-reset') {
-      session.reset();
-      queuedPreviewRef.current = null;
-      setPreviewView(null);
-      setIsPreviewTransient(false);
-      return;
-    }
-
-    if (
-      !isTransient &&
-      part.type === 'data-continuum-status' &&
-      part.data.level === 'error'
-    ) {
-      queuedPreviewRef.current = null;
-      setPreviewView(null);
-      setIsPreviewTransient(false);
-      previewInteractionPausedRef.current = false;
-      setIsPreviewInteractionPaused(false);
-    }
-  }, [session]);
-
-  const flushQueuedPreview = useCallback(() => {
-    const queuedPreview = queuedPreviewRef.current;
-    if (!queuedPreview) {
-      return;
-    }
-
-    queuedPreviewRef.current = null;
-    session.pushView(
-      queuedPreview.view,
-      queuedPreview.isTransient ? { transient: true } : undefined
-    );
-    setPreviewView(queuedPreview.isTransient ? queuedPreview.view : null);
-    setIsPreviewTransient(queuedPreview.isTransient);
-  }, [session]);
-
-  const handlePreviewFocusCapture = useCallback(
-    (event: ReactFocusEvent<HTMLDivElement>) => {
-      if (!isGenerating || !isPreviewControlElement(event.target as Element | null)) {
-        return;
-      }
-
-      previewInteractionPausedRef.current = true;
-      setIsPreviewInteractionPaused(true);
-    },
-    [isGenerating]
-  );
-
-  const handlePreviewBlurCapture = useCallback(
-    (event: ReactFocusEvent<HTMLDivElement>) => {
-      if (!isPreviewInteractionPaused) {
-        return;
-      }
-
-      const container = previewFrameRef.current;
-      const nextTarget = event.relatedTarget;
-      const nextPreviewControl =
-        container &&
-        nextTarget instanceof Element &&
-        container.contains(nextTarget) &&
-        isPreviewControlElement(nextTarget)
-          ? nextTarget
-          : null;
-
-      if (nextPreviewControl) {
-        return;
-      }
-
-      previewInteractionPausedRef.current = false;
-      setIsPreviewInteractionPaused(false);
-      flushQueuedPreview();
-    },
-    [flushQueuedPreview, isPreviewInteractionPaused]
-  );
+  const previewStatusText =
+    draftPreviewStream?.latestStatus?.status ??
+    streaming.activeStream?.latestStatus?.status ??
+    (isGenerating || streaming.isStreaming
+      ? draftPreviewStream
+        ? 'Streaming draft Continuum view snapshots into a non-live preview stream.'
+        : 'Streaming Continuum update parts directly into the active session.'
+      : null);
 
   const handleSubmittingChange = useCallback((nextIsSubmitting: boolean) => {
     setIsGenerating(nextIsSubmitting);
-
-    if (nextIsSubmitting) {
-      queuedPreviewRef.current = null;
-      setPreviewView(null);
-      setIsPreviewTransient(false);
-      previewInteractionPausedRef.current = false;
-      setIsPreviewInteractionPaused(false);
-      return;
-    }
-
-    if (!previewInteractionPausedRef.current) {
-      setPreviewView(null);
-      setIsPreviewTransient(false);
-    }
   }, []);
 
   const handleChatError = useCallback(() => {
-    queuedPreviewRef.current = null;
-    setPreviewView(null);
-    setIsPreviewTransient(false);
-    previewInteractionPausedRef.current = false;
-    setIsPreviewInteractionPaused(false);
+    setIsGenerating(false);
   }, []);
 
   return (
@@ -996,15 +771,11 @@ function Studio() {
                 props: {
                   chatOptions: {
                     transport,
-                    autoApplyMessages: false,
-                    onData: handleChatData,
                   },
                   instructionPlaceholder:
                     mode === 'live'
                       ? 'Try: turn this into a business lead form with company, budget, and timeline.'
                       : 'Try: make this mobile-first and add a household members section.',
-                  enableSuggestedPrompts: true,
-                  suggestedPrompts: demoPrompts,
                   onError: handleChatError,
                   onSubmittingChange: handleSubmittingChange,
                 },
@@ -1037,16 +808,16 @@ function Studio() {
             stable semantic fields keep their values.
           </div>
           <div
-            ref={previewFrameRef}
             style={previewFrameStyle}
-            onFocusCapture={handlePreviewFocusCapture}
-            onBlurCapture={handlePreviewBlurCapture}
           >
             {previewStatusText ? (
               <div style={previewNoteStyle}>{previewStatusText}</div>
             ) : null}
             {isGenerating ? <div style={pulseStyle} aria-hidden="true" /> : null}
-            <ContinuumRenderer view={activeView} />
+            <ContinuumRenderer
+              view={renderedView}
+              snapshotOverride={draftPreviewSnapshot}
+            />
           </div>
         </section>
       </div>

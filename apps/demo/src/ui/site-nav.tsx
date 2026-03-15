@@ -6,12 +6,17 @@ import { color, radius, space, type } from './tokens';
 import { useResponsiveState } from './responsive';
 
 const brandStyle: CSSProperties = {
-  ...type.label,
   display: 'inline-flex',
   alignItems: 'center',
   color: color.accentStrong,
   textDecoration: 'none',
 };
+
+const brandLogoStyle = (isMobile: boolean): CSSProperties => ({
+  width: isMobile ? 176 : 228,
+  height: 'auto',
+  display: 'block',
+});
 
 const navListStyle: CSSProperties = {
   display: 'flex',
@@ -25,9 +30,9 @@ const navLinkStyle = ({ isActive }: { isActive: boolean }): CSSProperties => ({
   color: color.text,
   textDecoration: 'none',
   padding: `${space.sm}px ${space.md}px`,
-  border: `1px solid ${isActive ? color.accentStrong : color.border}`,
+  border: `1px solid ${isActive ? color.accentStrong : color.borderSoft}`,
   borderRadius: radius.pill,
-  background: isActive ? color.accentSoft : color.surface,
+  background: isActive ? color.surfaceAccent : 'rgba(255, 255, 255, 0.72)',
 });
 
 const secondaryLinkStyle: CSSProperties = {
@@ -45,15 +50,15 @@ const secondaryLinkStyle: CSSProperties = {
 
 const githubLinkStyle: CSSProperties = {
   ...type.small,
-  color: color.surface,
+  color: color.text,
   textDecoration: 'none',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
   padding: `${space.sm}px ${space.md}px`,
-  border: `1px solid ${color.accentStrong}`,
+  border: `1px solid ${color.border}`,
   borderRadius: radius.pill,
-  background: color.accent,
+  background: color.surface,
 };
 
 const mobileWrapStyle: CSSProperties = {
@@ -95,13 +100,16 @@ const menuButtonStyle: CSSProperties = {
 export function SiteNav() {
   const { isMobile } = useResponsiveState();
   const [menuOpen, setMenuOpen] = useState(false);
+  const brandContent = (
+    <img src="/continuum-logo.svg" alt="Continuum" style={brandLogoStyle(isMobile)} />
+  );
 
   if (isMobile) {
     return (
       <div style={mobileWrapStyle}>
         <div style={mobileBarStyle}>
           <NavLink to="/" end style={brandStyle}>
-            Continuum
+            {brandContent}
           </NavLink>
           <div style={mobileActionsStyle}>
             <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
@@ -119,24 +127,21 @@ export function SiteNav() {
         {menuOpen ? (
           <nav style={mobileMenuStyle} aria-label="Primary">
             <div style={mobileNavListStyle}>
-              <NavLink to="/" end style={navLinkStyle} onClick={() => setMenuOpen(false)}>
-                Home
-              </NavLink>
               <NavLink to="/docs" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
-                Install Docs
+                Docs
               </NavLink>
               <NavLink to="/playground" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
-                Static Demo
+                Demo
               </NavLink>
               <NavLink to="/live-ai" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
-                Live AI Demo
+                Live AI
               </NavLink>
               <NavLink
                 to="/vercel-ai-sdk"
                 style={navLinkStyle}
                 onClick={() => setMenuOpen(false)}
               >
-                Vercel AI SDK
+                SDK
               </NavLink>
               <NavLink to="/starter-kit" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
                 Starter Kit
@@ -151,29 +156,26 @@ export function SiteNav() {
   return (
     <>
       <NavLink to="/" end style={brandStyle}>
-        Continuum
+        {brandContent}
       </NavLink>
       <nav style={navListStyle} aria-label="Primary">
-        <NavLink to="/" end style={navLinkStyle}>
-          Home
-        </NavLink>
         <NavLink to="/docs" style={navLinkStyle}>
-          Install Docs
+          Docs
         </NavLink>
         <NavLink to="/playground" style={navLinkStyle}>
-          Static Demo
+          Demo
         </NavLink>
         <NavLink to="/live-ai" style={navLinkStyle}>
-          Live AI Demo
+          Live AI
         </NavLink>
         <NavLink to="/vercel-ai-sdk" style={navLinkStyle}>
-          Vercel AI SDK
+          SDK
         </NavLink>
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit
         </NavLink>
         <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
-          View on GitHub
+          GitHub
         </a>
       </nav>
     </>

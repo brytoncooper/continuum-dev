@@ -25,13 +25,6 @@ import { color, control, radius, space, type } from '../ui/tokens';
 
 const LIVE_AI_STORAGE_KEY = 'continuum_demo_live_ai_settings_v1';
 const LIVE_AI_SESSION_STORAGE_KEY = 'continuum_demo_live_ai_session_v1';
-const SMART_PROMPTS = [
-  'Make a patient check-in form for urgent care with contact info, insurance, current medications, allergies, and a submit button.',
-  'Make this a clean signup form on one page with sections for personal details, billing, and preferences.',
-  'Add a section where people can add multiple household members with name, relationship, birth date, and notes.',
-  'Redesign this for mobile so the most important questions come first and the page feels less crowded.',
-  'Change this into a business lead form with company details, team size, budget range, timeline, and one clear submit button.',
-];
 
 const liveView = {
   viewId: 'live-ai-demo',
@@ -71,35 +64,6 @@ const liveView = {
               type: 'presentation',
               contentType: 'text',
               content: 'nodes: supported Continuum node tree',
-            },
-          ],
-        },
-        {
-          id: 'prompt_ideas',
-          type: 'group',
-          label: 'Try these prompts',
-          layout: 'vertical',
-          children: [
-            {
-              id: 'idea_1',
-              type: 'presentation',
-              contentType: 'text',
-              content:
-                'Create a robust intake form with stable semantic keys and clear grouping.',
-            },
-            {
-              id: 'idea_2',
-              type: 'presentation',
-              contentType: 'text',
-              content:
-                'Evolve existing structure incrementally and preserve unchanged semantics.',
-            },
-            {
-              id: 'idea_3',
-              type: 'presentation',
-              contentType: 'text',
-              content:
-                'Ask for responsive layout refinements using row/grid and collection patterns.',
             },
           ],
         },
@@ -368,8 +332,6 @@ function LiveStudio({
             mode="evolve-view"
             authoringFormat={authoringFormat}
             instructionPlaceholder="Try: add a co-applicant section with employment and annual income fields."
-            enableSuggestedPrompts
-            suggestedPrompts={SMART_PROMPTS}
             onSubmittingChange={setIsGenerating}
           />
           {!hasToken ? (
