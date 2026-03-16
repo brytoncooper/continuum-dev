@@ -1,0 +1,24 @@
+{
+  "name": "@continuum-dev/starter-kit-ai",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/starter-kit-ai/src",
+  "projectType": "library",
+  "tags": ["scope:starter-kit-ai"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "cwd": "packages/starter-kit-ai",
+        "command": "vitest"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/starter-kit-ai"
+      }
+    }
+  }
+}

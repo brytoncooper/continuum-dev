@@ -1,0 +1,55 @@
+{
+  "name": "@continuum-dev/starter-kit-ai",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Optional AI UI wrappers for Continuum starter-kit integrations",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/starter-kit-ai"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "starter-kit",
+    "ai",
+    "react",
+    "ui"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@continuum-dev/ai-connect": "^0.3.0",
+    "@continuum-dev/ai-engine": "^0.3.0",
+    "@continuum-dev/starter-kit": "^0.3.0",
+    "@continuum-dev/vercel-ai-sdk": "^0.3.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:starter-kit-ai"
+    ]
+  }
+}
