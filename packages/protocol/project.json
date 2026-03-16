@@ -1,0 +1,16 @@
+{
+  "name": "@continuum-dev/protocol",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/protocol/src",
+  "projectType": "library",
+  "tags": ["scope:protocol"],
+  "targets": {
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/protocol"
+      }
+    }
+  }
+}

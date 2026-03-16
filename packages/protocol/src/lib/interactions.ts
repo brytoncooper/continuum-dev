@@ -1,4 +1,4 @@
-import type { ContinuitySnapshot } from './continuity-snapshot.js';
+import type { ContinuitySnapshot } from '@continuum-dev/contract';
 import type { IntentStatus, InteractionType } from './constants.js';
 
 /**

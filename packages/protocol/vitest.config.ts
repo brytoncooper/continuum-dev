@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
   root: __dirname,
-  cacheDir: '../../node_modules/.vite/packages/contract',
+  cacheDir: '../../node_modules/.vite/packages/protocol',
   resolve: {
     alias: {
       '@continuum-dev/protocol': resolve(__dirname, '../protocol/src/index.ts'),
@@ -17,7 +17,7 @@ export default defineConfig(() => ({
   },
   plugins: [],
   test: {
-    name: '@continuum-dev/contract',
+    name: '@continuum-dev/protocol',
     watch: false,
     globals: true,
     environment: 'node',

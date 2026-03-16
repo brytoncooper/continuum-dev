@@ -1,23 +1,23 @@
 {
-  "name": "@continuum-dev/contract",
+  "name": "@continuum-dev/protocol",
   "version": "0.3.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "Declarative view and data model contracts for Continuum",
+  "description": "Shared operational protocols for the Continuum runtime, session, and streaming layers",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/brytoncooper/continuum-dev.git",
-    "directory": "packages/contract"
+    "directory": "packages/protocol"
   },
   "author": "Bryton Cooper",
   "keywords": [
     "continuum",
-    "ai",
-    "ui",
-    "continuity",
-    "reconciliation",
+    "protocol",
+    "session",
+    "streaming",
+    "runtime",
     "types"
   ],
   "type": "module",
@@ -37,12 +37,14 @@
     "**/*.d.ts",
     "**/*.d.ts.map",
     "README.md",
-    "CONTRACT_REFERENCE.md",
     "LICENSE*"
   ],
+  "dependencies": {
+    "@continuum-dev/contract": "^0.3.0"
+  },
   "nx": {
     "tags": [
-      "scope:contract"
+      "scope:protocol"
     ]
   }
 }
