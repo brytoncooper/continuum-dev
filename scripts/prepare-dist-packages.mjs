@@ -10,13 +10,18 @@ import { join, resolve } from 'node:path';
 
 const packageNames = [
   'contract',
+  'protocol',
   'runtime',
   'session',
   'core',
   'react',
   'prompts',
   'ai-connect',
+  'ai-engine',
+  'vercel-ai-sdk',
   'starter-kit',
+  'starter-kit-ai',
+  'ai-core',
 ];
 
 function loadJson(path) {

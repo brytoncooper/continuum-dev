@@ -1,13 +1,10 @@
 # Integration Guide
 
-Production-oriented patterns for integrating:
+Production-oriented patterns for integrating Continuum in three lanes:
 
-- `@continuum-dev/starter-kit`
-- `@continuum-dev/react`
-- `@continuum-dev/core`
-- `@continuum-dev/session`
-- `@continuum-dev/prompts`
-- `@continuum-dev/ai-connect`
+- rendering only
+- starter-kit preset plus optional AI UI
+- headless AI facade plus custom orchestration or Vercel transport
 
 This guide assumes you already understand the basics from [Quick Start](./QUICK_START.md).
 
@@ -27,31 +24,18 @@ In practice that means:
 
 ## 1. Choose your integration level
 
-### Fastest path: `@continuum-dev/starter-kit`
+### Fastest lane: `@continuum-dev/starter-kit`
 
-Use this when you want a polished React surface quickly.
+Use this when you want a polished React surface quickly and you do not need built-in AI wrappers yet.
 
 ```tsx
 import {
   ContinuumProvider,
   ContinuumRenderer,
-  StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
-  createStarterKitGoogleProvider,
-  createStarterKitOpenAiProvider,
   starterKitComponentMap,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
-
-const providers = [
-  createStarterKitOpenAiProvider({
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5.4',
-  }),
-  createStarterKitGoogleProvider({
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-  }),
-];
 
 function Page() {
   const snapshot = useContinuumSnapshot();
@@ -64,7 +48,6 @@ function Page() {
 export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
       <StarterKitSessionWorkbench />
       <Page />
     </ContinuumProvider>
@@ -72,9 +55,66 @@ export function App() {
 }
 ```
 
-### Headless React path: `@continuum-dev/react`
+### Starter AI facade
 
-Use this when you want Continuum’s session model but your own components.
+Use this when you want the wrapper experience, but you also want provider-backed chat or a starter Vercel AI SDK path.
+
+```tsx
+import {
+  createAiConnectProviders,
+  getAiConnectModelCatalog,
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitSessionWorkbench,
+  StarterKitProviderChatBox,
+  type StarterKitViewAuthoringFormat,
+  starterKitComponentMap,
+  useContinuumSnapshot,
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
+  include: ['openai', 'google'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: 'gpt-5',
+  },
+  google: {
+    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+  },
+});
+
+const models = getAiConnectModelCatalog(providers);
+const authoringFormat: StarterKitViewAuthoringFormat = 'line-dsl';
+
+function Page() {
+  const snapshot = useContinuumSnapshot();
+  if (!snapshot?.view) {
+    return null;
+  }
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
+  return (
+    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+      <StarterKitProviderChatBox
+        providers={providers}
+        models={models}
+        mode="evolve-view"
+        authoringFormat={authoringFormat}
+      />
+      <StarterKitSessionWorkbench />
+      <Page />
+    </ContinuumProvider>
+  );
+}
+```
+
+This facade keeps the install and import surface small, while the lower-level packages stay swappable underneath.
+
+### Headless React lane: `@continuum-dev/react`
+
+Use this when you want Continuum's session model but your own components.
 
 ```tsx
 import {
@@ -108,6 +148,43 @@ export function App() {
 }
 ```
 
+### Headless AI facade: `@continuum-dev/ai-core`
+
+Use this when you want to keep your own AI UI or server orchestration without carrying a long install line.
+
+```tsx
+import { DefaultChatTransport } from 'ai';
+import {
+  useContinuumSession,
+  useContinuumVercelAiSdkChat,
+} from '@continuum-dev/ai-core';
+
+export function CustomChat() {
+  const session = useContinuumSession();
+  const chat = useContinuumVercelAiSdkChat({
+    session,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <button onClick={() => chat.sendMessage({ text: 'Refine the current form for mobile' })}>
+      Send prompt
+    </button>
+  );
+}
+```
+
+This facade keeps the raw lane on one package name, while the lower-level packages stay swappable underneath.
+
+If you want explicit package-by-package control, this lane still maps to:
+
+- `@continuum-dev/react`, `@continuum-dev/core`, or `@continuum-dev/session`
+- `@continuum-dev/ai-engine`
+- `@continuum-dev/vercel-ai-sdk`
+- optionally `@continuum-dev/ai-connect`
+
 ## 2. Accepting views from a server or model
 
 Before calling `pushView`, validate the basics:
@@ -116,7 +193,7 @@ Before calling `pushView`, validate the basics:
 - `viewId` exists
 - `version` exists
 - `nodes` is an array
-- duplicate node ids or keys are rejected
+- duplicate node ids or semantic continuity mistakes are rejected
 
 ```tsx
 import { useEffect } from 'react';
@@ -199,8 +276,6 @@ const restored = deserialize(blob);
 restored.destroy();
 ```
 
-`deserialize` accepts `formatVersion: 1` and also accepts compatible payloads without a `formatVersion`.
-
 ## 4. Migrations for schema evolution
 
 If shapes evolve but values should survive in transformed form, define migration strategies.
@@ -226,13 +301,6 @@ const session = createSession({
 });
 ```
 
-Resolution order:
-
-1. `migrationStrategies[nodeId]`
-2. the node’s `migrations` rules plus `strategyRegistry`
-3. same-type carry when no migration is required
-4. detach when continuity cannot be preserved safely
-
 ## 5. Actions and intent execution
 
 Action handlers can read the current snapshot and update session state as part of a workflow.
@@ -257,32 +325,6 @@ const session = createSession({
   },
 });
 ```
-
-Dispatch directly when you already know the action should run:
-
-```ts
-const result = await session.dispatchAction('submit_form', 'btn_submit');
-if (!result.success) {
-  console.error('Action failed:', result.error);
-}
-```
-
-Use `executeIntent` when you want the full audited lifecycle:
-
-```ts
-const result = await session.executeIntent({
-  nodeId: 'btn_submit',
-  intentName: 'submit_form',
-  payload: {},
-});
-```
-
-That path:
-
-- records the intent
-- dispatches the action
-- marks it `validated` on success
-- marks it `cancelled` on failure
 
 ## 6. Conflict handling and proposals
 
@@ -313,12 +355,6 @@ export function EmailConflictBanner() {
 }
 ```
 
-This is the safest default whenever:
-
-- a user might already be editing the same field
-- AI suggestions are helpful but not authoritative
-- you need reviewable changes instead of silent mutation
-
 ## 7. Diagnostics and operational visibility
 
 Inspect diagnostics after every view push:
@@ -346,20 +382,11 @@ export function DiagnosticsPanel() {
 }
 ```
 
-Track at minimum:
-
-- error issue count per push
-- detached resolution count per push
-- retry count for correction loops
-- persistence errors such as `size_limit` and `storage_error`
-
 ## 8. Production checklist
-
-Use this as your default rollout checklist:
 
 1. Keep `viewId` stable for a logical workflow.
 2. Change `version` when the structure changes.
-3. Keep semantic `key` values stable when meaning is unchanged.
+3. Keep semantic continuity metadata stable when meaning is unchanged.
 4. Validate payload shape before `pushView`.
 5. Reject duplicate ids and blocking structural issues.
 6. Inspect issues and resolutions after every push.
@@ -371,4 +398,5 @@ Use this as your default rollout checklist:
 
 - [Quick Start](./QUICK_START.md)
 - [AI Integration Guide](./AI_INTEGRATION.md)
+- [Starter Kit AI Migration Guide](./STARTER_KIT_AI_MIGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)

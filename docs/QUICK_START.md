@@ -2,7 +2,7 @@
 
 Get a working Continuum app on screen fast, then learn how view updates preserve user state.
 
-This guide uses `@continuum-dev/starter-kit`, which is the easiest public entry point.
+This guide uses `@continuum-dev/starter-kit`, which is now the slim preset layer for rendering, hooks, styles, and session tooling.
 
 ## What you will build
 
@@ -24,12 +24,19 @@ Use the starter kit if you want:
 - a default component map
 - ready-to-use primitives
 - Continuum React hooks from the same package surface
-- optional AI chat and session workbench primitives later
+- built-in style APIs
+- session tooling like `StarterKitSessionWorkbench`
 
 If you want a fully headless React setup instead, install:
 
 ```bash
 npm install @continuum-dev/react @continuum-dev/core react
+```
+
+If you want the headless AI lane under one package name instead, install:
+
+```bash
+npm install @continuum-dev/ai-core react
 ```
 
 ## 2. Wrap your app
@@ -127,7 +134,7 @@ At this point:
 - state updates go into the active Continuum session
 - refresh will rehydrate the session from storage
 
-## 4. Update the view without losing the user’s data
+## 4. Update the view without losing user data
 
 When your backend or AI sends a new version, push it into the same session:
 
@@ -178,7 +185,7 @@ session.pushView({
 
 What happens here:
 
-- the `name` value carries to `full_name` because the semantic `key` is still `name`
+- the `name` value carries to `full_name` because the semantic key is still `name`
 - `email` and `agree` keep their data
 - `phone` starts empty because it is new
 
@@ -207,12 +214,6 @@ export function DiagnosticsPanel() {
   );
 }
 ```
-
-This is useful for:
-
-- AI view generation loops
-- debugging unexpected detachments
-- building internal tooling and audit panels
 
 ## 6. Rewind to an earlier checkpoint
 
@@ -267,64 +268,61 @@ export function RegisterActions() {
 
   return null;
 }
-
-export function SubmitButton({ intentId, nodeId, label }: { intentId: string; nodeId: string; label: string }) {
-  const { dispatch, isDispatching } = useContinuumAction(intentId);
-
-  return (
-    <button disabled={isDispatching} onClick={() => dispatch(nodeId)}>
-      {label}
-    </button>
-  );
-}
 ```
 
-## 8. Optional: add built-in AI controls
+## 8. Optional: add AI later
 
-The starter kit also ships AI-focused UI primitives:
+The rendering lane stays slim on purpose. If you want built-in AI UI later, add the optional packages instead of pulling AI wiring from `starter-kit` itself.
 
-- `StarterKitProviderChatBox`
-- `StarterKitSessionWorkbench`
+```bash
+npm install @continuum-dev/starter-kit-ai
+```
 
 ```tsx
 import {
+  createAiConnectProviders,
+  getAiConnectModelCatalog,
   StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
-  createStarterKitGoogleProvider,
-  createStarterKitOpenAiProvider,
-} from '@continuum-dev/starter-kit';
+} from '@continuum-dev/starter-kit-ai';
 
-const providers = [
-  createStarterKitOpenAiProvider({
+const providers = createAiConnectProviders({
+  include: ['openai', 'google'],
+  openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5.4',
-  }),
-  createStarterKitGoogleProvider({
+    model: 'gpt-5',
+  },
+  google: {
     apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-  }),
-];
+  },
+});
+
+const models = getAiConnectModelCatalog(providers);
 
 export function AiControls() {
   return (
     <>
-      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <StarterKitProviderChatBox
+        providers={providers}
+        models={models}
+        mode="evolve-view"
+      />
       <StarterKitSessionWorkbench />
     </>
   );
 }
 ```
 
-Notes:
+If you want custom AI UI instead of starter wrappers, install the headless AI facade:
 
-- if multiple providers are present, the chat box shows a provider selector automatically
-- Anthropic support is optional
-- if you want one convenience call, use `createStarterKitProviders(...)`
+```bash
+npm install @continuum-dev/ai-core react
+```
 
 ## 9. What to read next
 
-Continue based on what you are doing next:
-
-- [Starter Kit README](../packages/starter-kit/README.md) for the package-level surface
-- [Integration Guide](INTEGRATION_GUIDE.md) for production patterns
-- [AI Integration Guide](AI_INTEGRATION.md) for prompting and correction loops
-- [View Contract Reference](VIEW_CONTRACT.md) for exact `ViewDefinition` rules
+- [Starter Kit README](../packages/starter-kit/README.md)
+- [Starter Kit AI README](../packages/starter-kit-ai/README.md)
+- [Integration Guide](INTEGRATION_GUIDE.md)
+- [AI Integration Guide](AI_INTEGRATION.md)
+- [View Contract Reference](VIEW_CONTRACT.md)

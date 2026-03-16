@@ -82,15 +82,36 @@ export default [
               onlyDependOnLibsWithTags: ['scope:prompts', 'scope:ai-connect'],
             },
             {
+              sourceTag: 'scope:ai-engine',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:runtime',
+                'scope:core',
+                'scope:prompts',
+                'scope:ai-connect',
+                'scope:ai-engine',
+              ],
+            },
+            {
               sourceTag: 'scope:starter-kit',
               onlyDependOnLibsWithTags: [
-                'scope:ai-connect',
                 'scope:contract',
                 'scope:core',
                 'scope:react',
-                'scope:prompts',
+                'scope:starter-kit',
+              ],
+            },
+            {
+              sourceTag: 'scope:starter-kit-ai',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:core',
+                'scope:react',
+                'scope:ai-connect',
+                'scope:ai-engine',
                 'scope:vercel-ai-sdk',
                 'scope:starter-kit',
+                'scope:starter-kit-ai',
               ],
             },
             {
@@ -105,7 +126,10 @@ export default [
                 'scope:session',
                 'scope:core',
                 'scope:react',
+                'scope:ai-connect',
+                'scope:ai-engine',
                 'scope:starter-kit',
+                'scope:starter-kit-ai',
               ],
             },
             {

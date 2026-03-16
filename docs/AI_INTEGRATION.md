@@ -1,75 +1,89 @@
 # AI Integration Guide
 
-How to wire AI into Continuum using the starter kit’s actual authoring contract.
+How to wire AI into Continuum with the new split architecture:
 
-This guide is intentionally **DSL-first**. The starter kit’s preferred path is not “ask the model for raw JSON and hope it is valid.” The preferred path is:
+- `@continuum-dev/ai-core` for the default headless AI facade
+- `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
+- `@continuum-dev/ai-connect` for provider factories and model catalogs
+- `@continuum-dev/starter-kit-ai` for optional thin chat wrappers
+- `@continuum-dev/vercel-ai-sdk` for typed transport and stream-part application
 
-1. patch the current view when a small safe change is possible
-2. otherwise generate a full next view in Continuum authoring format
-3. parse and normalize that output into a `ViewDefinition`
-4. repair once when the candidate is malformed
-5. apply the normalized view to the active session
+The goal of this split is simple: keep the starter preset easy to adopt while making the AI engine reusable outside the starter kit.
 
 ## The core principle
 
-The model should author **view changes**, not mutate Continuum state directly.
+The model should author **view changes**, not mutate Continuum session internals directly.
 
 The safest loop looks like this:
 
 ```text
 instruction
-  -> patch plan when safe
+  -> execution planning
+  -> patch or state mode when safe
   -> otherwise full authoring output
-  -> parse into ViewDefinition
+  -> parse into ViewDefinition or typed updates
   -> normalize and validate
-  -> repair if malformed
-  -> session.applyView(...)
+  -> repair once when malformed
+  -> apply into the active session
 ```
 
-That is how the starter kit preserves user intent while still letting AI reshape the UI.
+## Responsibilities by package
 
-## The preferred authoring format
+### `@continuum-dev/ai-engine`
 
-The starter kit defaults to `line-dsl`.
+Use this package when you want the shared headless contract:
 
-`line-dsl` is the default because it gives the model a smaller, more opinionated shape to produce than raw JSON. YAML is still supported, but it is an alternate authoring format, not the default mental model.
+- execution planning helpers
+- authoring format types
+- prompt builders and parsers
+- patch and state target catalogs
+- normalization, guardrails, and apply helpers
 
-Authoring formats supported by the starter kit:
+### `@continuum-dev/ai-connect`
+
+Use this package when you want provider factories, registry helpers, or model catalogs without tying them to a specific UI.
+
+### `@continuum-dev/starter-kit-ai`
+
+Use this package when you want the default starter AI facade. It re-exports the common starter-kit, provider, engine, and transport pieces under one stable package name, while still delegating into `ai-engine` underneath.
+
+### `@continuum-dev/ai-core`
+
+Use this package when you want the default headless AI facade. It re-exports the common React, session, provider, engine, and transport pieces for custom UI and orchestration paths.
+
+### `@continuum-dev/vercel-ai-sdk`
+
+Use this package when Vercel AI SDK is your transport layer. It should own stream and data-part bridging, not prompt policy or demo-specific planning.
+
+## The preferred authoring formats
+
+`ai-engine` supports:
 
 - `line-dsl`
 - `yaml`
 
-If you do nothing, the starter kit uses:
+If you do nothing, the shared engine defaults to:
 
 ```ts
-authoringFormat: 'line-dsl'
+const authoringFormat = 'line-dsl';
 ```
 
-## The DSL principles
+`line-dsl` is the default because it gives the model a smaller, more opinionated shape to produce than raw JSON. YAML is still supported, but it is the alternate authoring format, not the default mental model.
 
-These are the actual ideas the starter kit teaches the model:
+## The authoring principles
+
+These are the ideas the shared engine teaches the model:
 
 - return only Continuum authoring output, not prose
 - prefer patching existing views over replacing whole workflows
 - preserve semantic continuity when meaning is unchanged
-- use `key` when continuity matters
+- use stable semantic metadata when continuity matters
 - preserve existing node types and section structure unless the instruction truly requires change
 - use `defaultValue` and `defaultValues` for prefilling instead of reshaping layout
-- treat detached fields as recoverable continuity hints, not as disposable history
+- treat detached fields as recoverable continuity hints, not disposable history
 - prefer simple, valid structures over ambitious, brittle ones
 
 ### `line-dsl` shape
-
-The system prompt for `line-dsl` teaches rules like:
-
-- return only Continuum View DSL
-- do not return JSON
-- do not return markdown fences
-- use exactly two spaces for each indentation level
-- write one root line: `view viewId="..." version="..."`
-- write one line per node
-- include `id="..."` on every node
-- use `key="..."` when semantic continuity matters
 
 Example:
 
@@ -83,152 +97,70 @@ group id="checkin" label="Urgent Care Check-In"
   action id="submit_checkin" intentId="submit_checkin.submit" label="Submit"
 ```
 
-### Continuity rules the DSL reinforces
-
-The DSL path is not just syntactic. It encodes Continuum’s continuity model:
-
-- use `key` for stable semantics
-- if meaning is unchanged, preserve keys and usually preserve node types
-- evolve existing views instead of replacing them wholesale
-- if the user says “prefill,” add defaults instead of redesigning the form
-- if a detached field is being reintroduced, reuse its `detachedKey` as the new node `key`
-- never reuse a detached key for a different concept just because the value preview looks similar
-
-## Layout principles built into the authoring contract
-
-The starter kit’s prompts also teach layout choices, not just schema validity:
-
-- use `group` for major sections and semantic clusters
-- use `row` for two or three short related fields
-- use `grid` for compact peer fields or scannable card-like items
-- prefer vertical stacking for dense or mobile-sensitive workflows
-- use `collection` only for repeatable user-managed items
-- keep collection templates compact
-- use `presentation` sparingly for orientation and summaries
-- prefer one clear primary action near the end
-- avoid deep nesting and unnecessary containers
-
-This matters because the DSL is trying to produce good Continuum views, not just technically parseable ones.
-
-## Collection and prefill principles
-
-The authoring path has specific rules for collections:
-
-- if you create or keep a collection, give it at least one initial item with `defaultValues` unless the user explicitly wants an empty collection
-- when prefilling a collection, put `defaultValues` on the collection node
-- do not use `defaultValue` on template fields when the goal is to prefill collection items
-
-Example:
-
-```text
-collection id="medications" key="medications" label="Current medications" defaultValues="[{\"medication_name\":\"Lisinopril\"}]"
-  group id="medication_item" label="Medication"
-    field id="medication_name" key="medication_name" label="Medication name" dataType="string"
-```
-
-## How the starter kit actually runs generation
-
-The starter kit view generation engine follows this rough policy:
-
-1. if patch mode is safe, ask for a patch plan
-2. if patching is unsafe or ambiguous, run full authoring generation
-3. parse the authored output into a `ViewDefinition`
-4. normalize ids and fill missing safe defaults where needed
-5. reject unsupported node types and structural errors
-6. run one repair pass in correction mode when the candidate is malformed
-7. auto-apply the final normalized view when enabled
-
-Important behavior:
-
-- patch mode is preferred for small evolve-view changes
-- full generation defaults to `line-dsl`
-- correction-loop uses the same authoring format and feeds validation/runtime errors back in
-- unsupported node types and malformed structures are rejected before apply
-
 ## Patch mode is part of the philosophy
 
-For small changes, the starter kit does not always jump straight to full regeneration.
+For small changes, `ai-engine` does not always jump straight to full regeneration.
 
 Patch mode exists to make safe incremental evolution easier:
 
 - prefer patch mode when updating existing node props
 - prefer local container patches for layout tweaks
 - switch to full mode when patching is unsafe or the workflow is truly changing
-- preserve semantic continuity and detached-key continuity during patch decisions
+- preserve semantic continuity and detached continuity during patch decisions
 
-This matches the broader Continuum idea: evolve with the least destructive change that still satisfies the instruction.
-
-## Recommended provider setup
-
-If you want the fewest moving parts, configure providers from `@continuum-dev/starter-kit`:
+## Using the headless engine directly
 
 ```ts
 import {
-  createStarterKitAnthropicProvider,
-  createStarterKitGoogleProvider,
-  createStarterKitOpenAiProvider,
-} from '@continuum-dev/starter-kit';
+  runContinuumViewGeneration,
+  type ContinuumViewAuthoringFormat,
+} from '@continuum-dev/ai-engine';
 
-const openAi = createStarterKitOpenAiProvider({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  model: 'gpt-5.4',
+const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
+
+const result = await runContinuumViewGeneration({
+  provider,
+  session,
+  instruction: 'Refine the existing intake flow for mobile',
+  mode: 'evolve-view',
+  authoringFormat,
+  autoApplyView: true,
 });
-
-const gemini = createStarterKitGoogleProvider({
-  apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-});
-
-const anthropic = createStarterKitAnthropicProvider({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-});
-
-const providers = [openAi, gemini, anthropic];
 ```
 
-If you prefer one convenience call:
+## Provider-backed starter lane
 
-```ts
-import { createStarterKitProviders } from '@continuum-dev/starter-kit';
+If you want the fewest moving parts for hosted providers, compose `ai-connect`, `starter-kit-ai`, and the slim starter preset:
 
-const providers = createStarterKitProviders({
+```tsx
+import {
+  createAiConnectProviders,
+  getAiConnectModelCatalog,
+  StarterKitProviderChatBox,
+  StarterKitSessionWorkbench,
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
   include: ['openai', 'google'],
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5.4',
+    model: 'gpt-5',
   },
   google: {
     apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
   },
 });
-```
 
-Practical guidance:
+const models = getAiConnectModelCatalog(providers);
 
-- start with OpenAI and Google
-- treat Anthropic as optional
-- use `line-dsl` as the default authoring format unless you have a strong reason to prefer YAML
-
-## Use the starter kit’s built-in AI surface
-
-If you are already on the starter kit, the easiest integration is the built-in chat primitive.
-
-```tsx
-import {
-  type AiConnectClient,
-  StarterKitProviderChatBox,
-  StarterKitSessionWorkbench,
-  type StarterKitViewAuthoringFormat,
-} from '@continuum-dev/starter-kit';
-
-const authoringFormat: StarterKitViewAuthoringFormat = 'line-dsl';
-
-export function AiControls({ providers }: { providers: AiConnectClient[] }) {
+export function AiControls() {
   return (
     <>
       <StarterKitProviderChatBox
         providers={providers}
+        models={models}
         mode="evolve-view"
-        authoringFormat={authoringFormat}
+        authoringFormat="line-dsl"
       />
       <StarterKitSessionWorkbench />
     </>
@@ -236,37 +168,69 @@ export function AiControls({ providers }: { providers: AiConnectClient[] }) {
 }
 ```
 
-For most apps:
+## Vercel AI SDK lane
 
-- use `mode="evolve-view"`
-- keep `authoringFormat="line-dsl"`
-- let the session workbench surface checkpoint and rewind controls
+If Vercel AI SDK is your transport, keep the transport and swap in Continuum as the runtime that consumes typed stream parts.
 
-## Prompting guidance that matches the DSL
+```tsx
+import { DefaultChatTransport } from 'ai';
+import { StarterKitVercelAiSdkChatBox } from '@continuum-dev/starter-kit-ai';
 
-When writing user instructions, match the same principles the DSL system prompt is already enforcing.
+export function VercelLane() {
+  return (
+    <StarterKitVercelAiSdkChatBox
+      chatOptions={{
+        transport: new DefaultChatTransport({
+          api: '/api/chat',
+        }),
+      }}
+    />
+  );
+}
+```
+
+Or drop lower and use the raw hook:
+
+```tsx
+import { DefaultChatTransport } from 'ai';
+import {
+  useContinuumSession,
+  useContinuumVercelAiSdkChat,
+} from '@continuum-dev/ai-core';
+
+export function CustomChat() {
+  const session = useContinuumSession();
+  const chat = useContinuumVercelAiSdkChat({
+    session,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+  });
+
+  return (
+    <button onClick={() => chat.sendMessage({ text: 'Add a co-applicant section' })}>
+      Send prompt
+    </button>
+  );
+}
+```
+
+## Prompting guidance that matches the engine
 
 Good instructions:
 
-- “Add a co-applicant section while preserving existing semantic keys.”
-- “Refine layout for mobile but keep the same workflow.”
-- “Prefill this form with the provided patient data.”
-- “Bring back the allergy field in the medications section.”
-
-Why these work:
-
-- they ask for evolution, not replacement
-- they preserve semantics where possible
-- they distinguish structural change from prefilling
-- they make restoration requests explicit
+- "Add a co-applicant section while preserving existing semantic keys."
+- "Refine layout for mobile but keep the same workflow."
+- "Prefill this form with the provided patient data."
+- "Bring back the allergy field in the medications section."
 
 Less helpful instructions:
 
-- “Rebuild this whole thing from scratch.”
-- “Change everything but keep all state.”
-- “Rename whatever you want.”
+- "Rebuild this whole thing from scratch."
+- "Change everything but keep all state."
+- "Rename whatever you want."
 
-## Correction-loop should still be DSL-first
+## Correction loops should still be format-first
 
 When a candidate is malformed, the repair path should still follow the same authoring principles.
 
@@ -283,35 +247,14 @@ And asks for:
 - preserved unchanged semantics
 - valid authoring output in the same format
 
-That means repair is not a different philosophy. It is the same DSL contract applied with stronger error context.
-
-## Detached fields are first-class continuity signals
-
-One of the most important Continuum-specific ideas in the DSL path is detached-field continuity.
-
-Detached fields are previous fields whose user data can still be restored.
-
-When the user asks to bring something back:
-
-- use `previousLabel` and `previousParentLabel` as semantic clues
-- if it is the same field returning, reuse the `detachedKey`
-- do not recycle that detached key for a different concept
-
-This is a big part of what makes the starter kit’s AI integration feel like Continuum instead of just “AI form generation.”
-
 ## Audit after every apply
 
-Even with DSL guidance, every generated view should still be audited after apply:
+Even with strong authoring guidance, every generated view should still be audited after apply:
 
 ```ts
 const issues = session.getIssues();
 const resolutions = session.getResolutions();
 const diffs = session.getDiffs();
-
-const blockingIssues = issues.filter((issue) => issue.severity === 'error');
-const detachedCount = resolutions.filter(
-  (resolution) => resolution.resolution === 'detached'
-).length;
 ```
 
 Recommended policy:
@@ -320,52 +263,20 @@ Recommended policy:
 - retry when detached count is unexpectedly high
 - accept when only expected warnings remain
 
-Cap retries. A small bounded repair loop is better than infinite regeneration.
+## AI shipping checklist
 
-## Persistence still matters
-
-For long-running AI workflows, persistence is still essential.
-
-Use `hydrateOrCreate` if you want explicit lifecycle control:
-
-```ts
-import { hydrateOrCreate } from '@continuum-dev/session';
-
-const session = hydrateOrCreate({
-  persistence: {
-    storage: window.localStorage,
-    key: 'continuum_session',
-    maxBytes: 4_500_000,
-    onError: (error) => {
-      console.error('Session persistence error', error);
-    },
-  },
-});
-```
-
-Current persistence behavior:
-
-- writes are debounced
-- pending writes are flushed on unload
-- payload size is guarded by `maxBytes`
-- cross-tab sync uses `storage` events
-
-## DSL-first checklist
-
-Use this checklist before shipping starter-kit AI generation:
-
-1. Default to `line-dsl`.
-2. Patch when a local incremental change is safe.
-3. Only fall back to full regeneration when patching is unsafe or the workflow is truly changing.
-4. Preserve semantic keys and node types when meaning is unchanged.
-5. Use `defaultValue` and `defaultValues` for prefill requests.
-6. Reuse detached keys only when restoring the same semantic field.
-7. Keep layouts simple, intentional, and easy to scan.
-8. Normalize, validate, and repair once before apply.
-9. Inspect issues and resolutions after every AI-generated apply.
+1. Keep `starter-kit` slim and free of provider or planner logic.
+2. Put planning, parsing, normalization, and apply behavior in `ai-engine`.
+3. Put provider factories and model catalogs in `ai-connect`.
+4. Use `starter-kit-ai` only for thin UI wrappers.
+5. Keep Vercel AI SDK transport-only.
+6. Patch when a local incremental change is safe.
+7. Only fall back to full regeneration when patching is unsafe or the workflow truly changes.
+8. Inspect issues and resolutions after every AI-generated apply.
 
 ## Related guides
 
 - [Quick Start](./QUICK_START.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
+- [Starter Kit AI Migration Guide](./STARTER_KIT_AI_MIGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)

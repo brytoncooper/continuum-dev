@@ -34,7 +34,19 @@
       "path": "./packages/ai-connect"
     },
     {
+      "path": "./packages/ai-core"
+    },
+    {
+      "path": "./packages/ai-engine"
+    },
+    {
       "path": "./packages/vercel-ai-sdk"
+    },
+    {
+      "path": "./packages/starter-kit-ai"
+    },
+    {
+      "path": "./packages/protocol"
     }
   ]
 }

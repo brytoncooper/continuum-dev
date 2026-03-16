@@ -65,16 +65,20 @@
     "release":  {
                     "groups":  {
                                    "publicPackages":  {
-                                                          "projects":  [
+                                                           "projects":  [
                                                                            "contract",
+                                                                           "@continuum-dev/protocol",
                                                                            "runtime",
                                                                            "@continuum-dev/session",
                                                                            "@continuum-dev/react",
                                                                            "prompts",
                                                                            "@continuum-dev/ai-connect",
+                                                                           "@continuum-dev/ai-core",
+                                                                           "@continuum-dev/ai-engine",
                                                                            "@continuum-dev/vercel-ai-sdk",
                                                                            "@continuum-dev/core",
-                                                                           "@continuum-dev/starter-kit"
+                                                                           "@continuum-dev/starter-kit",
+                                                                           "@continuum-dev/starter-kit-ai"
                                                                        ],
                                                           "projectsRelationship":  "fixed"
                                                       }
