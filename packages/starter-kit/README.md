@@ -5,16 +5,16 @@ The fastest way to get Continuum on screen in a React app.
 Website: [continuumstack.dev](https://continuumstack.dev)  
 GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
 
-Continuum itself is intentionally headless. The starter kit is the opinionated convenience layer on top of it.
+Continuum itself is intentionally headless. The starter kit is the slim preset layer on top of it.
 
 It gives you:
 
 - ready-to-use primitives for common Continuum node types
 - a default component map
-- proposal and suggestion UI helpers
+- proposal and restore-review UI helpers
 - style customization hooks for the shipped primitives
-- AI chat and session workbench primitives
-- prompt helpers re-exported from `@continuum-dev/prompts`
+- React hook re-exports for the common session APIs
+- `StarterKitSessionWorkbench` for timeline and session inspection
 
 ## Install
 
@@ -25,6 +25,7 @@ npm install @continuum-dev/starter-kit react
 Upgrade references:
 
 - [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- [Starter Kit AI migration guide](../../docs/STARTER_KIT_AI_MIGRATION.md)
 - [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
 
 ## Use the starter kit when
@@ -32,7 +33,7 @@ Upgrade references:
 - you want the fastest possible React integration
 - you want to render real `ViewDefinition` payloads immediately
 - you do not want to build your own component map first
-- you want proposal-aware and AI-ready UI primitives available from day one
+- you want session tooling and a polished default UI surface
 
 If you want a fully headless React integration instead, start with `@continuum-dev/react`.
 
@@ -99,15 +100,15 @@ export function App() {
 
 ## What this package exports
 
-The starter kit gives you one package surface for the most common tasks:
+The starter kit gives you one package surface for the most common rendering and session tasks:
 
 - `ContinuumProvider` and `ContinuumRenderer`
-- common Continuum hooks such as `useContinuumSession`, `useContinuumSnapshot`, and diagnostics hooks
+- common hooks such as `useContinuumSession`, `useContinuumSnapshot`, and diagnostics hooks
 - `starterKitComponentMap`
 - starter primitives and shared field helpers
-- proposal UI such as conflict and suggestion components
-- AI helpers such as `StarterKitProviderChatBox`, `StarterKitSessionWorkbench`, and provider factories
-- prompt helpers re-exported from `@continuum-dev/prompts`
+- proposal and restore-review UI
+- `StarterKitStyleProvider` and default style tokens
+- `StarterKitSessionWorkbench`
 
 ## Styling the shipped primitives
 
@@ -149,58 +150,56 @@ Supported slots:
 - `conflictActionButton`
 - `suggestionsActionButton`
 
-You can inspect the shipped defaults directly:
+## Session workbench
+
+`StarterKitSessionWorkbench` stays in this package because it is session tooling, not provider-specific AI UI.
 
 ```tsx
-import { starterKitDefaultStyles } from '@continuum-dev/starter-kit';
+import { StarterKitSessionWorkbench } from '@continuum-dev/starter-kit';
 
-console.log(starterKitDefaultStyles.fieldControl);
+export function DebugPanel() {
+  return <StarterKitSessionWorkbench />;
+}
 ```
 
-Slot meanings:
+## Optional AI UI now lives in `@continuum-dev/starter-kit-ai`
 
-- `fieldControl`: input, select, textarea, and date controls
-- `sliderInput`: range input host element
-- `actionButton`: action primitive button
-- `collectionAddButton`: collection add button
-- `itemRemoveButton`: collection row remove button
-- `itemIconRemoveButton`: collection icon remove button
-- `conflictActionButton`: conflict accept and reject buttons
-- `suggestionsActionButton`: suggestions accept-all and reject-all buttons
+The starter kit no longer exports provider factories, prompt helpers, or chat wrappers directly.
 
-## Built-in AI UI
+Use these packages together when you want the higher-level AI lane:
 
-The starter kit includes a ready-to-use provider chat primitive:
+- `@continuum-dev/starter-kit` for rendering and session tooling
+- `@continuum-dev/starter-kit-ai` for thin chat wrappers
+- `@continuum-dev/ai-connect` for provider factories and model catalogs
+- `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
 
-- `StarterKitProviderChatBox`
-- `StarterKitVercelAiSdkChatBox`
-- `StarterKitSessionWorkbench`
+Example:
 
 ```tsx
 import {
+  createAiConnectProviders,
+  getAiConnectModelCatalog,
   ContinuumProvider,
   ContinuumRenderer,
-  StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
-  createStarterKitGoogleProvider,
-  createStarterKitOpenAiProvider,
+  StarterKitProviderChatBox,
   starterKitComponentMap,
-} from '@continuum-dev/starter-kit';
+} from '@continuum-dev/starter-kit-ai';
 
-const providers = [
-  createStarterKitOpenAiProvider({
+const providers = createAiConnectProviders({
+  include: ['openai'],
+  openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5.4',
-  }),
-  createStarterKitGoogleProvider({
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-  }),
-];
+    model: 'gpt-5',
+  },
+});
+
+const models = getAiConnectModelCatalog(providers);
 
 export function App() {
   return (
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <StarterKitProviderChatBox providers={providers} mode="evolve-view" />
+      <StarterKitProviderChatBox providers={providers} models={models} mode="evolve-view" />
       <StarterKitSessionWorkbench />
       <ContinuumRenderer view={view} />
     </ContinuumProvider>
@@ -208,117 +207,15 @@ export function App() {
 }
 ```
 
-Behavior notes:
-
-- if multiple providers are configured, the chat box shows a provider selector automatically
-- Anthropic support is optional
-- the chat box can auto-apply valid generated views into the active session
-
-Execution notes:
-
-- AI edits now flow through a shared Continuum execution planner: `state`, `patch`, or `view`
-- localized edits stream directly, while full-view regenerations stay in a draft stream until final commit
-- stateful nodes that must survive structural moves should keep a stable `semanticKey`
-- `key` is still useful for binding data, but continuity across reshapes should not rely on `key` alone
-
-## Post-processed model text and streaming
-
-The starter kit keeps raw model text parsing outside the session/runtime core.
-
-For the full render-vs-committed snapshot model and richer stream-part vocabulary, see [@continuum-dev/session streaming guide](../session/STREAMING.md).
-
-That means you can:
-
-- stream structured transport parts with `@continuum-dev/vercel-ai-sdk`
-- or generate text, repair/parse it into a `ViewDefinition` or patch plan, and then normalize that into the same session streaming foundation
-
-The built-in view generation engine now routes normalized outputs through the session stream API when it is available, so parsed AI results and structured transport chunks converge on the same deterministic foundation.
-
-Why that matters:
-
-- partial UI can render before the full response finishes
-- user typing and browser autofill remain sacred while the UI is still building
-- committed session state stays durable and checkpoint-friendly
-- later renderer work can animate build states without changing the foundation again
-
-## Vercel AI SDK option
-
-If you want Vercel AI SDK to be the streaming transport while Continuum remains the runtime and session layer, use `StarterKitVercelAiSdkChatBox`.
-
-```tsx
-import { DefaultChatTransport } from 'ai';
-import {
-  ContinuumProvider,
-  ContinuumRenderer,
-  StarterKitVercelAiSdkChatBox,
-  starterKitComponentMap,
-} from '@continuum-dev/starter-kit';
-
-export function App() {
-  return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <StarterKitVercelAiSdkChatBox
-        chatOptions={{
-          transport: new DefaultChatTransport({
-            api: '/api/chat',
-          }),
-        }}
-      />
-      <ContinuumRenderer view={view} />
-    </ContinuumProvider>
-  );
-}
-```
-
-You can also swap chat implementations explicitly with `StarterKitChatBox`:
-
-```tsx
-<StarterKitChatBox
-  driver={{
-    kind: 'vercel-ai-sdk',
-    props: {
-      chatOptions: {
-        transport: new DefaultChatTransport({
-          api: '/api/chat',
-        }),
-      },
-    },
-  }}
-/>
-```
-
-## Provider composer helper
-
-If you want one convenience function instead of separate provider factories:
-
-```tsx
-import {
-  StarterKitProviderChatBox,
-  StarterKitProviderComposer,
-} from '@continuum-dev/starter-kit';
-
-const providers = StarterKitProviderComposer({
-  include: ['openai', 'google'],
-  openai: { apiKey: import.meta.env.VITE_OPENAI_API_KEY },
-  google: { apiKey: import.meta.env.VITE_GOOGLE_API_KEY },
-});
-
-export function AiBox() {
-  return <StarterKitProviderChatBox providers={providers} mode="evolve-view" />;
-}
-```
-
-If a provider is listed in `include`, its `apiKey` is required.
-
 ## When not to use this package
 
 Do not start with the starter kit if:
 
 - you need a completely custom rendering system immediately
 - you do not want opinionated primitives in the bundle
-- you are integrating at the session/runtime level rather than the React UI layer
+- you are integrating at the session or transport level rather than the React preset layer
 
-In those cases, start with `@continuum-dev/react`, `@continuum-dev/core`, or `@continuum-dev/session`.
+In those cases, start with `@continuum-dev/ai-core` for the headless AI lane, or drop to the lower-level packages directly if you want fully explicit dependencies.
 
 ## Related docs
 
@@ -326,4 +223,6 @@ In those cases, start with `@continuum-dev/react`, `@continuum-dev/core`, or `@c
 - [Quick Start](../../docs/QUICK_START.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
-- [View Contract Reference](../../docs/VIEW_CONTRACT.md)
+- [Starter Kit AI README](../starter-kit-ai/README.md)
+- [AI Engine README](../ai-engine/README.md)
+- [Starter Kit AI Migration Guide](../../docs/STARTER_KIT_AI_MIGRATION.md)

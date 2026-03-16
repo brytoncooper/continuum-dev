@@ -4,16 +4,19 @@ import {
   useContinuumDiagnostics,
   useContinuumSession,
   useContinuumSnapshot,
+  useContinuumRestoreReviews,
 } from '@continuum-dev/react';
 import {
   buildCheckpointOptions,
   buildProposalItems,
+  buildRestoreReviewSections,
   collectDefaultSeeds,
   collectNodeMeta,
   getCurrentCheckpointId,
   shouldApplySeed,
   type StarterKitCheckpointOption,
   type StarterKitCheckpointPreview,
+  type RestoreReviewSection,
 } from './session-workbench-model.js';
 import {
   createStarterKitSessionAdapter,
@@ -42,6 +45,7 @@ export interface UseSessionWorkbenchResult {
   sessionId: string;
   checkpointsCount: number;
   proposalItems: ReturnType<typeof buildProposalItems>;
+  restoreReviewSections: RestoreReviewSection[];
   selectedCheckpointId: string;
   setSelectedCheckpointId(checkpointId: string): void;
   rewindCheckpointOptions: StarterKitCheckpointOption[];
@@ -49,6 +53,15 @@ export interface UseSessionWorkbenchResult {
   reset(): void;
   acceptProposal(nodeId: string): void;
   rejectProposal(nodeId: string): void;
+  acceptRestoreCandidate(
+    detachedKey: string,
+    targetNodeId: string,
+    scope: RestoreReviewSection['items'][number]['scope']
+  ): void;
+  rejectRestoreReview(
+    detachedKey: string,
+    scope: RestoreReviewSection['items'][number]['scope']
+  ): void;
   rewindSelectedCheckpoint(): void;
   clearPreview(): void;
 }
@@ -62,6 +75,7 @@ export function useSessionWorkbench(
     [session]
   );
   const snapshot = useContinuumSnapshot();
+  const restoreReviews = useContinuumRestoreReviews();
   const diagnostics = useContinuumDiagnostics() as {
     checkpoints: StarterKitDiagnosticCheckpoint[];
   };
@@ -88,6 +102,10 @@ export function useSessionWorkbench(
           : undefined,
       }),
     [nodeMetaById, pendingProposals, snapshot]
+  );
+  const restoreReviewSections = useMemo(
+    () => buildRestoreReviewSections(restoreReviews),
+    [restoreReviews]
   );
   const checkpointOptions = useMemo(
     () => buildCheckpointOptions(diagnostics.checkpoints),
@@ -192,6 +210,7 @@ export function useSessionWorkbench(
     sessionId: sessionAdapter.sessionId,
     checkpointsCount: diagnostics.checkpoints.length,
     proposalItems,
+    restoreReviewSections,
     selectedCheckpointId,
     setSelectedCheckpointId,
     rewindCheckpointOptions,
@@ -199,6 +218,8 @@ export function useSessionWorkbench(
     reset,
     acceptProposal: sessionAdapter.acceptProposal,
     rejectProposal: sessionAdapter.rejectProposal,
+    acceptRestoreCandidate: sessionAdapter.acceptRestoreCandidate,
+    rejectRestoreReview: sessionAdapter.rejectRestoreReview,
     rewindSelectedCheckpoint,
     clearPreview,
   };

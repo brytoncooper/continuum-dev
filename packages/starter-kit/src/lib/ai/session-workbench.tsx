@@ -2,6 +2,7 @@ import type { ViewDefinition } from '@continuum-dev/core';
 import { ContinuumRenderer } from '@continuum-dev/react';
 import { color, control, radius, space, type as typography } from '../tokens.js';
 import { ConflictBanner } from '../proposals/conflict-banner.js';
+import { RestoreReviewCard } from '../proposals/restore-review-card.js';
 import { StarterKitSuggestionsBar } from '../proposals/suggestions-bar.js';
 import {
   formatTimestamp,
@@ -32,6 +33,7 @@ export function StarterKitSessionWorkbench({
     sessionId,
     checkpointsCount,
     proposalItems,
+    restoreReviewSections,
     selectedCheckpointId,
     setSelectedCheckpointId,
     rewindCheckpointOptions,
@@ -39,6 +41,8 @@ export function StarterKitSessionWorkbench({
     reset,
     acceptProposal,
     rejectProposal,
+    acceptRestoreCandidate,
+    rejectRestoreReview,
     rewindSelectedCheckpoint,
     clearPreview,
   } = useSessionWorkbench({
@@ -82,6 +86,50 @@ export function StarterKitSessionWorkbench({
       </div>
 
       <StarterKitSuggestionsBar label="AI suggestions are available for your current values." />
+
+      {restoreReviewSections.length > 0 ? (
+        <div
+          style={{
+            display: 'grid',
+            gap: space.sm,
+            padding: space.md,
+            borderRadius: radius.md,
+            border: `1px solid ${color.border}`,
+            background: color.surfaceMuted,
+          }}
+        >
+          <div style={{ ...typography.small, color: color.textMuted }}>
+            Possible restores
+          </div>
+          <div style={{ ...typography.small, color: color.textSoft }}>
+            Continuum found likely matches for preserved values, but it is waiting
+            for your approval instead of guessing.
+          </div>
+          {restoreReviewSections.map((section) => (
+            <div key={section.id} style={{ display: 'grid', gap: space.sm }}>
+              <div style={{ ...typography.small, color: color.text }}>
+                {section.title}
+              </div>
+              {section.items.map((item) => (
+                <RestoreReviewCard
+                  key={item.reviewId}
+                  review={item}
+                  onApply={(candidate) => {
+                    acceptRestoreCandidate(
+                      item.detachedKey,
+                      candidate.targetNodeId,
+                      item.scope
+                    );
+                  }}
+                  onRejectAll={() => {
+                    rejectRestoreReview(item.detachedKey, item.scope);
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {proposalItems.length > 0 ? (
         <div
@@ -180,7 +228,10 @@ export function StarterKitSessionWorkbench({
                 {selectedCheckpoint.trigger.toUpperCase()} checkpoint from{' '}
                 {formatTimestamp(selectedCheckpoint.timestamp)}
               </div>
-              <ContinuumRenderer view={selectedCheckpoint.snapshot.view} />
+              <ContinuumRenderer
+                view={selectedCheckpoint.snapshot.view}
+                renderScope={null}
+              />
               <div
                 style={{
                   display: 'flex',

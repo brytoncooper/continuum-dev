@@ -1,4 +1,6 @@
 import type {
+  DetachedRestoreReview,
+  DetachedRestoreScope,
   NodeValue,
   SessionStream,
   SessionStreamPart,
@@ -32,8 +34,18 @@ export interface StarterKitSessionLike {
   abortStream?(streamId: string, reason?: string): SessionStreamResult;
   getStreams?(): SessionStream[];
   getPendingProposals(): Record<string, StarterKitPendingProposal>;
+  getPendingRestoreReviews?(): DetachedRestoreReview[];
   acceptProposal(nodeId: string): void;
   rejectProposal(nodeId: string): void;
+  acceptRestoreCandidate?(
+    detachedKey: string,
+    targetNodeId: string,
+    scope: DetachedRestoreScope
+  ): void;
+  rejectRestoreReview?(
+    detachedKey: string,
+    scope: DetachedRestoreScope
+  ): void;
   rewind(checkpointId: string): void;
   reset(): void;
   updateState(nodeId: string, value: NodeValue): void;
@@ -53,8 +65,18 @@ export interface StarterKitSessionAdapter {
   abortStream?(streamId: string, reason?: string): SessionStreamResult;
   getStreams?(): SessionStream[];
   getPendingProposals(): Record<string, StarterKitPendingProposal>;
+  getPendingRestoreReviews(): DetachedRestoreReview[];
   acceptProposal(nodeId: string): void;
   rejectProposal(nodeId: string): void;
+  acceptRestoreCandidate(
+    detachedKey: string,
+    targetNodeId: string,
+    scope: DetachedRestoreScope
+  ): void;
+  rejectRestoreReview(
+    detachedKey: string,
+    scope: DetachedRestoreScope
+  ): void;
   rewind(checkpointId: string): void;
   reset(): void;
   updateState(nodeId: string, value: NodeValue): void;
@@ -84,6 +106,18 @@ export function createStarterKitSessionAdapter(
     typeof session.getStreams === 'function'
       ? session.getStreams.bind(session)
       : undefined;
+  const getPendingRestoreReviews =
+    typeof session.getPendingRestoreReviews === 'function'
+      ? session.getPendingRestoreReviews.bind(session)
+      : undefined;
+  const acceptRestoreCandidate =
+    typeof session.acceptRestoreCandidate === 'function'
+      ? session.acceptRestoreCandidate.bind(session)
+      : undefined;
+  const rejectRestoreReview =
+    typeof session.rejectRestoreReview === 'function'
+      ? session.rejectRestoreReview.bind(session)
+      : undefined;
 
   return {
     sessionId: session.sessionId,
@@ -98,8 +132,13 @@ export function createStarterKitSessionAdapter(
     abortStream,
     getStreams,
     getPendingProposals: () => session.getPendingProposals(),
+    getPendingRestoreReviews: () => getPendingRestoreReviews?.() ?? [],
     acceptProposal: (nodeId) => session.acceptProposal(nodeId),
     rejectProposal: (nodeId) => session.rejectProposal(nodeId),
+    acceptRestoreCandidate: (detachedKey, targetNodeId, scope) =>
+      acceptRestoreCandidate?.(detachedKey, targetNodeId, scope),
+    rejectRestoreReview: (detachedKey, scope) =>
+      rejectRestoreReview?.(detachedKey, scope),
     rewind: (checkpointId) => session.rewind(checkpointId),
     reset: () => session.reset(),
     updateState: (nodeId, value) => session.updateState(nodeId, value),

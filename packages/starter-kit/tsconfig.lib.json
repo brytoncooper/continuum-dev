@@ -26,16 +26,7 @@
       "path": "../react/tsconfig.lib.json"
     },
     {
-      "path": "../prompts/tsconfig.lib.json"
-    },
-    {
-      "path": "../ai-connect/tsconfig.lib.json"
-    },
-    {
       "path": "../core/tsconfig.lib.json"
-    },
-    {
-      "path": "../vercel-ai-sdk/tsconfig.lib.json"
     }
   ]
 }

@@ -1,4 +1,10 @@
-import type { NodeValue, ViewDefinition, ViewNode } from '@continuum-dev/core';
+import type {
+  DetachedRestoreReview,
+  DetachedRestoreScope,
+  NodeValue,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/core';
 import type { StarterKitSessionSnapshot } from './session-adapter.js';
 
 export interface DefaultSeed {
@@ -16,6 +22,30 @@ export interface ProposalItem {
   title: string;
   currentValue: string;
   nextValue: string;
+}
+
+export interface RestoreReviewCandidateItem {
+  candidateId: string;
+  targetNodeId: string;
+  title: string;
+  subtitle?: string;
+}
+
+export interface RestoreReviewItem {
+  reviewId: string;
+  detachedKey: string;
+  title: string;
+  valuePreview: string;
+  status: DetachedRestoreReview['status'];
+  scope: DetachedRestoreScope;
+  candidates: RestoreReviewCandidateItem[];
+  approvedTargetLabel?: string;
+}
+
+export interface RestoreReviewSection {
+  id: 'draft' | 'live';
+  title: string;
+  items: RestoreReviewItem[];
 }
 
 export interface StarterKitCheckpointPreview {
@@ -140,6 +170,13 @@ export function collectNodeMeta(
 }
 
 export function stringifyValue(value: unknown): string {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'value' in (value as Record<string, unknown>)
+  ) {
+    return stringifyValue((value as Record<string, unknown>).value);
+  }
   if (value === null || value === undefined) {
     return '';
   }
@@ -206,4 +243,62 @@ export function getCurrentCheckpointId(
   return checkpointOptions.reduce((latest, checkpoint) =>
     checkpoint.timestamp > latest.timestamp ? checkpoint : latest
   ).id;
+}
+
+function scopeSortKey(scope: DetachedRestoreScope): number {
+  return scope.kind === 'draft' ? 0 : 1;
+}
+
+function sectionIdForScope(
+  scope: DetachedRestoreScope
+): RestoreReviewSection['id'] {
+  return scope.kind === 'draft' ? 'draft' : 'live';
+}
+
+export function buildRestoreReviewSections(
+  reviews: DetachedRestoreReview[]
+): RestoreReviewSection[] {
+  const sections = new Map<RestoreReviewSection['id'], RestoreReviewSection>();
+  const sortedReviews = [...reviews].sort((left, right) => {
+    const scopeOrder = scopeSortKey(left.scope) - scopeSortKey(right.scope);
+    if (scopeOrder !== 0) {
+      return scopeOrder;
+    }
+    return left.reviewId.localeCompare(right.reviewId);
+  });
+
+  for (const review of sortedReviews) {
+    const sectionId = sectionIdForScope(review.scope);
+    const section =
+      sections.get(sectionId) ??
+      {
+        id: sectionId,
+        title: sectionId === 'draft' ? 'In draft preview' : 'In live form',
+        items: [],
+      };
+
+    section.items.push({
+      reviewId: review.reviewId,
+      detachedKey: review.detachedKey,
+      title: review.detachedValue.previousLabel ?? review.detachedKey,
+      valuePreview: stringifyValue(review.detachedValue.value),
+      status: review.status,
+      scope: review.scope,
+      approvedTargetLabel:
+        review.approvedTarget?.targetSemanticKey ??
+        review.approvedTarget?.targetKey ??
+        review.approvedTarget?.targetNodeId,
+      candidates: review.candidates.map((candidate) => ({
+        candidateId: candidate.candidateId,
+        targetNodeId: candidate.targetNodeId,
+        title: candidate.targetLabel ?? candidate.targetNodeId,
+        subtitle: candidate.targetParentLabel,
+      })),
+    });
+    sections.set(sectionId, section);
+  }
+
+  return ['draft', 'live']
+    .map((id) => sections.get(id as RestoreReviewSection['id']))
+    .filter((section): section is RestoreReviewSection => Boolean(section));
 }
