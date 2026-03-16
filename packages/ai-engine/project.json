@@ -1,0 +1,24 @@
+{
+  "name": "@continuum-dev/ai-engine",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/ai-engine/src",
+  "projectType": "library",
+  "tags": ["scope:ai-engine"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "cwd": "packages/ai-engine",
+        "command": "vitest"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "@nx/js:release-publish",
+      "dependsOn": ["^nx-release-publish"],
+      "options": {
+        "packageRoot": "dist/packages/ai-engine"
+      }
+    }
+  }
+}

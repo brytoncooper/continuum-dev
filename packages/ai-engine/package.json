@@ -1,0 +1,60 @@
+{
+  "name": "@continuum-dev/ai-engine",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Headless AI planning, authoring, normalization, and apply helpers for Continuum",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/ai-engine"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "ai",
+    "headless",
+    "generation",
+    "authoring"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./continuum-execution": {
+      "types": "./continuum-execution.d.ts",
+      "import": "./continuum-execution.mjs",
+      "default": "./continuum-execution.mjs"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.mjs",
+    "**/*.d.ts",
+    "**/*.d.mts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "dependencies": {
+    "@continuum-dev/ai-connect": "^0.3.0",
+    "@continuum-dev/core": "^0.3.0",
+    "@continuum-dev/runtime": "^0.3.0",
+    "@continuum-dev/prompts": "^0.3.0",
+    "yaml": "^2.8.2"
+  },
+  "nx": {
+    "tags": [
+      "scope:ai-engine"
+    ]
+  }
+}

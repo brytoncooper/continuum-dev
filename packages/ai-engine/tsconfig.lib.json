@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/ai-engine",
+    "tsBuildInfoFile": "../../dist/packages/ai-engine/tsconfig.lib.tsbuildinfo",
+    "allowJs": true,
+    "types": ["node"],
+    "lib": ["es2022"],
+    "emitDeclarationOnly": false
+  },
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.mjs"],
+  "references": [
+    {
+      "path": "../contract/tsconfig.lib.json"
+    },
+    {
+      "path": "../prompts/tsconfig.lib.json"
+    },
+    {
+      "path": "../runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../ai-connect/tsconfig.lib.json"
+    }
+  ]
+}
