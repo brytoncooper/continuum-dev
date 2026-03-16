@@ -16,8 +16,20 @@ export const installOptions: DocsInstallOption[] = [
   {
     title: 'Starter Kit',
     description:
-      'Fastest path for teams that want opinionated primitives, proposal-friendly UI, and prompt helpers out of the box.',
+      'Fastest path for teams that want the slim rendering preset, styles, hooks, and session tooling.',
     command: 'npm install @continuum-dev/starter-kit react',
+  },
+  {
+    title: 'Starter Kit + AI',
+    description:
+      'Default AI facade for the common wrapper path: starter rendering, provider helpers, authoring engine, and Vercel bridge under one package name.',
+    command: 'npm install @continuum-dev/starter-kit-ai react',
+  },
+  {
+    title: 'AI Core',
+    description:
+      'Default headless AI facade for custom UI and orchestration: React bindings, session, engine, provider helpers, and Vercel transport under one package.',
+    command: 'npm install @continuum-dev/ai-core react',
   },
   {
     title: 'Headless React',
@@ -79,13 +91,28 @@ export const packageLinks: DocsLinkItem[] = [
   },
   {
     title: '@continuum-dev/starter-kit',
-    description: 'Opinionated primitives, proposal UI, and a ready-to-use component map.',
+    description: 'Slim preset layer with primitives, styles, hook re-exports, and session tooling.',
     href: repositoryFileUrl('packages/starter-kit/README.md'),
+  },
+  {
+    title: '@continuum-dev/starter-kit-ai',
+    description: 'Starter AI facade that re-exports the common wrapper path under one package name.',
+    href: repositoryFileUrl('packages/starter-kit-ai/README.md'),
+  },
+  {
+    title: '@continuum-dev/ai-core',
+    description: 'Headless AI facade that re-exports the custom UI and transport path under one package name.',
+    href: repositoryFileUrl('packages/ai-core/README.md'),
   },
   {
     title: '@continuum-dev/ai-connect',
     description: 'Headless provider clients and model catalogs for AI generation flows.',
     href: repositoryFileUrl('packages/ai-connect/README.md'),
+  },
+  {
+    title: '@continuum-dev/ai-engine',
+    description: 'Shared headless planning, authoring, parsing, normalization, and apply helpers.',
+    href: repositoryFileUrl('packages/ai-engine/README.md'),
   },
   {
     title: '@continuum-dev/prompts',

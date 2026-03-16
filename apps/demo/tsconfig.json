@@ -5,7 +5,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["es2022", "dom", "dom.iterable"],
-    "types": ["vite/client", "react", "react-dom", "node"],
+    "types": ["vite/client", "vitest/globals", "react", "react-dom", "node"],
     "composite": false,
     "declaration": false,
     "declarationMap": false,
@@ -24,10 +24,19 @@
       "path": "../../packages/session"
     },
     {
+      "path": "../../packages/starter-kit-ai"
+    },
+    {
       "path": "../../packages/starter-kit"
     },
     {
       "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/ai-engine"
+    },
+    {
+      "path": "../../packages/ai-connect"
     },
     {
       "path": "../../packages/contract"

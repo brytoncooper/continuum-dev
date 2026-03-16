@@ -3,20 +3,20 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ContinuumProvider,
   ContinuumRenderer,
+  createAiConnectProviders,
   getAiConnectModelCatalog,
   type AiConnectClient,
   type AiConnectModelOption,
+  type AiConnectProviderKind,
   type StarterKitCheckpointPreview,
-  StarterKitProviderChatBox,
-  StarterKitProviderComposer,
-  StarterKitSessionWorkbench,
   type StarterKitViewAuthoringFormat,
+  StarterKitProviderChatBox,
+  StarterKitSessionWorkbench,
   starterKitComponentMap,
-  type StarterKitProviderKey,
   useContinuumSession,
   useContinuumSnapshot,
-} from '@continuum-dev/starter-kit';
-import type { ViewDefinition } from '@continuum-dev/core';
+  type ViewDefinition,
+} from '@continuum-dev/starter-kit-ai';
 import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { repositoryUrl } from '../site-config';
 import { SiteNav } from '../ui/site-nav';
@@ -73,7 +73,7 @@ const liveView = {
 } satisfies ViewDefinition;
 
 const providerOptions: Array<{
-  key: StarterKitProviderKey;
+  key: AiConnectProviderKind;
   label: string;
   tokenLabel: string;
 }> = [
@@ -94,10 +94,10 @@ const providerOptions: Array<{
   },
 ];
 
-type ProviderValueMap = Record<StarterKitProviderKey, string>;
+type ProviderValueMap = Record<AiConnectProviderKind, string>;
 
 interface LiveAiStoredSettings {
-  provider?: StarterKitProviderKey;
+  provider?: AiConnectProviderKind;
   tokens?: Partial<ProviderValueMap>;
   models?: Partial<ProviderValueMap>;
   authoringFormat?: StarterKitViewAuthoringFormat;
@@ -460,7 +460,7 @@ function LiveStudio({
 
 export function LiveAiPage() {
   const stored = useMemo(() => readStoredSettings(), []);
-  const [provider, setProvider] = useState<StarterKitProviderKey>(
+  const [provider, setProvider] = useState<AiConnectProviderKind>(
     stored.provider ?? 'openai'
   );
   const [authoringFormat, setAuthoringFormat] =
@@ -515,7 +515,7 @@ export function LiveAiPage() {
     }
 
     if (provider === 'openai') {
-      return StarterKitProviderComposer({
+      return createAiConnectProviders({
         include: ['openai'],
         openai: {
           apiKey: token,
@@ -525,7 +525,7 @@ export function LiveAiPage() {
     }
 
     if (provider === 'anthropic') {
-      return StarterKitProviderComposer({
+      return createAiConnectProviders({
         include: ['anthropic'],
         anthropic: {
           apiKey: token,
@@ -535,7 +535,7 @@ export function LiveAiPage() {
       });
     }
 
-    return StarterKitProviderComposer({
+    return createAiConnectProviders({
       include: ['google'],
       google: {
         apiKey: token,
@@ -575,7 +575,7 @@ export function LiveAiPage() {
                 <select
                   value={provider}
                   onChange={(event) => {
-                    setProvider(event.target.value as StarterKitProviderKey);
+                    setProvider(event.target.value as AiConnectProviderKind);
                   }}
                   style={inputStyle}
                 >

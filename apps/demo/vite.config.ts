@@ -175,9 +175,17 @@ export default defineConfig({
         __dirname,
         '../../packages/ai-connect/src/index.ts'
       ),
+      '@continuum-dev/ai-engine': resolve(
+        __dirname,
+        '../../packages/ai-engine/src/index.ts'
+      ),
       '@continuum-dev/contract': resolve(
         __dirname,
         '../../packages/contract/src/index.ts'
+      ),
+      '@continuum-dev/protocol': resolve(
+        __dirname,
+        '../../packages/protocol/src/index.ts'
       ),
       '@continuum-dev/core': resolve(
         __dirname,
@@ -195,6 +203,10 @@ export default defineConfig({
         __dirname,
         '../../packages/runtime/src/validator.ts'
       ),
+      '@continuum-dev/runtime/state-ops': resolve(
+        __dirname,
+        '../../packages/runtime/src/lib/state-ops/index.ts'
+      ),
       '@continuum-dev/runtime': resolve(
         __dirname,
         '../../packages/runtime/src/index.ts'
@@ -206,6 +218,10 @@ export default defineConfig({
       '@continuum-dev/starter-kit': resolve(
         __dirname,
         '../../packages/starter-kit/src/index.ts'
+      ),
+      '@continuum-dev/starter-kit-ai': resolve(
+        __dirname,
+        '../../packages/starter-kit-ai/src/index.ts'
       ),
     },
     conditions: ['@continuum-dev/source'],

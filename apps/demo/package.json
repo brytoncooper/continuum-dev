@@ -5,8 +5,11 @@
   "type": "module",
   "dependencies": {
     "@continuum-dev/contract": "^0.3.0",
+    "@continuum-dev/ai-connect": "^0.3.0",
+    "@continuum-dev/ai-engine": "^0.3.0",
     "@continuum-dev/react": "^0.3.0",
     "@continuum-dev/starter-kit": "^0.3.0",
+    "@continuum-dev/starter-kit-ai": "^0.3.0",
     "@continuum-dev/session": "^0.3.0",
     "ai": "^6.0.116",
     "react": "^19.1.0",
@@ -22,6 +25,13 @@
       "scope:demo"
     ],
     "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/demo",
+          "command": "vitest"
+        }
+      },
       "typecheck": {
         "executor": "nx:run-commands",
         "options": {
