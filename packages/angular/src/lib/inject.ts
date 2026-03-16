@@ -1,9 +1,8 @@
 import { inject, computed, Signal } from '@angular/core';
-import type { Session } from '@continuum-dev/session';
+import type { Checkpoint, Session } from '@continuum-dev/session';
 import type {
   ContinuitySnapshot,
   NodeValue,
-  Checkpoint,
 } from '@continuum-dev/contract';
 import type {
   ReconciliationIssue,

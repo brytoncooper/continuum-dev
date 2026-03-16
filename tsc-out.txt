@@ -1,0 +1,2 @@
+﻿packages/session/src/lib/session/state/facade.ts(2,35): error TS2307: Cannot find module './types.js' or its corresponding type declarations.
+packages/session/src/lib/session/state/facade.ts(8,66): error TS6133: 'notifySnapshotListeners' is declared but its value is never read.

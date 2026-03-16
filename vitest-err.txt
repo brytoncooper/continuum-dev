@@ -1,0 +1,63 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.9 [39m[90mC:/Users/bryto/Documents/CooperContinuum[39m
+
+ [32m✓[39m packages/session/src/lib/session/state/session-state.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m packages/session/src/lib/session/state/checkpoint-manager.spec.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 11 [49m[22m[31m⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m packages/session/src/lib/session-hardening.spec.ts[2m [ packages/session/src/lib/session-hardening.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session.spec.ts[2m [ packages/session/src/lib/session.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/proposals.spec.ts[2m [ packages/session/src/lib/session/proposals.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/restore-reviews/restore-reviews.spec.ts[2m [ packages/session/src/lib/session/restore-reviews/restore-reviews.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/interactions/action-dispatch.spec.ts[2m [ packages/session/src/lib/session/interactions/action-dispatch.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/interactions/action-manager.spec.ts[2m [ packages/session/src/lib/session/interactions/action-manager.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/state/persistence.spec.ts[2m [ packages/session/src/lib/session/state/persistence.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/state/serializer.spec.ts[2m [ packages/session/src/lib/session/state/serializer.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/streams/streams.spec.ts[2m [ packages/session/src/lib/session/streams/streams.spec.ts ][22m
+[31m[1mError[22m: Failed to resolve entry for package "@continuum-dev/contract". The package may have incorrect main/module/exports specified in its package.json.[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mC:/Users/bryto/Documents/CooperContinuum/packages/session/src/lib/session-hardening.spec.ts[39m:1:34
+[33m  1  |  import { INTERACTION_TYPES } from "@continuum-dev/contract";
+     |                                     ^
+  2  |  import { describe, expect, it, vi } from "vitest";
+  3  |  import { createSession, deserialize } from "./session.js";[39m
+[90m [2m❯[22m packageEntryFailure node_modules/vite/dist/node/chunks/config.js:[2m32816:32[22m[39m
+[90m [2m❯[22m resolvePackageEntry node_modules/vite/dist/node/chunks/config.js:[2m32813:2[22m[39m
+[90m [2m❯[22m tryNodeResolve node_modules/vite/dist/node/chunks/config.js:[2m32716:70[22m[39m
+[90m [2m❯[22m ResolveIdContext.handler node_modules/vite/dist/node/chunks/config.js:[2m32555:16[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.resolveId node_modules/vite/dist/node/chunks/config.js:[2m28717:56[22m[39m
+[90m [2m❯[22m TransformPluginContext.resolve node_modules/vite/dist/node/chunks/config.js:[2m28929:13[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m27111:22[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m27177:32[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/interactions/event-log.spec.ts[2m [ packages/session/src/lib/session/interactions/event-log.spec.ts ][22m
+[41m[1m FAIL [22m[49m packages/session/src/lib/session/listeners/listeners.spec.ts[2m [ packages/session/src/lib/session/listeners/listeners.spec.ts ][22m
+[31m[1mError[22m: Failed to resolve entry for package "@continuum-dev/contract". The package may have incorrect main/module/exports specified in its package.json.[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mC:/Users/bryto/Documents/CooperContinuum/packages/session/src/lib/session/interactions/event-log.spec.ts[39m:4:28
+[33m  2  |  import { createEmptySessionState } from "../state/index.js";
+  3  |  import { recordIntent } from "./event-log.js";
+  4  |  import { ISSUE_CODES } from "@continuum-dev/contract";
+     |                               ^
+  5  |  function setupWithView(internal) {
+  6  |    internal.currentView = {[39m
+[90m [2m❯[22m packageEntryFailure node_modules/vite/dist/node/chunks/config.js:[2m32816:32[22m[39m
+[90m [2m❯[22m resolvePackageEntry node_modules/vite/dist/node/chunks/config.js:[2m32813:2[22m[39m
+[90m [2m❯[22m tryNodeResolve node_modules/vite/dist/node/chunks/config.js:[2m32716:70[22m[39m
+[90m [2m❯[22m ResolveIdContext.handler node_modules/vite/dist/node/chunks/config.js:[2m32555:16[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.resolveId node_modules/vite/dist/node/chunks/config.js:[2m28717:56[22m[39m
+[90m [2m❯[22m TransformPluginContext.resolve node_modules/vite/dist/node/chunks/config.js:[2m28929:13[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m27111:22[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m27177:32[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m11 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (13)[39m
+[2m      Tests [22m [1m[32m17 passed[39m[22m[90m (17)[39m
+[2m   Start at [22m 19:38:38
+[2m   Duration [22m 541ms[2m (transform 2.24s, setup 0ms, collect 446ms, tests 23ms, environment 2ms, prepare 119ms)[22m
+

@@ -1,9 +1,13 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/adapters',
   resolve: {
+    alias: {
+      '@continuum-dev/protocol': resolve(__dirname, '../protocol/src/index.ts'),
+    },
     conditions: ['@continuum-dev/source'],
   },
   ssr: {

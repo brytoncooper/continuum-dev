@@ -21,7 +21,13 @@ It does not try to become a provider-routing layer. Instead it gives you:
 ## Install
 
 ```bash
-npm install @continuum-dev/vercel-ai-sdk ai @ai-sdk/react react
+npm install @continuum-dev/vercel-ai-sdk react
+```
+
+If you want the curated headless Continuum lane under one package name instead, install:
+
+```bash
+npm install @continuum-dev/ai-core react
 ```
 
 ## What this package is for
