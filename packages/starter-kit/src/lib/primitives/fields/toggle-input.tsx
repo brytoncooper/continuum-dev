@@ -3,6 +3,7 @@ import type { ContinuumNodeProps } from '@continuum-dev/react';
 import type { CSSProperties } from 'react';
 import { color, control, radius, space, type } from '../../tokens.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
+import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
 const wrapStyle: CSSProperties = {
@@ -16,6 +17,13 @@ const controlWrapStyle: CSSProperties = {
   alignItems: 'center',
   gap: space.md,
   minHeight: control.height,
+};
+
+const labelLineStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: space.xs,
+  flexWrap: 'wrap',
 };
 
 const trackStyle = (checked: boolean): CSSProperties => ({
@@ -79,7 +87,14 @@ export function ToggleInput({
           />
         </span>
         <span style={{ display: 'grid', gap: space.xs }}>
-          {label ? <span style={{ ...type.section, color: color.text }}>{label}</span> : null}
+          {label ? (
+            <span style={labelLineStyle}>
+              <span style={{ ...type.section, color: color.text }}>{label}</span>
+              <StarterKitFieldRestoreBadge nodeId={nodeId} />
+            </span>
+          ) : (
+            <StarterKitFieldRestoreBadge nodeId={nodeId} />
+          )}
           {nodeDescription(definition) ? (
             <span style={{ ...type.small, color: color.textMuted }}>
               {nodeDescription(definition)}

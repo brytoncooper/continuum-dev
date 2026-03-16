@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { color, space, type } from '../../tokens.js';
 import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
+import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
 import { streamedNodeMotionStyle } from './motion.js';
 
 const wrapStyle: CSSProperties = {
@@ -14,6 +15,13 @@ const wrapStyle: CSSProperties = {
 const labelRowStyle: CSSProperties = {
   display: 'grid',
   gap: space.xs,
+};
+
+const labelLineStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: space.xs,
+  flexWrap: 'wrap',
 };
 
 const labelStyle: CSSProperties = {
@@ -78,7 +86,14 @@ export function FieldFrame({
             ...streamedNodeMotionStyle(nodeId, 'content'),
           }}
         >
-          {label ? <span style={labelStyle}>{label}</span> : null}
+          {label ? (
+            <div style={labelLineStyle}>
+              <span style={labelStyle}>{label}</span>
+              <StarterKitFieldRestoreBadge nodeId={nodeId} />
+            </div>
+          ) : nodeId ? (
+            <StarterKitFieldRestoreBadge nodeId={nodeId} />
+          ) : null}
           {description ? <span style={descriptionStyle}>{description}</span> : null}
         </div>
       ) : null}
