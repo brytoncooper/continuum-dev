@@ -1,5 +1,5 @@
 import type { SessionStream } from '../../types.js';
-import type { SessionState } from '../session-state.js';
+import type { SessionState } from '../state/index.js';
 import type { InternalSessionStreamState } from './types.js';
 
 export function getActiveForegroundStream(

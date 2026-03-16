@@ -7,10 +7,10 @@ import {
   buildCommittedSnapshotFromCurrentState,
   notifySnapshotAndIssueListeners,
   notifyStreamListeners,
-} from '../listeners.js';
-import { generateId } from '../session-state.js';
-import type { SessionState } from '../session-state.js';
-import { commitAppliedViewState } from '../view-pusher.js';
+} from '../listeners/index.js';
+import { generateId } from '../state/index.js';
+import type { SessionState } from '../state/index.js';
+import { commitAppliedViewState } from '../updates/index.js';
 import { storeRenderOnlyDetachedValues } from './detached-values.js';
 import { getOpenStreamForTargetViewId } from './helpers.js';
 import { applyPartToOpenStream } from './part-application.js';

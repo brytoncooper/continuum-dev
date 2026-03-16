@@ -5,8 +5,8 @@ import {
   classifyContinuumValueIngress,
   collectCanonicalNodeIds,
 } from '@continuum-dev/runtime';
-import type { SessionState } from '../session-state.js';
-import { reconcileViewUpdate } from '../view-pusher.js';
+import type { SessionState } from '../state/index.js';
+import { reconcileViewUpdate } from '../updates/index.js';
 import {
   appendUnknownNodeStreamIssue,
   resolveStreamNode,

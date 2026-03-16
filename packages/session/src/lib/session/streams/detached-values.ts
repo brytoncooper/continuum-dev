@@ -1,6 +1,6 @@
 import type { DataSnapshot, DetachedValue, ViewNode } from '@continuum-dev/contract';
 import { resolveNodeLookupEntry } from '../node-lookup.js';
-import type { SessionState } from '../session-state.js';
+import type { SessionState } from '../state/index.js';
 import type { InternalSessionStreamState } from './types.js';
 
 function getNodeLabel(node: ViewNode | null): string | undefined {

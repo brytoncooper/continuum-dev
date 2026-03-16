@@ -1,25 +1,80 @@
 import type {
   ContinuitySnapshot,
-  Interaction,
   DetachedValue,
-  DetachedValuePolicy,
-  ProposedValue,
   ViewportState,
-  PendingIntent,
-  Checkpoint,
   ViewDefinition,
   NodeValue,
-  ActionRegistration,
-  ActionHandler,
-  ActionResult,
 } from '@continuum-dev/contract';
 import type {
-  ContinuumViewStreamPart,
+  ActionHandler,
+  ActionRegistration,
+  ActionResult,
+  Checkpoint,
+  DetachedRestoreReview,
+  DetachedRestoreScope,
+  Interaction,
+  PendingIntent,
+  ProposedValue,
+  SessionStream,
+  SessionStreamPart,
+  SessionStreamResult,
+  SessionStreamStartOptions,
+  SessionViewApplyOptions,
+} from '@continuum-dev/protocol';
+export {
+  INTERACTION_TYPES,
+  INTENT_STATUS,
+  isInteractionType,
+  type ActionContext,
+  type ActionHandler,
+  type ActionRegistration,
+  type ActionResult,
+  type ActionSessionRef,
+  type Checkpoint,
+  type DetachedRestoreApproval,
+  type DetachedRestoreReview,
+  type DetachedRestoreReviewCandidate,
+  type DetachedRestoreScope,
+  type IntentStatus,
+  type Interaction,
+  type InteractionType,
+  type PendingIntent,
+  type ProposedValue,
+  type SessionStream,
+  type SessionStreamDiagnostics,
+  type SessionStreamMode,
+  type SessionStreamPart,
+  type SessionStreamResult,
+  type SessionStreamStartOptions,
+  type SessionStreamStatus,
+  type SessionStreamStatusLevel,
+  type SessionViewApplyOptions,
+} from '@continuum-dev/protocol';
+
+import type {
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResolution,
   StateDiff,
 } from '@continuum-dev/runtime';
+
+/**
+ * Optional limits for detached value retention.
+ */
+export interface DetachedValuePolicy {
+  /**
+   * Purge detached values older than this many milliseconds.
+   */
+  maxAge?: number;
+  /**
+   * Keep at most this many detached values, purging oldest first.
+   */
+  maxCount?: number;
+  /**
+   * Purge after this many pushView calls since detachment.
+   */
+  pushCount?: number;
+}
 
 /**
  * Minimal storage adapter used by session persistence.
@@ -120,90 +175,6 @@ export interface SessionOptions {
     string,
     { registration: ActionRegistration; handler: ActionHandler }
   >;
-}
-
-export interface SessionViewApplyOptions {
-  transient?: boolean;
-}
-
-export type SessionStreamMode = 'foreground' | 'draft';
-
-export type SessionStreamStatus =
-  | 'open'
-  | 'committed'
-  | 'aborted'
-  | 'stale'
-  | 'superseded';
-
-export type SessionStreamStatusLevel =
-  | 'info'
-  | 'success'
-  | 'warning'
-  | 'error';
-
-export interface SessionStreamStartOptions {
-  streamId?: string;
-  source?: string;
-  targetViewId: string;
-  baseViewVersion?: string | null;
-  mode?: SessionStreamMode;
-  supersede?: boolean;
-  initialView?: ViewDefinition;
-}
-
-export type SessionStreamPart =
-  | ContinuumViewStreamPart
-  | {
-      kind: 'state';
-      nodeId: string;
-      value: NodeValue;
-      source?: string;
-    }
-  | {
-      kind: 'status';
-      status: string;
-      level?: SessionStreamStatusLevel;
-    }
-  | {
-      kind: 'node-status';
-      nodeId: string;
-      status: string;
-      level?: SessionStreamStatusLevel;
-      subtree?: boolean;
-    };
-
-export interface SessionStream {
-  streamId: string;
-  source?: string;
-  targetViewId: string;
-  baseViewVersion: string | null;
-  mode: SessionStreamMode;
-  status: SessionStreamStatus;
-  startedAt: number;
-  updatedAt: number;
-  latestStatus?: {
-    status: string;
-    level: SessionStreamStatusLevel;
-  };
-  nodeStatuses: Record<
-    string,
-    {
-      status: string;
-      level: SessionStreamStatusLevel;
-      subtree?: boolean;
-    }
-  >;
-  previewData: ContinuitySnapshot['data'] | null;
-  previewView: ViewDefinition | null;
-  viewVersion?: string | null;
-  affectedNodeIds: string[];
-  partCount: number;
-}
-
-export interface SessionStreamResult {
-  streamId: string;
-  status: Exclude<SessionStreamStatus, 'open'>;
-  reason?: string;
 }
 
 /**
@@ -417,6 +388,34 @@ export interface Session {
       'intentId' | 'queuedAt' | 'status' | 'viewVersion'
     >
   ): Promise<ActionResult>;
+  /**
+   * Returns current pending restore reviews.
+   */
+  getPendingRestoreReviews(): DetachedRestoreReview[];
+  /**
+   * Accepts a fuzzy restore candidate for a detached key in a specific scope.
+   */
+  acceptRestoreCandidate(
+    detachedKey: string,
+    targetNodeId: string,
+    scope: DetachedRestoreScope
+  ): void;
+  /**
+   * Rejects a fuzzy restore review for a detached key in a specific scope.
+   */
+  rejectRestoreReview(detachedKey: string, scope: DetachedRestoreScope): void;
+  /**
+   * Clears all approved restore targets associated with a given scope.
+   */
+  clearApprovedRestoreTargetsForScope(scope: DetachedRestoreScope): void;
+  /**
+   * Updates state targeting either the live session or a draft stream.
+   */
+  updateStateInScope(
+    nodeId: string,
+    value: NodeValue,
+    scope: DetachedRestoreScope
+  ): void;
 }
 
 /**

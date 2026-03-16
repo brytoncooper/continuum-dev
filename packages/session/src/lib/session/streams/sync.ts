@@ -6,8 +6,8 @@ import {
 import {
   notifySnapshotAndIssueListeners,
   notifyStreamListeners,
-} from '../listeners.js';
-import type { SessionState } from '../session-state.js';
+} from '../listeners/index.js';
+import type { SessionState } from '../state/index.js';
 import { getActiveForegroundStream } from './state.js';
 import {
   resolveCommittedNode,
