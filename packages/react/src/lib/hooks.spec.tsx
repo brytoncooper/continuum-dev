@@ -3,6 +3,8 @@ import { render, act } from '@testing-library/react';
 import React from 'react';
 import {
   NodeStateScopeContext,
+  useContinuumRestoreCandidates,
+  useContinuumRestoreReviews,
   useContinuumSuggestions,
   useContinuumSession,
   useContinuumState,
@@ -16,7 +18,10 @@ import {
   useContinuumHydrated,
   useContinuumConflict,
 } from './hooks.js';
-import { ContinuumProvider } from './context.js';
+import {
+  ContinuumProvider,
+  ContinuumRenderScopeContext,
+} from './context.js';
 import type {
   NodeValue,
   ViewDefinition,
@@ -2152,5 +2157,137 @@ describe('useContinuumConflict', () => {
     });
 
     expect(requireSession(conflictResult).proposal).toBe(firstProposal);
+  });
+});
+
+describe('restore review hooks', () => {
+  const componentMap = { field: () => <div />, group: () => <div /> };
+
+  it('returns empty restore state outside a provider', () => {
+    let reviews: ReturnType<typeof useContinuumRestoreReviews> = [];
+    let candidates: ReturnType<typeof useContinuumRestoreCandidates> = [];
+
+    function Orphan() {
+      reviews = useContinuumRestoreReviews();
+      candidates = useContinuumRestoreCandidates('email');
+      return null;
+    }
+
+    render(<Orphan />);
+
+    expect(reviews).toEqual([]);
+    expect(candidates).toEqual([]);
+  });
+
+  it('returns draft-scoped candidates only for the active render scope', () => {
+    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+    let liveCandidates: ReturnType<typeof useContinuumRestoreCandidates> = [];
+    let draftCandidates: ReturnType<typeof useContinuumRestoreCandidates> = [];
+    let reviews: ReturnType<typeof useContinuumRestoreReviews> = [];
+
+    function LiveScope() {
+      liveCandidates = useContinuumRestoreCandidates('profile/secondary_email');
+      return null;
+    }
+
+    function DraftScope({ streamId }: { streamId: string }) {
+      draftCandidates = useContinuumRestoreCandidates('profile/secondary_email');
+      return (
+        <div data-testid="draft-scope" data-stream-id={streamId}>
+          draft
+        </div>
+      );
+    }
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      reviews = useContinuumRestoreReviews();
+
+      if (!session.getSnapshot()) {
+        session.pushView({
+          viewId: 'profile',
+          version: '1',
+          nodes: [
+            {
+              id: 'profile',
+              type: 'group',
+              children: [
+                {
+                  id: 'email',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'person.email',
+                  semanticKey: 'person.email',
+                  label: 'Email',
+                },
+              ],
+            },
+          ],
+        });
+      }
+
+      const draftReview = reviews.find((review) => review.scope.kind === 'draft');
+      return (
+        <>
+          <ContinuumRenderScopeContext.Provider value={{ kind: 'live' }}>
+            <LiveScope />
+          </ContinuumRenderScopeContext.Provider>
+          {draftReview?.scope.kind === 'draft' ? (
+            <ContinuumRenderScopeContext.Provider value={draftReview.scope}>
+              <DraftScope streamId={draftReview.scope.streamId} />
+            </ContinuumRenderScopeContext.Provider>
+          ) : null}
+        </>
+      );
+    }
+
+    render(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    act(() => {
+      const session = requireSession(capturedSession);
+      session.updateState('profile/email', {
+        value: 'user@example.com',
+        isDirty: true,
+      });
+      const draft = session.beginStream({
+        targetViewId: 'profile',
+        mode: 'draft',
+      });
+      session.applyStreamPart(draft.streamId, {
+        kind: 'view',
+        view: {
+          viewId: 'profile',
+          version: '2',
+          nodes: [
+            {
+              id: 'profile',
+              type: 'group',
+              children: [
+                {
+                  id: 'secondary_email',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'person.secondaryEmail',
+                  label: 'Secondary email',
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    expect(reviews).toHaveLength(1);
+    expect(liveCandidates).toEqual([]);
+    expect(draftCandidates).toEqual([
+      expect.objectContaining({
+        targetNodeId: 'profile/secondary_email',
+      }),
+    ]);
   });
 });

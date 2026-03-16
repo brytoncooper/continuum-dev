@@ -1,0 +1,8 @@
+﻿src/lib/hooks.ts(12,3): error TS2724: '"@continuum-dev/core"' has no exported member named 'DetachedRestoreCandidate'. Did you mean 'DetachedRestoreReviewCandidate'?
+src/lib/hooks.ts(586,33): error TS2339: Property 'getPendingRestoreReviews' does not exist on type 'Session'.
+src/lib/hooks.ts(625,8): error TS2339: Property 'getPendingRestoreReviews' does not exist on type 'Session'.
+src/lib/hooks.ts(627,10): error TS7006: Parameter 'review' implicitly has an 'any' type.
+src/lib/hooks.ts(631,17): error TS7006: Parameter 'review' implicitly has an 'any' type.
+src/lib/hooks.ts(632,35): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/lib/renderer.tsx(701,23): error TS2339: Property 'updateStateInScope' does not exist on type 'Session'.
+src/lib/renderer.tsx(711,21): error TS2339: Property 'updateStateInScope' does not exist on type 'Session'.
