@@ -1,4 +1,4 @@
-import { VIEW_DIFFS } from '@continuum-dev/contract';
+import { VIEW_DIFFS } from '@continuum-dev/protocol';
 import type { StateDiff } from '../../types.js';
 
 export function addedDiff(nodeId: string): StateDiff {

@@ -1,4 +1,4 @@
-import { DATA_RESOLUTIONS } from '@continuum-dev/contract';
+import { DATA_RESOLUTIONS } from '@continuum-dev/protocol';
 import type {
   DetachedValue,
   NodeValue,

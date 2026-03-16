@@ -4,16 +4,15 @@ import type {
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/contract';
-import type {
-  ContinuumViewPatch,
-  ContinuumViewPatchPosition,
-} from '../view-patch.js';
+import type { ContinuumViewStreamPart } from '@continuum-dev/protocol';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
   ReconciliationResolution,
   StateDiff,
 } from '../types.js';
+
+export type { ContinuumViewStreamPart } from '@continuum-dev/protocol';
 
 export interface RuntimeNodeLookupEntry {
   canonicalId: string;
@@ -118,48 +117,6 @@ export type ApplyContinuumViewportStateResult =
       node: ViewNode;
       data: DataSnapshot;
       issues: ReconciliationIssue[];
-    };
-
-export type ContinuumViewStreamPart =
-  | {
-      kind: 'view';
-      view: ViewDefinition;
-    }
-  | {
-      kind: 'patch';
-      patch: ContinuumViewPatch;
-    }
-  | {
-      kind: 'insert-node';
-      parentId?: string | null;
-      position?: ContinuumViewPatchPosition;
-      node: ViewNode;
-    }
-  | {
-      kind: 'move-node';
-      nodeId: string;
-      parentId?: string | null;
-      position?: ContinuumViewPatchPosition;
-    }
-  | {
-      kind: 'wrap-nodes';
-      parentId?: string | null;
-      nodeIds: string[];
-      wrapper: ViewNode;
-    }
-  | {
-      kind: 'replace-node';
-      nodeId: string;
-      node: ViewNode;
-    }
-  | {
-      kind: 'remove-node';
-      nodeId: string;
-    }
-  | {
-      kind: 'append-content';
-      nodeId: string;
-      text: string;
     };
 
 export interface ApplyContinuumViewStreamPartInput {

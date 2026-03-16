@@ -36,6 +36,12 @@
       "types": "./validator.d.ts",
       "import": "./validator.js",
       "default": "./validator.js"
+    },
+    "./state-ops": {
+      "@continuum-dev/source": "./src/lib/state-ops/index.ts",
+      "types": "./state-ops.d.ts",
+      "import": "./state-ops.js",
+      "default": "./state-ops.js"
     }
   },
   "files": [
@@ -46,7 +52,8 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.3.0"
+    "@continuum-dev/contract": "^0.3.0",
+    "@continuum-dev/protocol": "^0.3.0"
   },
   "nx": {
     "tags": [

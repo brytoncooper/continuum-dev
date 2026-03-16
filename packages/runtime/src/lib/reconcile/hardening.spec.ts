@@ -3,7 +3,7 @@ import type {
   ViewNode,
   DataSnapshot,
 } from '@continuum-dev/contract';
-import { ISSUE_CODES } from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { describe, expect, it } from 'vitest';
 import {
   buildPriorValueLookupByIdAndKey,

@@ -4,7 +4,7 @@ import type {
   DataSnapshot,
   NodeValue,
 } from '@continuum-dev/contract';
-import { ISSUE_CODES } from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/protocol';
 import {
   makeNode,
   makeView,

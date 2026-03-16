@@ -1,5 +1,5 @@
 import type { CollectionNode, NodeValue } from '@continuum-dev/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import { attemptMigration } from '../migrator/index.js';
 import { applyItemConstraints } from './constraints.js';
 import {

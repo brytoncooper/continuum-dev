@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ISSUE_CODES, type ViewNode } from '@continuum-dev/contract';
+import type { ViewNode } from '@continuum-dev/contract';
+import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { traverseViewNodes } from './view-traversal/index.js';
 
 function makeField(id: string): ViewNode {

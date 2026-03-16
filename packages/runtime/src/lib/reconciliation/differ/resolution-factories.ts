@@ -1,4 +1,4 @@
-import { DATA_RESOLUTIONS } from '@continuum-dev/contract';
+import { DATA_RESOLUTIONS } from '@continuum-dev/protocol';
 import type { ReconciliationResolution } from '../../types.js';
 import type {
   CarriedResolutionInput,

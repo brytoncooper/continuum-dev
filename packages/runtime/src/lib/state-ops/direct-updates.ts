@@ -1,10 +1,9 @@
 import {
-  ISSUE_CODES,
-  ISSUE_SEVERITY,
   type DataSnapshot,
   type NodeValue,
   type ViewDefinition,
 } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import { validateNodeValue } from '../validator/index.js';
 import { resolveNodeLookupEntry } from './node-lookup.js';
 import type {

@@ -1,5 +1,5 @@
 import type { NodeValue } from '@continuum-dev/contract';
-import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/contract';
+import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import { detachedResolution, typeChangedDiff } from '../differ/index.js';
 import { createDetachedValue } from './detached-values.js';
 import type { ResolveTypeMismatchedNodeInput } from './types.js';
