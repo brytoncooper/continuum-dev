@@ -7,7 +7,7 @@ import {
   getAvailableContinuumExecutionModes as getSharedContinuumExecutionModes,
   normalizeContinuumSemanticIdentity,
   resolveContinuumExecutionPlan as resolveSharedContinuumExecutionPlan,
-} from '../../packages/starter-kit/src/lib/ai/continuum-execution.mjs';
+} from '@continuum-dev/ai-engine/continuum-execution';
 
 export const VERCEL_AI_SDK_DEMO_PATH = '/api/vercel-ai-sdk/demo';
 export const VERCEL_AI_SDK_LEGACY_DEMO_PATH = '/api/vercel-ai-sdk-demo';
