@@ -1,0 +1,44 @@
+﻿src/lib/session/restore-reviews/apply.ts(24,23): error TS18047: 'args.scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/candidates.ts(1,10): error TS2305: Module '"@continuum-dev/runtime"' has no exported member 'findRestoreCandidates'.
+src/lib/session/restore-reviews/candidates.ts(3,3): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReviewCandidate'.
+src/lib/session/restore-reviews/candidates.ts(7,26): error TS2307: Cannot find module '../../streams/helpers.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/candidates.ts(36,23): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/lib/session/restore-reviews/orchestrate.ts(1,15): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReview'.
+src/lib/session/restore-reviews/orchestrate.ts(4,26): error TS2307: Cannot find module '../../restore-review-types.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/orchestrate.ts(32,28): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/orchestrate.ts(36,33): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(63,20): error TS2339: Property 'rejectedRestoreReviews' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(94,25): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/orchestrate.ts(118,12): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(119,19): error TS2339: Property 'rejectedRestoreReviews' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(139,21): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(159,25): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/orchestrate.ts(170,12): error TS2339: Property 'rejectedRestoreReviews' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(176,19): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(186,57): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/orchestrate.ts(187,18): error TS18046: 'approval' is of type 'unknown'.
+src/lib/session/restore-reviews/orchestrate.ts(188,23): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/replay.ts(1,30): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReviewCandidate'.
+src/lib/session/restore-reviews/replay.ts(3,10): error TS2305: Module '"@continuum-dev/runtime"' has no exported member 'findNodeByIdentity'.
+src/lib/session/restore-reviews/replay.ts(4,26): error TS2307: Cannot find module '../../restore-review-types.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/replay.ts(63,5): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/replay.ts(64,8): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/replay.ts(92,49): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/replay.ts(97,9): error TS18046: 'approval' is of type 'unknown'.
+src/lib/session/restore-reviews/replay.ts(98,9): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'InternalApprovedRestoreTarget'.
+src/lib/session/restore-reviews/replay.ts(129,49): error TS2339: Property 'approvedRestoreTargets' does not exist on type 'SessionState'.
+src/lib/session/restore-reviews/replay.ts(134,9): error TS18046: 'approval' is of type 'unknown'.
+src/lib/session/restore-reviews/replay.ts(135,9): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'InternalApprovedRestoreTarget'.
+src/lib/session/restore-reviews/scopes.ts(74,3): error TS2322: Type 'string' is not assignable to type 'number'.
+src/lib/session/restore-reviews/state-utils.ts(18,12): error TS2352: Conversion of type 'Record<string, unknown>' to type 'NodeValue<unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'value' is missing in type 'Record<string, unknown>' but required in type 'NodeValue<unknown>'.
+src/lib/session/restore-reviews/state-utils.ts(30,26): error TS18047: 'data' is possibly 'null'.
+src/lib/session/restore-reviews/state-utils.ts(39,5): error TS2322: Type '{ values?: Record<string, NodeValue<unknown>> | undefined; viewContext?: Record<string, ViewportState>; lineage?: SnapshotLineage | undefined; valueLineage?: Record<string, ValueLineage>; detachedValues?: Record<string, DetachedValue>; }' is not assignable to type 'DataSnapshot'.
+  Types of property 'values' are incompatible.
+    Type 'Record<string, NodeValue<unknown>> | undefined' is not assignable to type 'Record<string, NodeValue<unknown>>'.
+      Type 'undefined' is not assignable to type 'Record<string, NodeValue<unknown>>'.
+src/lib/session/restore-reviews/state-utils.ts(41,3): error TS2322: Type '{ detachedValues: { [x: string]: DetachedValue; }; values?: Record<string, NodeValue<unknown>> | undefined; viewContext?: Record<string, ViewportState>; lineage?: SnapshotLineage | undefined; valueLineage?: Record<string, ValueLineage>; }' is not assignable to type 'DataSnapshot'.
+  Types of property 'values' are incompatible.
+    Type 'Record<string, NodeValue<unknown>> | undefined' is not assignable to type 'Record<string, NodeValue<unknown>>'.
+      Type 'undefined' is not assignable to type 'Record<string, NodeValue<unknown>>'.
+src/lib/session/restore-reviews/types.ts(1,30): error TS6196: 'ViewNode' is declared but never used.

@@ -1,4 +1,4 @@
-import { INTERACTION_TYPES } from '@continuum-dev/contract';
+import { INTERACTION_TYPES } from '@continuum-dev/protocol';
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createSession, deserialize } from './session.js';

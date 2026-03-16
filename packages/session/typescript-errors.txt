@@ -1,0 +1,18 @@
+﻿src/lib/session/restore-reviews/apply.ts(24,23): error TS18047: 'args.scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/candidates.ts(1,10): error TS2305: Module '"@continuum-dev/runtime"' has no exported member 'findRestoreCandidates'.
+src/lib/session/restore-reviews/candidates.ts(3,3): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReviewCandidate'.
+src/lib/session/restore-reviews/candidates.ts(7,26): error TS2307: Cannot find module '../../streams/helpers.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/candidates.ts(36,23): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/lib/session/restore-reviews/orchestrate.ts(1,15): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReview'.
+src/lib/session/restore-reviews/orchestrate.ts(4,26): error TS2307: Cannot find module '../../streams/helpers.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/orchestrate.ts(95,25): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/orchestrate.ts(160,25): error TS18047: 'scopeSnapshot.data' is possibly 'null'.
+src/lib/session/restore-reviews/replay.ts(1,30): error TS2305: Module '"@continuum-dev/contract"' has no exported member 'DetachedRestoreReviewCandidate'.
+src/lib/session/restore-reviews/replay.ts(3,10): error TS2305: Module '"@continuum-dev/runtime"' has no exported member 'findNodeByIdentity'.
+src/lib/session/restore-reviews/replay.ts(4,26): error TS2307: Cannot find module '../../streams/helpers.js' or its corresponding type declarations.
+src/lib/session/restore-reviews/scopes.ts(74,3): error TS2322: Type 'string' is not assignable to type 'number'.
+src/lib/session/restore-reviews/state-utils.ts(1,15): error TS6196: 'DetachedValue' is declared but never used.
+src/lib/session/restore-reviews/state-utils.ts(18,12): error TS2352: Conversion of type 'Record<string, unknown>' to type 'NodeValue<unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'value' is missing in type 'Record<string, unknown>' but required in type 'NodeValue<unknown>'.
+src/lib/session/restore-reviews/types.ts(1,30): error TS6196: 'ViewNode' is declared but never used.
+src/lib/session/state/serializer.ts(180,3): error TS2739: Type '{ sessionId: string; clock: () => number; maxEventLogSize: number; maxPendingIntents: number; maxCheckpoints: number; reconciliationOptions: { allowBlindCarry: boolean | undefined; allowPartialRestore: boolean | undefined; }; ... 18 more ...; destroyed: false; }' is missing the following properties from type 'SessionState': approvedRestoreTargets, rejectedRestoreReviews
