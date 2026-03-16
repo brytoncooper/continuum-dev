@@ -3,6 +3,7 @@ import type {
   CollectionNode,
   CollectionNodeState,
   ContinuitySnapshot,
+  DetachedRestoreScope,
   SessionStream,
   NodeValue,
   ViewDefinition,
@@ -11,6 +12,7 @@ import type {
 import { getChildNodes } from '@continuum-dev/core';
 import {
   ContinuumContext,
+  ContinuumRenderScopeContext,
   ContinuumRenderSnapshotContext,
 } from './context.js';
 import { NodeStateScopeContext, useContinuumState, useContinuumStreaming } from './hooks.js';
@@ -22,6 +24,7 @@ import type {
 } from './types.js';
 
 const noopOnChange = () => undefined;
+const LIVE_RENDER_SCOPE: DetachedRestoreScope = { kind: 'live' };
 
 function deepCloneValues(
   values: Record<string, NodeValue>
@@ -657,9 +660,11 @@ const NodeRenderer = memo(function NodeRenderer({
 export function ContinuumRenderer({
   view,
   snapshotOverride = null,
+  renderScope,
 }: {
   view: ViewDefinition;
   snapshotOverride?: ContinuitySnapshot | null;
+  renderScope?: DetachedRestoreScope | null;
 }) {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
@@ -668,9 +673,34 @@ export function ContinuumRenderer({
     );
   }
 
+  const resolvedRenderScope =
+    renderScope === undefined || renderScope === null ? LIVE_RENDER_SCOPE : renderScope;
+
   const rootScope = useMemo(() => {
     if (!snapshotOverride) {
       return null;
+    }
+
+    if (resolvedRenderScope?.kind === 'draft') {
+      const readDraftSnapshot = () =>
+        ctx.store
+          .getStreams()
+          .find(
+            (stream) =>
+              stream.streamId === resolvedRenderScope.streamId &&
+              stream.status === 'open' &&
+              stream.mode === 'draft'
+          )?.previewData ?? snapshotOverride.data;
+
+      return {
+        subscribeNode: (_nodeId: string, listener: () => void) =>
+          ctx.store.subscribeStreams(listener),
+        getNodeValue: (nodeId: string) =>
+          readDraftSnapshot().values?.[nodeId] as NodeValue | undefined,
+        setNodeValue: (nodeId: string, value: NodeValue) => {
+          ctx.session.updateStateInScope(nodeId, value, resolvedRenderScope);
+        },
+      };
     }
 
     return {
@@ -678,10 +708,10 @@ export function ContinuumRenderer({
       getNodeValue: (nodeId: string) =>
         snapshotOverride.data.values?.[nodeId] as NodeValue | undefined,
       setNodeValue: (nodeId: string, value: NodeValue) => {
-        ctx.session.updateState(nodeId, value);
+        ctx.session.updateStateInScope(nodeId, value, resolvedRenderScope);
       },
     };
-  }, [ctx.session, snapshotOverride]);
+  }, [ctx.session, ctx.store, resolvedRenderScope, snapshotOverride]);
 
   const renderedNodes = (
     <>
@@ -690,16 +720,17 @@ export function ContinuumRenderer({
       ))}
     </>
   );
-
   return (
     <ContinuumRenderSnapshotContext.Provider value={snapshotOverride}>
-      {rootScope ? (
-        <NodeStateScopeContext.Provider value={rootScope}>
-          {renderedNodes}
-        </NodeStateScopeContext.Provider>
-      ) : (
-        renderedNodes
-      )}
+      <ContinuumRenderScopeContext.Provider value={resolvedRenderScope}>
+        {rootScope ? (
+          <NodeStateScopeContext.Provider value={rootScope}>
+            {renderedNodes}
+          </NodeStateScopeContext.Provider>
+        ) : (
+          renderedNodes
+        )}
+      </ContinuumRenderScopeContext.Provider>
     </ContinuumRenderSnapshotContext.Provider>
   );
 }

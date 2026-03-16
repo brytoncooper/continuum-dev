@@ -9,13 +9,22 @@ import {
 import type {
   ActionResult,
   ContinuitySnapshot,
+  DetachedRestoreReviewCandidate,
+  DetachedRestoreReview,
+  DetachedRestoreScope,
   NodeValue,
   ProposedValue,
   SessionStream,
   Session,
   ViewportState,
 } from '@continuum-dev/core';
-import { ContinuumContext } from './context.js';
+import {
+  ContinuumContext,
+  ContinuumRenderScopeContext,
+} from './context.js';
+
+const EMPTY_RESTORE_REVIEWS: DetachedRestoreReview[] = [];
+const EMPTY_RESTORE_CANDIDATES: DetachedRestoreReviewCandidate[] = [];
 
 function shallowArrayEqual<T>(left: T[], right: T[]): boolean {
   if (left.length !== right.length) {
@@ -69,6 +78,72 @@ function shallowViewportEqual(
     left.isExpanded === right.isExpanded &&
     left.isFocused === right.isFocused
   );
+}
+
+function areRestoreScopesEqual(
+  left: DetachedRestoreScope | null,
+  right: DetachedRestoreScope | null
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.kind === right.kind &&
+    (left.kind === 'live' ||
+      ('streamId' in right && left.streamId === right.streamId))
+  );
+}
+
+function shallowRestoreCandidatesEqual(
+  left: DetachedRestoreReviewCandidate[],
+  right: DetachedRestoreReviewCandidate[]
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftCandidate = left[index];
+    const rightCandidate = right[index];
+    if (
+      leftCandidate.candidateId !== rightCandidate.candidateId ||
+      leftCandidate.score !== rightCandidate.score ||
+      !areRestoreScopesEqual(leftCandidate.scope, rightCandidate.scope)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function shallowRestoreReviewsEqual(
+  left: DetachedRestoreReview[],
+  right: DetachedRestoreReview[]
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftReview = left[index];
+    const rightReview = right[index];
+    if (
+      leftReview.reviewId !== rightReview.reviewId ||
+      leftReview.status !== rightReview.status ||
+      !areRestoreScopesEqual(leftReview.scope, rightReview.scope) ||
+      !shallowRestoreCandidatesEqual(leftReview.candidates, rightReview.candidates)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 interface NodeStateScope {
@@ -483,6 +558,91 @@ export function useContinuumConflict(nodeId: string): {
     accept,
     reject,
   };
+}
+
+/**
+ * Returns pending restore reviews for detached values in live and draft scopes.
+ */
+export function useContinuumRestoreReviews(): DetachedRestoreReview[] {
+  const ctx = useContext(ContinuumContext);
+  const session = ctx?.session;
+  const store = ctx?.store;
+  const reviewsCacheRef = useRef<DetachedRestoreReview[]>([]);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) =>
+      store ? store.subscribeSnapshot(onStoreChange) : () => undefined,
+    [store]
+  );
+
+  const getSnapshot = useCallback(() => {
+    if (!session) {
+      if (reviewsCacheRef.current !== EMPTY_RESTORE_REVIEWS) {
+        reviewsCacheRef.current = EMPTY_RESTORE_REVIEWS;
+      }
+      return reviewsCacheRef.current;
+    }
+
+    const nextReviews = session.getPendingRestoreReviews();
+    if (shallowRestoreReviewsEqual(reviewsCacheRef.current, nextReviews)) {
+      return reviewsCacheRef.current;
+    }
+
+    reviewsCacheRef.current = nextReviews;
+    return nextReviews;
+  }, [session]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/**
+ * Returns restore candidates for the current node in the active render scope.
+ */
+export function useContinuumRestoreCandidates(
+  nodeId: string
+): DetachedRestoreReviewCandidate[] {
+  const ctx = useContext(ContinuumContext);
+  const renderScope = useContext(ContinuumRenderScopeContext);
+  const session = ctx?.session;
+  const store = ctx?.store;
+  const candidatesCacheRef = useRef<DetachedRestoreReviewCandidate[]>([]);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void) =>
+      store ? store.subscribeSnapshot(onStoreChange) : () => undefined,
+    [store]
+  );
+
+  const getSnapshot = useCallback(() => {
+    if (!session || !renderScope) {
+      if (candidatesCacheRef.current !== EMPTY_RESTORE_CANDIDATES) {
+        candidatesCacheRef.current = EMPTY_RESTORE_CANDIDATES;
+      }
+      return candidatesCacheRef.current;
+    }
+
+    const nextCandidates = session
+      .getPendingRestoreReviews()
+      .filter(
+        (review) =>
+          review.status === 'candidates' &&
+          areRestoreScopesEqual(review.scope, renderScope)
+      )
+      .flatMap((review) =>
+        review.candidates.filter((candidate) => candidate.targetNodeId === nodeId)
+      );
+
+    if (
+      shallowRestoreCandidatesEqual(candidatesCacheRef.current, nextCandidates)
+    ) {
+      return candidatesCacheRef.current;
+    }
+
+    candidatesCacheRef.current = nextCandidates;
+    return nextCandidates;
+  }, [nodeId, renderScope, session]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 /**

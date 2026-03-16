@@ -3,6 +3,7 @@ import { hydrateOrCreate } from '@continuum-dev/core';
 import type {
   Session,
   ContinuitySnapshot,
+  DetachedRestoreScope,
   NodeValue,
   SessionStream,
   ViewportState,
@@ -221,6 +222,13 @@ export const ContinuumContext = createContext<ContinuumContextValue | null>(
  */
 export const ContinuumRenderSnapshotContext =
   createContext<ContinuitySnapshot | null>(null);
+
+/**
+ * Optional render-time scope used by restore review hooks to distinguish live
+ * rendering from a specific draft preview stream.
+ */
+export const ContinuumRenderScopeContext =
+  createContext<DetachedRestoreScope | null>(null);
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';
 
