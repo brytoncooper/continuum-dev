@@ -1,0 +1,57 @@
+{
+  "name": "@continuum-dev/ai-core",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Headless AI facade for Continuum with React bindings, session, engine, and transport primitives",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/ai-core"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "ai",
+    "headless",
+    "react",
+    "transport"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@continuum-dev/ai-connect": "^0.3.0",
+    "@continuum-dev/ai-engine": "^0.3.0",
+    "@continuum-dev/core": "^0.3.0",
+    "@continuum-dev/react": "^0.3.0",
+    "@continuum-dev/session": "^0.3.0",
+    "@continuum-dev/vercel-ai-sdk": "^0.3.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:ai-core"
+    ]
+  }
+}
