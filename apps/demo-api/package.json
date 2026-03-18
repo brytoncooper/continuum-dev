@@ -4,11 +4,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@continuum-dev/ai-engine": "^0.3.0",
     "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/openai": "^3.0.41",
-    "ai": "^6.0.116",
-    "zod": "^4.3.6"
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.3.0",
+    "ai": "^6.0.116"
   },
   "nx": {
     "tags": [
