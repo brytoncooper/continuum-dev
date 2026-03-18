@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import React, { useContext, useRef, useState } from 'react';
-import { ContinuumProvider, ContinuumContext } from './context.js';
-import type { ContinuumContextValue, ContinuumStore } from './context.js';
-import { useContinuumSession, useContinuumState } from './hooks.js';
+import { ContinuumProvider, ContinuumContext } from './index.js';
+import type { ContinuumContextValue, ContinuumStore } from './index.js';
+import { useContinuumSession, useContinuumState } from '../hooks/index.js';
 import type {
   ViewDefinition,
   NodeValue,

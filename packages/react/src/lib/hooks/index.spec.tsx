@@ -17,11 +17,11 @@ import {
   useContinuumAction,
   useContinuumHydrated,
   useContinuumConflict,
-} from './hooks.js';
+} from './index.js';
 import {
   ContinuumProvider,
   ContinuumRenderScopeContext,
-} from './context.js';
+} from '../context/index.js';
 import type {
   NodeValue,
   ViewDefinition,
