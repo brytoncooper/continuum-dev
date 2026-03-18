@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/vercel-ai-sdk-adapter",
+    "tsBuildInfoFile": "../../dist/packages/vercel-ai-sdk-adapter/tsconfig.lib.tsbuildinfo",
+    "types": ["node"],
+    "lib": ["es2022", "dom"],
+    "emitDeclarationOnly": false
+  },
+  "exclude": [
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    {
+      "path": "../prompts/tsconfig.lib.json"
+    },
+    {
+      "path": "../core/tsconfig.lib.json"
+    },
+    {
+      "path": "../ai-engine/tsconfig.lib.json"
+    }
+  ]
+}

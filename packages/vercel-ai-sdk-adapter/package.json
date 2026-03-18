@@ -1,0 +1,68 @@
+{
+  "name": "@continuum-dev/vercel-ai-sdk-adapter",
+  "version": "0.3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Continuum adapter for the Vercel AI SDK stream protocol",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/vercel-ai-sdk-adapter"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "ai",
+    "ai-sdk",
+    "vercel",
+    "streaming",
+    "session",
+    "reconciliation"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./server": {
+      "@continuum-dev/source": "./src/server.ts",
+      "types": "./server.d.ts",
+      "import": "./server.js",
+      "default": "./server.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@continuum-dev/ai-engine": "^0.3.0",
+    "@continuum-dev/core": "^0.3.0",
+    "@ai-sdk/react": "^3.0.118",
+    "ai": "^6.0.116",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0"
+  },
+  "nx": {
+    "tags": [
+      "scope:vercel-ai-sdk-adapter"
+    ]
+  }
+}
