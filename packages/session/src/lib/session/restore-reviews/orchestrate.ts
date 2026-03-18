@@ -25,6 +25,10 @@ import { syncCommittedValueToStreams } from '../streams/sync.js';
 export function getPendingRestoreReviews(
   internal: SessionState
 ): DetachedRestoreReview[] {
+  if (!internal.restoreReviewsEnabled) {
+    return [];
+  }
+
   const reviews: DetachedRestoreReview[] = [];
 
   for (const scopeSnapshot of collectScopeSnapshots(internal)) {

@@ -44,6 +44,7 @@ export function serializeSession(internal: SessionState): unknown {
       allowBlindCarry: internal.reconciliationOptions?.allowBlindCarry,
       allowPartialRestore: internal.reconciliationOptions?.allowPartialRestore,
       validateOnUpdate: internal.validateOnUpdate,
+      enableRestoreReviews: internal.restoreReviewsEnabled,
       stableViewVersion: internal.stableViewVersion,
     },
   });
@@ -65,6 +66,7 @@ interface SerializedSessionData {
     allowBlindCarry?: boolean;
     allowPartialRestore?: boolean;
     validateOnUpdate?: boolean;
+    enableRestoreReviews?: boolean;
     stableViewVersion?: string | null;
   };
 }
@@ -190,6 +192,7 @@ export function deserializeToState(
       allowPartialRestore: raw.settings?.allowPartialRestore,
     },
     validateOnUpdate: raw.settings?.validateOnUpdate ?? false,
+    restoreReviewsEnabled: raw.settings?.enableRestoreReviews ?? true,
     stableViewVersion:
       typeof raw.settings?.stableViewVersion === 'string'
         ? raw.settings.stableViewVersion

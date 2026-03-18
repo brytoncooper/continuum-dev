@@ -99,7 +99,7 @@ function assertNodeImportSmoke(tarballs) {
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
     run(
-      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/protocol\'); await import(\'@continuum-dev/core\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\'); await import(\'@continuum-dev/ai-connect\'); await import(\'@continuum-dev/ai-engine\'); await import(\'@continuum-dev/vercel-ai-sdk\'); await import(\'@continuum-dev/starter-kit\'); await import(\'@continuum-dev/starter-kit-ai\'); await import(\'@continuum-dev/ai-core\');"',
+      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/protocol\'); await import(\'@continuum-dev/core\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\'); await import(\'@continuum-dev/ai-connect\'); await import(\'@continuum-dev/ai-engine\'); await import(\'@continuum-dev/vercel-ai-sdk-adapter\'); await import(\'@continuum-dev/starter-kit\'); await import(\'@continuum-dev/starter-kit-ai\'); await import(\'@continuum-dev/ai-core\');"',
       tempRoot
     );
   } finally {

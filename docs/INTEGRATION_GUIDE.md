@@ -62,12 +62,11 @@ Use this when you want the wrapper experience, but you also want provider-backed
 ```tsx
 import {
   createAiConnectProviders,
-  getAiConnectModelCatalog,
   ContinuumProvider,
   ContinuumRenderer,
   StarterKitSessionWorkbench,
   StarterKitProviderChatBox,
-  type StarterKitViewAuthoringFormat,
+  type ContinuumViewAuthoringFormat,
   starterKitComponentMap,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit-ai';
@@ -83,8 +82,7 @@ const providers = createAiConnectProviders({
   },
 });
 
-const models = getAiConnectModelCatalog(providers);
-const authoringFormat: StarterKitViewAuthoringFormat = 'line-dsl';
+const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
 
 function Page() {
   const snapshot = useContinuumSnapshot();
@@ -99,7 +97,6 @@ export function App() {
     <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
       <StarterKitProviderChatBox
         providers={providers}
-        models={models}
         mode="evolve-view"
         authoringFormat={authoringFormat}
       />
@@ -155,6 +152,7 @@ Use this when you want to keep your own AI UI or server orchestration without ca
 ```tsx
 import { DefaultChatTransport } from 'ai';
 import {
+  buildContinuumVercelAiSdkRequestBody,
   useContinuumSession,
   useContinuumVercelAiSdkChat,
 } from '@continuum-dev/ai-core';
@@ -165,6 +163,11 @@ export function CustomChat() {
     session,
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      body: () =>
+        buildContinuumVercelAiSdkRequestBody({
+          currentView: session.getSnapshot()?.view ?? null,
+          currentData: session.getSnapshot()?.data.values ?? null,
+        }),
     }),
   });
 
@@ -178,11 +181,14 @@ export function CustomChat() {
 
 This facade keeps the raw lane on one package name, while the lower-level packages stay swappable underneath.
 
+For server routes, keep your existing AI SDK handler and compose Continuum into the UI stream with `writeContinuumExecutionToUiMessageWriter(...)` from `@continuum-dev/vercel-ai-sdk-adapter/server`.
+
 If you want explicit package-by-package control, this lane still maps to:
 
 - `@continuum-dev/react`, `@continuum-dev/core`, or `@continuum-dev/session`
 - `@continuum-dev/ai-engine`
-- `@continuum-dev/vercel-ai-sdk`
+- `@continuum-dev/vercel-ai-sdk-adapter`
+- `@continuum-dev/vercel-ai-sdk-adapter/server`
 - optionally `@continuum-dev/ai-connect`
 
 ## 2. Accepting views from a server or model

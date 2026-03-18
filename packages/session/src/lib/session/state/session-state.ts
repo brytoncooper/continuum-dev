@@ -36,6 +36,7 @@ export interface SessionState {
   reconciliationOptions?: Omit<ReconciliationOptions, 'clock'>;
   validateOnUpdate: boolean;
   detachedValuePolicy?: DetachedValuePolicy;
+  restoreReviewsEnabled: boolean;
   stableViewVersion: string | null;
   currentView: ViewDefinition | null;
   currentData: DataSnapshot | null;
@@ -80,6 +81,7 @@ export function createEmptySessionState(
     maxCheckpoints: 50,
     reconciliationOptions: undefined,
     validateOnUpdate: false,
+    restoreReviewsEnabled: true,
     stableViewVersion: null,
     currentView: null,
     currentData: null,
@@ -147,6 +149,7 @@ export function replaceInternalState(
   internal.checkpoints = next.checkpoints;
   internal.validateOnUpdate = next.validateOnUpdate;
   internal.reconciliationOptions = next.reconciliationOptions;
+  internal.restoreReviewsEnabled = next.restoreReviewsEnabled;
   internal.stableViewVersion = next.stableViewVersion;
   internal.streams = new Map();
   internal.activeForegroundStreamId = null;

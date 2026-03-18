@@ -75,7 +75,7 @@
                                                                            "@continuum-dev/ai-connect",
                                                                            "@continuum-dev/ai-core",
                                                                            "@continuum-dev/ai-engine",
-                                                                           "@continuum-dev/vercel-ai-sdk",
+                                                                           "@continuum-dev/vercel-ai-sdk-adapter",
                                                                            "@continuum-dev/core",
                                                                            "@continuum-dev/starter-kit",
                                                                            "@continuum-dev/starter-kit-ai"

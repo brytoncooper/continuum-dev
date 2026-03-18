@@ -33,7 +33,7 @@
       "path": "../ai-engine/tsconfig.lib.json"
     },
     {
-      "path": "../vercel-ai-sdk/tsconfig.lib.json"
+      "path": "../vercel-ai-sdk-adapter/tsconfig.lib.json"
     }
   ]
 }

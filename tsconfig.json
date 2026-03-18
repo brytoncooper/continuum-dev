@@ -40,7 +40,7 @@
       "path": "./packages/ai-engine"
     },
     {
-      "path": "./packages/vercel-ai-sdk"
+      "path": "./packages/vercel-ai-sdk-adapter"
     },
     {
       "path": "./packages/starter-kit-ai"

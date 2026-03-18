@@ -6,9 +6,9 @@ How to wire AI into Continuum with the new split architecture:
 - `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
 - `@continuum-dev/ai-connect` for provider factories and model catalogs
 - `@continuum-dev/starter-kit-ai` for optional thin chat wrappers
-- `@continuum-dev/vercel-ai-sdk` for typed transport and stream-part application
+- `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK adapter
 
-The goal of this split is simple: keep the starter preset easy to adopt while making the AI engine reusable outside the starter kit.
+The goal of this split is simple: keep the starter preset easy to adopt, keep the engine reusable outside the starter kit, and make the Vercel lane feel drop-in for existing `useChat` apps.
 
 ## The core principle
 
@@ -51,9 +51,15 @@ Use this package when you want the default starter AI facade. It re-exports the 
 
 Use this package when you want the default headless AI facade. It re-exports the common React, session, provider, engine, and transport pieces for custom UI and orchestration paths.
 
-### `@continuum-dev/vercel-ai-sdk`
+### `@continuum-dev/vercel-ai-sdk-adapter`
 
-Use this package when Vercel AI SDK is your transport layer. It should own stream and data-part bridging, not prompt policy or demo-specific planning.
+Use this package when Vercel AI SDK is your transport layer. It owns:
+
+- client-side session/message application
+- request-body helpers for `currentView` and `currentData`
+- server-side writer helpers that emit Continuum `data-*` parts into AI SDK UI streams
+
+It should not own prompt policy, repair policy, auth, storage, tools, or your main AI SDK route architecture.
 
 ## The preferred authoring formats
 
@@ -112,20 +118,24 @@ Patch mode exists to make safe incremental evolution easier:
 
 ```ts
 import {
-  runContinuumViewGeneration,
+  applyContinuumExecutionFinalResult,
+  buildContinuumExecutionContext,
   type ContinuumViewAuthoringFormat,
+  runContinuumExecution,
 } from '@continuum-dev/ai-engine';
+import { createAiConnectContinuumExecutionAdapter } from '@continuum-dev/ai-connect';
 
 const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
 
-const result = await runContinuumViewGeneration({
-  provider,
-  session,
+const result = await runContinuumExecution({
+  adapter: createAiConnectContinuumExecutionAdapter(provider),
+  context: buildContinuumExecutionContext(session),
   instruction: 'Refine the existing intake flow for mobile',
   mode: 'evolve-view',
   authoringFormat,
-  autoApplyView: true,
 });
+
+applyContinuumExecutionFinalResult(session, result);
 ```
 
 ## Provider-backed starter lane
@@ -194,6 +204,7 @@ Or drop lower and use the raw hook:
 ```tsx
 import { DefaultChatTransport } from 'ai';
 import {
+  buildContinuumVercelAiSdkRequestBody,
   useContinuumSession,
   useContinuumVercelAiSdkChat,
 } from '@continuum-dev/ai-core';
@@ -204,6 +215,11 @@ export function CustomChat() {
     session,
     transport: new DefaultChatTransport({
       api: '/api/chat',
+      body: () =>
+        buildContinuumVercelAiSdkRequestBody({
+          currentView: session.getSnapshot()?.view ?? null,
+          currentData: session.getSnapshot()?.data.values ?? null,
+        }),
     }),
   });
 
@@ -212,6 +228,48 @@ export function CustomChat() {
       Send prompt
     </button>
   );
+}
+```
+
+Composable server route:
+
+```ts
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  createVercelAiSdkContinuumExecutionAdapter,
+  writeContinuumExecutionToUiMessageWriter,
+} from '@continuum-dev/vercel-ai-sdk-adapter/server';
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const model = openai('gpt-5');
+  const result = streamText({
+    model,
+    messages: convertToModelMessages(body.messages),
+  });
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      writer.merge(result.toUIMessageStream());
+      await writeContinuumExecutionToUiMessageWriter({
+        writer,
+        adapter: createVercelAiSdkContinuumExecutionAdapter({ model }),
+        instruction: body.continuum?.instruction,
+        context: {
+          currentView: body.currentView,
+          currentData: body.currentData,
+        },
+      });
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
 }
 ```
 
@@ -270,6 +328,7 @@ Recommended policy:
 3. Put provider factories and model catalogs in `ai-connect`.
 4. Use `starter-kit-ai` only for thin UI wrappers.
 5. Keep Vercel AI SDK transport-only.
+   Continuum-specific request and writer helpers belong in `@continuum-dev/vercel-ai-sdk-adapter`.
 6. Patch when a local incremental change is safe.
 7. Only fall back to full regeneration when patching is unsafe or the workflow truly changes.
 8. Inspect issues and resolutions after every AI-generated apply.

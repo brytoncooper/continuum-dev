@@ -11,7 +11,7 @@ It re-exports the common headless AI surface from:
 - `@continuum-dev/session`
 - `@continuum-dev/ai-connect`
 - `@continuum-dev/ai-engine`
-- `@continuum-dev/vercel-ai-sdk`
+- `@continuum-dev/vercel-ai-sdk-adapter`
 
 ## Install
 
@@ -26,6 +26,6 @@ npm install @continuum-dev/ai-core react
 - core contracts and reconciliation helpers
 - provider factories and model catalog exports
 - headless authoring, planning, parsing, normalization, and apply helpers
-- Vercel AI SDK transport and typed stream-part exports
+- Vercel AI SDK adapter and typed stream-part exports
 
 This facade keeps the install and import surface small for custom UI and orchestration paths. If you want full package-by-package control, the lower-level packages remain available directly.

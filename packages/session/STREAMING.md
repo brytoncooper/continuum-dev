@@ -94,7 +94,7 @@ That lets renderers show building/ready/error states without changing the durabl
 
 Two ingestion paths are supported:
 
-1. Structured transport parts, for example `@continuum-dev/vercel-ai-sdk`
+1. Structured transport parts, for example `@continuum-dev/vercel-ai-sdk-adapter`
 2. Post-processed model text, normalized outside core into `SessionStreamPart[]`
 
 The core packages never parse raw model text themselves. They only consume deterministic normalized parts.

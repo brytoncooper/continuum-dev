@@ -5,7 +5,7 @@
   "scripts": {
     "demo": "nx run demo:serve",
     "demo:api": "nx run demo-api:dev",
-    "build:release-packages": "tsc --build packages/contract/tsconfig.lib.json packages/protocol/tsconfig.lib.json packages/runtime/tsconfig.lib.json packages/session/tsconfig.lib.json packages/core/tsconfig.lib.json packages/react/tsconfig.lib.json packages/prompts/tsconfig.lib.json packages/ai-connect/tsconfig.lib.json packages/ai-engine/tsconfig.lib.json packages/vercel-ai-sdk/tsconfig.lib.json packages/starter-kit/tsconfig.lib.json packages/starter-kit-ai/tsconfig.lib.json packages/ai-core/tsconfig.lib.json",
+    "build:release-packages": "tsc --build packages/contract/tsconfig.lib.json packages/protocol/tsconfig.lib.json packages/runtime/tsconfig.lib.json packages/session/tsconfig.lib.json packages/core/tsconfig.lib.json packages/react/tsconfig.lib.json packages/prompts/tsconfig.lib.json packages/ai-connect/tsconfig.lib.json packages/ai-engine/tsconfig.lib.json packages/vercel-ai-sdk-adapter/tsconfig.lib.json packages/starter-kit/tsconfig.lib.json packages/starter-kit-ai/tsconfig.lib.json packages/ai-core/tsconfig.lib.json",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
     "verify:release-packages": "node scripts/verify-release-packages.mjs",
     "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages"

@@ -109,14 +109,14 @@ export default [
                 'scope:react',
                 'scope:ai-connect',
                 'scope:ai-engine',
-                'scope:vercel-ai-sdk',
+                'scope:vercel-ai-sdk-adapter',
                 'scope:starter-kit',
                 'scope:starter-kit-ai',
               ],
             },
             {
-              sourceTag: 'scope:vercel-ai-sdk',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:vercel-ai-sdk'],
+              sourceTag: 'scope:vercel-ai-sdk-adapter',
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:vercel-ai-sdk-adapter'],
             },
             {
               sourceTag: 'scope:playground',

@@ -47,7 +47,7 @@
     "@continuum-dev/core": "^0.3.0",
     "@continuum-dev/react": "^0.3.0",
     "@continuum-dev/session": "^0.3.0",
-    "@continuum-dev/vercel-ai-sdk": "^0.3.0"
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.3.0"
   },
   "nx": {
     "tags": [

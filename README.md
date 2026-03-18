@@ -143,7 +143,7 @@ npm install @continuum-dev/starter-kit-ai react
 ```
 
 - `@continuum-dev/starter-kit-ai` is the stable facade package for the starter AI lane
-- underneath it composes `starter-kit`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk`
+- underneath it composes `starter-kit`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk-adapter`
 - if you outgrow the facade, those lower-level packages stay available directly
 
 ### 3. Headless AI facade
@@ -155,7 +155,7 @@ npm install @continuum-dev/ai-core react
 ```
 
 - `@continuum-dev/ai-core` is the stable facade package for the raw continuity plus transport lane
-- underneath it re-exports `react`, `core`, `session`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk`
+- underneath it re-exports `react`, `core`, `session`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk-adapter`
 - if you want explicit package-by-package control, those lower-level packages still stay available directly
 
 ## What Continuum gives you
@@ -203,11 +203,11 @@ Action nodes trigger registered handlers by `intentId`. Handlers receive the cur
 | `@continuum-dev/core` | Thin facade over contract, runtime, and session | Published |
 | `@continuum-dev/react` | Headless React bindings | Published |
 | `@continuum-dev/starter-kit` | Slim preset layer: default component map, primitives, styles, React hook re-exports, and session tooling | Published |
-| `@continuum-dev/starter-kit-ai` | Default starter AI facade over starter-kit, ai-engine, ai-connect, and vercel-ai-sdk | New |
-| `@continuum-dev/ai-core` | Headless AI facade over react, core, session, ai-connect, ai-engine, and vercel-ai-sdk | New |
+| `@continuum-dev/starter-kit-ai` | Default starter AI facade over starter-kit, ai-engine, ai-connect, and vercel-ai-sdk-adapter | New |
+| `@continuum-dev/ai-core` | Headless AI facade over react, core, session, ai-connect, ai-engine, and vercel-ai-sdk-adapter | New |
 | `@continuum-dev/ai-engine` | Shared headless AI planning, authoring, parsing, normalization, and apply helpers | New |
 | `@continuum-dev/ai-connect` | Provider factories, registry helpers, and model catalog utilities | Published |
-| `@continuum-dev/vercel-ai-sdk` | Transport-only bridge for applying typed Vercel AI SDK stream parts into Continuum | Published |
+| `@continuum-dev/vercel-ai-sdk-adapter` | Continuum adapter for Vercel AI SDK request and stream integration | Published |
 | `@continuum-dev/prompts` | Shared prompt building primitives used by higher-level AI packages | Published |
 
 ## Recommended reading path
@@ -224,7 +224,7 @@ If you are wiring AI:
 2. [Starter Kit AI README](packages/starter-kit-ai/README.md)
 3. [AI Core README](packages/ai-core/README.md)
 4. [AI Engine README](packages/ai-engine/README.md)
-5. [Vercel AI SDK README](packages/vercel-ai-sdk/README.md)
+5. [Vercel AI SDK Adapter README](packages/vercel-ai-sdk-adapter/README.md)
 
 If you are upgrading:
 
@@ -254,7 +254,7 @@ If you are upgrading:
 @continuum-dev/ai-core
 
 @continuum-dev/ai-connect
-@continuum-dev/vercel-ai-sdk
+@continuum-dev/vercel-ai-sdk-adapter
 
 apps/demo
 apps/demo-api
@@ -266,7 +266,7 @@ The public package stack is layered on purpose:
 - `starter-kit-ai` is optional
 - `ai-core` is the headless facade
 - `ai-engine` is headless and reusable
-- `vercel-ai-sdk` is transport-only
+- `vercel-ai-sdk-adapter` is the Vercel AI SDK adapter layer
 
 ## Development
 

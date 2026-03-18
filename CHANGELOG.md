@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
   - `state-ops` surface on runtime root export
   - `view-patch` helpers on runtime root export
   - `@continuum-dev/runtime/validator` subpath
-- New `@continuum-dev/vercel-ai-sdk` package for stream-aware Continuum transport with typed data parts.
+- New `@continuum-dev/vercel-ai-sdk-adapter` package for the Continuum adapter layer on top of Vercel AI SDK streams.
 - Starter-kit AI/chat additions:
   - `StarterKitVercelAiSdkChatBox`
   - `StarterKitChatBox`

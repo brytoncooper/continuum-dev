@@ -35,6 +35,8 @@ export function createSession(options?: SessionOptions): Session {
   internal.validateOnUpdate =
     options?.validateOnUpdate ?? internal.validateOnUpdate;
   internal.detachedValuePolicy = options?.detachedValuePolicy;
+  internal.restoreReviewsEnabled =
+    options?.enableRestoreReviews ?? internal.restoreReviewsEnabled;
   if (options?.actions) {
     for (const [id, entry] of Object.entries(options.actions)) {
       internal.actionRegistry.set(id, entry);
@@ -75,6 +77,9 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
   }
   if (options?.validateOnUpdate !== undefined) {
     internal.validateOnUpdate = options.validateOnUpdate;
+  }
+  if (options?.enableRestoreReviews !== undefined) {
+    internal.restoreReviewsEnabled = options.enableRestoreReviews;
   }
   const cleanupPersistence = options?.persistence
     ? attachPersistence(internal, {

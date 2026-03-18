@@ -169,6 +169,13 @@ export interface SessionOptions {
    */
   detachedValuePolicy?: DetachedValuePolicy;
   /**
+   * Enables fuzzy restore review generation for detached values.
+   *
+   * Disable this when you want Continuum to preserve detached values without
+   * surfacing "possible restore" review UI.
+   */
+  enableRestoreReviews?: boolean;
+  /**
    * Initial action handlers to pre-register at session creation.
    */
   actions?: Record<
