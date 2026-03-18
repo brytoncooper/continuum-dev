@@ -1,6 +1,6 @@
 import type { SessionStreamPart } from '@continuum-dev/core';
 import type { ViewDefinition } from '@continuum-dev/core';
-import type { StarterKitSessionAdapter } from '../session/index.js';
+import type { ContinuumSessionAdapter } from '../session/index.js';
 import {
   applyPatchPlanToView,
   isViewPatchPlan,
@@ -8,7 +8,7 @@ import {
 import { normalizeGeneratedView } from './normalize.js';
 
 export function applyThroughStreamingFoundation(
-  session: StarterKitSessionAdapter,
+  session: ContinuumSessionAdapter,
   source: string,
   targetViewId: string,
   parts: SessionStreamPart[],
@@ -48,7 +48,7 @@ export function applyThroughStreamingFoundation(
 }
 
 export function applyStateUpdatesThroughStreamingFoundation(
-  session: StarterKitSessionAdapter,
+  session: ContinuumSessionAdapter,
   source: string,
   currentView: ViewDefinition,
   updates: Array<{ nodeId: string; value: unknown }>
@@ -67,7 +67,7 @@ export function applyStateUpdatesThroughStreamingFoundation(
 }
 
 export function applyPatchPlanThroughUpdateParts(
-  session: StarterKitSessionAdapter,
+  session: ContinuumSessionAdapter,
   source: string,
   currentView: ViewDefinition,
   plan: unknown
