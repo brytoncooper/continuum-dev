@@ -17,7 +17,7 @@ import type {
 import { createSession } from '@continuum-dev/session';
 import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi } from 'vitest';
-import { ContinuumContext, ContinuumProvider } from './context.js';
+import { ContinuumContext, ContinuumProvider } from '../context/index.js';
 import {
   NodeStateScopeContext,
   useContinuumAction,
@@ -29,9 +29,9 @@ import {
   useContinuumState,
   useContinuumSuggestions,
   useContinuumViewport,
-} from './hooks.js';
+} from '../hooks/index.js';
 import type { ViewportState } from '@continuum-dev/contract';
-import { ContinuumRenderer } from './renderer.js';
+import { ContinuumRenderer } from './index.js';
 
 const viewDef: ViewDefinition = {
   viewId: 'view',

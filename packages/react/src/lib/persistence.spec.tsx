@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import type { ViewDefinition } from '@continuum-dev/contract';
 import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { ContinuumProvider } from './context.js';
-import { useContinuumSession } from './hooks.js';
+import { ContinuumProvider } from './context/index.js';
+import { useContinuumSession } from './hooks/index.js';
 
 const viewDef: ViewDefinition = {
   viewId: 'view',

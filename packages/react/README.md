@@ -229,6 +229,42 @@ There are three big ideas behind this package.
 
 ---
 
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph Core["@continuum-dev/core"]
+    Session["Session"]
+    Persist["hydrateOrCreate\npersistence + hydration"]
+    Events["snapshots\nstreams\ndiagnostics"]
+  end
+
+  subgraph React["@continuum-dev/react"]
+    Provider["ContinuumProvider"]
+    Store["ContinuumStore"]
+    Contexts["ContinuumContext\nContinuumRenderSnapshotContext\nContinuumRenderScopeContext"]
+    Hooks["hooks/\nstate\nsnapshots\nstreams\nviewport\ndiagnostics\nrestore\nsuggestions\nactions"]
+    Renderer["renderer/\nContinuumRenderer\nNodeRenderer"]
+    Components["your component map"]
+  end
+
+  Persist --> Provider
+  Provider --> Session
+  Session --> Events
+  Events --> Store
+  Store --> Contexts
+  Contexts --> Hooks
+  Contexts --> Renderer
+  Hooks -->|"read / write"| Session
+  Renderer -->|"definition\nnodeId\nvalue\nstreaming props\nchildren"| Components
+```
+
+`ContinuumProvider` bootstraps the session and the subscription store.  
+Hooks read and write session state through that store.  
+`ContinuumRenderer` turns a `ViewDefinition` tree into your actual React components.
+
+---
+
 ## Core API
 
 ### `ContinuumProvider`
@@ -267,6 +303,14 @@ Renders a `ViewDefinition` tree through your component map.
 <ContinuumRenderer view={snapshot.view} />
 ```
 
+#### Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `view` | `ViewDefinition` | Required view tree to render. |
+| `snapshotOverride` | `ContinuitySnapshot \| null` | Optional non-destructive preview snapshot used instead of the live store values. |
+| `renderScope` | `DetachedRestoreScope \| null` | Optional live/draft scope marker used by restore-review flows and draft previews. |
+
 #### What it does
 
 - resolves node components by `definition.type`
@@ -276,7 +320,9 @@ Renders a `ViewDefinition` tree through your component map.
 - supports hidden nodes
 - supports nested container nodes
 - supports built-in collection behavior
+- supports preview rendering through `snapshotOverride` and `renderScope`
 - passes canonical scoped `nodeId` values to your components
+- passes suggestion and streaming props when those states are active
 
 ### Hooks
 
@@ -335,7 +381,31 @@ Subscribes to the full current `ContinuitySnapshot`.
 const snapshot = useContinuumSnapshot();
 ```
 
-Snapshots are delivered as immutable top-level copies so consumer code cannot accidentally mutate session internals.
+Snapshot identity is stabilized when the underlying `view` and `data` references have not changed.
+
+#### `useContinuumCommittedSnapshot()`
+
+Subscribes to the latest durable committed snapshot rather than the most recent in-flight snapshot.
+
+```ts
+const committed = useContinuumCommittedSnapshot();
+```
+
+#### `useContinuumStreams()`
+
+Returns the current raw stream metadata array from the active session store.
+
+```ts
+const streams = useContinuumStreams();
+```
+
+#### `useContinuumStreaming()`
+
+Returns foreground-stream convenience state for renderer-style UIs.
+
+```ts
+const { streams, activeStream, isStreaming } = useContinuumStreaming();
+```
 
 #### `useContinuumHydrated()`
 
@@ -351,6 +421,22 @@ Scans current snapshot values for suggestions and provides accept-all / reject-a
 
 ```ts
 const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
+```
+
+#### `useContinuumRestoreReviews()`
+
+Returns pending detached-value restore reviews for live and draft scopes.
+
+```ts
+const reviews = useContinuumRestoreReviews();
+```
+
+#### `useContinuumRestoreCandidates(nodeId)`
+
+Returns restore candidates for one node inside the current render scope.
+
+```ts
+const candidates = useContinuumRestoreCandidates('user_email');
 ```
 
 #### `useContinuumAction(intentId)`
@@ -383,6 +469,15 @@ function SubmitButton({ definition }: ContinuumNodeProps) {
 }
 ```
 
+#### Advanced context exports
+
+Most apps only need `ContinuumProvider`, `ContinuumRenderer`, and the hooks.
+If you are building custom preview or restore-review tooling, the package also exports:
+
+- `ContinuumContext`
+- `ContinuumRenderSnapshotContext`
+- `ContinuumRenderScopeContext`
+
 ---
 
 ## The node contract
@@ -394,9 +489,18 @@ import type { NodeValue, ViewNode } from '@continuum-dev/core';
 
 interface ContinuumNodeProps<T = NodeValue> {
   value: T | undefined;
+  hasSuggestion?: boolean;
+  suggestionValue?: unknown;
   onChange: (value: T) => void;
   definition: ViewNode;
   nodeId?: string;
+  isStreaming?: boolean;
+  buildState?: 'building' | 'ready' | 'committed' | 'error';
+  streamStatus?: {
+    status: string;
+    level: 'info' | 'success' | 'warning' | 'error';
+    subtree?: boolean;
+  };
   children?: React.ReactNode;
   [prop: string]: unknown;
 }
@@ -404,6 +508,8 @@ interface ContinuumNodeProps<T = NodeValue> {
 
 `nodeId` is the canonical scoped id used by the renderer.  
 For nested nodes, it can look like `group/field`.
+
+Collection renderers may also pass props like `canAdd`, `canRemove`, `onAdd`, `onRemove`, and `itemIndex` through the open-ended prop slot.
 
 ---
 

@@ -10,7 +10,7 @@ It is designed for:
 
 ## Scope
 
-This covers every file currently in `packages/react`:
+This covers the important files and subsystems currently in `packages/react`:
 
 - `README.md`
 - `package.json`
@@ -19,17 +19,20 @@ This covers every file currently in `packages/react`:
 - `vitest.config.ts`
 - `src/index.ts`
 - `src/lib/types.ts`
-- `src/lib/context.tsx`
-- `src/lib/hooks.ts`
-- `src/lib/hooks.spec.tsx`
-- `src/lib/renderer.tsx`
+- `src/lib/context/`
+- `src/lib/hooks/`
+- `src/lib/renderer/`
 - `src/lib/fallback.tsx`
 - `src/lib/error-boundary.tsx`
+- `src/lib/context/index.spec.tsx`
+- `src/lib/hooks/index.spec.tsx`
+- `src/lib/hooks/shared.spec.ts`
+- `src/lib/renderer/index.spec.tsx`
+- `src/lib/renderer/integration.spec.tsx`
 - `src/lib/fallback.spec.tsx`
-- `src/lib/integration.spec.tsx`
 - `src/lib/persistence.spec.tsx`
 
-For source files, every exported and internal function/method is documented.
+For source files, the major exported symbols and the highest-risk internal functions are documented.
 
 ## What This Library Does
 
@@ -47,13 +50,42 @@ At a high level, it turns Continuum's session model into React-native primitives
 
 Main runtime flow:
 
-1. `ContinuumProvider` creates or hydrates a `Session`.
-2. Provider publishes `{ session, store, componentMap, wasHydrated }` in `ContinuumContext`.
-3. Hooks subscribe to session events via `useSyncExternalStore` and re-render safely.
-4. `ContinuumRenderer` walks `ViewDefinition.nodes` and renders each `ViewNode`.
-5. State updates from node `onChange` call `session.updateState(nodeId, value)`.
-6. Session persistence wiring serializes snapshots into storage (debounced) when `persist` is enabled.
-7. On provider unmount, session destruction is delayed with a zero-delay timer to avoid StrictMode replay hazards.
+1. `ContinuumProvider` resolves persistence settings and calls `hydrateOrCreate` from `@continuum-dev/core`.
+2. Provider creates a `ContinuumStore` facade over session snapshot, stream, and diagnostics callbacks.
+3. Provider publishes `{ session, store, componentMap, wasHydrated }` in `ContinuumContext`, plus render-time preview/scope contexts.
+4. Hooks subscribe to specific store slices via `useSyncExternalStore` and call back into session mutations.
+5. `ContinuumRenderer` walks `ViewDefinition.nodes`, computes canonical node ids, and resolves node components from your map.
+6. Collection renderers create scoped node-state providers so item-local reads and writes map back to collection-backed values.
+7. Stream metadata flows from session -> store -> hooks -> renderer so node components can receive build-state and stream-status props.
+8. On provider unmount, session destruction is deferred with a zero-delay timer to avoid StrictMode replay hazards.
+
+```mermaid
+flowchart LR
+  subgraph Core["@continuum-dev/core"]
+    Session["Session"]
+    Persist["hydrateOrCreate\npersistence + hydration"]
+    Events["snapshots\nstreams\ndiagnostics"]
+  end
+
+  subgraph React["@continuum-dev/react"]
+    Provider["ContinuumProvider"]
+    Store["ContinuumStore"]
+    Contexts["ContinuumContext\nContinuumRenderSnapshotContext\nContinuumRenderScopeContext"]
+    Hooks["hooks/\nstate\nsnapshots\nstreams\nviewport\ndiagnostics\nrestore\nsuggestions\nactions"]
+    Renderer["renderer/\nContinuumRenderer\nNodeRenderer"]
+    Components["consumer component map"]
+  end
+
+  Persist --> Provider
+  Provider --> Session
+  Session --> Events
+  Events --> Store
+  Store --> Contexts
+  Contexts --> Hooks
+  Contexts --> Renderer
+  Hooks -->|"read / write"| Session
+  Renderer -->|"definition\nnodeId\nvalue\nstreaming props\nchildren"| Components
+```
 
 ## Public API Surface
 
@@ -70,11 +102,19 @@ Primary public symbols:
 
 - `ContinuumProvider`
 - `ContinuumContext`, `ContinuumContextValue`
+- `ContinuumRenderSnapshotContext`, `ContinuumRenderScopeContext`
 - `useContinuumSession`
+- `useContinuumHydrated`
 - `useContinuumState`
 - `useContinuumSnapshot`
+- `useContinuumCommittedSnapshot`
+- `useContinuumStreams`, `useContinuumStreaming`
+- `useContinuumViewport`
 - `useContinuumDiagnostics`
-- `useContinuumHydrated`
+- `useContinuumConflict`
+- `useContinuumRestoreReviews`, `useContinuumRestoreCandidates`
+- `useContinuumSuggestions`
+- `useContinuumAction`
 - `ContinuumRenderer`
 - `NodeErrorBoundary`
 - `FallbackComponent`
@@ -92,10 +132,12 @@ Important fields:
 
 - `name`: `@continuum-dev/react`
 - `type`: `module` (ESM)
-- `main` / `types`: `./src/index.ts`
-- `exports["."]`: `./src/index.ts`
+- `main`: `./index.js`
+- `types`: `./index.d.ts`
+- `exports["."].@continuum-dev/source`: `./src/index.ts`
+- `exports["."].import`: `./index.js`
 - `peerDependencies.react`: `>=18`
-- `dependencies`: `@continuum-dev/contract`, `@continuum-dev/session`
+- `dependencies`: `@continuum-dev/core`
 - `nx.tags`: `scope:react`
 
 Implications:
@@ -140,6 +182,7 @@ File set:
 
 Project references:
 
+- `../core/tsconfig.lib.json`
 - `../session/tsconfig.lib.json`
 - `../contract/tsconfig.lib.json`
 
@@ -183,7 +226,7 @@ Content summary:
 Relationship to this deep dive:
 
 - README is usage-first.
-- This document is implementation-first and exhaustive.
+- This document is implementation-first and architecture-focused.
 
 ## `src/index.ts`
 
@@ -194,9 +237,9 @@ Role:
 Statements:
 
 - `export * from './lib/types.js';`
-- `export * from './lib/context.js';`
-- `export * from './lib/hooks.js';`
-- `export * from './lib/renderer.js';`
+- `export * from './lib/context/index.js';`
+- `export * from './lib/hooks/index.js';`
+- `export * from './lib/renderer/index.js';`
 - `export * from './lib/error-boundary.js';`
 - `export * from './lib/fallback.js';`
 
@@ -211,7 +254,7 @@ Role:
 
 - Shared React and provider type contracts.
 
-### `interface ContinuumNodeProps<T = NodeValue<any>>`
+### `interface ContinuumNodeProps<T = NodeValue>`
 
 Purpose:
 
@@ -220,8 +263,14 @@ Purpose:
 Fields:
 
 - `value: T | undefined`: current node value
+- `hasSuggestion?: boolean`: whether the current node has a suggestion payload
+- `suggestionValue?: unknown`: current suggestion payload when present
 - `onChange: (value: T) => void`: state update callback
 - `definition: ViewNode`: view metadata for this node
+- `nodeId?: string`: canonical scoped node id
+- `isStreaming?: boolean`: whether this node/subtree is actively streaming
+- `buildState?: 'building' | 'ready' | 'committed' | 'error'`: renderer-facing build state
+- `streamStatus?: ContinuumNodeStreamStatus`: node-specific streaming metadata
 - `children?: React.ReactNode`: rendered child nodes for nested nodes
 - `[prop: string]: unknown`: forward-compatible slot for view-provided props
 
@@ -239,7 +288,7 @@ Purpose:
 
 - Registry mapping view `definition.type` strings to React components.
 
-Resolution behavior (implemented in `renderer.tsx`):
+Resolution behavior (implemented in `renderer/node-renderers.tsx`):
 
 - First try exact type key.
 - Then try `'default'`.
@@ -258,14 +307,47 @@ Fields:
 - `storageKey`: custom storage key (optional)
 - `maxPersistBytes`: persistence payload size guard (optional)
 - `onPersistError`: persistence error callback (optional)
-- `sessionOptions`: options forwarded to `createSession`/`deserialize` (optional)
+- `sessionOptions`: options forwarded to `hydrateOrCreate` (optional)
 - `children`: React subtree (required)
 
-## `src/lib/context.tsx`
+## `src/lib/context/`
 
 Role:
 
-- Provider + session lifecycle + hydration + persistence integration.
+- Store, root contexts, and provider lifecycle for the React binding.
+
+Submodules:
+
+- `store.ts`: subscription-oriented facade over session snapshot, stream, diagnostics, and node events
+- `render-contexts.ts`: public React contexts and `ContinuumContextValue`
+- `provider.tsx`: hydration, persistence wiring, stable component-map handling, and teardown
+
+### `interface ContinuumStore`
+
+Purpose:
+
+- Gives hooks and renderer code a stable subscription/read API over the underlying session.
+
+Key methods:
+
+- `getSnapshot()`, `getCommittedSnapshot()`
+- `getStreams()`, `getActiveStream()`
+- `subscribeSnapshot()`, `subscribeStreams()`, `subscribeDiagnostics()`, `subscribeNode()`
+- `getNodeValue()`, `getNodeViewport()`
+- `destroy()`
+
+### `createContinuumStore(session): ContinuumStore`
+
+Behavior:
+
+1. Cache current snapshot, committed snapshot, and stream list.
+2. Fan out `session.onSnapshot` into:
+   - snapshot listeners
+   - diagnostics listeners
+   - only the node listeners whose values or viewport state changed
+3. Fan out `session.onStreams` into stream listeners.
+4. Fan out `session.onIssues` into diagnostics listeners.
+5. Expose stable getters and subscription helpers for the rest of the library.
 
 ### `interface ContinuumContextValue`
 
@@ -285,12 +367,6 @@ Purpose:
 Default value:
 
 - `null`, so hooks can detect missing provider and throw explicit errors.
-
-### `const DEFAULT_STORAGE_KEY = 'continuum_session'`
-
-Purpose:
-
-- Default key when persistence enabled and `storageKey` not provided.
 
 ### `resolveStorage(persist): Storage | undefined`
 
@@ -317,7 +393,7 @@ Notes:
 
 Type:
 
-- Imported session factory helper from `@continuum-dev/session`.
+- Imported session factory helper from `@continuum-dev/core`.
 
 Behavior:
 
@@ -345,13 +421,14 @@ Detailed lifecycle behavior:
 2. Use `sessionRef` to lazily initialize session exactly once per mount cycle:
    - Hydrate from storage if possible
    - Otherwise create new session
-3. Read stable `session` and `wasHydrated` from ref.
-4. Manage destruction with an unmount cleanup timer:
+3. Create one `ContinuumStore` alongside that session.
+4. Read stable `session`, `store`, and `wasHydrated` from ref.
+5. Manage destruction with an unmount cleanup timer:
    - On mount/effect rerun, clear any previous pending destroy timer
-   - On cleanup, schedule `session.destroy()` in `setTimeout(..., 0)`
+   - On cleanup, schedule `store.destroy()` and `session.destroy()` in `setTimeout(..., 0)`
    - Then clear timer ref
-5. Memoize context value from `session`, `store`, `componentMap`, `wasHydrated`.
-6. Render `<ContinuumContext.Provider value={value}>{children}</ContinuumContext.Provider>`.
+6. Memoize context value from `session`, `store`, `componentMap`, `wasHydrated`.
+7. Render `<ContinuumContext.Provider value={value}>{children}</ContinuumContext.Provider>`.
 
 Why delayed destroy matters:
 
@@ -363,195 +440,153 @@ Potential edge cases:
 - If storage APIs are unavailable in current runtime, direct `globalThis.localStorage/sessionStorage` access can throw before provider completes.
 - `componentMap` identity changes trigger new memoized context object, causing downstream re-renders.
 
-## `src/lib/hooks.ts`
+## `src/lib/hooks/`
 
 Role:
 
-- React hooks binding session data/diagnostics to external-store subscriptions.
+- React hooks binding session/store state to external-store subscriptions.
 
-### `shallowArrayEqual(left, right): boolean`
+Submodules:
 
-Type:
+- `provider.ts`: provider-bound accessors (`useRequiredContinuumContext`, `useContinuumSession`, `useContinuumHydrated`)
+- `state.ts`: canonical node-value subscriptions (`useContinuumState`)
+- `snapshots.ts`: current and committed snapshot hooks
+- `streams.ts`: raw stream-list hook and foreground streaming summary hook
+- `viewport.ts`: viewport-state subscriptions
+- `diagnostics.ts`: diagnostics and conflict hooks
+- `restore.ts`: detached restore review and candidate hooks
+- `suggestions.ts`: bulk suggestion state/actions
+- `actions.ts`: action dispatch state
+- `shared.ts`: equality helpers used to stabilize hook return identity
 
-- Internal utility function.
+Key design rule:
 
-Behavior:
-
-- Returns false if length differs.
-- Returns false on first strict inequality at any index.
-- Returns true otherwise.
-
-Usage:
-
-- Used to stabilize diagnostics object identity in `useContinuumDiagnostics`.
+- Subscription-based hooks read through `ContinuumStore` with `useSyncExternalStore`; they do not subscribe to session callbacks directly.
 
 ### `useContinuumSession(): Session`
 
-Type:
-
-- Exported hook.
-
 Behavior:
 
-- Reads `ContinuumContext` with `useContext`.
-- Throws explicit error if context missing.
-- Returns `ctx.session`.
-
-Error message:
-
-- `'useContinuumSession must be used within a <ContinuumProvider>'`
-
-### `useContinuumState(nodeId): [NodeValue<any> | undefined, (value) => void]`
-
-Type:
-
-- Exported hook.
-
-Inputs:
-
-- `nodeId: string`
-
-Behavior:
-
-1. Resolve `session` from `useContinuumSession`.
-2. Build `subscribe` callback using `session.onSnapshot(onStoreChange)`.
-3. Build `getSnapshot` callback:
-   - `session.getSnapshot()`
-   - Return `snap?.data.values?.[nodeId]`
-4. Use `useSyncExternalStore(subscribe, getSnapshot, getSnapshot)` for tear-free subscription.
-5. Return tuple:
-   - current node value
-   - setter calling `session.updateState(nodeId, next)`
-
-Reactivity:
-
-- Re-renders on any session snapshot, then selects one node path.
-
-### `useContinuumSnapshot(): ContinuitySnapshot | null`
-
-Type:
-
-- Exported hook.
-
-Behavior:
-
-1. Resolve `session`.
-2. Keep `snapshotCacheRef` with previous `view`, `data`, `snapshot`.
-3. Subscribe to snapshots.
-4. On read:
-   - Get latest snapshot from session.
-   - If null: clear cache and return null.
-   - If both `view` and `data` references are unchanged from cache, return cached snapshot object.
-   - Else update cache and return new snapshot.
-5. Return external-store value.
-
-Identity optimization:
-
-- Avoids unnecessary downstream updates when session returns structurally same references.
-
-### `useContinuumDiagnostics()`
-
-Type:
-
-- Exported hook (return type inferred).
-
-Return shape:
-
-- `{ issues, diffs, resolutions, checkpoints }` from session diagnostics getters.
-
-Behavior:
-
-1. Resolve `session`.
-2. Keep diagnostics cache ref.
-3. Build `getSnapshot`:
-   - Pull arrays from `session.getIssues/getDiffs/getResolutions/getCheckpoints`.
-   - If cached arrays are shallow-equal to new arrays, return cached object.
-   - Else replace cache and return new diagnostics object.
-4. Build `subscribe`:
-   - Subscribe to both `session.onSnapshot` and `session.onIssues`.
-   - Trigger store change on either event.
-   - Cleanup both subscriptions.
-5. Return `useSyncExternalStore(subscribe, getSnapshot, getSnapshot)`.
-
-Design intent:
-
-- Includes both structural data changes and explicit issues events.
-- Caches by array element equality to keep object identity stable when diagnostics unchanged.
+- Reads `ContinuumContext`, throws if absent, and returns `ctx.session`.
 
 ### `useContinuumHydrated(): boolean`
 
-Type:
+Behavior:
 
-- Exported hook.
+- Reads `ContinuumContext`, throws if absent, and returns `ctx.wasHydrated`.
+
+### `useContinuumState(nodeId): [NodeValue | undefined, (value) => void]`
 
 Behavior:
 
-- Reads context directly.
-- Throws if context missing.
-- Returns `ctx.wasHydrated`.
+1. Resolve `{ session, store }` from context.
+2. Optionally resolve `NodeStateScopeContext` when rendering inside collection item scopes.
+3. Subscribe with either `scope.subscribeNode(nodeId, ...)` or `store.subscribeNode(nodeId, ...)`.
+4. Cache and shallow-compare the selected `NodeValue` to preserve stable identity when fields have not changed.
+5. Write through either `scope.setNodeValue(...)` or `session.updateState(nodeId, next)`.
 
-Error message:
+### `useContinuumSnapshot()` and `useContinuumCommittedSnapshot()`
 
-- `'useContinuumHydrated must be used within a <ContinuumProvider>'`
+Behavior:
 
-## `src/lib/renderer.tsx`
+- Subscribe to snapshot changes through `store.subscribeSnapshot(...)`.
+- Reuse cached snapshot objects when `view` and `data` references are unchanged.
+- `useContinuumCommittedSnapshot()` reads the committed snapshot lane instead of the live one.
+
+### `useContinuumStreams()` and `useContinuumStreaming()`
+
+Behavior:
+
+- `useContinuumStreams()` returns the raw stream metadata array from the store.
+- `useContinuumStreaming()` derives `{ streams, activeStream, isStreaming }` for the active foreground stream.
+
+### `useContinuumViewport(nodeId)`
+
+Behavior:
+
+- Subscribes to one node's viewport state through `store.subscribeNode(nodeId, ...)`.
+- Shallow-compares viewport fields to avoid unnecessary rerenders.
+- Logs a development warning if called inside a collection item scope, because viewport state is not item-scoped.
+
+### `useContinuumDiagnostics()` and `useContinuumConflict(nodeId)`
+
+Behavior:
+
+- `useContinuumDiagnostics()` subscribes to the store's diagnostics channel and returns `{ issues, diffs, resolutions, checkpoints }`.
+- `useContinuumConflict(nodeId)` subscribes to the pending proposal for one node and returns `{ hasConflict, proposal, accept, reject }`.
+
+### `useContinuumRestoreReviews()` and `useContinuumRestoreCandidates(nodeId)`
+
+Behavior:
+
+- `useContinuumRestoreReviews()` returns all pending detached restore reviews.
+- `useContinuumRestoreCandidates(nodeId)` filters those reviews by the current render scope and node id.
+- Both hooks preserve empty-array identity through shared sentinel arrays.
+
+### `useContinuumSuggestions()`
+
+Behavior:
+
+- Scans current snapshot values for node suggestions.
+- Returns `hasSuggestions` plus bulk `acceptAll()` / `rejectAll()` actions that call back into `session.updateState(...)`.
+
+### `useContinuumAction(intentId)`
+
+Behavior:
+
+- Wraps `session.dispatchAction(intentId, nodeId)`.
+- Tracks `isDispatching` and `lastResult`.
+- Ignores stale completions when multiple dispatches overlap.
+
+## `src/lib/renderer/`
 
 Role:
 
-- View-driven React renderer.
+- View-driven React renderer split into path helpers, streaming derivation, collection-state helpers, recursive node renderers, and the public root renderer.
 
-### `NodeRenderer({ definition })`
+Submodules:
+
+- `paths.ts`: canonical id and scope helpers
+- `streaming.ts`: stream-status lookup and node build-state derivation
+- `collection-state.ts`: collection normalization, defaults, and suggestion merging helpers
+- `node-renderers.tsx`: `StatefulNodeRenderer`, `ContainerNodeRenderer`, `CollectionItemRenderer`, `CollectionNodeRenderer`, and `NodeRenderer`
+- `root.tsx`: exported `ContinuumRenderer`
+
+### `NodeRenderer({ definition, parentPath })`
 
 Type:
 
 - Internal recursive component.
 
-Inputs:
-
-- `definition: ViewNode`
-
 Behavior:
 
-1. Read context, throw if absent.
-2. Resolve render component by priority:
-
-- `componentMap[definition.type]`
-- `componentMap['default']`
-- `FallbackComponent`
-
-3. Read state tuple via `useContinuumState(definition.id)`.
-4. If `definition.hidden` is truthy, render `null`.
-5. Recursively map `definition.children` into child `NodeRenderer`s.
-6. Render wrapper:
-   - `<div data-continuum-id={definition.id}>`
-   - Inside wrapper, use `<NodeErrorBoundary nodeId={definition.id}>`
-   - Render chosen component with:
-     - `value`
-     - `onChange`
-     - `definition`
-     - `children` as rendered child nodes
+1. If `definition.type === 'collection'`, render `CollectionNodeRenderer`.
+2. Otherwise inspect `getChildNodes(definition)`:
+   - child nodes present -> `ContainerNodeRenderer`
+   - no child nodes -> `StatefulNodeRenderer`
+3. Compute canonical node ids from `parentPath` via `toCanonicalId(...)`.
+4. Resolve node components by exact type, then `default`, then `FallbackComponent`.
+5. Wrap each rendered node with `NodeErrorBoundary`.
 
 Important semantics:
 
-- Every visible node gets a stable `data-continuum-id`.
+- Hidden definitions render `null`.
 - Per-node error boundary isolates render failures by node id.
-- `definition` is passed directly, and props are not spread onto the component.
+- There is no generic wrapper div around every node.
+- Container and collection renderers pass additional mapped props like `itemIndex`, `canRemove`, `onRemove`, `canAdd`, and `onAdd`.
 
-### `ContinuumRenderer({ view })`
+### `ContinuumRenderer({ view, snapshotOverride, renderScope })`
 
 Type:
 
 - Exported function component.
 
-Inputs:
-
-- `view: ViewDefinition`
-
 Behavior:
 
-- Renders root wrapper `<div data-continuum-view={view.viewId}>`.
-- Iterates `(view.nodes ?? [])` and renders each top-level `NodeRenderer`.
-- Accepts `null` nodes list defensively by falling back to empty array.
+- Accepts the current `view` plus optional preview-only `snapshotOverride` and `renderScope`.
+- Provides `ContinuumRenderSnapshotContext` and `ContinuumRenderScopeContext`.
+- When a snapshot override is present, creates a root `NodeStateScopeContext` that reads from the override snapshot instead of the live store.
+- Renders `(view.nodes ?? [])` as top-level `NodeRenderer`s.
 
 ## `src/lib/fallback.tsx`
 
@@ -567,7 +602,7 @@ Type:
 
 Behavior:
 
-1. Coerce incoming `value` to `NodeValue<any> | undefined`.
+1. Coerce incoming `value` to `NodeValue | undefined`.
 2. Derive text input value:
    - if `raw.value` is string or number, use `String(raw.value)`
    - else empty string
@@ -577,7 +612,7 @@ Behavior:
 4. Render warning UI with red-dashed visual style.
 5. Render `<input>`:
    - Controlled by `textValue`
-   - On change, calls `onChange({ value: e.target.value } as NodeValue<string>)`
+   - On change, calls `onChange({ value: e.target.value } as NodeValue)`
 6. Render `<details>` block with pretty-printed full view `definition`.
 
 Purpose:
@@ -651,7 +686,7 @@ What this protects:
 
 - Base renderability and expected prop plumbing for unknown type fallback path.
 
-## `src/lib/integration.spec.tsx`
+## `src/lib/renderer/integration.spec.tsx`
 
 Role:
 
@@ -757,13 +792,15 @@ Verifies:
 
 - Storage hydration is best effort.
 - Corrupt storage is deleted automatically.
-- Persistence writes are debounced and silent-fail on storage exceptions.
+- Persistence behavior is delegated to the `@continuum-dev/core` session layer.
+- Storage failures are surfaced through the configured persistence error callback.
 
 ## Rendering Contract
 
 - Hidden definitions render as `null`.
 - Unknown type resolution: specific type -> `default` -> `FallbackComponent`.
-- Every rendered node is wrapped with both id marker and error boundary.
+- Every rendered node is wrapped with a per-node error boundary.
+- Canonical `nodeId` values are passed through props rather than through a wrapper DOM marker.
 
 ## Hook Safety Contract
 
@@ -774,15 +811,20 @@ Verifies:
 
 Direct package dependencies:
 
-- `@continuum-dev/contract`: shared view/data types
-- `@continuum-dev/session`: runtime session engine
+- `@continuum-dev/core`: runtime/session/contract facade consumed by this package
 - `react`: runtime peer dependency
+
+Workspace TypeScript references:
+
+- `@continuum-dev/core`
+- `@continuum-dev/session`
+- `@continuum-dev/contract`
 
 Inferred runtime dependency graph:
 
-- `context.tsx` depends on `@continuum-dev/session`, `types.ts`
-- `hooks.ts` depends on `context.tsx`, session API
-- `renderer.tsx` depends on `context.tsx`, `hooks.ts`, fallback + error boundary
+- `context/provider.tsx`, `context/store.ts`, and `context/render-contexts.ts` depend on `@continuum-dev/core` and `types.ts`
+- `hooks/provider.ts`, `hooks/state.ts`, and related hook modules depend on the `context/` subsystem and session API
+- `renderer/root.tsx` and `renderer/node-renderers.tsx` depend on the `context/` subsystem, the `hooks/` subsystem, fallback + error boundary
 - `fallback.tsx` depends on `types.ts`
 - tests exercise integrated surface across all runtime modules
 
@@ -796,13 +838,13 @@ Current tradeoffs:
 
 Safe extension points:
 
-- Add new hooks in `hooks.ts` using same `useSyncExternalStore` pattern.
+- Add new hooks in `hooks/` using the same `useSyncExternalStore` pattern.
 - Add renderer behavior by extending `NodeRenderer` resolution and wrappers.
 - Replace fallback style/behavior in `FallbackComponent` without changing API.
 
 Change-risk hot spots:
 
-- Provider lifecycle (`context.tsx`) because hydration, persistence, and destroy timing intersect there.
+- Provider lifecycle (`context/provider.tsx`) because hydration, persistence, and destroy timing intersect there.
 - Hook caching logic (`useContinuumSnapshot`, `useContinuumDiagnostics`) because identity stability affects render frequency.
 - Recursive rendering (`NodeRenderer`) because prop spread and error boundaries affect all node types.
 
@@ -811,37 +853,52 @@ Change-risk hot spots:
 Use Nx tasks for this package:
 
 - `nx test @continuum-dev/react`
-- `nx lint @continuum-dev/react`
 - `nx build @continuum-dev/react`
-- `nx typecheck @continuum-dev/react`
+- `npx nx run "@continuum-dev/react:test" --excludeTaskDependencies`
+- `npx nx run "@continuum-dev/react:build"`
 
-Project metadata (from Nx MCP `nx_project_details`):
+Project metadata:
 
 - project: `@continuum-dev/react`
 - type: `library`
 - root: `packages/react`
 - tags: `scope:react`
-- project dependencies: `contract`, `@continuum-dev/session`
+- explicit target in `project.json`: `nx-release-publish`
+- build/test targets are inferred by workspace tooling
 
 ## Quick Index of Functions and Methods
 
-For fast AI/human lookup, this is every function/method currently present in source and tests:
+For fast AI/human lookup, this is the high-value function index across source and key specs:
 
-- `resolveStorage` (`context.tsx`)
-- `createContinuumStore` (`context.tsx`)
-- `ContinuumProvider` (`context.tsx`)
-- `shallowArrayEqual` (`hooks.ts`)
-- `useContinuumSession` (`hooks.ts`)
-- `useContinuumState` (`hooks.ts`)
-- `useContinuumSnapshot` (`hooks.ts`)
-- `useContinuumDiagnostics` (`hooks.ts`)
-- `useContinuumHydrated` (`hooks.ts`)
-- `NodeRenderer` (`renderer.tsx`)
-- `ContinuumRenderer` (`renderer.tsx`)
+- `resolveStorage` (`context/provider.tsx`)
+- `createContinuumStore` (`context/store.ts`)
+- `ContinuumProvider` (`context/provider.tsx`)
+- `useRequiredContinuumContext` (`hooks/provider.ts`)
+- `shallowArrayEqual` (`hooks/shared.ts`)
+- `useContinuumSession` (`hooks/provider.ts`)
+- `useContinuumHydrated` (`hooks/provider.ts`)
+- `useContinuumState` (`hooks/state.ts`)
+- `useContinuumSnapshot` (`hooks/snapshots.ts`)
+- `useContinuumCommittedSnapshot` (`hooks/snapshots.ts`)
+- `useContinuumStreams` (`hooks/streams.ts`)
+- `useContinuumStreaming` (`hooks/streams.ts`)
+- `useContinuumViewport` (`hooks/viewport.ts`)
+- `useContinuumDiagnostics` (`hooks/diagnostics.ts`)
+- `useContinuumConflict` (`hooks/diagnostics.ts`)
+- `useContinuumRestoreReviews` (`hooks/restore.ts`)
+- `useContinuumRestoreCandidates` (`hooks/restore.ts`)
+- `useContinuumSuggestions` (`hooks/suggestions.ts`)
+- `useContinuumAction` (`hooks/actions.ts`)
+- `toCanonicalId` (`renderer/paths.ts`)
+- `resolveStreamStatus` (`renderer/streaming.ts`)
+- `deriveNodeBuildState` (`renderer/streaming.ts`)
+- `normalizeCollectionNodeValue` (`renderer/collection-state.ts`)
+- `NodeRenderer` (`renderer/node-renderers.tsx`)
+- `ContinuumRenderer` (`renderer/root.tsx`)
 - `FallbackComponent` (`fallback.tsx`)
 - `NodeErrorBoundary.getDerivedStateFromError` (`error-boundary.tsx`)
 - `NodeErrorBoundary.render` (`error-boundary.tsx`)
-- `renderIntoDom` (`integration.spec.tsx`)
+- `renderIntoDom` (`renderer/integration.spec.tsx`)
 
 ---
 

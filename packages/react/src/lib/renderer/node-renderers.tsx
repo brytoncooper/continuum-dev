@@ -2,127 +2,36 @@ import { memo, useCallback, useContext, useMemo } from 'react';
 import type {
   CollectionNode,
   CollectionNodeState,
-  ContinuitySnapshot,
-  DetachedRestoreScope,
-  SessionStream,
   NodeValue,
-  ViewDefinition,
   ViewNode,
 } from '@continuum-dev/core';
 import { getChildNodes } from '@continuum-dev/core';
+import { ContinuumContext } from '../context/render-contexts.js';
+import { NodeErrorBoundary } from '../error-boundary.js';
+import { FallbackComponent } from '../fallback.js';
+import { NodeStateScopeContext } from '../hooks/scope.js';
+import { useContinuumState } from '../hooks/state.js';
 import {
-  ContinuumContext,
-  ContinuumRenderScopeContext,
-  ContinuumRenderSnapshotContext,
-} from './context.js';
-import { NodeStateScopeContext, useContinuumState, useContinuumStreaming } from './hooks.js';
-import { FallbackComponent } from './fallback.js';
-import { NodeErrorBoundary } from './error-boundary.js';
-import type {
-  ContinuumNodeBuildState,
-  ContinuumNodeStreamStatus,
-} from './types.js';
+  clearCollectionItemSuggestion,
+  collectTemplateDefaults,
+  deepCloneValues,
+  mergeCollectionItemSuggestion,
+  normalizeCollectionNodeValue,
+  normalizeMaxItems,
+  normalizeMinItems,
+} from './collection-state.js';
+import { toCanonicalId, toRelativeNodeId } from './paths.js';
+import { useStreamingMappedProps } from './streaming.js';
 
 const noopOnChange = () => undefined;
-const LIVE_RENDER_SCOPE: DetachedRestoreScope = { kind: 'live' };
 
-function deepCloneValues(
-  values: Record<string, NodeValue>
-): Record<string, NodeValue> {
-  return structuredClone(values);
+export interface NodeRendererProps {
+  definition: ViewNode;
+  parentPath: string;
+  mappedProps?: Record<string, unknown>;
 }
 
-function toCanonicalId(id: string, parentPath: string): string {
-  return parentPath.length > 0 ? `${parentPath}/${id}` : id;
-}
-
-function isNodeWithinScope(nodeId: string, scopeId: string): boolean {
-  return (
-    nodeId === scopeId ||
-    nodeId.startsWith(`${scopeId}/`) ||
-    scopeId.startsWith(`${nodeId}/`)
-  );
-}
-
-function resolveStreamStatus(
-  activeStream: SessionStream | null,
-  nodeId: string
-): ContinuumNodeStreamStatus | undefined {
-  if (!activeStream) {
-    return undefined;
-  }
-
-  const exact = activeStream.nodeStatuses[nodeId];
-  if (exact) {
-    return exact;
-  }
-
-  const segments = nodeId.split('/');
-  while (segments.length > 1) {
-    segments.pop();
-    const ancestorId = segments.join('/');
-    const status = activeStream.nodeStatuses[ancestorId];
-    if (status?.subtree) {
-      return status;
-    }
-  }
-
-  return undefined;
-}
-
-function deriveNodeBuildState(
-  activeStream: SessionStream | null,
-  nodeId: string,
-  streamStatus: ContinuumNodeStreamStatus | undefined
-): ContinuumNodeBuildState {
-  if (!activeStream) {
-    return 'committed';
-  }
-
-  if (streamStatus?.level === 'error' || streamStatus?.status === 'error') {
-    return 'error';
-  }
-
-  if (streamStatus?.status === 'ready') {
-    return 'ready';
-  }
-
-  if (streamStatus?.status === 'committed') {
-    return 'committed';
-  }
-
-  if (
-    streamStatus ||
-    activeStream.affectedNodeIds.some((affectedNodeId) =>
-      isNodeWithinScope(nodeId, affectedNodeId)
-    )
-  ) {
-    return 'building';
-  }
-
-  return 'committed';
-}
-
-function useStreamingMappedProps(
-  canonicalId: string,
-  mappedProps?: Record<string, unknown>
-): Record<string, unknown> {
-  const { activeStream, isStreaming } = useContinuumStreaming();
-  const streamStatus = resolveStreamStatus(activeStream, canonicalId);
-  const buildState = deriveNodeBuildState(activeStream, canonicalId, streamStatus);
-
-  return useMemo(
-    () => ({
-      isStreaming: isStreaming && buildState !== 'committed',
-      buildState,
-      ...(streamStatus ? { streamStatus } : {}),
-      ...(mappedProps ?? {}),
-    }),
-    [buildState, isStreaming, mappedProps, streamStatus]
-  );
-}
-
-function useResolvedComponent(definition: ViewNode) {
+export function useResolvedComponent(definition: ViewNode) {
   const ctx = useContext(ContinuumContext);
   if (!ctx) {
     throw new Error(
@@ -138,170 +47,7 @@ function useResolvedComponent(definition: ViewNode) {
   );
 }
 
-interface NodeRendererProps {
-  definition: ViewNode;
-  parentPath: string;
-  mappedProps?: Record<string, unknown>;
-}
-
-function normalizeCollectionNodeValue(
-  value: NodeValue | undefined
-): NodeValue<CollectionNodeState> {
-  const normalizeState = (state: unknown): CollectionNodeState => {
-    const items = (state as CollectionNodeState | undefined)?.items;
-    if (!Array.isArray(items)) {
-      return { items: [] };
-    }
-    return {
-      items: items.map((item) => ({
-        values:
-          item &&
-          typeof item === 'object' &&
-          item.values &&
-          typeof item.values === 'object'
-            ? { ...item.values }
-            : {},
-      })),
-    };
-  };
-
-  const metadata = value
-    ? {
-        ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
-        ...(value.isSticky !== undefined ? { isSticky: value.isSticky } : {}),
-        ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
-      }
-    : {};
-
-  const normalizedValue = normalizeState(
-    (value as NodeValue<CollectionNodeState> | undefined)?.value
-  );
-  const rawSuggestion = (value as NodeValue<CollectionNodeState> | undefined)
-    ?.suggestion;
-
-  return {
-    ...metadata,
-    value: normalizedValue,
-    ...(rawSuggestion !== undefined
-      ? { suggestion: normalizeState(rawSuggestion) }
-      : {}),
-  } as NodeValue<CollectionNodeState>;
-}
-
-function mergeCollectionItemSuggestion(
-  baseValue: NodeValue | undefined,
-  collectionSuggestion: CollectionNodeState | undefined,
-  itemIndex: number,
-  relativeId: string
-): NodeValue | undefined {
-  const suggestedNodeValue = collectionSuggestion?.items?.[itemIndex]?.values?.[
-    relativeId
-  ] as NodeValue | undefined;
-  if (!suggestedNodeValue) {
-    return baseValue;
-  }
-
-  const merged: NodeValue = baseValue
-    ? { ...baseValue }
-    : { value: suggestedNodeValue.value };
-
-  if (merged.suggestion === undefined) {
-    merged.suggestion = suggestedNodeValue.value;
-  }
-
-  return merged;
-}
-
-function clearCollectionItemSuggestion(
-  collectionSuggestion: CollectionNodeState | undefined,
-  itemIndex: number,
-  relativeId: string
-): CollectionNodeState | undefined {
-  if (!collectionSuggestion) {
-    return undefined;
-  }
-
-  const items = collectionSuggestion.items.map((item) => ({
-    values: deepCloneValues(item.values),
-  }));
-
-  if (itemIndex < items.length) {
-    delete items[itemIndex].values[relativeId];
-  }
-
-  const hasAnySuggestion = items.some(
-    (item) => Object.keys(item.values).length > 0
-  );
-
-  if (!hasAnySuggestion) {
-    return undefined;
-  }
-
-  return { items };
-}
-
-function toRelativeNodeId(
-  collectionCanonicalId: string,
-  nodeId: string
-): string | null {
-  if (nodeId === collectionCanonicalId) {
-    return null;
-  }
-  if (nodeId.startsWith(`${collectionCanonicalId}/`)) {
-    return nodeId.slice(collectionCanonicalId.length + 1);
-  }
-  return null;
-}
-
-function normalizeMinItems(value: number | undefined): number {
-  if (value === undefined || value < 0) {
-    return 0;
-  }
-  return Math.floor(value);
-}
-
-function normalizeMaxItems(value: number | undefined): number | undefined {
-  if (value === undefined || value < 0) {
-    return undefined;
-  }
-  return Math.floor(value);
-}
-
-function createInitialCollectionState(
-  node: CollectionNode
-): CollectionNodeState {
-  const minItems = normalizeMinItems(node.minItems);
-  return {
-    items: Array.from({ length: minItems }, () => ({
-      values: collectTemplateDefaults(node.template),
-    })),
-  };
-}
-
-function collectTemplateDefaults(
-  node: ViewNode,
-  parentPath = ''
-): Record<string, NodeValue> {
-  const nodeId = toCanonicalId(node.id, parentPath);
-  if (node.type === 'collection') {
-    return {
-      [nodeId]: {
-        value: createInitialCollectionState(node),
-      } as NodeValue<CollectionNodeState>,
-    };
-  }
-  const values: Record<string, NodeValue> = {};
-  if ('defaultValue' in node && node.defaultValue !== undefined) {
-    values[nodeId] = { value: node.defaultValue };
-  }
-  const children = getChildNodes(node);
-  for (const child of children) {
-    Object.assign(values, collectTemplateDefaults(child, nodeId));
-  }
-  return values;
-}
-
-const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
+export const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
   definition,
   parentPath,
   mappedProps,
@@ -335,7 +81,7 @@ const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
   );
 });
 
-const ContainerNodeRenderer = memo(function ContainerNodeRenderer({
+export const ContainerNodeRenderer = memo(function ContainerNodeRenderer({
   definition,
   parentPath,
   mappedProps,
@@ -374,7 +120,7 @@ const ContainerNodeRenderer = memo(function ContainerNodeRenderer({
   );
 });
 
-interface CollectionItemRendererProps {
+export interface CollectionItemRendererProps {
   collectionCanonicalId: string;
   itemIndex: number;
   template: ViewNode;
@@ -383,7 +129,7 @@ interface CollectionItemRendererProps {
   onRemove: (index: number) => void;
 }
 
-const CollectionItemRenderer = memo(function CollectionItemRenderer({
+export const CollectionItemRenderer = memo(function CollectionItemRenderer({
   collectionCanonicalId,
   itemIndex,
   template,
@@ -506,7 +252,7 @@ const CollectionItemRenderer = memo(function CollectionItemRenderer({
   );
 });
 
-const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
+export const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
   definition,
   parentPath,
 }: {
@@ -625,7 +371,7 @@ const CollectionNodeRenderer = memo(function CollectionNodeRenderer({
   );
 });
 
-const NodeRenderer = memo(function NodeRenderer({
+export const NodeRenderer = memo(function NodeRenderer({
   definition,
   parentPath,
   mappedProps,
@@ -653,84 +399,3 @@ const NodeRenderer = memo(function NodeRenderer({
     />
   );
 });
-
-/**
- * Renders a `ViewDefinition` tree using components registered in `ContinuumProvider`.
- */
-export function ContinuumRenderer({
-  view,
-  snapshotOverride = null,
-  renderScope,
-}: {
-  view: ViewDefinition;
-  snapshotOverride?: ContinuitySnapshot | null;
-  renderScope?: DetachedRestoreScope | null;
-}) {
-  const ctx = useContext(ContinuumContext);
-  if (!ctx) {
-    throw new Error(
-      'ContinuumRenderer must be used within a <ContinuumProvider>'
-    );
-  }
-
-  const resolvedRenderScope =
-    renderScope === undefined || renderScope === null ? LIVE_RENDER_SCOPE : renderScope;
-
-  const rootScope = useMemo(() => {
-    if (!snapshotOverride) {
-      return null;
-    }
-
-    if (resolvedRenderScope?.kind === 'draft') {
-      const readDraftSnapshot = () =>
-        ctx.store
-          .getStreams()
-          .find(
-            (stream) =>
-              stream.streamId === resolvedRenderScope.streamId &&
-              stream.status === 'open' &&
-              stream.mode === 'draft'
-          )?.previewData ?? snapshotOverride.data;
-
-      return {
-        subscribeNode: (_nodeId: string, listener: () => void) =>
-          ctx.store.subscribeStreams(listener),
-        getNodeValue: (nodeId: string) =>
-          readDraftSnapshot().values?.[nodeId] as NodeValue | undefined,
-        setNodeValue: (nodeId: string, value: NodeValue) => {
-          ctx.session.updateStateInScope(nodeId, value, resolvedRenderScope);
-        },
-      };
-    }
-
-    return {
-      subscribeNode: (_nodeId: string, _listener: () => void) => () => undefined,
-      getNodeValue: (nodeId: string) =>
-        snapshotOverride.data.values?.[nodeId] as NodeValue | undefined,
-      setNodeValue: (nodeId: string, value: NodeValue) => {
-        ctx.session.updateStateInScope(nodeId, value, resolvedRenderScope);
-      },
-    };
-  }, [ctx.session, ctx.store, resolvedRenderScope, snapshotOverride]);
-
-  const renderedNodes = (
-    <>
-      {(view.nodes ?? []).map((node) => (
-        <NodeRenderer key={node.id} definition={node} parentPath="" />
-      ))}
-    </>
-  );
-  return (
-    <ContinuumRenderSnapshotContext.Provider value={snapshotOverride}>
-      <ContinuumRenderScopeContext.Provider value={resolvedRenderScope}>
-        {rootScope ? (
-          <NodeStateScopeContext.Provider value={rootScope}>
-            {renderedNodes}
-          </NodeStateScopeContext.Provider>
-        ) : (
-          renderedNodes
-        )}
-      </ContinuumRenderScopeContext.Provider>
-    </ContinuumRenderSnapshotContext.Provider>
-  );
-}

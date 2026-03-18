@@ -9,13 +9,13 @@ import type {
 import { createSession } from '@continuum-dev/session';
 import type { Session } from '@continuum-dev/session';
 import { describe, expect, it, vi } from 'vitest';
-import { ContinuumProvider } from './context.js';
+import { ContinuumProvider } from '../context/index.js';
 import {
   useContinuumSession,
   useContinuumSnapshot,
   useContinuumState,
-} from './hooks.js';
-import { ContinuumRenderer } from './renderer.js';
+} from '../hooks/index.js';
+import { ContinuumRenderer } from './index.js';
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
