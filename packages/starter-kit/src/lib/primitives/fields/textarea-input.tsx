@@ -2,6 +2,10 @@ import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { FieldFrame, useInputLikeStyle } from '../shared/field-frame.js';
 import {
+  compactFieldControlStyle,
+  useCompactViewport,
+} from '../shared/responsive-layout.js';
+import {
   nodeDescription,
   nodeLabel,
   nodePlaceholder,
@@ -17,6 +21,7 @@ export function TextareaInput({
   suggestionValue,
 }: ContinuumNodeProps) {
   const nodeValue = value as NodeValue<string> | undefined;
+  const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const text =
     nodeValue?.value ??
@@ -59,11 +64,16 @@ export function TextareaInput({
         placeholder={
           nodePlaceholder(definition) ?? 'Enter text'
         }
-        style={useInputLikeStyle({
-          minHeight: 120,
-          height: 120,
-          resize: 'vertical',
-        })}
+        style={{
+          ...useInputLikeStyle({
+            minHeight: 120,
+            height: 120,
+            resize: 'vertical',
+          }),
+          ...compactFieldControlStyle(isCompact),
+          minHeight: isCompact ? 144 : 120,
+          height: isCompact ? 144 : 120,
+        }}
         onChange={(event) =>
           onChange({ value: event.target.value, isDirty: true } as NodeValue)
         }

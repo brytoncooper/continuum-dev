@@ -39,6 +39,10 @@ export function nodeOptions(definition: ViewNode): FieldOption[] {
   return [];
 }
 
+export function nodeOptionKey(option: FieldOption, index: number): string {
+  return `${option.value}:${option.label}:${index}`;
+}
+
 export function nodeNumberProp(
   definition: ViewNode,
   key: string,

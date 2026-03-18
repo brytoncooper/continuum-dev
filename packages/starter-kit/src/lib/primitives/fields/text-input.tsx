@@ -2,6 +2,10 @@ import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { FieldFrame, useInputLikeStyle } from '../shared/field-frame.js';
 import {
+  compactFieldControlStyle,
+  useCompactViewport,
+} from '../shared/responsive-layout.js';
+import {
   nodeDescription,
   nodeLabel,
   nodePlaceholder,
@@ -17,6 +21,7 @@ export function TextInput({
   suggestionValue,
 }: ContinuumNodeProps) {
   const nodeValue = value as NodeValue<string | number> | undefined;
+  const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const dataType = readNodeProp<string>(definition, 'dataType') ?? 'string';
   const defaultValue = readNodeProp<string | number>(definition, 'defaultValue');
@@ -69,7 +74,10 @@ export function TextInput({
           nodePlaceholder(definition) ?? 'Enter value'
         }
         readOnly={Boolean(readNodeProp<boolean>(definition, 'readOnly'))}
-        style={useInputLikeStyle()}
+        style={{
+          ...useInputLikeStyle(),
+          ...compactFieldControlStyle(isCompact),
+        }}
         onChange={(event) =>
           onChange({
             value:

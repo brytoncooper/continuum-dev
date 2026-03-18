@@ -48,9 +48,12 @@ export function useInputLikeStyle(overrides?: CSSProperties): CSSProperties {
 }
 
 export function FieldFrame({
+  as = 'label',
   nodeId,
   label,
+  labelId,
   description,
+  descriptionId,
   hasSuggestion,
   suggestionValue,
   currentValue,
@@ -58,9 +61,12 @@ export function FieldFrame({
   onRejectSuggestion,
   children,
 }: {
+  as?: 'div' | 'label';
   nodeId?: string;
   label?: string;
+  labelId?: string;
   description?: string;
+  descriptionId?: string;
   hasSuggestion?: boolean;
   suggestionValue?: unknown;
   currentValue?: unknown;
@@ -68,8 +74,10 @@ export function FieldFrame({
   onRejectSuggestion?: () => void;
   children: ReactNode;
 }) {
+  const Root = as;
+
   return (
-    <label
+    <Root
       style={{
         ...wrapStyle,
         ...streamedNodeMotionStyle(nodeId, 'shell'),
@@ -88,13 +96,19 @@ export function FieldFrame({
         >
           {label ? (
             <div style={labelLineStyle}>
-              <span style={labelStyle}>{label}</span>
+              <span id={labelId} style={labelStyle}>
+                {label}
+              </span>
               <StarterKitFieldRestoreBadge nodeId={nodeId} />
             </div>
           ) : nodeId ? (
             <StarterKitFieldRestoreBadge nodeId={nodeId} />
           ) : null}
-          {description ? <span style={descriptionStyle}>{description}</span> : null}
+          {description ? (
+            <span id={descriptionId} style={descriptionStyle}>
+              {description}
+            </span>
+          ) : null}
         </div>
       ) : null}
       <div
@@ -115,6 +129,6 @@ export function FieldFrame({
           onReject={onRejectSuggestion}
         />
       ) : null}
-    </label>
+    </Root>
   );
 }

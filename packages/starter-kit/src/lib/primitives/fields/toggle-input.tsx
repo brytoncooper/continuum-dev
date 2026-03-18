@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { color, control, radius, space, type } from '../../tokens.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
 import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
+import { useCompactViewport } from '../shared/responsive-layout.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
 const wrapStyle: CSSProperties = {
@@ -12,12 +13,17 @@ const wrapStyle: CSSProperties = {
   minWidth: 0,
 };
 
-const controlWrapStyle: CSSProperties = {
+const controlWrapStyle = (checked: boolean, isCompact: boolean): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'space-between',
   gap: space.md,
   minHeight: control.height,
-};
+  padding: `${isCompact ? space.md : space.sm}px ${space.md}px`,
+  borderRadius: radius.md,
+  border: `1px solid ${checked ? color.borderStrong : color.borderSoft}`,
+  background: checked ? color.surface : color.surfaceMuted,
+});
 
 const labelLineStyle: CSSProperties = {
   display: 'flex',
@@ -56,6 +62,7 @@ export function ToggleInput({
   suggestionValue,
 }: ContinuumNodeProps) {
   const nodeValue = value as NodeValue<boolean> | undefined;
+  const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const checked = Boolean(
     nodeValue?.value ??
@@ -64,7 +71,22 @@ export function ToggleInput({
 
   return (
     <div style={wrapStyle}>
-      <label style={controlWrapStyle}>
+      <label style={controlWrapStyle(checked, isCompact)}>
+        <span style={{ display: 'grid', gap: space.xs, minWidth: 0 }}>
+          {label ? (
+            <span style={labelLineStyle}>
+              <span style={{ ...type.section, color: color.text }}>{label}</span>
+              <StarterKitFieldRestoreBadge nodeId={nodeId} />
+            </span>
+          ) : (
+            <StarterKitFieldRestoreBadge nodeId={nodeId} />
+          )}
+          {nodeDescription(definition) ? (
+            <span style={{ ...type.small, color: color.textMuted }}>
+              {nodeDescription(definition)}
+            </span>
+          ) : null}
+        </span>
         <span style={trackStyle(checked)}>
           <span style={thumbStyle(checked)} />
           <input
@@ -85,21 +107,6 @@ export function ToggleInput({
               } as NodeValue)
             }
           />
-        </span>
-        <span style={{ display: 'grid', gap: space.xs }}>
-          {label ? (
-            <span style={labelLineStyle}>
-              <span style={{ ...type.section, color: color.text }}>{label}</span>
-              <StarterKitFieldRestoreBadge nodeId={nodeId} />
-            </span>
-          ) : (
-            <StarterKitFieldRestoreBadge nodeId={nodeId} />
-          )}
-          {nodeDescription(definition) ? (
-            <span style={{ ...type.small, color: color.textMuted }}>
-              {nodeDescription(definition)}
-            </span>
-          ) : null}
         </span>
       </label>
       {nodeId ? (
