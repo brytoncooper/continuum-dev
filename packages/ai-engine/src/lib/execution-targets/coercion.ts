@@ -1,6 +1,6 @@
 import type {
-  StarterKitExecutionTarget,
-  StarterKitScalarValue,
+  ContinuumExecutionTarget,
+  ContinuumScalarValue,
 } from './types.js';
 
 function unwrapNodeValueLike(rawValue: unknown): unknown {
@@ -70,7 +70,7 @@ function coerceNumberValue(rawValue: unknown): number | undefined {
 }
 
 function mapOptionValue(
-  options: StarterKitExecutionTarget['options'],
+  options: ContinuumExecutionTarget['options'],
   rawValue: unknown
 ): string | undefined {
   if (!Array.isArray(options) || options.length === 0) {
@@ -106,9 +106,9 @@ function mapOptionValue(
 }
 
 export function coerceScalarStateValue(
-  target: StarterKitExecutionTarget,
+  target: ContinuumExecutionTarget,
   rawValue: unknown
-): StarterKitScalarValue | undefined {
+): ContinuumScalarValue | undefined {
   const value = unwrapNodeValueLike(rawValue);
 
   if (value === undefined || value === null) {

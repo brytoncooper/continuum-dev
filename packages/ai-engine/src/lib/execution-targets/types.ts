@@ -1,4 +1,4 @@
-export interface StarterKitExecutionTarget {
+export interface ContinuumExecutionTarget {
   nodeId: string;
   key?: string;
   semanticKey?: string;
@@ -6,18 +6,18 @@ export interface StarterKitExecutionTarget {
   label?: string;
   dataType?: string;
   options?: Array<{ value?: string; label?: string }>;
-  templateFields?: StarterKitExecutionTarget[];
+  templateFields?: ContinuumExecutionTarget[];
 }
 
-export type StarterKitScalarValue = string | number | boolean;
+export type ContinuumScalarValue = string | number | boolean;
 
-export type StarterKitCollectionItem = {
-  values: Record<string, { value: StarterKitScalarValue }>;
+export type ContinuumCollectionItem = {
+  values: Record<string, { value: ContinuumScalarValue }>;
 };
 
-export type StarterKitStateUpdate = {
+export type ContinuumStateUpdate = {
   nodeId: string;
   value:
-    | { value: StarterKitScalarValue }
-    | { value: { items: StarterKitCollectionItem[] } };
+    | { value: ContinuumScalarValue }
+    | { value: { items: ContinuumCollectionItem[] } };
 };

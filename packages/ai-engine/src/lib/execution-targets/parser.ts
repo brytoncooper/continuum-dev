@@ -1,16 +1,16 @@
 import { parseJson } from '../view-guardrails/index.js';
 import { coerceScalarStateValue } from './coercion.js';
 import type {
-  StarterKitCollectionItem,
-  StarterKitExecutionTarget,
-  StarterKitScalarValue,
-  StarterKitStateUpdate,
+  ContinuumCollectionItem,
+  ContinuumExecutionTarget,
+  ContinuumScalarValue,
+  ContinuumStateUpdate,
 } from './types.js';
 
 function resolveStateTarget(
-  targetCatalog: StarterKitExecutionTarget[],
+  targetCatalog: ContinuumExecutionTarget[],
   reference: Record<string, unknown>
-): StarterKitExecutionTarget | null {
+): ContinuumExecutionTarget | null {
   const preferredNodeId =
     typeof reference.nodeId === 'string' && reference.nodeId.trim().length > 0
       ? reference.nodeId.trim()
@@ -51,9 +51,9 @@ function resolveStateTarget(
 }
 
 function resolveCollectionTemplateTarget(
-  collectionTarget: StarterKitExecutionTarget,
+  collectionTarget: ContinuumExecutionTarget,
   referenceKey: string
-): StarterKitExecutionTarget | null {
+): ContinuumExecutionTarget | null {
   if (!Array.isArray(collectionTarget.templateFields)) {
     return null;
   }
@@ -69,9 +69,9 @@ function resolveCollectionTemplateTarget(
 }
 
 function normalizeScalarStateUpdate(
-  target: StarterKitExecutionTarget,
+  target: ContinuumExecutionTarget,
   rawValue: unknown
-): StarterKitStateUpdate | null {
+): ContinuumStateUpdate | null {
   const value = coerceScalarStateValue(target, rawValue);
   if (value === undefined) {
     return null;
@@ -84,10 +84,10 @@ function normalizeScalarStateUpdate(
 }
 
 function normalizeCollectionItemValues(
-  target: StarterKitExecutionTarget,
+  target: ContinuumExecutionTarget,
   source: Record<string, unknown>
-): Record<string, { value: StarterKitScalarValue }> {
-  const values: Record<string, { value: StarterKitScalarValue }> = {};
+): Record<string, { value: ContinuumScalarValue }> {
+  const values: Record<string, { value: ContinuumScalarValue }> = {};
 
   for (const [referenceKey, rawFieldValue] of Object.entries(source)) {
     const templateTarget = resolveCollectionTemplateTarget(target, referenceKey);
@@ -107,9 +107,9 @@ function normalizeCollectionItemValues(
 }
 
 function normalizeCollectionStateUpdate(
-  target: StarterKitExecutionTarget,
+  target: ContinuumExecutionTarget,
   updateRecord: Record<string, unknown>
-): StarterKitStateUpdate | null {
+): ContinuumStateUpdate | null {
   const valueRecord =
     updateRecord.value && typeof updateRecord.value === 'object'
       ? (updateRecord.value as Record<string, unknown>)
@@ -142,7 +142,7 @@ function normalizeCollectionStateUpdate(
       const values = normalizeCollectionItemValues(target, source);
       return Object.keys(values).length > 0 ? { values } : null;
     })
-    .filter((item): item is StarterKitCollectionItem => item !== null);
+    .filter((item): item is ContinuumCollectionItem => item !== null);
 
   if (items.length === 0) {
     return null;
@@ -158,11 +158,11 @@ function normalizeCollectionStateUpdate(
   };
 }
 
-export function parseStarterKitStateResponse(args: {
+export function parseContinuumStateResponse(args: {
   text: string;
-  targetCatalog: StarterKitExecutionTarget[];
+  targetCatalog: ContinuumExecutionTarget[];
 }): {
-  updates: StarterKitStateUpdate[];
+  updates: ContinuumStateUpdate[];
   status?: string;
 } | null {
   const parsed = parseJson<Record<string, unknown>>(args.text);
@@ -209,7 +209,7 @@ export function parseStarterKitStateResponse(args: {
         (rawUpdate as Record<string, unknown>).value
       );
     })
-    .filter((update): update is StarterKitStateUpdate => update !== null);
+    .filter((update): update is ContinuumStateUpdate => update !== null);
 
   if (updates.length === 0) {
     return null;
