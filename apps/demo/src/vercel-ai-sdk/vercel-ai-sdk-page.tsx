@@ -38,9 +38,9 @@ export function VercelAiSdkPage() {
   return (
     <PageShell
       nav={<SiteNav />}
-      eyebrow="Vercel AI SDK Demo"
+      eyebrow="Vercel AI SDK Adapter Demo"
       title="Start with the wrapper. Keep the transport. Outgrow it without rewriting everything."
-      description="This demo now leads with the starter-kit happy path for Vercel AI SDK users, then shows the raw hook, Worker boundary, and draft preview layers underneath."
+      description="This demo leads with the Continuum adapter happy path for Vercel AI SDK users, then shows the raw hook, app-owned route composition, and draft preview layers underneath."
     >
       <PageSection
         title="Why this integration exists"
@@ -58,7 +58,7 @@ export function VercelAiSdkPage() {
           </ExampleCard>
           <ExampleCard
             title="Vercel stays Vercel"
-            description="Continuum is not replacing the Vercel AI SDK. It starts after the stream lands and keeps evolving forms and workflows from wiping real user work."
+            description="Continuum is not replacing the Vercel AI SDK. The adapter starts after the stream lands and keeps evolving forms and workflows from wiping real user work."
             span={4}
           >
             <div style={helperTextStyle}>
@@ -99,6 +99,9 @@ export function VercelAiSdkPage() {
           components={starterKitComponentMap}
           persist="localStorage"
           storageKey={VERCEL_AI_SDK_SESSION_STORAGE_KEY}
+          sessionOptions={{
+            enableRestoreReviews: false,
+          }}
         >
           <VercelAiSdkStudio />
         </ContinuumProvider>
@@ -106,7 +109,7 @@ export function VercelAiSdkPage() {
 
       <PageSection
         title="Advanced layers"
-        description="The simple setup is the default story, but the deeper layers are still here. Use them when you need custom chat UI, lower-level hook control, or a more explicit server pipeline."
+        description="The simple setup is the default story, but the deeper layers are still here. Use them when you need custom chat UI, lower-level hook control, or a more explicit app-owned server pipeline."
       >
         <VercelAiSdkAdvancedLayers />
       </PageSection>

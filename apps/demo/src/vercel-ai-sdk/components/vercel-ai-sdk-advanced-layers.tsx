@@ -20,7 +20,7 @@ const layerCopy: Record<
   'raw-hook': {
     title: 'Drop to the raw transport hook when you outgrow the wrapper',
     description:
-      'The starter-kit wrapper is the fast lane, not the only lane. When teams need custom chat UI or request orchestration, they can keep Continuum and swap down to the Vercel bridge directly.',
+      'The starter-kit wrapper is the fast lane, not the only lane. When teams need custom chat UI or request orchestration, they can keep Continuum and swap down to the adapter directly.',
     snippet: `import {
   useContinuumSession,
   useContinuumVercelAiSdkChat,
@@ -32,19 +32,20 @@ const chat = useContinuumVercelAiSdkChat({
 });`,
   },
   worker: {
-    title: 'Keep the server boundary explicit',
+    title: 'Compose into an app-owned AI SDK route',
     description:
-      'The demo keeps transport and provider secrets in the Worker. Continuum stays in the client runtime, so the server only streams parts back instead of owning session reconciliation.',
-    snippet: `POST /api/vercel-ai-sdk/chat
-  providerId
-  model
-  currentView
-  currentData
-  messages[]
-
-response:
-  Vercel AI SDK UI stream
-  + Continuum data parts`,
+      'The adapter does not need to own your route. You can keep auth, tools, persistence, and provider selection in your own handler, then write Continuum data parts into the same AI SDK UI stream.',
+    snippet: `const stream = createUIMessageStream({
+  execute: ({ writer }) => {
+    writer.merge(result.toUIMessageStream());
+    return writeContinuumExecutionToUiMessageWriter({
+      writer,
+      adapter,
+      instruction,
+      context: { currentView, currentData },
+    });
+  },
+});`,
   },
   drafts: {
     title: 'Draft streams protect active typing',

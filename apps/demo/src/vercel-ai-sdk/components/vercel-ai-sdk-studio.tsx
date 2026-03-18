@@ -1,11 +1,12 @@
 import { DefaultChatTransport } from 'ai';
 import type { ViewDefinition } from '@continuum-dev/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { buildContinuumVercelAiSdkRequestBody } from '@continuum-dev/vercel-ai-sdk-adapter';
 import {
   useContinuumSession,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
-import { useContinuumStreaming, useContinuumStreams } from '@continuum-dev/react';
+import { useContinuumStreaming } from '@continuum-dev/react';
 import { useResponsiveState } from '../../ui/responsive';
 import { space } from '../../ui/tokens';
 import { initialVercelAiSdkView } from '../data/initial-view';
@@ -15,7 +16,6 @@ import {
   useVercelAiSdkDemoSettings,
   VERCEL_AI_SDK_API_KEY_HEADER,
 } from '../hooks/use-vercel-ai-sdk-demo-settings';
-import { useDraftPreviewFocusLock } from '../hooks/use-draft-preview-focus-lock';
 
 const splitLayoutStyle = {
   display: 'grid',
@@ -28,11 +28,11 @@ export function VercelAiSdkStudio() {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
   const streaming = useContinuumStreaming();
-  const streams = useContinuumStreams();
   const settings = useVercelAiSdkDemoSettings();
   const { isMobile } = useResponsiveState();
   const [isGenerating, setIsGenerating] = useState(false);
   const latestViewRef = useRef<ViewDefinition>(initialVercelAiSdkView);
+  const previewFrameRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!snapshot) {
@@ -45,11 +45,6 @@ export function VercelAiSdkStudio() {
   useEffect(() => {
     latestViewRef.current = liveView;
   }, [liveView]);
-
-  const preview = useDraftPreviewFocusLock({
-    liveView,
-    streams,
-  });
 
   const transport = useMemo(
     () =>
@@ -67,12 +62,15 @@ export function VercelAiSdkStudio() {
 
           return headers;
         },
-        body: () => ({
-          providerId: settings.providerId,
-          model: settings.resolvedModel,
-          currentView: latestViewRef.current,
-          currentData: session.getSnapshot()?.data.values ?? null,
-        }),
+        body: () =>
+          buildContinuumVercelAiSdkRequestBody({
+            body: {
+              providerId: settings.providerId,
+              model: settings.resolvedModel,
+            },
+            currentView: latestViewRef.current,
+            currentData: session.getSnapshot()?.data.values ?? null,
+          }),
       }),
     [
       session,
@@ -93,16 +91,10 @@ export function VercelAiSdkStudio() {
   ].join(':');
 
   const previewStatusText =
-    preview.draftPreviewStream &&
-    preview.lockedDraftStreamId === preview.draftPreviewStream.streamId
-      ? 'Draft preview updates are paused while you type. Your edits still apply to the active draft stream.'
-      : preview.draftPreviewStream?.latestStatus?.status ??
-        streaming.activeStream?.latestStatus?.status ??
-        (isGenerating || streaming.isStreaming
-          ? preview.draftPreviewStream
-            ? 'Streaming draft Continuum view snapshots into a non-live preview stream.'
-            : 'Streaming Continuum update parts directly into the active session.'
-          : null);
+    streaming.activeStream?.latestStatus?.status ??
+    (isGenerating || streaming.isStreaming
+      ? 'Streaming Continuum update parts directly into the active session while preserving your edits.'
+      : null);
 
   return (
     <div
@@ -125,12 +117,12 @@ export function VercelAiSdkStudio() {
         }}
       />
       <VercelAiSdkPreviewPanel
-        previewFrameRef={preview.previewFrameRef}
+        previewFrameRef={previewFrameRef}
         previewStatusText={previewStatusText}
         isGenerating={isGenerating}
-        renderedView={preview.renderedView}
-        snapshotOverride={preview.draftPreviewSnapshot}
-        renderScope={preview.renderScope}
+        renderedView={liveView}
+        snapshotOverride={null}
+        renderScope={undefined}
       />
     </div>
   );

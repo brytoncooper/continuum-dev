@@ -8,8 +8,8 @@ import {
   type AiConnectClient,
   type AiConnectModelOption,
   type AiConnectProviderKind,
+  type ContinuumViewAuthoringFormat,
   type StarterKitCheckpointPreview,
-  type StarterKitViewAuthoringFormat,
   StarterKitProviderChatBox,
   StarterKitSessionWorkbench,
   starterKitComponentMap,
@@ -100,7 +100,7 @@ interface LiveAiStoredSettings {
   provider?: AiConnectProviderKind;
   tokens?: Partial<ProviderValueMap>;
   models?: Partial<ProviderValueMap>;
-  authoringFormat?: StarterKitViewAuthoringFormat;
+  authoringFormat?: ContinuumViewAuthoringFormat;
 }
 
 const defaultProviderValues: ProviderValueMap = {
@@ -291,7 +291,7 @@ function LiveStudio({
 }: {
   providers: AiConnectClient[];
   hasToken: boolean;
-  authoringFormat: StarterKitViewAuthoringFormat;
+  authoringFormat: ContinuumViewAuthoringFormat;
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
@@ -464,7 +464,7 @@ export function LiveAiPage() {
     stored.provider ?? 'openai'
   );
   const [authoringFormat, setAuthoringFormat] =
-    useState<StarterKitViewAuthoringFormat>(
+    useState<ContinuumViewAuthoringFormat>(
       stored.authoringFormat ?? 'line-dsl'
     );
   const [tokensByProvider, setTokensByProvider] = useState<ProviderValueMap>({
@@ -627,7 +627,7 @@ export function LiveAiPage() {
                   value={authoringFormat}
                   onChange={(event) => {
                     setAuthoringFormat(
-                      event.target.value as StarterKitViewAuthoringFormat
+                      event.target.value as ContinuumViewAuthoringFormat
                     );
                   }}
                   style={inputStyle}

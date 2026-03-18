@@ -42,9 +42,9 @@ const routeMetadata: Record<string, RouteMetadata> = {
     path: '/live-ai',
   },
   '/vercel-ai-sdk': {
-    title: 'Continuum Vercel AI SDK Demo | Keep Streaming UI Stable After It Lands',
+    title: 'Continuum Vercel AI SDK Adapter Demo | Keep Streaming UI Stable After It Lands',
     description:
-      'See how Continuum plugs into the Vercel AI SDK stream model so generated forms and workflows can evolve without wiping in-progress user state.',
+      'See how the Continuum adapter plugs into the Vercel AI SDK stream model so generated forms and workflows can evolve without wiping in-progress user state.',
     path: '/vercel-ai-sdk',
   },
 };

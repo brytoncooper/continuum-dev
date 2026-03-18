@@ -18,6 +18,9 @@
   },
   "references": [
     {
+      "path": "../../packages/vercel-ai-sdk-adapter"
+    },
+    {
       "path": "../../packages/core"
     },
     {

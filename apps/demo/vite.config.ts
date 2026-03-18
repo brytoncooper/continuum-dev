@@ -1,20 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
+import { pathToFileURL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
-  handleVercelAiSdkDemoRequest,
   isVercelAiSdkDemoPath,
-} from '../demo-api/vercel-ai-sdk-demo-route.mjs';
-import {
-  handleVercelAiSdkLiveRequest,
   isVercelAiSdkLivePath,
-} from '../demo-api/vercel-ai-sdk-live-route.mjs';
-import {
-  handleVercelAiSdkProvidersRequest,
   isVercelAiSdkProvidersPath,
-} from '../demo-api/vercel-ai-sdk-providers-route.mjs';
+} from '../demo-api/vercel-ai-sdk-shared.mjs';
 
 async function readRequestBody(
   request: IncomingMessage
@@ -96,37 +90,70 @@ function sendFetchResponse(
   Readable.fromWeb(fetchResponse.body).pipe(response);
 }
 
-const localVercelAiSdkRouteHandlers = [
-  {
-    matches: isVercelAiSdkDemoPath,
-    handle: (request: Request) => handleVercelAiSdkDemoRequest(request),
-  },
-  {
-    matches: isVercelAiSdkLivePath,
-    handle: (request: Request) => handleVercelAiSdkLiveRequest(request, {}),
-  },
-  {
-    matches: isVercelAiSdkProvidersPath,
-    handle: (request: Request) => handleVercelAiSdkProvidersRequest(request, {}),
-  },
-];
+type DemoViteDevServer = {
+  middlewares: {
+    use: (
+      handler: (
+        request: IncomingMessage,
+        response: ServerResponse,
+        next: () => void
+      ) => void | Promise<void>
+    ) => void;
+  };
+  ssrLoadModule?: (url: string) => Promise<unknown>;
+};
+
+function importDemoApiModule<TModule>(
+  server: DemoViteDevServer,
+  relativePath: string
+): Promise<TModule> {
+  const modulePath = resolve(__dirname, relativePath);
+
+  if (server.ssrLoadModule) {
+    return server.ssrLoadModule(modulePath) as Promise<TModule>;
+  }
+
+  // Keep these route modules runtime-only so config graph evaluation does not
+  // pull workspace source packages into Vite's temporary bundled config file.
+  const moduleUrl = pathToFileURL(modulePath).href;
+  return import(/* @vite-ignore */ moduleUrl) as Promise<TModule>;
+}
 
 function localVercelAiSdkRoutes() {
   return {
     name: 'local-vercel-ai-sdk-routes',
     apply: 'serve' as const,
-    configureServer(server: {
-      middlewares: {
-        use: (
-          handler: (
-            request: IncomingMessage,
-            response: ServerResponse,
-            next: () => void
-          ) => void | Promise<void>
-        ) => void;
-      };
-    }) {
+    configureServer(server: DemoViteDevServer) {
       server.middlewares.use(async (request, response, next) => {
+        const localVercelAiSdkRouteHandlers = [
+          {
+            matches: isVercelAiSdkDemoPath,
+            handle: async (fetchRequest: Request) =>
+              (
+                await importDemoApiModule<
+                  typeof import('../demo-api/vercel-ai-sdk-demo-route.mjs')
+                >(server, '../demo-api/vercel-ai-sdk-demo-route.mjs')
+              ).handleVercelAiSdkDemoRequest(fetchRequest),
+          },
+          {
+            matches: isVercelAiSdkLivePath,
+            handle: async (fetchRequest: Request) =>
+              (
+                await importDemoApiModule<
+                  typeof import('../demo-api/vercel-ai-sdk-live-route.mjs')
+                >(server, '../demo-api/vercel-ai-sdk-live-route.mjs')
+              ).handleVercelAiSdkLiveRequest(fetchRequest, {}),
+          },
+          {
+            matches: isVercelAiSdkProvidersPath,
+            handle: async (fetchRequest: Request) =>
+              (
+                await importDemoApiModule<
+                  typeof import('../demo-api/vercel-ai-sdk-providers-route.mjs')
+                >(server, '../demo-api/vercel-ai-sdk-providers-route.mjs')
+              ).handleVercelAiSdkProvidersRequest(fetchRequest, {}),
+          },
+        ];
         const pathname = new URL(
           request.url ?? '/',
           'http://localhost'
@@ -161,10 +188,10 @@ function localVercelAiSdkRoutes() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/demo',
-  plugins: [react(), localVercelAiSdkRoutes()],
+  plugins: [react(), ...(command === 'serve' ? [localVercelAiSdkRoutes()] : [])],
   resolve: {
     alias: {
       '@continuum-dev/adapters': resolve(
@@ -178,6 +205,14 @@ export default defineConfig({
       '@continuum-dev/ai-engine': resolve(
         __dirname,
         '../../packages/ai-engine/src/index.ts'
+      ),
+      '@continuum-dev/vercel-ai-sdk-adapter/server': resolve(
+        __dirname,
+        '../../packages/vercel-ai-sdk-adapter/src/server.ts'
+      ),
+      '@continuum-dev/vercel-ai-sdk-adapter': resolve(
+        __dirname,
+        '../../packages/vercel-ai-sdk-adapter/src/index.ts'
       ),
       '@continuum-dev/contract': resolve(
         __dirname,
@@ -224,7 +259,9 @@ export default defineConfig({
         '../../packages/starter-kit-ai/src/index.ts'
       ),
     },
-    conditions: ['@continuum-dev/source'],
+  },
+  ssr: {
+    noExternal: [/^@continuum-dev\//],
   },
   server: {
     port: 4300,
@@ -240,4 +277,4 @@ export default defineConfig({
     outDir: '../../dist/apps/demo',
     emptyOutDir: true,
   },
-});
+}));

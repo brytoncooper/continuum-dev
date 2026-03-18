@@ -159,7 +159,7 @@ export const packageStackContent = {
     {
       name: 'vercel-ai-sdk',
       title: 'Adds continuity to streaming apps',
-      body: 'Lets teams keep Vercel AI SDK transport and streaming while Continuum owns reconciliation and durable user state.',
+      body: 'Lets teams keep Vercel AI SDK transport and streaming while the Continuum adapter owns reconciliation and durable user state.',
     },
     {
       name: 'starter-kit',

@@ -3,14 +3,6 @@ import { defineConfig } from 'vite';
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/demo',
-  resolve: {
-    conditions: ['@continuum-dev/source'],
-  },
-  ssr: {
-    resolve: {
-      conditions: ['@continuum-dev/source'],
-    },
-  },
   test: {
     name: 'demo',
     watch: false,
