@@ -10,21 +10,21 @@ import type {
   ViewDefinition,
 } from '@continuum-dev/core';
 
-export interface StarterKitSessionSnapshot {
+export interface ContinuumSessionSnapshot {
   view: ViewDefinition;
   data: {
     values: Record<string, NodeValue | undefined>;
   };
 }
 
-export interface StarterKitPendingProposal {
+export interface ContinuumPendingProposal {
   proposedValue: NodeValue;
 }
 
-export interface StarterKitSessionLike {
+export interface ContinuumSessionLike {
   sessionId: string;
-  getSnapshot(): StarterKitSessionSnapshot | undefined;
-  getCommittedSnapshot?(): StarterKitSessionSnapshot | undefined;
+  getSnapshot(): ContinuumSessionSnapshot | undefined;
+  getCommittedSnapshot?(): ContinuumSessionSnapshot | undefined;
   getDetachedValues(): Record<string, unknown>;
   getIssues(): unknown[];
   pushView(view: ViewDefinition, options?: SessionViewApplyOptions): void;
@@ -33,7 +33,7 @@ export interface StarterKitSessionLike {
   commitStream?(streamId: string): SessionStreamResult;
   abortStream?(streamId: string, reason?: string): SessionStreamResult;
   getStreams?(): SessionStream[];
-  getPendingProposals(): Record<string, StarterKitPendingProposal>;
+  getPendingProposals(): Record<string, ContinuumPendingProposal>;
   getPendingRestoreReviews?(): DetachedRestoreReview[];
   acceptProposal(nodeId: string): void;
   rejectProposal(nodeId: string): void;
@@ -52,10 +52,10 @@ export interface StarterKitSessionLike {
   proposeValue(nodeId: string, value: NodeValue, source?: string): void;
 }
 
-export interface StarterKitSessionAdapter {
+export interface ContinuumSessionAdapter {
   readonly sessionId: string;
-  getSnapshot(): StarterKitSessionSnapshot | undefined;
-  getCommittedSnapshot(): StarterKitSessionSnapshot | undefined;
+  getSnapshot(): ContinuumSessionSnapshot | undefined;
+  getCommittedSnapshot(): ContinuumSessionSnapshot | undefined;
   getDetachedValues(): Record<string, unknown>;
   getIssues(): unknown[];
   applyView(view: ViewDefinition, options?: SessionViewApplyOptions): void;
@@ -64,7 +64,7 @@ export interface StarterKitSessionAdapter {
   commitStream?(streamId: string): SessionStreamResult;
   abortStream?(streamId: string, reason?: string): SessionStreamResult;
   getStreams?(): SessionStream[];
-  getPendingProposals(): Record<string, StarterKitPendingProposal>;
+  getPendingProposals(): Record<string, ContinuumPendingProposal>;
   getPendingRestoreReviews(): DetachedRestoreReview[];
   acceptProposal(nodeId: string): void;
   rejectProposal(nodeId: string): void;
@@ -83,9 +83,9 @@ export interface StarterKitSessionAdapter {
   proposeValue(nodeId: string, value: NodeValue, source?: string): void;
 }
 
-export function createStarterKitSessionAdapter(
-  session: StarterKitSessionLike
-): StarterKitSessionAdapter {
+export function createContinuumSessionAdapter(
+  session: ContinuumSessionLike
+): ContinuumSessionAdapter {
   const beginStream =
     typeof session.beginStream === 'function'
       ? session.beginStream.bind(session)

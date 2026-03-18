@@ -22,10 +22,10 @@ export {
   parseViewYamlToViewDefinition,
 };
 
-export type StarterKitViewAuthoringFormat = 'line-dsl' | 'yaml';
+export type ContinuumViewAuthoringFormat = 'line-dsl' | 'yaml';
 
 export function buildViewAuthoringSystemPrompt(args: {
-  format: StarterKitViewAuthoringFormat;
+  format: ContinuumViewAuthoringFormat;
   mode: PromptMode;
   addons?: PromptAddon[];
 }): string {
@@ -43,7 +43,7 @@ export function buildViewAuthoringSystemPrompt(args: {
 }
 
 export function buildViewAuthoringUserMessage(args: {
-  format: StarterKitViewAuthoringFormat;
+  format: ContinuumViewAuthoringFormat;
   mode: PromptMode;
   instruction: string;
   currentView?: unknown;
@@ -59,7 +59,7 @@ export function buildViewAuthoringUserMessage(args: {
 }
 
 export function parseViewAuthoringToViewDefinition(args: {
-  format: StarterKitViewAuthoringFormat;
+  format: ContinuumViewAuthoringFormat;
   text: string;
   fallbackView?: ViewDefinition;
 }): ViewDefinition | null {

@@ -247,7 +247,9 @@ export function buildViewDefinitionNodeFromDsl(
   }
 
   if (node.type === 'group' || node.type === 'row' || node.type === 'grid') {
-    base.children = node.children.map((child) => buildViewDefinitionNodeFromDsl(child));
+    base.children = node.children.map((child) =>
+      buildViewDefinitionNodeFromDsl(child, options)
+    );
   }
 
   if (node.type === 'collection') {

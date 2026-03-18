@@ -28,6 +28,38 @@ nodes:
     });
   });
 
+  it('extracts the yaml block from a larger markdown reply and supports a nested view root', () => {
+    const parsed = parseViewYamlToViewDefinition({
+      text: `Here is the updated form.
+
+\`\`\`json
+{"ignore":true}
+\`\`\`
+
+\`\`\`yaml
+view:
+  viewId: profile
+  version: "3"
+  nodes:
+    - id: profile_group
+      type: group
+      children: []
+\`\`\``,
+    });
+
+    expect(parsed).toEqual({
+      viewId: 'profile',
+      version: '3',
+      nodes: [
+        {
+          id: 'profile_group',
+          type: 'group',
+          children: [],
+        },
+      ],
+    });
+  });
+
   it('uses fallback metadata when yaml omits view id and version', () => {
     const fallbackView: ViewDefinition = {
       viewId: 'profile',
@@ -46,6 +78,17 @@ nodes:
       viewId: 'profile',
       version: '8',
     });
+  });
+
+  it('returns null when yaml does not provide nodes', () => {
+    expect(
+      parseViewYamlToViewDefinition({
+        text: `\`\`\`yaml
+viewId: profile
+version: "2"
+\`\`\``,
+      })
+    ).toBeNull();
   });
 
   it('builds yaml prompts and user messages', () => {
