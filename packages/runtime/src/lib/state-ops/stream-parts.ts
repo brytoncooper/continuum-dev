@@ -7,8 +7,8 @@ import {
   applyContinuumViewPatch,
   collectContinuumViewPatchAffectedNodeIds,
   type ContinuumViewPatch,
-} from '../view-patch.js';
-import { patchViewDefinition } from '../view-patch.js';
+} from '../view-patch/index.js';
+import { patchViewDefinition } from '../view-patch/index.js';
 import type {
   ApplyContinuumViewStreamPartInput,
   ApplyContinuumViewStreamPartResult,

@@ -2,7 +2,7 @@ import type { DataSnapshot, DetachedValue, NodeValue } from '@continuum-dev/cont
 import { collectDuplicateIssues } from '../context/index.js';
 import { reconcile } from '../reconcile/index.js';
 import type { ApplyContinuumViewUpdateInput, AppliedContinuumViewState } from './types.js';
-import { patchViewDefinition } from '../view-patch.js';
+import { patchViewDefinition } from '../view-patch/index.js';
 import { resolveNodeLookupEntry } from './node-lookup.js';
 
 function isCollectionState(

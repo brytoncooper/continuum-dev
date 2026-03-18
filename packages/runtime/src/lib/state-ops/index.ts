@@ -10,7 +10,7 @@ export {
 } from './direct-updates.js';
 export { applyContinuumViewStreamPart } from './stream-parts.js';
 export { applyContinuumViewUpdate, assertValidView } from './view-updates.js';
-export type { ContinuumViewPatchPosition } from '../view-patch.js';
+export type { ContinuumViewPatchPosition } from '../view-patch/index.js';
 export type {
   AppliedContinuumViewState,
   ApplyContinuumNodeValueInput,
