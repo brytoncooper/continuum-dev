@@ -17,85 +17,85 @@ function stripCodeFences(text: string): string {
   return lines.join('\n').trim();
 }
 
-function extractJsonCandidate(text: string): string | null {
-  const start = text.search(/[[{]/);
-  if (start < 0) {
-    return null;
-  }
+function extractJsonCandidates(text: string): string[] {
+  const candidates: string[] = [];
 
-  const stack: string[] = [];
-  let inString = false;
-  let escaped = false;
+  for (let start = 0; start < text.length; start += 1) {
+    const opening = text[start];
+    if (opening !== '{' && opening !== '[') {
+      continue;
+    }
 
-  for (let index = start; index < text.length; index += 1) {
-    const char = text[index];
+    const stack = [opening === '{' ? '}' : ']'];
+    let inString = false;
+    let escaped = false;
 
-    if (inString) {
-      if (escaped) {
-        escaped = false;
+    for (let index = start + 1; index < text.length; index += 1) {
+      const char = text[index];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (char === '\\') {
+          escaped = true;
+          continue;
+        }
+        if (char === '"') {
+          inString = false;
+        }
         continue;
       }
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
+
       if (char === '"') {
-        inString = false;
+        inString = true;
+        continue;
       }
-      continue;
-    }
 
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === '{') {
-      stack.push('}');
-      continue;
-    }
-
-    if (char === '[') {
-      stack.push(']');
-      continue;
-    }
-
-    if (char === '}' || char === ']') {
-      const expected = stack.pop();
-      if (expected !== char) {
-        return null;
+      if (char === '{') {
+        stack.push('}');
+        continue;
       }
-      if (stack.length === 0) {
-        return text.slice(start, index + 1);
+
+      if (char === '[') {
+        stack.push(']');
+        continue;
+      }
+
+      if (char === '}' || char === ']') {
+        const expected = stack.pop();
+        if (expected !== char) {
+          break;
+        }
+        if (stack.length === 0) {
+          candidates.push(text.slice(start, index + 1));
+          break;
+        }
       }
     }
   }
 
-  return null;
+  return candidates;
 }
 
 export function parseJson<T>(text: string): T | null {
-  const candidates = [text, stripCodeFences(text)];
+  const candidates =
+    stripCodeFences(text) === text ? [text] : [text, stripCodeFences(text)];
 
   for (const candidate of candidates) {
     try {
       return JSON.parse(candidate) as T;
     } catch {
-      const extracted = extractJsonCandidate(candidate);
-      if (!extracted) {
-        continue;
-      }
-      try {
-        return JSON.parse(extracted) as T;
-      } catch {
-        continue;
+      for (const extracted of extractJsonCandidates(candidate)) {
+        try {
+          return JSON.parse(extracted) as T;
+        } catch {
+          continue;
+        }
       }
     }
   }
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
+  return null;
 }

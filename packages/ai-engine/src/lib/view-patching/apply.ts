@@ -1,4 +1,5 @@
 import type { ViewDefinition } from '@continuum-dev/core';
+import { patchViewDefinition } from '@continuum-dev/runtime';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/state-ops';
 import { normalizeViewPatchOperation } from './normalize.js';
 import type { ViewPatchPlan } from './types.js';
@@ -26,7 +27,6 @@ export function applyPatchPlanToView(
   }
 
   let nextView = structuredClone(currentView);
-  let changed = false;
 
   for (const rawOperation of plan.operations) {
     const operation = normalizeViewPatchOperation(rawOperation);
@@ -40,16 +40,18 @@ export function applyPatchPlanToView(
         part: operation,
       });
       nextView = result.view;
-      changed = true;
     } catch {
       return null;
     }
   }
 
-  if (!changed) {
+  const finalizedView = patchViewDefinition(currentView, nextView);
+  if (finalizedView === currentView) {
     return null;
   }
 
-  nextView.version = bumpVersion(currentView.version);
-  return nextView;
+  return {
+    ...finalizedView,
+    version: bumpVersion(currentView.version),
+  };
 }

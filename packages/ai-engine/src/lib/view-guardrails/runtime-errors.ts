@@ -8,6 +8,10 @@ export function buildRuntimeErrors(issues: unknown[]): string[] {
     if (typeof asRecord.message === 'string') {
       return asRecord.message;
     }
-    return JSON.stringify(issue);
+    try {
+      return JSON.stringify(issue);
+    } catch {
+      return String(issue);
+    }
   });
 }
