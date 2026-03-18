@@ -63,6 +63,57 @@ describe('ai-connect clients', () => {
     });
   });
 
+  it('falls back when OpenAI rejects response_format and reads array content responses', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        text: async () => 'response_format is invalid',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: [{ text: '{"ok":true}' }],
+              },
+            },
+          ],
+        }),
+      });
+
+    const client = createOpenAiClient({ apiKey: 'test-key' });
+    const result = await client.generate<{ ok: boolean }>({
+      systemPrompt: 'System',
+      userMessage: 'User',
+      outputContract: {
+        name: 'result',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['ok'],
+          properties: {
+            ok: { type: 'boolean' },
+          },
+        },
+      },
+    });
+
+    const firstBody = JSON.parse(
+      String(fetchMock.mock.calls[0][1].body)
+    ) as Record<string, unknown>;
+    const secondBody = JSON.parse(
+      String(fetchMock.mock.calls[1][1].body)
+    ) as Record<string, unknown>;
+
+    expect(firstBody).toHaveProperty('response_format');
+    expect(secondBody).not.toHaveProperty('response_format');
+    expect(result.text).toBe('{"ok":true}');
+    expect(result.json).toEqual({ ok: true });
+  });
+
   it('falls back when Anthropic rejects output_config', async () => {
     fetchMock
       .mockResolvedValueOnce({
@@ -159,6 +210,57 @@ describe('ai-connect clients', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(retryText).toContain('Output style override: return compact minified JSON only.');
+    expect(result.json).toEqual({ done: true });
+  });
+
+  it('falls back when Google rejects responseSchema', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        text: async () => 'response schema is invalid',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              finishReason: 'STOP',
+              content: { parts: [{ text: '{"done":true}' }] },
+            },
+          ],
+        }),
+      });
+
+    const client = createGoogleClient({ apiKey: 'test-key' });
+    const result = await client.generate<{ done: boolean }>({
+      systemPrompt: 'System',
+      userMessage: 'User',
+      outputContract: {
+        name: 'result',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['done'],
+          properties: {
+            done: { type: 'boolean' },
+          },
+        },
+      },
+    });
+
+    const firstBody = JSON.parse(
+      String(fetchMock.mock.calls[0][1].body)
+    ) as { generationConfig: Record<string, unknown> };
+    const secondBody = JSON.parse(
+      String(fetchMock.mock.calls[1][1].body)
+    ) as { generationConfig: Record<string, unknown> };
+
+    expect(firstBody.generationConfig).toHaveProperty('responseSchema');
+    expect(firstBody.generationConfig).toHaveProperty('responseMimeType');
+    expect(secondBody.generationConfig).not.toHaveProperty('responseSchema');
+    expect(secondBody.generationConfig).not.toHaveProperty('responseMimeType');
     expect(result.json).toEqual({ done: true });
   });
 });
