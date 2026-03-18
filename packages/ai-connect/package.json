@@ -39,6 +39,7 @@
     "LICENSE*"
   ],
   "dependencies": {
+    "@continuum-dev/ai-engine": "^0.3.0",
     "@continuum-dev/prompts": "^0.3.0"
   },
   "nx": {

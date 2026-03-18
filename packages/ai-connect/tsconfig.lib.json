@@ -19,6 +19,9 @@
   "references": [
     {
       "path": "../prompts/tsconfig.lib.json"
+    },
+    {
+      "path": "../ai-engine/tsconfig.lib.json"
     }
   ]
 }
