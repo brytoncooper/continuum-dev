@@ -2,7 +2,7 @@ import type {
   AiConnectClient,
   AiConnectGenerateResult,
 } from '@continuum-dev/ai-connect';
-import type { StarterKitViewAuthoringFormat } from '@continuum-dev/ai-engine';
+import type { ContinuumViewAuthoringFormat } from '@continuum-dev/ai-engine';
 import type {
   PromptAddon,
   PromptMode,
@@ -23,7 +23,7 @@ export interface StarterKitProviderChatBoxProps {
   mode?: PromptMode;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
-  authoringFormat?: StarterKitViewAuthoringFormat;
+  authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
   instructionLabel?: string;
   instructionPlaceholder?: string;

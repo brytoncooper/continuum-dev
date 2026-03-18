@@ -25,7 +25,7 @@
       "path": "../prompts/tsconfig.lib.json"
     },
     {
-      "path": "../vercel-ai-sdk/tsconfig.lib.json"
+      "path": "../vercel-ai-sdk-adapter/tsconfig.lib.json"
     },
     {
       "path": "../starter-kit/tsconfig.lib.json"

@@ -9,7 +9,7 @@ It re-exports the common starter AI surface from:
 - `@continuum-dev/starter-kit`
 - `@continuum-dev/ai-connect`
 - `@continuum-dev/ai-engine`
-- `@continuum-dev/vercel-ai-sdk`
+- `@continuum-dev/vercel-ai-sdk-adapter`
 
 ## Install
 
@@ -22,7 +22,7 @@ npm install @continuum-dev/starter-kit-ai react
 - starter-kit rendering and session exports
 - ai-connect provider and model catalog exports
 - ai-engine authoring and planner exports
-- vercel-ai-sdk transport exports
+- Vercel AI SDK adapter exports
 - `StarterKitProviderChatBox`
 - `StarterKitVercelAiSdkChatBox`
 - `StarterKitChatBox`

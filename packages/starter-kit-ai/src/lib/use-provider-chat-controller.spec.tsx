@@ -11,22 +11,55 @@ import {
 const aiEngineMocks = vi.hoisted(() => {
   const sessionAdapter = {
     sessionId: 'session-1',
+    getSnapshot: vi.fn(() => null),
+    getDetachedValues: vi.fn(() => ({})),
+    getIssues: vi.fn(() => []),
+    applyView: vi.fn(),
+    proposeValue: vi.fn(),
   };
 
   return {
     sessionAdapter,
-    createStarterKitSessionAdapter: vi.fn(() => sessionAdapter),
-    runStarterKitViewGeneration: vi.fn(async () => ({
-      result: {
-        providerId: 'openai',
-        model: 'gpt-5',
-        text: '',
-        json: null,
-        raw: null,
-      },
+    createContinuumSessionAdapter: vi.fn(() => sessionAdapter),
+    buildContinuumExecutionContext: vi.fn(() => ({
+      currentView: undefined,
+      currentData: {},
+      detachedFields: [],
+      issues: [],
+    })),
+    runContinuumExecution: vi.fn(async () => ({
+      mode: 'view',
+      source: 'OpenAI',
+      trace: [
+        {
+          phase: 'view',
+          request: {
+            systemPrompt: '',
+            userMessage: '',
+            mode: 'view',
+          },
+          response: {
+            text: '',
+            json: null,
+            raw: {
+              providerId: 'openai',
+              model: 'gpt-5',
+              text: '',
+              json: null,
+              raw: null,
+            },
+          },
+        },
+      ],
       parsed: { ok: true },
+      view: {
+        viewId: 'generated',
+        version: '1',
+        nodes: [],
+      },
       status: 'Applied update',
     })),
+    applyContinuumExecutionFinalResult: vi.fn(),
   };
 });
 
@@ -37,8 +70,11 @@ vi.mock('@continuum-dev/react', () => ({
 }));
 
 vi.mock('@continuum-dev/ai-engine', () => ({
-  createStarterKitSessionAdapter: aiEngineMocks.createStarterKitSessionAdapter,
-  runStarterKitViewGeneration: aiEngineMocks.runStarterKitViewGeneration,
+  createContinuumSessionAdapter: aiEngineMocks.createContinuumSessionAdapter,
+  buildContinuumExecutionContext: aiEngineMocks.buildContinuumExecutionContext,
+  runContinuumExecution: aiEngineMocks.runContinuumExecution,
+  applyContinuumExecutionFinalResult:
+    aiEngineMocks.applyContinuumExecutionFinalResult,
 }));
 
 describe('@continuum-dev/starter-kit-ai/useProviderChatController', () => {
@@ -69,7 +105,8 @@ describe('@continuum-dev/starter-kit-ai/useProviderChatController', () => {
 
   beforeEach(async () => {
     controller = null;
-    aiEngineMocks.runStarterKitViewGeneration.mockClear();
+    aiEngineMocks.runContinuumExecution.mockClear();
+    aiEngineMocks.applyContinuumExecutionFinalResult.mockClear();
     container = document.createElement('div');
     root = createRoot(container);
 
@@ -95,13 +132,28 @@ describe('@continuum-dev/starter-kit-ai/useProviderChatController', () => {
       await controller?.submit();
     });
 
-    expect(aiEngineMocks.runStarterKitViewGeneration).toHaveBeenCalledTimes(1);
-    expect(aiEngineMocks.runStarterKitViewGeneration).toHaveBeenCalledWith(
+    expect(aiEngineMocks.runContinuumExecution).toHaveBeenCalledTimes(1);
+    expect(aiEngineMocks.runContinuumExecution).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: providers[0],
-        session: aiEngineMocks.sessionAdapter,
+        adapter: expect.objectContaining({
+          label: 'OpenAI',
+        }),
+        context: {
+          currentView: undefined,
+          currentData: {},
+          detachedFields: [],
+          issues: [],
+        },
         instruction: 'Add a co-applicant section',
         mode: 'evolve-view',
+      })
+    );
+    expect(
+      aiEngineMocks.applyContinuumExecutionFinalResult
+    ).toHaveBeenCalledWith(
+      aiEngineMocks.sessionAdapter,
+      expect.objectContaining({
+        status: 'Applied update',
       })
     );
     expect(controller?.status).toBe('Applied update');

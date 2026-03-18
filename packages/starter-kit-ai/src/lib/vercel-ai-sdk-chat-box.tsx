@@ -1,7 +1,7 @@
 import type {
   ContinuumVercelAiSdkMessage,
   UseContinuumVercelAiSdkChatOptions,
-} from '@continuum-dev/vercel-ai-sdk';
+} from '@continuum-dev/vercel-ai-sdk-adapter';
 import { StarterKitChatBoxShell } from './chat-box-shell.js';
 import { useVercelAiSdkChatController } from './use-vercel-ai-sdk-chat-controller.js';
 

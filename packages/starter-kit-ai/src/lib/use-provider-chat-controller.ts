@@ -2,15 +2,22 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   AiConnectClient,
   AiConnectGenerateResult,
+  AiConnectProviderKind,
 } from '@continuum-dev/ai-connect';
-import { createAiConnectRegistry } from '@continuum-dev/ai-connect';
+import {
+  createAiConnectContinuumExecutionAdapter,
+  createAiConnectRegistry,
+} from '@continuum-dev/ai-connect';
 import type {
-  StarterKitSessionLike,
-  StarterKitViewAuthoringFormat,
+  ContinuumExecutionFinalResult,
+  ContinuumSessionLike,
+  ContinuumViewAuthoringFormat,
 } from '@continuum-dev/ai-engine';
 import {
-  createStarterKitSessionAdapter,
-  runStarterKitViewGeneration,
+  applyContinuumExecutionFinalResult,
+  buildContinuumExecutionContext,
+  createContinuumSessionAdapter,
+  runContinuumExecution,
 } from '@continuum-dev/ai-engine';
 import type {
   PromptAddon,
@@ -24,7 +31,7 @@ export interface ProviderChatControllerArgs {
   mode?: PromptMode;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
-  authoringFormat?: StarterKitViewAuthoringFormat;
+  authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
   onResult?: (result: AiConnectGenerateResult, parsed: unknown) => void;
   onError?: (error: Error) => void;
@@ -48,9 +55,9 @@ export interface ProviderChatControllerState {
 export function useProviderChatController(
   args: ProviderChatControllerArgs
 ): ProviderChatControllerState {
-  const session = useContinuumSession() as StarterKitSessionLike;
+  const session = useContinuumSession() as ContinuumSessionLike;
   const sessionAdapter = useMemo(
-    () => createStarterKitSessionAdapter(session),
+    () => createContinuumSessionAdapter(session),
     [session]
   );
   const registry = useMemo(
@@ -100,9 +107,10 @@ export function useProviderChatController(
         throw new Error('No AI provider is configured.');
       }
 
-      const result = await runStarterKitViewGeneration({
-        provider: registry.get(activeProviderId),
-        session: sessionAdapter,
+      const activeProvider = registry.get(activeProviderId);
+      const result = await runContinuumExecution({
+        adapter: createAiConnectContinuumExecutionAdapter(activeProvider),
+        context: buildContinuumExecutionContext(sessionAdapter),
         instruction,
         mode: args.mode ?? 'evolve-view',
         addons: args.addons,
@@ -111,8 +119,15 @@ export function useProviderChatController(
         autoApplyView: args.autoApplyView,
       });
 
+      if (args.autoApplyView !== false) {
+        applyContinuumExecutionFinalResult(sessionAdapter, result);
+      }
+
       setStatus(result.status);
-      args.onResult?.(result.result, result.parsed);
+      const rawResult = findAiConnectRawResult(result, activeProvider.kind);
+      if (rawResult) {
+        args.onResult?.(rawResult, result.parsed);
+      }
     } catch (error) {
       const normalized =
         error instanceof Error ? error : new Error(String(error));
@@ -144,4 +159,35 @@ export function useProviderChatController(
     submit,
     copyPrompt,
   };
+}
+
+function isAiConnectGenerateResult(
+  value: unknown,
+  kind: AiConnectProviderKind
+): value is AiConnectGenerateResult {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'providerId' in value &&
+      'model' in value &&
+      'text' in value &&
+      typeof (value as AiConnectGenerateResult).providerId === 'string' &&
+      typeof (value as AiConnectGenerateResult).model === 'string' &&
+      typeof (value as AiConnectGenerateResult).text === 'string' &&
+      kind !== undefined
+  );
+}
+
+function findAiConnectRawResult(
+  result: ContinuumExecutionFinalResult,
+  kind: AiConnectProviderKind
+): AiConnectGenerateResult | null {
+  for (let index = result.trace.length - 1; index >= 0; index -= 1) {
+    const candidate = result.trace[index]?.response.raw;
+    if (isAiConnectGenerateResult(candidate, kind)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }

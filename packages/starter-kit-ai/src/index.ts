@@ -1,7 +1,7 @@
 export * from '@continuum-dev/starter-kit';
 export * from '@continuum-dev/ai-connect';
 export * from '@continuum-dev/ai-engine';
-export * from '@continuum-dev/vercel-ai-sdk';
+export * from '@continuum-dev/vercel-ai-sdk-adapter';
 export { StarterKitProviderChatBox } from './lib/provider-chat-box.js';
 export type { StarterKitProviderChatBoxProps } from './lib/provider-chat-box.js';
 export { StarterKitVercelAiSdkChatBox } from './lib/vercel-ai-sdk-chat-box.js';

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useContinuumVercelAiSdkChat,
   type ContinuumVercelAiSdkMessage,
   type UseContinuumVercelAiSdkChatOptions,
-} from '@continuum-dev/vercel-ai-sdk';
-import type { StarterKitSessionLike } from '@continuum-dev/ai-engine';
-import { createStarterKitSessionAdapter } from '@continuum-dev/ai-engine';
+} from '@continuum-dev/vercel-ai-sdk-adapter';
+import type { ContinuumSessionLike } from '@continuum-dev/ai-engine';
+import { createContinuumSessionAdapter } from '@continuum-dev/ai-engine';
 import { useContinuumSession, useContinuumStreaming } from '@continuum-dev/react';
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
@@ -35,14 +35,16 @@ export interface VercelAiSdkChatControllerState {
 export function useVercelAiSdkChatController(
   args: VercelAiSdkChatControllerArgs
 ): VercelAiSdkChatControllerState {
-  const session = useContinuumSession() as StarterKitSessionLike;
+  const session = useContinuumSession() as ContinuumSessionLike;
   const streaming = useContinuumStreaming();
   const sessionAdapter = useMemo(
-    () => createStarterKitSessionAdapter(session),
+    () => createContinuumSessionAdapter(session),
     [session]
   );
   const [instruction, setInstruction] = useState('');
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const onSubmittingChangeRef = useRef(args.onSubmittingChange);
+  const onErrorRef = useRef(args.onError);
 
   const chat = useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>({
     session: sessionAdapter,
@@ -64,14 +66,22 @@ export function useVercelAiSdkChatController(
   const errorText = chat.error?.message ?? null;
 
   useEffect(() => {
-    args.onSubmittingChange?.(isSubmitting);
-  }, [args, isSubmitting]);
+    onSubmittingChangeRef.current = args.onSubmittingChange;
+  }, [args.onSubmittingChange]);
+
+  useEffect(() => {
+    onErrorRef.current = args.onError;
+  }, [args.onError]);
+
+  useEffect(() => {
+    onSubmittingChangeRef.current?.(isSubmitting);
+  }, [isSubmitting]);
 
   useEffect(() => {
     if (chat.error) {
-      args.onError?.(chat.error);
+      onErrorRef.current?.(chat.error);
     }
-  }, [args, chat.error]);
+  }, [chat.error]);
 
   async function submit(): Promise<void> {
     if (isSubmitting || !instruction.trim()) {
