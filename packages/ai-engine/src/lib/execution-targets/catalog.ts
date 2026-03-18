@@ -1,12 +1,12 @@
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { getChildNodes } from '@continuum-dev/contract';
 import { readNodeLabel, SCALAR_STATEFUL_NODE_TYPES, toCanonicalNodeId } from './shared.js';
-import type { StarterKitExecutionTarget } from './types.js';
+import type { ContinuumExecutionTarget } from './types.js';
 
 function collectCollectionTemplateTargets(
   node: ViewNode,
   parentPath = ''
-): StarterKitExecutionTarget[] {
+): ContinuumExecutionTarget[] {
   const canonicalNodeId = toCanonicalNodeId(node.id, parentPath);
   if (SCALAR_STATEFUL_NODE_TYPES.has(node.type)) {
     return [
@@ -30,13 +30,13 @@ function collectCollectionTemplateTargets(
   );
 }
 
-export function buildStarterKitStateTargetCatalog(
+export function buildContinuumStateTargetCatalog(
   view: ViewDefinition
-): StarterKitExecutionTarget[] {
+): ContinuumExecutionTarget[] {
   const visit = (
     node: ViewNode,
     parentPath = ''
-  ): StarterKitExecutionTarget[] => {
+  ): ContinuumExecutionTarget[] => {
     const canonicalNodeId = toCanonicalNodeId(node.id, parentPath);
 
     if (node.type === 'collection') {
@@ -75,10 +75,10 @@ export function buildStarterKitStateTargetCatalog(
   return view.nodes.flatMap((node) => visit(node));
 }
 
-export function buildStarterKitPatchTargetCatalog(
+export function buildContinuumPatchTargetCatalog(
   view: ViewDefinition
-): StarterKitExecutionTarget[] {
-  const targets: StarterKitExecutionTarget[] = [];
+): ContinuumExecutionTarget[] {
+  const targets: ContinuumExecutionTarget[] = [];
 
   const visit = (nodes: ViewNode[]): void => {
     for (const node of nodes) {

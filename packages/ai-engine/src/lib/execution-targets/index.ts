@@ -1,9 +1,11 @@
 export {
-  buildStarterKitPatchTargetCatalog,
-  buildStarterKitStateTargetCatalog,
+  buildContinuumPatchTargetCatalog,
+  buildContinuumStateTargetCatalog,
 } from './catalog.js';
-export { parseStarterKitStateResponse } from './parser.js';
+export { parseContinuumStateResponse } from './parser.js';
 export type {
-  StarterKitExecutionTarget,
-  StarterKitStateUpdate,
+  ContinuumCollectionItem,
+  ContinuumExecutionTarget,
+  ContinuumScalarValue,
+  ContinuumStateUpdate,
 } from './types.js';
