@@ -290,6 +290,98 @@ describe('runtime state operations', () => {
     );
   });
 
+  it('applies transform plans during view reconciliation without bypassing runtime state ops', () => {
+    const baseView = makeView([
+      {
+        id: 'tax_form',
+        type: 'group',
+        children: [
+          {
+            id: 'name_row',
+            type: 'row',
+            children: [
+              {
+                id: 'first_name',
+                type: 'field',
+                dataType: 'string',
+                key: 'first_name',
+              },
+              {
+                id: 'last_name',
+                type: 'field',
+                dataType: 'string',
+                key: 'last_name',
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const baseData = {
+      values: {
+        'tax_form/name_row/first_name': { value: 'Jordan', isDirty: true },
+        'tax_form/name_row/last_name': { value: 'Lee', isDirty: true },
+      },
+      lineage: {
+        timestamp: 1,
+        sessionId: 'session-1',
+        viewId: 'profile',
+        viewVersion: '1',
+      },
+    };
+
+    const nextView = makeView(
+      [
+        {
+          id: 'tax_form',
+          type: 'group',
+          children: [
+            {
+              id: 'full_name',
+              type: 'field',
+              dataType: 'string',
+              key: 'full_name',
+            },
+          ],
+        },
+      ],
+      'profile',
+      '2'
+    );
+
+    const applied = applyContinuumViewUpdate({
+      baseView,
+      baseData,
+      nextView,
+      sessionId: 'session-1',
+      clock: () => 2,
+      transformPlan: {
+        operations: [
+          {
+            kind: 'merge',
+            sourceNodeIds: ['first_name', 'last_name'],
+            targetNodeId: 'full_name',
+            strategyId: 'concat-space',
+          },
+        ],
+      },
+    });
+
+    expect(applied.data.values['tax_form/full_name']).toEqual({
+      value: 'Jordan Lee',
+      isDirty: true,
+    });
+    expect(applied.data.detachedValues).toBeUndefined();
+    expect(applied.resolutions).toContainEqual(
+      expect.objectContaining({
+        nodeId: 'tax_form/full_name',
+        resolution: 'migrated',
+        reconciledValue: 'Jordan Lee',
+      })
+    );
+  });
+
   it('preserves dirty values when localized wrap-nodes groups existing siblings into a row', () => {
     const baseView = makeView([
       {

@@ -1,9 +1,11 @@
 import type { DataSnapshot, DetachedValue, NodeValue } from '@continuum-dev/contract';
 import { collectDuplicateIssues } from '../context/index.js';
+import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { reconcile } from '../reconcile/index.js';
 import type { ApplyContinuumViewUpdateInput, AppliedContinuumViewState } from './types.js';
 import { patchViewDefinition } from '../view-patch/index.js';
 import { resolveNodeLookupEntry } from './node-lookup.js';
+import { applyContinuumTransformPlan } from './transform-plans.js';
 
 function isCollectionState(
   value: unknown
@@ -139,6 +141,7 @@ function tryApplyPresentationIncrementalUpdate(
 ): AppliedContinuumViewState | null {
   if (
     input.incrementalHint !== 'presentation-content' ||
+    input.transformPlan?.operations.length ||
     !input.baseData ||
     !input.baseView ||
     !input.affectedNodeIds ||
@@ -213,19 +216,52 @@ export function applyContinuumViewUpdate(
     ...(input.reconciliationOptions ?? {}),
   });
 
+  let data: AppliedContinuumViewState['data'] = {
+    ...result.reconciledState,
+    lineage: {
+      ...result.reconciledState.lineage,
+      sessionId: input.sessionId,
+    },
+  };
+  let diffs = result.diffs;
+  let resolutions = result.resolutions;
+  let issues = result.issues;
+
+  if (
+    input.transformPlan &&
+    input.transformPlan.operations.length > 0 &&
+    priorView &&
+    priorDataForReconcile
+  ) {
+    const transformed = applyContinuumTransformPlan({
+      priorView,
+      priorData: priorDataForReconcile,
+      nextView: patchedView,
+      reconciledData: data,
+      plan: input.transformPlan,
+      diffs,
+      resolutions,
+    });
+    data = transformed.data;
+    diffs = transformed.diffs;
+    resolutions = transformed.resolutions;
+    issues = issues.filter(
+      (issue) =>
+        !(
+          issue.code === ISSUE_CODES.NODE_REMOVED &&
+          issue.nodeId &&
+          transformed.consumedSourceNodeIds.includes(issue.nodeId)
+        )
+    );
+  }
+
   return {
     priorView,
     view: patchedView,
-    data: {
-      ...result.reconciledState,
-      lineage: {
-        ...result.reconciledState.lineage,
-        sessionId: input.sessionId,
-      },
-    },
-    issues: result.issues,
-    diffs: result.diffs,
-    resolutions: result.resolutions,
+    data,
+    issues,
+    diffs,
+    resolutions,
     strategy: incremental ? 'incremental' : 'full',
   };
 }

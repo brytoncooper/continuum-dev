@@ -5,6 +5,7 @@ import type {
   ViewNode,
 } from '@continuum-dev/contract';
 import type { ContinuumViewStreamPart } from '@continuum-dev/protocol';
+import type { ContinuumTransformPlan } from '@continuum-dev/protocol';
 import type {
   ReconciliationIssue,
   ReconciliationOptions,
@@ -32,6 +33,7 @@ export interface ApplyContinuumViewUpdateInput {
   priorIssues?: ReconciliationIssue[];
   priorDiffs?: StateDiff[];
   priorResolutions?: ReconciliationResolution[];
+  transformPlan?: ContinuumTransformPlan;
 }
 
 export interface AppliedContinuumViewState {
