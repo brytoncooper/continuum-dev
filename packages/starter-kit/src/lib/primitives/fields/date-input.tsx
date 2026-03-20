@@ -41,7 +41,7 @@ const popupOverlayZIndex = 4000;
 const popupContentZIndex = 4001;
 const desktopViewportPadding = space.md;
 const datePopupOptions = {
-  preferredHeight: 404,
+  preferredHeight: 404 + space.lg,
   minimumHeight: 320,
   gap: space.sm,
   viewportPadding: desktopViewportPadding,
@@ -424,6 +424,9 @@ function dayButtonStyle({
       background: color.accent,
       color: color.surface,
       cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       ...typeScale.body,
       fontWeight: 600,
     };
@@ -433,10 +436,13 @@ function dayButtonStyle({
     width: size,
     height: size,
     borderRadius: radius.pill,
-    border: `1px solid ${isToday ? color.borderStrong : 'transparent'}`,
+    border: '1px solid transparent',
     background: isCurrentMonth ? color.surface : color.surfaceMuted,
     color: isCurrentMonth ? color.text : color.textSoft,
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     ...typeScale.body,
     fontWeight: isToday ? 600 : 500,
   };
@@ -530,14 +536,16 @@ export function DateInput({
   const popupPadding = isCompact ? space.md : space.sm;
   const inlineInputHeight = isCompact ? 40 : 38;
   const helperTextVisible = isCompact || Boolean(typedDateError);
+  const bottomButtonSpacing = space.lg;
   const desktopPopupTargetHeight =
-    pickerView === 'days'
+    (pickerView === 'days'
       ? typedDateError
         ? 424
         : 404
       : typedDateError
       ? 356
-      : 336;
+      : 336) +
+    bottomButtonSpacing;
   const desktopPopupShouldScroll = Boolean(
     desktopPopoverLayout &&
       desktopPopoverLayout.maxHeight < desktopPopupTargetHeight
@@ -590,6 +598,7 @@ export function DateInput({
           display: 'grid',
           gap: popupSectionGap,
           padding: popupPadding,
+          paddingBottom: popupPadding + bottomButtonSpacing,
           top: desktopPopoverLayout.top,
           bottom: desktopPopoverLayout.bottom,
           overflowY: desktopPopupShouldScroll ? ('auto' as const) : ('hidden' as const),
@@ -951,6 +960,7 @@ export function DateInput({
                           display: 'grid',
                           gap: popupSectionGap,
                           padding: popupPadding,
+                          paddingBottom: popupPadding + bottomButtonSpacing,
                           maxHeight: 'min(78vh, 560px)',
                           overflowY: 'auto',
                           overflowX: 'hidden',
@@ -1103,21 +1113,35 @@ export function DateInput({
                                 dayButtonRefs.current[isoDay] = element;
                               }}
                               type="button"
-                              aria-label={longDateFormatter.format(day)}
+                              aria-label={
+                                isToday
+                                  ? `Today, ${longDateFormatter.format(day)}`
+                                  : longDateFormatter.format(day)
+                              }
                               aria-pressed={isSelected}
                               data-continuum-control="true"
                               data-continuum-node-id={nodeId}
-                            style={dayButtonStyle({
-                              isSelected,
-                              isToday,
-                              isCurrentMonth,
-                              isCompact,
-                            })}
-                            onMouseEnter={() => setHighlightedDate(day)}
-                            onClick={() => commitDate(day)}
+                              style={dayButtonStyle({
+                                isSelected,
+                                isToday,
+                                isCurrentMonth,
+                                isCompact,
+                              })}
+                              onMouseEnter={() => setHighlightedDate(day)}
+                              onClick={() => commitDate(day)}
                               onKeyDown={(event) => handleDayKeyDown(event, day)}
                             >
-                              {day.getDate()}
+                              <span
+                                style={{
+                                  borderBottom:
+                                    isToday
+                                      ? `2px solid ${color.borderStrong}`
+                                      : 'none',
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                {day.getDate()}
+                              </span>
                             </button>
                           );
                         })}
@@ -1204,7 +1228,7 @@ export function DateInput({
                       gap: isCompact ? space.sm : space.xs,
                       gridTemplateColumns: isCompact
                         ? 'minmax(0, 1fr)'
-                        : 'repeat(3, minmax(0, 1fr))',
+                        : 'repeat(2, minmax(0, 1fr))',
                     }}
                   >
                     <button
@@ -1217,13 +1241,6 @@ export function DateInput({
                       }}
                     >
                       Jump to today
-                    </button>
-                    <button
-                      type="button"
-                      style={chipButtonStyle(isCompact)}
-                      onClick={() => commitDate(today)}
-                    >
-                      Use today
                     </button>
                     <button
                       type="button"
