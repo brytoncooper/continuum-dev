@@ -1,141 +1,84 @@
-import { useState } from 'react';
 import { color, radius, space, type } from '../../ui/tokens';
 
-type LayerId = 'raw-hook' | 'worker' | 'drafts';
-
-const layerTabs: Array<{ id: LayerId; label: string }> = [
-  { id: 'raw-hook', label: 'Raw hook' },
-  { id: 'worker', label: 'Worker boundary' },
-  { id: 'drafts', label: 'Draft previews' },
-];
-
-const layerCopy: Record<
-  LayerId,
+const layerCards = [
   {
-    title: string;
-    description: string;
-    snippet: string;
-  }
-> = {
-  'raw-hook': {
-    title: 'Drop to the raw transport hook when you outgrow the wrapper',
+    title: 'Keep your own chat UI',
     description:
-      'The starter-kit wrapper is the fast lane, not the only lane. When teams need custom chat UI or request orchestration, they can keep Continuum and swap down to the adapter directly.',
-    snippet: `import {
-  useContinuumSession,
-  useContinuumVercelAiSdkChat,
-} from '@continuum-dev/ai-core';
+      'When the preset UI stops fitting, drop to the raw Continuum hook and keep the same transport contract underneath.',
+    callout: 'Hook: useContinuumVercelAiSdkChat',
+  },
+  {
+    title: 'Own the server route',
+    description:
+      'Keep auth, tools, persistence, and provider logic in your own AI SDK route while Continuum writes view data into the same stream.',
+    callout: 'Writer: writeContinuumExecutionToUiMessageWriter',
+  },
+  {
+    title: 'Use draft previews',
+    description:
+      'Send larger structural edits into a draft lane first so users can keep typing without blowing away committed session state.',
+    callout: "Stream mode: 'draft'",
+  },
+] as const;
 
-const chat = useContinuumVercelAiSdkChat({
-  session: useContinuumSession(),
-  transport,
-});`,
-  },
-  worker: {
-    title: 'Compose into an app-owned AI SDK route',
-    description:
-      'The adapter does not need to own your route. You can keep auth, tools, persistence, and provider selection in your own handler, then write Continuum data parts into the same AI SDK UI stream.',
-    snippet: `const stream = createUIMessageStream({
-  execute: ({ writer }) => {
-    writer.merge(result.toUIMessageStream());
-    return writeContinuumExecutionToUiMessageWriter({
-      writer,
-      adapter,
-      instruction,
-      context: { currentView, currentData },
-    });
-  },
-});`,
-  },
-  drafts: {
-    title: 'Draft streams protect active typing',
-    description:
-      'Large structural edits land in a draft preview first. Users can keep typing into the preview without blowing away the committed session until the stream is ready to commit.',
-    snippet: `createContinuumVercelAiSdkViewDataChunk(
-  { view: nextView },
-  { transient: true, streamMode: 'draft' }
-);`,
-  },
-};
+const panelStyle = {
+  display: 'grid',
+  gap: space.lg,
+  padding: space.lg,
+  borderRadius: radius.lg,
+  border: `1px solid ${color.border}`,
+  background: color.surface,
+} as const;
+
+const introStyle = {
+  ...type.small,
+  color: color.textMuted,
+  maxWidth: 720,
+} as const;
+
+const gridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: space.md,
+} as const;
+
+const cardStyle = {
+  display: 'grid',
+  gap: space.md,
+  padding: space.lg,
+  borderRadius: radius.md,
+  border: `1px solid ${color.borderSoft}`,
+  background: color.surfaceMuted,
+} as const;
+
+const calloutStyle = {
+  ...type.small,
+  color: color.text,
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.pill,
+  border: `1px solid ${color.borderSoft}`,
+  background: color.surface,
+  width: 'fit-content',
+} as const;
 
 export function VercelAiSdkAdvancedLayers() {
-  const [activeLayer, setActiveLayer] = useState<LayerId>('raw-hook');
-  const active = layerCopy[activeLayer];
-
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: space.md,
-        padding: space.lg,
-        borderRadius: radius.lg,
-        border: `1px solid ${color.border}`,
-        background: color.surface,
-      }}
-    >
-      <div style={{ display: 'grid', gap: space.xs }}>
-        <div style={{ ...type.section, color: color.text }}>
-          Advanced layers
-        </div>
-        <div style={{ ...type.small, color: color.textMuted }}>
-          Start with the wrapper. Peel it back only when you need more control.
-        </div>
+    <div style={panelStyle}>
+      <div style={introStyle}>
+        Start with the wrapper. These are the first three escape hatches teams
+        usually reach for when they want more control.
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.sm }}>
-        {layerTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => {
-              setActiveLayer(tab.id);
-            }}
-            aria-pressed={activeLayer === tab.id}
-            style={{
-              boxSizing: 'border-box',
-              padding: `${space.sm}px ${space.md}px`,
-              borderRadius: radius.pill,
-              border: `1px solid ${color.border}`,
-              background:
-                activeLayer === tab.id ? color.accent : color.surfaceMuted,
-              color: activeLayer === tab.id ? color.surface : color.text,
-              cursor: 'pointer',
-              ...type.small,
-              fontWeight: 600,
-            }}
-          >
-            {tab.label}
-          </button>
+      <div style={gridStyle}>
+        {layerCards.map((card) => (
+          <article key={card.title} style={cardStyle}>
+            <div style={{ ...type.title, color: color.text }}>{card.title}</div>
+            <div style={{ ...type.body, color: color.text }}>
+              {card.description}
+            </div>
+            <div style={calloutStyle}>{card.callout}</div>
+          </article>
         ))}
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gap: space.md,
-          padding: space.lg,
-          borderRadius: radius.md,
-          border: `1px solid ${color.borderSoft}`,
-          background: color.surfaceMuted,
-        }}
-      >
-        <div style={{ ...type.title, color: color.text }}>{active.title}</div>
-        <div style={{ ...type.body, color: color.text }}>{active.description}</div>
-        <pre
-          style={{
-            margin: 0,
-            overflowX: 'auto',
-            padding: space.md,
-            borderRadius: radius.md,
-            border: `1px solid ${color.borderSoft}`,
-            background: color.surface,
-            color: color.text,
-            fontSize: 12,
-            lineHeight: 1.6,
-          }}
-        >
-          <code>{active.snippet}</code>
-        </pre>
       </div>
     </div>
   );
