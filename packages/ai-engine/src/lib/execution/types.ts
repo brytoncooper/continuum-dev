@@ -1,4 +1,8 @@
-import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
+import type {
+  ContinuumTransformPlan,
+  NodeValue,
+  ViewDefinition,
+} from '@continuum-dev/core';
 import type {
   DetachedFieldHint,
   PromptAddon,
@@ -13,6 +17,7 @@ export type ContinuumExecutionPhase =
   | 'planner'
   | 'state'
   | 'patch'
+  | 'transform'
   | 'view'
   | 'repair';
 
@@ -78,6 +83,7 @@ export interface ContinuumExecutionTraceEntry {
 interface ContinuumExecutionFinalResultBase {
   source: string;
   status: string;
+  level: ContinuumExecutionStatusLevel;
   trace: ContinuumExecutionTraceEntry[];
 }
 
@@ -107,10 +113,30 @@ export interface ContinuumViewExecutionFinalResult
   parsed: ViewDefinition;
 }
 
+export interface ContinuumTransformExecutionFinalResult
+  extends ContinuumExecutionFinalResultBase {
+  mode: 'transform';
+  view: ViewDefinition;
+  transformPlan: ContinuumTransformPlan;
+  parsed: {
+    view: ViewDefinition;
+    transformPlan: ContinuumTransformPlan;
+  };
+}
+
+export interface ContinuumNoopExecutionFinalResult
+  extends ContinuumExecutionFinalResultBase {
+  mode: 'noop';
+  requestedMode: 'state' | 'patch' | 'transform' | 'view';
+  reason: string;
+}
+
 export type ContinuumExecutionFinalResult =
   | ContinuumStateExecutionFinalResult
   | ContinuumPatchExecutionFinalResult
-  | ContinuumViewExecutionFinalResult;
+  | ContinuumTransformExecutionFinalResult
+  | ContinuumViewExecutionFinalResult
+  | ContinuumNoopExecutionFinalResult;
 
 export type ContinuumExecutionEvent =
   | {
@@ -135,6 +161,7 @@ export type ContinuumExecutionEvent =
   | {
       kind: 'view-final';
       view: ViewDefinition;
+      transformPlan?: ContinuumTransformPlan;
     }
   | {
       kind: 'error';

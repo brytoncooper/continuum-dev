@@ -1,4 +1,5 @@
 import type { SessionStreamPart, ViewDefinition } from '@continuum-dev/core';
+import type { ContinuumTransformPlan } from '@continuum-dev/core';
 import {
   type PromptMode,
   VIEW_DEFINITION_OUTPUT_CONTRACT,
@@ -26,14 +27,21 @@ import {
   parseJson,
 } from '../view-guardrails/index.js';
 import {
+  buildTransformSystemPrompt,
+  buildTransformUserMessage,
+  normalizeContinuumTransformPlan,
+  buildSurgicalTransformSystemPrompt,
+  buildSurgicalTransformUserMessage,
+  normalizeSurgicalTransformPlan,
+} from '../view-transforms/index.js';
+import {
   applyPatchPlanToView,
   buildDetachedFieldHints,
   buildPatchContext,
   buildPatchSystemPrompt,
   buildPatchUserMessage,
-  isViewPatchPlan,
+  normalizeViewPatchPlan,
   VIEW_PATCH_OUTPUT_CONTRACT,
-  type ViewPatchPlan,
 } from '../view-patching/index.js';
 import {
   applyPatchPlanThroughUpdateParts,
@@ -71,8 +79,9 @@ export type {
 } from './types.js';
 
 interface SelectedExecutionPlan {
-  mode: 'state' | 'patch' | 'view';
+  mode: 'state' | 'patch' | 'transform' | 'view';
   fallback: string;
+  authoringMode?: Extract<PromptMode, 'create-view' | 'evolve-view'>;
   reason?: string;
   targetNodeIds: string[];
   targetSemanticKeys: string[];
@@ -102,9 +111,11 @@ function buildStateSystemPrompt(): string {
     'Return a state response, not a view or patch response.',
     'State response shape: {"updates":[...],"status":"optional short summary"}.',
     'Each update must target one of the provided selected targets by semanticKey, key, or nodeId.',
+    'If no selected targets are provided, infer the smallest useful targets from the available state target catalog.',
     'Only update existing stateful nodes that should actually change.',
     'Do not invent new node ids, semantic keys, or keys.',
     'Do not mutate view structure.',
+    'If no existing target clearly matches the instruction, return {"updates":[],"status":"No safe state update found."} instead of guessing.',
     'For collections, target the collection node and provide {"value":{"items":[...]}}.',
     'Collection item objects should use template field semanticKey, key, or nodeId from the provided catalog.',
     'Prefer preserving meaningful user-entered values unless the instruction explicitly asks to overwrite them.',
@@ -121,7 +132,9 @@ function buildStateUserMessage(args: {
     'Return the next Continuum state updates as JSON only.',
     '',
     'Selected targets:',
-    JSON.stringify(args.selectedTargets, null, 2),
+    args.selectedTargets.length > 0
+      ? JSON.stringify(args.selectedTargets, null, 2)
+      : 'none selected; infer the smallest matching targets from the available state targets below.',
     '',
     'Available state targets:',
     JSON.stringify(args.stateTargets, null, 2),
@@ -156,12 +169,22 @@ async function runGenerate(
   return response;
 }
 
-function normalizePatchPlan(rawPlan: unknown): ViewPatchPlan | null {
-  if (!isViewPatchPlan(rawPlan)) {
-    return null;
-  }
-
-  return rawPlan;
+function createNoopResult(args: {
+  source: string;
+  status: string;
+  reason: string;
+  requestedMode: 'state' | 'patch' | 'transform' | 'view';
+  trace: ContinuumExecutionTraceEntry[];
+}): ContinuumExecutionFinalResult {
+  return {
+    mode: 'noop',
+    source: args.source,
+    status: args.status,
+    level: 'warning',
+    trace: args.trace,
+    requestedMode: args.requestedMode,
+    reason: args.reason,
+  };
 }
 
 function normalizePreviewView(
@@ -196,6 +219,44 @@ function finalizeGeneratedView(args: {
   }
 
   return normalizeViewDefinition(args.candidateView);
+}
+
+async function buildContinuumTransformPlan(args: {
+  adapter: ContinuumExecutionAdapter;
+  trace: ContinuumExecutionTraceEntry[];
+  instruction: string;
+  currentView: ViewDefinition;
+  nextView: ViewDefinition;
+  currentData: ContinuumExecutionContext['currentData'];
+  selectedTargets: string[];
+}): Promise<{
+  plan: ContinuumTransformPlan | null;
+  reason?: string;
+}> {
+  const transformRequest: ContinuumExecutionRequest = {
+    systemPrompt: buildTransformSystemPrompt(),
+    userMessage: buildTransformUserMessage({
+      instruction: args.instruction,
+      currentView: args.currentView,
+      nextView: args.nextView,
+      currentData: args.currentData ?? {},
+      selectedTargets: args.selectedTargets,
+    }),
+    mode: 'transform',
+    outputKind: 'json-object',
+    temperature: 0,
+  };
+  const transformResponse = await runGenerate(
+    args.adapter,
+    transformRequest,
+    args.trace
+  );
+
+  return normalizeContinuumTransformPlan(
+    transformResponse.json ?? parseJson<unknown>(transformResponse.text),
+    args.currentView,
+    args.nextView
+  );
 }
 
 async function repairGeneratedView(args: {
@@ -302,6 +363,10 @@ export async function* streamContinuumExecution(
     let executionPlan: SelectedExecutionPlan = {
       mode: availableExecutionModes[0] ?? 'view',
       fallback: 'view',
+      authoringMode:
+        promptMode === 'create-view' || promptMode === 'evolve-view'
+          ? promptMode
+          : undefined,
       reason: autoApplyView
         ? 'only available mode'
         : 'view generation requested',
@@ -354,6 +419,18 @@ export async function* streamContinuumExecution(
       level: 'info',
     };
 
+    if (
+      (executionPlan.mode === 'patch' || executionPlan.mode === 'state') &&
+      executionPlan.validation !== 'accepted'
+    ) {
+      yield {
+        kind: 'status',
+        status:
+          'Planner targets were incomplete, so Continuum is attempting the localized update using the full current view context.',
+        level: 'warning',
+      };
+    }
+
     const selectedTargets = [
       ...executionPlan.targetNodeIds,
       ...executionPlan.targetSemanticKeys,
@@ -399,6 +476,7 @@ export async function* streamContinuumExecution(
             `Applied ${parsedState.updates.length} Continuum state update${
               parsedState.updates.length === 1 ? '' : 's'
             } from ${args.adapter.label}.`,
+          level: 'success',
           trace,
           currentView,
           updates: parsedState.updates,
@@ -414,7 +492,12 @@ export async function* streamContinuumExecution(
       };
     }
 
-    let nextPromptMode = promptMode;
+    const nextPromptMode =
+      executionPlan.mode === 'view' &&
+      (executionPlan.authoringMode === 'create-view' ||
+        executionPlan.authoringMode === 'evolve-view')
+        ? executionPlan.authoringMode
+        : promptMode;
 
     if (executionPlan.mode === 'patch' && currentView) {
       const patchRequest: ContinuumExecutionRequest = {
@@ -441,9 +524,20 @@ export async function* streamContinuumExecution(
         patchRequest,
         trace
       );
-      const parsedPatch = normalizePatchPlan(
-        patchResponse.json ?? parseJson<unknown>(patchResponse.text)
-      );
+      const rawPatchValue =
+        patchResponse.json ?? parseJson<unknown>(patchResponse.text);
+      const normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
+      const parsedPatch = normalizedPatch.plan;
+
+      if (!parsedPatch) {
+        const firstOp = Array.isArray((rawPatchValue as any)?.operations) ? (rawPatchValue as any).operations[0] : null;
+        const opKeys = firstOp && typeof firstOp === 'object' ? JSON.stringify(firstOp).slice(0, 200) : 'no operations';
+        yield {
+          kind: 'status',
+          status: `[debug] Patch normalization failed: ${normalizedPatch.reason ?? 'unknown reason'}. First op: ${opKeys}`,
+          level: 'info',
+        };
+      }
 
       if (
         parsedPatch &&
@@ -460,6 +554,7 @@ export async function* streamContinuumExecution(
           mode: 'patch',
           source: args.adapter.label,
           status: `Applied localized Continuum patch operations from ${args.adapter.label}.`,
+          level: 'success',
           trace,
           currentView,
           patchPlan: parsedPatch,
@@ -467,20 +562,141 @@ export async function* streamContinuumExecution(
         };
       }
 
-      if (
-        parsedPatch &&
-        parsedPatch.mode === 'full' &&
-        parsedPatch.fullStrategy === 'replace'
-      ) {
-        nextPromptMode = 'create-view';
-      }
+      const status = 'Patch update could not be applied; no changes were made.';
+      const reason =
+        normalizedPatch.reason ??
+        (parsedPatch?.mode === 'full'
+          ? parsedPatch.reason?.trim() ||
+            (parsedPatch.fullStrategy === 'replace'
+              ? 'Patch response requested a full view replacement instead of localized operations.'
+              : 'Patch response requested full view regeneration instead of localized operations.')
+          : 'Patch mode did not yield a usable localized update.');
 
       yield {
         kind: 'status',
-        status:
-          'Patch mode was not safe to apply, so Continuum is generating the next full view instead.',
+        status,
         level: 'warning',
       };
+
+      return createNoopResult({
+        source: args.adapter.label,
+        status,
+        reason,
+        requestedMode: 'patch',
+        trace,
+      });
+    }
+
+    if (executionPlan.mode === 'transform' && currentView) {
+      yield {
+        kind: 'status',
+        status: 'Generating surgical transform plan.',
+        level: 'info',
+      };
+
+      const surgicalRequest: ContinuumExecutionRequest = {
+        systemPrompt: buildSurgicalTransformSystemPrompt(),
+        userMessage: buildSurgicalTransformUserMessage({
+          instruction: args.instruction,
+          currentView,
+          currentData,
+          selectedTargets,
+        }),
+        mode: 'transform',
+        outputKind: 'json-object',
+        temperature: 0,
+      };
+      const surgicalResponse = await runGenerate(
+        args.adapter,
+        surgicalRequest,
+        trace
+      );
+      const normalizedSurgical = normalizeSurgicalTransformPlan(
+        surgicalResponse.json ?? parseJson<unknown>(surgicalResponse.text),
+        currentView
+      );
+
+      if (normalizedSurgical.plan) {
+        const { patchOperations, continuityOperations } =
+          normalizedSurgical.plan;
+
+        // Apply patch operations to get the next view
+        let nextView: ViewDefinition | null = null;
+        if (patchOperations.length > 0) {
+          const patchPlan = normalizeViewPatchPlan({
+            mode: 'patch' as const,
+            operations: patchOperations,
+          });
+
+          if (patchPlan.plan && patchPlan.plan.mode === 'patch') {
+            nextView = applyPatchPlanToView(currentView, patchPlan.plan);
+          }
+        }
+
+        if (!nextView && patchOperations.length > 0) {
+          const surgicalPatchStatus =
+            'Surgical transform patch operations could not be applied.';
+          yield {
+            kind: 'status',
+            status: surgicalPatchStatus,
+            level: 'warning',
+          };
+
+          return createNoopResult({
+            source: args.adapter.label,
+            status: surgicalPatchStatus,
+            reason:
+              normalizedSurgical.reason ??
+              'Surgical transform patch operations were invalid.',
+            requestedMode: 'transform',
+            trace,
+          });
+        }
+
+        const finalTransformView = nextView ?? currentView;
+        const transformPlan =
+          continuityOperations.length > 0
+            ? { operations: continuityOperations }
+            : undefined;
+
+        yield {
+          kind: 'view-final',
+          view: finalTransformView,
+          ...(transformPlan ? { transformPlan } : {}),
+        };
+
+        return {
+          mode: 'transform' as const,
+          source: args.adapter.label,
+          status: `Applied surgical Continuum transform from ${args.adapter.label}.`,
+          level: 'success' as const,
+          trace,
+          view: finalTransformView,
+          transformPlan: transformPlan ?? { operations: [] },
+          parsed: {
+            view: finalTransformView,
+            transformPlan: transformPlan ?? { operations: [] },
+          },
+        };
+      }
+
+      const surgicalStatus =
+        'Transform update could not be applied; no changes were made.';
+      yield {
+        kind: 'status',
+        status: surgicalStatus,
+        level: 'warning',
+      };
+
+      return createNoopResult({
+        source: args.adapter.label,
+        status: surgicalStatus,
+        reason:
+          normalizedSurgical.reason ??
+          'Surgical transform did not yield a usable plan.',
+        requestedMode: 'transform',
+        trace,
+      });
     }
 
     const fullViewRequest: ContinuumExecutionRequest = {
@@ -602,6 +818,7 @@ export async function* streamContinuumExecution(
       );
     }
 
+
     yield {
       kind: 'view-final',
       view: finalView,
@@ -611,6 +828,7 @@ export async function* streamContinuumExecution(
       mode: 'view',
       source: args.adapter.label,
       status: `Generated a Continuum view from ${args.adapter.label}.`,
+      level: 'success',
       trace,
       view: finalView,
       parsed: finalView,
@@ -682,9 +900,16 @@ export function applyContinuumExecutionFinalResult(
     return;
   }
 
+  if (result.mode === 'noop') {
+    return;
+  }
+
   const viewPart: SessionStreamPart = {
     kind: 'view',
     view: result.view,
+    ...(result.mode === 'transform'
+      ? { transformPlan: result.transformPlan }
+      : {}),
   };
 
   if (
@@ -699,5 +924,10 @@ export function applyContinuumExecutionFinalResult(
     return;
   }
 
-  session.applyView(result.view);
+  session.applyView(
+    result.view,
+    result.mode === 'transform'
+      ? { transformPlan: result.transformPlan }
+      : undefined
+  );
 }
