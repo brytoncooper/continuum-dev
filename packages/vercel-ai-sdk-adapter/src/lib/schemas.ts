@@ -54,6 +54,12 @@ export const continuumVercelAiSdkDataPartSchemas = {
   'continuum-view': z
     .object({
       view: viewDefinitionSchema,
+      transformPlan: z
+        .object({
+          operations: z.array(z.object({}).passthrough()),
+        })
+        .passthrough()
+        .optional(),
       streamMode: streamModeSchema.optional(),
     })
     .passthrough(),

@@ -1,5 +1,6 @@
 import type { InferUIMessageChunk, UIMessage } from 'ai';
 import type {
+  ContinuumTransformPlan,
   ContinuumViewPatchPosition,
   ViewNode,
   ContinuumViewPatch,
@@ -25,6 +26,7 @@ export interface ContinuumVercelAiSdkMessageMetadata {
 
 export interface ContinuumVercelAiSdkViewData {
   view: ViewDefinition;
+  transformPlan?: ContinuumTransformPlan;
   streamMode?: SessionStreamMode;
 }
 
@@ -231,6 +233,7 @@ export type ContinuumVercelAiSdkPartApplication =
   | {
       kind: 'view';
       view: ViewDefinition;
+      transformPlan?: ContinuumTransformPlan;
       transient?: boolean;
       streamMode?: SessionStreamMode;
       streamId?: string;
