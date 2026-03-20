@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createStarterKitSessionAdapter } from './index.js';
-import { runStarterKitViewGeneration } from '../view-generation/index.js';
+import {
+  applyContinuumExecutionFinalResult,
+  buildContinuumExecutionContext,
+  runContinuumExecution,
+} from '../execution/index.js';
+import { createContinuumSessionAdapter } from './index.js';
 
-describe('starter kit session adapter', () => {
+describe('continuum session adapter', () => {
   it('delegates required and optional session methods through the adapter', () => {
     const snapshot = {
       view: {
@@ -93,7 +97,7 @@ describe('starter kit session adapter', () => {
       proposeValue,
     };
 
-    const adapter = createStarterKitSessionAdapter(session);
+    const adapter = createContinuumSessionAdapter(session);
     const applyOptions = {
       reason: 'test',
     };
@@ -194,7 +198,7 @@ describe('starter kit session adapter', () => {
       proposeValue: vi.fn(),
     };
 
-    const adapter = createStarterKitSessionAdapter(session);
+    const adapter = createContinuumSessionAdapter(session);
 
     expect(adapter.getCommittedSnapshot()).toBeUndefined();
     expect(adapter.beginStream).toBeUndefined();
@@ -304,25 +308,19 @@ describe('starter kit session adapter', () => {
       proposeValue: vi.fn(),
     };
 
-    const session = createStarterKitSessionAdapter(rawSession);
+    const session = createContinuumSessionAdapter(rawSession);
 
     const generate = vi
       .fn()
       .mockResolvedValueOnce({
-        providerId: 'openai',
-        model: 'gpt-5',
         text: JSON.stringify({
           mode: 'state',
           fallback: 'view',
           reason: 'fill dependents',
           targetSemanticKeys: ['person.dependents'],
         }),
-        json: null,
-        raw: null,
       })
       .mockResolvedValueOnce({
-        providerId: 'openai',
-        model: 'gpt-5',
         text: JSON.stringify({
           updates: [
             {
@@ -341,26 +339,20 @@ describe('starter kit session adapter', () => {
           ],
           status: 'Updated dependents',
         }),
-        json: null,
-        raw: null,
       });
 
-    const provider = {
-      id: 'openai',
-      label: 'OpenAI',
-      kind: 'openai',
-      defaultModel: 'gpt-5',
-      supportsJsonSchema: true,
-      generate,
-    };
-
-    const result = await runStarterKitViewGeneration({
-      provider,
-      session,
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'OpenAI',
+        generate,
+      },
+      context: buildContinuumExecutionContext(session),
       instruction: 'Add one dependent named Ava',
       mode: 'create-view',
       autoApplyView: true,
     });
+
+    applyContinuumExecutionFinalResult(session, result);
 
     expect(generate).toHaveBeenCalledTimes(2);
     expect(beginStream).toHaveBeenCalledWith({
