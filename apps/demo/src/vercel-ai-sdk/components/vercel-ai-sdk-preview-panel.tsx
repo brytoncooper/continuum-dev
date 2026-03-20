@@ -80,11 +80,10 @@ export function VercelAiSdkPreviewPanel({
         }`}
       </style>
       <div style={{ ...type.section, color: color.text }}>
-        Stable runtime after the stream
+        Your Vercel AI SDK output, stabilized
       </div>
       <div style={helperTextStyle}>
-        Prompt on the left. Watch the working Continuum view stay stable here as
-        streamed updates land and drafts evolve.
+        The stream can change the form structure. Continuum keeps matching user state attached while the UI updates.
       </div>
       <div ref={previewFrameRef} style={previewFrameStyle}>
         {previewStatusText ? (
