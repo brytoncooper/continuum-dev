@@ -18,39 +18,49 @@ const defaultMetadata: RouteMetadata = {
 const routeMetadata: Record<string, RouteMetadata> = {
   '/': defaultMetadata,
   '/docs': {
-    title: 'Continuum Docs | Install the Runtime, React Bindings, and Starter Kit',
+    title: 'Continuum Docs | Starter Kit, Quick Start, and Reference Docs',
     description:
-      'Read the Continuum installation and integration docs for the core runtime, headless React bindings, and Starter Kit. Get from GitHub to working install faster.',
+      'Start with Starter Kit for the fastest React setup, read the Quick Start in your browser, and use the README or reference docs when you need more detail.',
     path: '/docs',
   },
   '/playground': {
-    title: 'Continuum Static Demo | See User State Loss vs Continuity Preservation',
+    title:
+      'Continuum Demo | See State Loss vs Continuity Preservation',
     description:
-      'Try the static Continuum demo to compare state loss and state preservation across changing AI-generated and dynamic UI flows without adding an API key.',
+      'Type something, watch the form change, and see the difference with and without Continuum.',
     path: '/playground',
   },
   '/starter-kit': {
-    title: 'Continuum Starter Kit | Faster React Setup for Dynamic UI Experiences',
+    title:
+      'Continuum Starter Kit | Faster React Setup for Dynamic UI Experiences',
     description:
       'Explore the Continuum Starter Kit for React and see the fastest path from install to a polished dynamic UI with continuity-aware rendering and proposal flows.',
     path: '/starter-kit',
   },
   '/live-ai': {
-    title: 'Continuum Live AI Demo | Generate Dynamic UI Without Losing User State',
+    title:
+      'Continuum Live AI Demo | Generate Dynamic UI Without Losing User State',
     description:
       'Use the Continuum Live AI demo to generate and evolve dynamic UI while preserving in-progress user state with the open-source Continuum runtime and Starter Kit.',
     path: '/live-ai',
   },
   '/vercel-ai-sdk': {
-    title: 'Continuum Vercel AI SDK Adapter Demo | Keep Streaming UI Stable After It Lands',
+    title:
+      'Continuum Vercel AI SDK Adapter Demo | Keep Streaming UI Stable After It Lands',
     description:
       'See how the Continuum adapter plugs into the Vercel AI SDK stream model so generated forms and workflows can evolve without wiping in-progress user state.',
     path: '/vercel-ai-sdk',
   },
 };
 
-function upsertMeta(attribute: 'name' | 'property', value: string, content: string) {
-  let element = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${value}"]`);
+function upsertMeta(
+  attribute: 'name' | 'property',
+  value: string,
+  content: string
+) {
+  let element = document.head.querySelector<HTMLMetaElement>(
+    `meta[${attribute}="${value}"]`
+  );
 
   if (!element) {
     element = document.createElement('meta');
@@ -62,7 +72,9 @@ function upsertMeta(attribute: 'name' | 'property', value: string, content: stri
 }
 
 function upsertCanonical(url: string) {
-  let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  let link = document.head.querySelector<HTMLLinkElement>(
+    'link[rel="canonical"]'
+  );
 
   if (!link) {
     link = document.createElement('link');

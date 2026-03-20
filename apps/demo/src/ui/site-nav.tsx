@@ -112,9 +112,9 @@ export function SiteNav() {
             {brandContent}
           </NavLink>
           <div style={mobileActionsStyle}>
-            <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
-              GitHub
-            </a>
+            <NavLink to="/" end style={navLinkStyle}>
+              Home
+            </NavLink>
             <button
               type="button"
               style={menuButtonStyle}
@@ -146,6 +146,9 @@ export function SiteNav() {
               <NavLink to="/starter-kit" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
                 Starter Kit
               </NavLink>
+              <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
+                GitHub
+              </a>
             </div>
           </nav>
         ) : null}
@@ -159,6 +162,9 @@ export function SiteNav() {
         {brandContent}
       </NavLink>
       <nav style={navListStyle} aria-label="Primary">
+        <NavLink to="/" end style={navLinkStyle}>
+          Home
+        </NavLink>
         <NavLink to="/docs" style={navLinkStyle}>
           Docs
         </NavLink>
