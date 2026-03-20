@@ -54,13 +54,13 @@ describe('continuum execution planner modes', () => {
       getAvailableContinuumExecutionModes({
         hasCurrentView: true,
       })
-    ).toEqual(['patch', 'view']);
+    ).toEqual(['patch', 'transform', 'view']);
     expect(
       getAvailableContinuumExecutionModes({
         hasStateTargets: true,
         hasCurrentView: true,
       })
-    ).toEqual(['state', 'patch', 'view']);
+    ).toEqual(['state', 'patch', 'transform', 'view']);
   });
 });
 
@@ -70,13 +70,14 @@ describe('continuum execution planner prompts', () => {
 
     expect(prompt).toContain('Return exactly one JSON object and nothing else.');
     expect(prompt).toContain('Choose one mode from the provided availableModes array.');
+    expect(prompt).toContain('"Make first name and last name into full name"');
     expect(prompt).toContain('"I need to do my taxes"');
   });
 
   it('builds a user prompt with trimmed instructions and summarized current data', () => {
     const longValue = 'x'.repeat(70);
     const prompt = buildContinuumExecutionPlannerUserPrompt({
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
       compactTree: [
@@ -112,7 +113,7 @@ describe('continuum execution planner prompts', () => {
       instruction: '  Put email next to phone  ',
     });
 
-    expect(prompt).toContain('["state","patch","view"]');
+    expect(prompt).toContain('["state","patch","transform","view"]');
     expect(prompt).toContain(`${'x'.repeat(57)}...`);
     expect(prompt).not.toContain(longValue);
     expect(prompt).toContain('[3 items]');
@@ -126,12 +127,13 @@ describe('continuum execution plan parsing', () => {
     const parsed = parseContinuumExecutionPlan({
       text: `Planner output:
 {"mode":"patch","reason":" move email ","fallback":"patch","targetNodeIds":[" email ","","email"],"targetSemanticKeys":[" person.email ","person.email"]}`,
-      availableModes: ['patch', 'view'],
+      availableModes: ['patch', 'transform', 'view'],
     });
 
     expect(parsed).toEqual({
       mode: 'patch',
       fallback: 'patch',
+      authoringMode: undefined,
       reason: 'move email',
       targetNodeIds: ['email'],
       targetSemanticKeys: ['person.email'],
@@ -144,7 +146,7 @@ describe('continuum execution plan parsing', () => {
         mode: 'state',
         fallback: 'view',
       }),
-      availableModes: ['patch', 'view'],
+      availableModes: ['patch', 'transform', 'view'],
     });
 
     expect(parsed).toBeNull();
@@ -158,10 +160,11 @@ describe('continuum execution plan resolution', () => {
         mode: 'view',
         fallback: 'view',
         reason: 'new workflow',
+        authoringMode: 'create-view',
         targetNodeIds: ['profile'],
         targetSemanticKeys: ['person.email'],
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
@@ -169,9 +172,29 @@ describe('continuum execution plan resolution', () => {
     expect(resolved).toMatchObject({
       mode: 'view',
       fallback: 'view',
+      authoringMode: 'create-view',
       validation: 'accepted',
       targetNodeIds: [],
       targetSemanticKeys: [],
+    });
+  });
+
+  it('defaults view authoring mode to evolve-view when the planner omits it', () => {
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'view',
+        fallback: 'view',
+        reason: 'broad redesign',
+      }),
+      availableModes: ['state', 'patch', 'transform', 'view'],
+      patchTargets,
+      stateTargets,
+    });
+
+    expect(resolved).toMatchObject({
+      mode: 'view',
+      authoringMode: 'evolve-view',
+      validation: 'accepted',
     });
   });
 
@@ -183,7 +206,7 @@ describe('continuum execution plan resolution', () => {
         reason: 'prefill contact details',
         targetSemanticKeys: ['person.fullName', 'person.email'],
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
@@ -204,7 +227,7 @@ describe('continuum execution plan resolution', () => {
         reason: 'move the profile section',
         targetNodeIds: ['profile'],
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
@@ -224,19 +247,42 @@ describe('continuum execution plan resolution', () => {
         fallback: 'view',
         reason: 'prefill this',
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
 
     expect(resolved).toMatchObject({
-      mode: 'view',
+      mode: 'state',
       fallback: 'view',
       validation: 'missing-targets',
+      targetNodeIds: [],
+      targetSemanticKeys: [],
     });
   });
 
-  it('escalates localized edits with unknown semantic targets to view mode', () => {
+  it('accepts transform plans even when no localized targets are provided', () => {
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'transform',
+        fallback: 'view',
+        reason: 'merge name fields',
+      }),
+      availableModes: ['state', 'patch', 'transform', 'view'],
+      patchTargets,
+      stateTargets,
+    });
+
+    expect(resolved).toMatchObject({
+      mode: 'transform',
+      fallback: 'view',
+      validation: 'accepted',
+      targetNodeIds: [],
+      targetSemanticKeys: [],
+    });
+  });
+
+  it('keeps localized edits in patch mode when planner semantic targets are unknown', () => {
     const resolved = resolveContinuumExecutionPlan({
       text: JSON.stringify({
         mode: 'patch',
@@ -244,19 +290,21 @@ describe('continuum execution plan resolution', () => {
         reason: 'move the hidden field',
         targetSemanticKeys: ['person.unknown'],
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
 
     expect(resolved).toMatchObject({
-      mode: 'view',
+      mode: 'patch',
       fallback: 'view',
-      validation: 'unknown-target-semantic-key',
+      validation: 'unknown-targets',
+      targetNodeIds: [],
+      targetSemanticKeys: [],
     });
   });
 
-  it('escalates localized edits with unknown node targets to view mode', () => {
+  it('keeps localized edits in patch mode when planner node targets are unknown', () => {
     const resolved = resolveContinuumExecutionPlan({
       text: JSON.stringify({
         mode: 'patch',
@@ -264,22 +312,24 @@ describe('continuum execution plan resolution', () => {
         reason: 'move the hidden field',
         targetNodeIds: ['missing-node'],
       }),
-      availableModes: ['state', 'patch', 'view'],
+      availableModes: ['state', 'patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
 
     expect(resolved).toMatchObject({
-      mode: 'view',
+      mode: 'patch',
       fallback: 'view',
-      validation: 'unknown-target-node',
+      validation: 'unknown-targets',
+      targetNodeIds: [],
+      targetSemanticKeys: [],
     });
   });
 
   it('falls back when the planner output cannot be parsed into an available plan', () => {
     const resolved = resolveContinuumExecutionPlan({
       text: '{"mode":"state"',
-      availableModes: ['patch', 'view'],
+      availableModes: ['patch', 'transform', 'view'],
       patchTargets,
       stateTargets,
     });
