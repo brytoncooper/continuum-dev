@@ -14,6 +14,8 @@ type SessionlessVercelAiSdkChatOptions<T extends ContinuumVercelAiSdkMessage> =
 
 export interface StarterKitVercelAiSdkChatBoxProps {
   chatOptions?: SessionlessVercelAiSdkChatOptions<ContinuumVercelAiSdkMessage>;
+  title?: string;
+  description?: string;
   instructionLabel?: string;
   instructionPlaceholder?: string;
   submitLabel?: string;
@@ -26,6 +28,8 @@ export interface StarterKitVercelAiSdkChatBoxProps {
 
 export function StarterKitVercelAiSdkChatBox({
   chatOptions,
+  title,
+  description,
   instructionLabel = 'Instruction',
   instructionPlaceholder = 'Describe the view update you want...',
   submitLabel = 'Run AI update',
@@ -43,8 +47,8 @@ export function StarterKitVercelAiSdkChatBox({
 
   return (
     <StarterKitChatBoxShell
-      title="Vercel AI SDK Chat"
-      description="Send instructions through Vercel AI SDK and auto-apply streamed Continuum view or state updates into the active session."
+      title={title}
+      description={description}
       instructionLabel={instructionLabel}
       instructionPlaceholder={instructionPlaceholder}
       submitLabel={submitLabel}

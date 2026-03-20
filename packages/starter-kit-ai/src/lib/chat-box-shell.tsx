@@ -8,8 +8,8 @@ import {
 } from '@continuum-dev/starter-kit';
 
 export interface StarterKitChatBoxShellProps {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   providerControl?: ReactNode;
   instructionLabel: string;
   instructionPlaceholder: string;
@@ -58,12 +58,20 @@ export function StarterKitChatBoxShell({
         alignContent: 'start',
       }}
     >
-      <div style={{ display: 'grid', gap: space.xs }}>
-        <div style={{ ...typography.section, color: color.text }}>{title}</div>
-        <div style={{ ...typography.small, color: color.textMuted }}>
-          {description}
+      {title || description ? (
+        <div style={{ display: 'grid', gap: space.xs }}>
+          {title ? (
+            <div style={{ ...typography.section, color: color.text }}>
+              {title}
+            </div>
+          ) : null}
+          {description ? (
+            <div style={{ ...typography.small, color: color.textMuted }}>
+              {description}
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
 
       {providerControl}
 

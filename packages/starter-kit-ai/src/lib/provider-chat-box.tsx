@@ -25,6 +25,9 @@ export interface StarterKitProviderChatBoxProps {
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
+  title?: string;
+  description?: string;
+  providerLabel?: string;
   instructionLabel?: string;
   instructionPlaceholder?: string;
   submitLabel?: string;
@@ -42,6 +45,9 @@ export function StarterKitProviderChatBox({
   outputContract,
   authoringFormat = 'line-dsl',
   autoApplyView = true,
+  title,
+  description,
+  providerLabel = 'Provider',
   instructionLabel = 'Instruction',
   instructionPlaceholder = 'Describe the view update you want...',
   submitLabel = 'Run AI update',
@@ -79,7 +85,7 @@ export function StarterKitProviderChatBox({
     listedProviders.length > 1 ? (
       <label style={{ display: 'grid', gap: space.xs }}>
         <span style={{ ...typography.label, color: color.textSoft }}>
-          Provider
+          {providerLabel}
         </span>
         <select
           value={providerId}
@@ -107,8 +113,8 @@ export function StarterKitProviderChatBox({
 
   return (
     <StarterKitChatBoxShell
-      title="AI Provider Chat"
-      description="Send instructions to your configured provider and optionally apply the returned Continuum view."
+      title={title}
+      description={description}
       providerControl={providerControl}
       instructionLabel={instructionLabel}
       instructionPlaceholder={instructionPlaceholder}
