@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { ExampleCard } from '../../ui/layout';
 import { color, radius, space, type } from '../../ui/tokens';
 import { StateSummaryCard } from './state-summary-card';
+import { TechnicalDetails } from './technical-details';
 
 const statusRowStyle: CSSProperties = {
   display: 'flex',
@@ -139,7 +140,9 @@ export function ComparisonPane({
             />
           </div>
         </div>
-        <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        <TechnicalDetails summary="Show technical details">
+          <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        </TechnicalDetails>
       </div>
     </ExampleCard>
   );

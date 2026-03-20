@@ -24,6 +24,7 @@ import { findScopedNodeIdByKey } from '../state/view-helpers';
 import { createHighlightedComponentMap } from './highlighted-node-map';
 import { StateSummaryCard } from './state-summary-card';
 import { StaticViewRenderer } from './static-view-renderer';
+import { TechnicalDetails } from './technical-details';
 
 const statusRowStyle = {
   display: 'flex',
@@ -248,7 +249,9 @@ function ConflictPaneCard({
           </div>
         </div>
         {details ? <div style={detailsStyle}>{details}</div> : null}
-        <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        <TechnicalDetails summary="Show technical details">
+          <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        </TechnicalDetails>
       </div>
     </ExampleCard>
   );

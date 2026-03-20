@@ -20,6 +20,7 @@ import type {
 import { createHighlightedComponentMap } from './highlighted-node-map';
 import { StateSummaryCard } from './state-summary-card';
 import { StaticViewRenderer } from './static-view-renderer';
+import { TechnicalDetails } from './technical-details';
 
 const statusRowStyle = {
   display: 'flex',
@@ -292,7 +293,9 @@ function DetachedPaneCard({
           <summary style={drawerSummaryStyle}>Field details</summary>
           <div style={drawerContentStyle}>{fieldDetails}</div>
         </details>
-        <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        <TechnicalDetails summary="Show technical details">
+          <pre style={preStyle}>{JSON.stringify(values, null, 2)}</pre>
+        </TechnicalDetails>
       </div>
     </ExampleCard>
   );
