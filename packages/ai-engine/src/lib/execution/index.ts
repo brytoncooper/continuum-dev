@@ -1,5 +1,4 @@
 import type { SessionStreamPart, ViewDefinition } from '@continuum-dev/core';
-import type { ContinuumTransformPlan } from '@continuum-dev/core';
 import {
   type PromptMode,
   VIEW_DEFINITION_OUTPUT_CONTRACT,
@@ -27,9 +26,6 @@ import {
   parseJson,
 } from '../view-guardrails/index.js';
 import {
-  buildTransformSystemPrompt,
-  buildTransformUserMessage,
-  normalizeContinuumTransformPlan,
   buildSurgicalTransformSystemPrompt,
   buildSurgicalTransformUserMessage,
   normalizeSurgicalTransformPlan,
@@ -219,44 +215,6 @@ function finalizeGeneratedView(args: {
   }
 
   return normalizeViewDefinition(args.candidateView);
-}
-
-async function buildContinuumTransformPlan(args: {
-  adapter: ContinuumExecutionAdapter;
-  trace: ContinuumExecutionTraceEntry[];
-  instruction: string;
-  currentView: ViewDefinition;
-  nextView: ViewDefinition;
-  currentData: ContinuumExecutionContext['currentData'];
-  selectedTargets: string[];
-}): Promise<{
-  plan: ContinuumTransformPlan | null;
-  reason?: string;
-}> {
-  const transformRequest: ContinuumExecutionRequest = {
-    systemPrompt: buildTransformSystemPrompt(),
-    userMessage: buildTransformUserMessage({
-      instruction: args.instruction,
-      currentView: args.currentView,
-      nextView: args.nextView,
-      currentData: args.currentData ?? {},
-      selectedTargets: args.selectedTargets,
-    }),
-    mode: 'transform',
-    outputKind: 'json-object',
-    temperature: 0,
-  };
-  const transformResponse = await runGenerate(
-    args.adapter,
-    transformRequest,
-    args.trace
-  );
-
-  return normalizeContinuumTransformPlan(
-    transformResponse.json ?? parseJson<unknown>(transformResponse.text),
-    args.currentView,
-    args.nextView
-  );
 }
 
 async function repairGeneratedView(args: {
