@@ -10,7 +10,7 @@ This module applies cross-level value migration after normal node resolution. It
 2. Removed-node detection
 3. Same-push detach/restore rewrite
 
-It does not run for fresh session or blind-carry branches.
+It does not run for the no-prior-data branch or the prior-data-without-prior-view branch.
 
 ## Location Model
 

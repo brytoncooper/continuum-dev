@@ -4,7 +4,7 @@
 
 It is responsible for:
 
-- building branch-specific results for fresh-session and blind-carry paths
+- building branch-specific results for no-prior-data and prior-data-without-prior-view paths
 - assembling transition-stage resolver/removal outputs into a single final result
 - normalizing lineage updates across those paths
 - applying detached-value merge and restored-key cleanup rules
@@ -21,8 +21,8 @@ Avoid deep imports into files under this folder from outside `result-builder`.
 
 Public entrypoints:
 
-- `buildFreshSessionResult`
-- `buildBlindCarryResult`
+- `buildInitialSnapshotFromView`
+- `buildResultForPriorDataWithoutView`
 - `assembleReconciliationResult`
 - `computeViewHash`
 - `generateSessionId`
@@ -40,9 +40,9 @@ Public entrypoints:
 ```mermaid
 flowchart TD
   reconcile["reconcileImpl"] --> hasPriorData{"priorData?"}
-  hasPriorData -->|No| fresh["buildFreshSessionResult"]
+  hasPriorData -->|No| fresh["buildInitialSnapshotFromView"]
   hasPriorData -->|Yes| hasPriorView{"priorView?"}
-  hasPriorView -->|No| blind["buildBlindCarryResult"]
+  hasPriorView -->|No| blind["buildResultForPriorDataWithoutView"]
   hasPriorView -->|Yes| transition["reconcileViewTransition"]
   transition --> resolveAll["resolveAllNodes"]
   resolveAll --> detectRemoved["detectRemovedNodes"]
@@ -55,8 +55,8 @@ flowchart TD
 Typed object inputs live in `types.ts`:
 
 - `AssembleReconciliationResultInput`
-- `BlindCarryResultInput`
-- `FreshSessionResultInput`
+- `PriorDataWithoutViewInput`
+- `InitialSnapshotFromViewInput`
 - `FreshNodeCollectionInput`
 - `LineageBaseInput`
 - `LineageWithHashInput`
@@ -67,7 +67,7 @@ These contracts prevent positional argument coupling and make callsites self-doc
 
 ## Branch Responsibilities
 
-### Fresh Session (`fresh-session.ts`)
+### Initial snapshot from view (`initial-snapshot-from-view.ts`)
 
 Used when there is no `priorData`.
 
@@ -80,7 +80,7 @@ Behavior:
 - emits `NO_PRIOR_DATA`
 - creates fresh lineage with a generated `sessionId`
 
-### Blind Carry (`blind-carry.ts`)
+### Prior data without prior view (`prior-data-without-view.ts`)
 
 Used when `priorData` exists but `priorView` is missing.
 
@@ -88,19 +88,19 @@ Behavior:
 
 - always emits `NO_PRIOR_VIEW`
 - always includes duplicate issues from current view traversal
-- when `allowBlindCarry=false`:
+- when `allowPriorDataWithoutPriorView=false`:
   - values are dropped
   - detached values are preserved
   - lineage is updated to new view metadata
-- when `allowBlindCarry=true`:
-  - carries only exact scoped id matches
-  - carries corresponding `valueLineage` entries for carried ids only
-  - emits `UNVALIDATED_CARRY` per carried id
+- when `allowPriorDataWithoutPriorView=true`:
+  - copies only exact scoped id matches
+  - copies corresponding `valueLineage` entries for copied ids only
+  - emits `UNVALIDATED_CARRY` per copied id
   - preserves detached values
 
 Non-goal in this path:
 
-- no key/semantic-key based blind carry
+- no key/semantic-key based carry when prior view is missing
 
 ### Transition Assembly (`assemble-result.ts`)
 
@@ -124,8 +124,8 @@ Behavior:
 
 Lineage helpers live in `reconciled-lineage.ts`:
 
-- `buildLineageFromPrior` for blind-carry and transition assembly
-- `buildFreshLineage` for fresh-session creation
+- `buildLineageFromPrior` for prior-data-without-view and transition assembly
+- `buildFreshLineage` for initial-snapshot creation
 
 Value-level lineage carry helper:
 
@@ -135,9 +135,9 @@ Value-level lineage carry helper:
 flowchart LR
   priorLineage["prior lineage"] --> fromPrior["buildLineageFromPrior"]
   freshInput["newView + now + sessionId"] --> freshLineage["buildFreshLineage"]
-  fromPrior --> blindPath["blind-carry result"]
+  fromPrior --> blindPath["prior-data-without-view result"]
   fromPrior --> assemblePath["assembled transition result"]
-  freshLineage --> freshPath["fresh-session result"]
+  freshLineage --> freshPath["initial-snapshot result"]
 ```
 
 ## Detached Value Merge Semantics
@@ -168,8 +168,8 @@ For identical inputs, `result-builder` is deterministic:
 
 - `index.ts` - stable public boundary with documented exports and type contracts
 - `types.ts` - typed input/result contracts
-- `fresh-session.ts` - no-prior-data branch builder
-- `blind-carry.ts` - no-prior-view branch builder
+- `initial-snapshot-from-view.ts` - no-prior-data branch builder
+- `prior-data-without-view.ts` - no-prior-view branch builder
 - `assemble-result.ts` - transition output assembler
 - `reconciled-lineage.ts` - lineage construction helpers
 - `view-hash.ts` - deterministic view signature + session id helpers

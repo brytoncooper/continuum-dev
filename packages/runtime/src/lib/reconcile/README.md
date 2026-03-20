@@ -10,13 +10,9 @@ This folder contains the runtime reconciliation orchestrator and post-resolution
 
 ## Function Contract
 
-Preferred call form:
+Call form:
 
 - `reconcile({ newView, priorView, priorData, options })`
-
-Legacy call form (deprecated, still supported):
-
-- `reconcile(newView, priorView, priorData, options)`
 
 `reconcile(...)` returns:
 
@@ -70,9 +66,9 @@ flowchart TD
   reconcileImpl --> resolveTime["resolveReconciliationTimestamp()"]
 
   resolveTime --> hasPriorData{"priorData exists?"}
-  hasPriorData -- "No" --> freshBranch["buildFreshSessionResult()"]
+  hasPriorData -- "No" --> freshBranch["buildInitialSnapshotFromView()"]
   hasPriorData -- "Yes" --> hasPriorView{"priorView exists?"}
-  hasPriorView -- "No" --> blindBranch["buildBlindCarryResult()"]
+  hasPriorView -- "No" --> blindBranch["buildResultForPriorDataWithoutView()"]
   hasPriorView -- "Yes" --> transitionBranch["reconcileViewTransition()"]
 
   transitionBranch --> buildContext["buildReconciliationContext()"]

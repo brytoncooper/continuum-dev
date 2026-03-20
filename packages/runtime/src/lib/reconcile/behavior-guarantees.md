@@ -7,10 +7,8 @@ This document separates stable expectations from implementation details. Stateme
 These are part of the reconcile function contract as currently implemented:
 
 - Reconcile returns `reconciledState`, `diffs`, `issues`, and `resolutions`
-- Preferred API call shape is object-form:
+- API call shape is object-form:
   - `reconcile({ newView, priorView, priorData, options })`
-- Positional call shape remains supported but deprecated:
-  - `reconcile(newView, priorView, priorData, options)`
 - Branching behavior is determined by `(priorData, priorView)` shape:
   - no prior data -> fresh session
   - prior data without prior view -> blind carry path
@@ -28,7 +26,7 @@ Backed by `core.spec.ts`:
 
 - Fresh session emits `NO_PRIOR_DATA` info and initializes node state deterministically
 - Blind-carry path emits `NO_PRIOR_VIEW` warning
-- With `allowBlindCarry`, values carry by exact indexed node IDs only
+- With `allowPriorDataWithoutPriorView`, values copy by exact indexed node IDs only when `priorView` is null
 - Match precedence behaves as scoped ID, then unique semantic key, then scoped key
 - Key-based matching preserves carry across ID renames when scoped key identity is stable
 

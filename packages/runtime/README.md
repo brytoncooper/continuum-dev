@@ -52,7 +52,7 @@ npm install @continuum-dev/runtime
 
 ## Upgrade Note (0.3.x to Next)
 
-- Preferred reconcile call form is object-shaped: `reconcile({ newView, priorView, priorData, options })`.
+- Reconcile call form is object-shaped: `reconcile({ newView, priorView, priorData, options })`.
 - Migration strategy callbacks now prefer a context object argument.
 - Legacy positional migration callbacks remain supported for backward compatibility.
 
@@ -71,7 +71,7 @@ With Continuum runtime, the value can survive because the engine reconciles the 
 
 ## Quick Start
 
-The preferred API is object-shaped:
+The API is object-shaped:
 
 ```typescript
 import { reconcile } from '@continuum-dev/runtime';
@@ -119,12 +119,6 @@ console.log(result.resolutions);
 console.log(result.issues);
 ```
 
-The legacy positional form is still supported, but it is deprecated:
-
-```typescript
-reconcile(newView, priorView, priorData, {});
-```
-
 ## What `reconcile()` Returns
 
 Every run returns a `ReconciliationResult`:
@@ -168,7 +162,7 @@ This is how the runtime preserves continuity without pretending uncertain matche
 
 `reconcile()` always takes exactly one branch.
 
-### 1. Fresh Session
+### 1. Initial snapshot (no prior data)
 
 Used when `priorData === null`.
 
@@ -176,12 +170,12 @@ Used when `priorData === null`.
 - Emits added outcomes for the new nodes.
 - Requires `options.clock`, because there is no prior lineage timestamp to advance.
 
-### 2. Blind Carry
+### 2. Prior data without prior view
 
 Used when `priorData !== null` and `priorView === null`.
 
 - Emits `NO_PRIOR_VIEW`.
-- Can carry values only by exact scoped IDs when `allowBlindCarry` is enabled.
+- Can copy prior values only by exact scoped node ids when `allowPriorDataWithoutPriorView` is enabled.
 - Does not attempt key or semantic-key matching in this mode.
 
 ### 3. Full Transition
@@ -267,21 +261,8 @@ import { validateNodeValue } from '@continuum-dev/runtime/validator';
 
 ### Reconcile Signature
 
-Preferred form:
-
 ```typescript
 function reconcile(input: ReconcileInput): ReconciliationResult;
-```
-
-Legacy form:
-
-```typescript
-function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions
-): ReconciliationResult;
 ```
 
 ### Important Types
@@ -291,7 +272,7 @@ function reconcile(
 ```typescript
 interface ReconciliationOptions {
   allowPartialRestore?: boolean;
-  allowBlindCarry?: boolean;
+  allowPriorDataWithoutPriorView?: boolean;
   migrationStrategies?: Record<string, MigrationStrategy>;
   strategyRegistry?: Record<string, MigrationStrategy>;
   clock?: () => number;

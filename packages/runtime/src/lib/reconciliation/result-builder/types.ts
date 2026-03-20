@@ -26,14 +26,14 @@ export interface AssembleReconciliationResultInput {
   now: number;
 }
 
-export interface BlindCarryResultInput {
+export interface PriorDataWithoutViewInput {
   newView: ViewDefinition;
   priorData: DataSnapshot;
   now: number;
   options: ReconciliationOptions;
 }
 
-export interface FreshSessionResultInput {
+export interface InitialSnapshotFromViewInput {
   newView: ViewDefinition;
   now: number;
 }

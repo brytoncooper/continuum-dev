@@ -41,11 +41,12 @@ export interface ReconciliationOptions {
    */
   allowPartialRestore?: boolean;
   /**
-   * When true and `priorView` is null, carries values by matching raw node ids.
-   *
-   * This is a fallback mode for sessions that have data but no previous view AST.
+   * When `priorData` is set but `priorView` is null, if false (default): prior field
+   * values are not copied into the new snapshot. If true: best-effort fit—copy prior
+   * values only where the scoped node id still exists in the new view; each such copy
+   * is flagged (e.g. `UNVALIDATED_CARRY`) because there was no prior view to validate structure.
    */
-  allowBlindCarry?: boolean;
+  allowPriorDataWithoutPriorView?: boolean;
   /**
    * Per-node migration overrides keyed by the new node id.
    *

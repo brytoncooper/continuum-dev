@@ -711,7 +711,7 @@ describe('nested collections', () => {
     expect(items[0].values['addr_card/phones']).toBeDefined();
   });
 
-  it('fresh session with nested collection creates correct defaults', () => {
+  it('initial snapshot with nested collection creates correct defaults', () => {
     const innerTpl = makeNode({ id: 'val', type: 'field', dataType: 'string' });
     const outerTpl = makeNode({
       id: 'tpl',
@@ -1576,7 +1576,7 @@ describe('container type swaps (row ↔ grid ↔ group)', () => {
 // ─── 14. Default Value Behavior ───────────────────────────────────────────────
 
 describe('default value behavior', () => {
-  it('defaultValue is set on fresh session for field nodes', () => {
+  it('defaultValue is set on initial snapshot for field nodes', () => {
     const view = makeView([
       makeNode({ id: 'name', defaultValue: 'Anonymous' }),
     ]);

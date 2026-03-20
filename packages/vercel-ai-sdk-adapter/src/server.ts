@@ -33,6 +33,7 @@ import type {
 } from '@continuum-dev/prompts';
 import type { ContinuumVercelAiSdkRequestBody } from './lib/request.js';
 import type { ContinuumVercelAiSdkMessage } from './lib/types.js';
+import { resolveTemperatureForLanguageModel } from './lib/resolve-temperature-for-language-model.js';
 
 export interface VercelAiSdkContinuumExecutionAdapterOptions {
   label?: string;
@@ -452,7 +453,10 @@ export function createVercelAiSdkContinuumExecutionAdapter(
         model,
         system: request.systemPrompt,
         prompt: request.userMessage,
-        temperature: request.temperature,
+        temperature: resolveTemperatureForLanguageModel(
+          model,
+          request.temperature
+        ),
         maxOutputTokens: request.maxTokens,
         providerOptions: mergeProviderOptions(
           providerOptions,
@@ -474,7 +478,10 @@ export function createVercelAiSdkContinuumExecutionAdapter(
         model,
         system: request.systemPrompt,
         prompt: request.userMessage,
-        temperature: request.temperature,
+        temperature: resolveTemperatureForLanguageModel(
+          model,
+          request.temperature
+        ),
         maxOutputTokens: request.maxTokens,
         providerOptions: mergeProviderOptions(
           providerOptions,

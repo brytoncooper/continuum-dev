@@ -293,7 +293,7 @@ type MigrationStrategy = (
 ```ts
 interface ReconciliationOptions {
   allowPartialRestore?: boolean;
-  allowBlindCarry?: boolean;
+  allowPriorDataWithoutPriorView?: boolean;
   migrationStrategies?: Record<string, MigrationStrategy>;
   strategyRegistry?: Record<string, MigrationStrategy>;
   clock?: () => number;
@@ -303,7 +303,7 @@ interface ReconciliationOptions {
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `allowPartialRestore` | `boolean` | Suppresses `NODE_REMOVED` warnings for partial-restore workflows |
-| `allowBlindCarry` | `boolean` | Allows raw id and key carry when there is no prior view |
+| `allowPriorDataWithoutPriorView` | `boolean` | When `priorView` is null but `priorData` exists, best-effort copy of prior values only where scoped node ids exist in the new view (not key-based) |
 | `migrationStrategies` | `Record<string, MigrationStrategy>` | Per-node migration overrides keyed by new node id |
 | `strategyRegistry` | `Record<string, MigrationStrategy>` | Named strategies referenced by migration rules |
 | `clock` | `() => number` | Custom time source for lineage metadata |
@@ -529,12 +529,14 @@ Checkpoint behavior:
   diffs: StateDiff[],
   resolutions: ReconciliationResolution[],
   settings: {
-    allowBlindCarry?: boolean,
+    allowPriorDataWithoutPriorView?: boolean,
     allowPartialRestore?: boolean,
     validateOnUpdate?: boolean,
   },
 }
 ```
+
+Serialized blobs may still contain `settings.allowBlindCarry` from older saves; session deserialization maps that to `allowPriorDataWithoutPriorView`.
 
 ### Deserialization guarantees
 

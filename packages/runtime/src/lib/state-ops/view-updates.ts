@@ -211,9 +211,14 @@ export function applyContinuumViewUpdate(
     : null;
   const incremental = tryApplyPresentationIncrementalUpdate(input, patchedView);
 
-  const result = reconcile(patchedView, priorView, priorDataForReconcile, {
-    clock: input.clock,
-    ...(input.reconciliationOptions ?? {}),
+  const result = reconcile({
+    newView: patchedView,
+    priorView,
+    priorData: priorDataForReconcile,
+    options: {
+      clock: input.clock,
+      ...(input.reconciliationOptions ?? {}),
+    },
   });
 
   let data: AppliedContinuumViewState['data'] = {

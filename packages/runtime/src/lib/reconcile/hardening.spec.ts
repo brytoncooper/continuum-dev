@@ -29,7 +29,7 @@ const priorData: DataSnapshot = {
 };
 
 describe('runtime hardening', () => {
-  it('supports object signature in fresh-session flow', () => {
+  it('supports object signature in initial-snapshot-from-view flow', () => {
     const view: ViewDefinition = {
       viewId: 'view-obj',
       version: '1',

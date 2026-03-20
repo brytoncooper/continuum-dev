@@ -16,9 +16,14 @@ function reconcile(
   priorData: DataSnapshot | null,
   options: ReconciliationOptions = {}
 ) {
-  return runtimeReconcile(newView, priorView, priorData, {
-    clock: () => TEST_NOW,
-    ...options,
+  return runtimeReconcile({
+    newView,
+    priorView,
+    priorData,
+    options: {
+      clock: () => TEST_NOW,
+      ...options,
+    },
   });
 }
 
@@ -86,7 +91,7 @@ function collectionNode(id: string, overrides?: Partial<ViewNode>): ViewNode {
 }
 
 describe('collection reconciliation', () => {
-  it('creates empty items state for collection on fresh session', () => {
+  it('creates empty items state for collection on initial snapshot', () => {
     const view = makeView([collectionNode('addresses')]);
     const result = reconcile(view, null, null);
     expect(result.reconciledState.values['addresses']).toEqual({
@@ -724,7 +729,7 @@ describe('collection reconciliation', () => {
     expect(result.issues.some((i) => i.code === 'TYPE_MISMATCH')).toBe(true);
   });
 
-  it('populates initial items from defaultValues array on fresh session', () => {
+  it('populates initial items from defaultValues array on initial snapshot', () => {
     const view = makeView([
       collectionNode('addresses', {
         template: makeNode({ id: 'val', type: 'field' }),

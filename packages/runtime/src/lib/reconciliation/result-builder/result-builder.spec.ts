@@ -6,8 +6,8 @@ import type {
   NodeValue,
 } from '@continuum-dev/contract';
 import {
-  buildFreshSessionResult,
-  buildBlindCarryResult,
+  buildInitialSnapshotFromView,
+  buildResultForPriorDataWithoutView,
   assembleReconciliationResult,
   carryValuesMeta,
   computeViewHash,
@@ -53,10 +53,10 @@ function makeData(
   };
 }
 
-describe('buildFreshSessionResult', () => {
+describe('buildInitialSnapshotFromView', () => {
   it('returns empty values with a new session id', () => {
     const view = makeView([makeNode({ id: 'a' })]);
-    const result = buildFreshSessionResult({ newView: view, now: 5000 });
+    const result = buildInitialSnapshotFromView({ newView: view, now: 5000 });
 
     expect(result.reconciledState.values).toEqual({});
     expect(result.reconciledState.lineage.sessionId).toContain('session_');
@@ -71,7 +71,7 @@ describe('buildFreshSessionResult', () => {
         children: [makeNode({ id: 'child' })],
       }),
     ]);
-    const result = buildFreshSessionResult({ newView: view, now: 5000 });
+    const result = buildInitialSnapshotFromView({ newView: view, now: 5000 });
 
     expect(result.diffs).toHaveLength(2);
     expect(result.diffs[0].nodeId).toBe('parent');
@@ -80,18 +80,18 @@ describe('buildFreshSessionResult', () => {
 
   it('emits NO_PRIOR_DATA info issue', () => {
     const view = makeView([makeNode({ id: 'a' })]);
-    const result = buildFreshSessionResult({ newView: view, now: 5000 });
+    const result = buildInitialSnapshotFromView({ newView: view, now: 5000 });
 
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].code).toBe('NO_PRIOR_DATA');
   });
 });
 
-describe('buildBlindCarryResult', () => {
-  it('drops all values when allowBlindCarry is false', () => {
+describe('buildResultForPriorDataWithoutView', () => {
+  it('drops all values when allowPriorDataWithoutPriorView is false', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
@@ -102,15 +102,15 @@ describe('buildBlindCarryResult', () => {
     expect(result.issues[0].code).toBe('NO_PRIOR_VIEW');
   });
 
-  it('carries matching values when allowBlindCarry is true', () => {
+  it('carries matching values when allowPriorDataWithoutPriorView is true', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' }, orphan: { value: 'gone' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -121,12 +121,12 @@ describe('buildBlindCarryResult', () => {
   it('does not carry value by key when id changed', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ email: { value: 'test@example.com' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -140,12 +140,12 @@ describe('buildBlindCarryResult', () => {
       makeNode({ id: 'b', key: 'a' }),
     ]);
     const data = makeData({ a: { value: 'hello' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -153,7 +153,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.values['b']).toBeUndefined();
   });
 
-  it('does not match nested keys using scoped paths during blind carry', () => {
+  it('does not match nested keys using scoped paths when prior view is missing', () => {
     const view = makeView([
       makeNode({
         id: 'form',
@@ -162,12 +162,12 @@ describe('buildBlindCarryResult', () => {
       }),
     ]);
     const data = makeData({ 'form/email': { value: 'nested@example.com' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -178,12 +178,12 @@ describe('buildBlindCarryResult', () => {
   it('drops values with no id or key match', () => {
     const view = makeView([makeNode({ id: 'field_456', key: 'email' })]);
     const data = makeData({ no_match: { value: 'gone' } });
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -209,12 +209,12 @@ describe('buildBlindCarryResult', () => {
       },
     };
 
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 
@@ -224,7 +224,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
   });
 
-  it('preserves detachedValues even when allowBlindCarry is false', () => {
+  it('preserves detachedValues even when allowPriorDataWithoutPriorView is false', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData({ a: { value: 'hello' } });
     data.detachedValues = {
@@ -238,7 +238,7 @@ describe('buildBlindCarryResult', () => {
       },
     };
 
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
@@ -249,7 +249,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.detachedValues).toEqual(data.detachedValues);
   });
 
-  it('preserves lineage fields and omits valueLineage when allowBlindCarry is false', () => {
+  it('preserves lineage fields and omits valueLineage when allowPriorDataWithoutPriorView is false', () => {
     const view = makeView([makeNode({ id: 'a' })], 'new-view', '2.1');
     const data = makeData(
       { a: { value: 'hello' } },
@@ -261,7 +261,7 @@ describe('buildBlindCarryResult', () => {
       { a: { lastUpdated: 400, lastInteractionId: 'int-1' } }
     );
 
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
@@ -278,7 +278,7 @@ describe('buildBlindCarryResult', () => {
     expect(result.reconciledState.valueLineage).toBeUndefined();
   });
 
-  it('carries valueLineage only for ids carried during blind carry', () => {
+  it('carries valueLineage only for ids carried when prior view is missing', () => {
     const view = makeView([makeNode({ id: 'a' })]);
     const data = makeData(
       { a: { value: 'hello' }, orphan: { value: 'gone' } },
@@ -289,12 +289,12 @@ describe('buildBlindCarryResult', () => {
       }
     );
 
-    const result = buildBlindCarryResult({
+    const result = buildResultForPriorDataWithoutView({
       newView: view,
       priorData: data,
       now: 5000,
       options: {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       },
     });
 

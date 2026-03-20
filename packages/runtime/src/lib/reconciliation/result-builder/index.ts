@@ -1,6 +1,6 @@
 import { assembleReconciliationResult as assembleReconciliationResultImpl } from './assemble-result.js';
-import { buildBlindCarryResult as buildBlindCarryResultImpl } from './blind-carry.js';
-import { buildFreshSessionResult as buildFreshSessionResultImpl } from './fresh-session.js';
+import { buildResultForPriorDataWithoutView as buildResultForPriorDataWithoutViewImpl } from './prior-data-without-view.js';
+import { buildInitialSnapshotFromView as buildInitialSnapshotFromViewImpl } from './initial-snapshot-from-view.js';
 import { carryValuesMeta as carryValuesMetaImpl } from './lineage.js';
 import {
   computeViewHash as computeViewHashImpl,
@@ -8,9 +8,9 @@ import {
 } from './view-hash.js';
 import type {
   AssembleReconciliationResultInput as AssembleReconciliationResultInputModel,
-  BlindCarryResultInput as BlindCarryResultInputModel,
+  PriorDataWithoutViewInput as PriorDataWithoutViewInputModel,
   FreshNodeCollectionInput as FreshNodeCollectionInputModel,
-  FreshSessionResultInput as FreshSessionResultInputModel,
+  InitialSnapshotFromViewInput as InitialSnapshotFromViewInputModel,
   FreshLineageInput as FreshLineageInputModel,
   LineageBaseInput as LineageBaseInputModel,
   LineageWithHashInput as LineageWithHashInputModel,
@@ -24,7 +24,7 @@ import type { CarryValuesMetaInput as CarryValuesMetaInputModel } from './lineag
  * Why this boundary exists:
  * - keeps callers off implementation files
  * - makes high-arity callsites use typed object inputs
- * - centralizes behavior contracts for transition, fresh-session, and blind-carry flows
+ * - centralizes behavior contracts for transition, initial-snapshot, and prior-data-without-view flows
  *
  * Import policy:
  * - import from `../result-builder/index.js`
@@ -48,14 +48,15 @@ export const assembleReconciliationResult = assembleReconciliationResultImpl;
  *
  * Contract highlights:
  * - always emits `NO_PRIOR_VIEW`
- * - if `allowBlindCarry` is false: drops values, preserves detached values
- * - if `allowBlindCarry` is true: carries only exact scoped id matches
- * - never performs key-based blind carry
+ * - if `allowPriorDataWithoutPriorView` is false: drops values, preserves detached values
+ * - if `allowPriorDataWithoutPriorView` is true: carries only exact scoped id matches
+ * - never performs key-based carry when prior view is missing
  */
-export const buildBlindCarryResult = buildBlindCarryResultImpl;
+export const buildResultForPriorDataWithoutView =
+  buildResultForPriorDataWithoutViewImpl;
 
 /**
- * Builds the reconciliation result for first-run/fresh-session flows.
+ * Builds the reconciliation result when there is no prior data snapshot.
  *
  * Contract highlights:
  * - initializes values from explicit defaults only
@@ -63,7 +64,7 @@ export const buildBlindCarryResult = buildBlindCarryResultImpl;
  * - emits `added` diffs/resolutions for all visited nodes
  * - emits `NO_PRIOR_DATA` and starts a new session lineage
  */
-export const buildFreshSessionResult = buildFreshSessionResultImpl;
+export const buildInitialSnapshotFromView = buildInitialSnapshotFromViewImpl;
 
 /**
  * Copies value lineage metadata from a prior node id to a new node id.
@@ -94,17 +95,17 @@ export const generateSessionId = generateSessionIdImpl;
  */
 export type AssembleReconciliationResultInput = AssembleReconciliationResultInputModel;
 /**
- * Object input contract for `buildBlindCarryResult`.
+ * Object input contract for `buildResultForPriorDataWithoutView`.
  */
-export type BlindCarryResultInput = BlindCarryResultInputModel;
+export type PriorDataWithoutViewInput = PriorDataWithoutViewInputModel;
 /**
  * Object input contract for internal fresh-node collection traversal.
  */
 export type FreshNodeCollectionInput = FreshNodeCollectionInputModel;
 /**
- * Object input contract for `buildFreshSessionResult`.
+ * Object input contract for `buildInitialSnapshotFromView`.
  */
-export type FreshSessionResultInput = FreshSessionResultInputModel;
+export type InitialSnapshotFromViewInput = InitialSnapshotFromViewInputModel;
 /**
  * Object input contract for fresh lineage construction.
  */

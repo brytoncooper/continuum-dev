@@ -16,6 +16,14 @@ import {
 import { applySemanticKeyMoves } from './semantic-moves/semantic-key-moves.js';
 import { restoreFromSamePushDetachments } from './same-push-restore.js';
 
+interface ReconcileViewTransitionInput {
+  newView: ViewDefinition;
+  priorView: ViewDefinition;
+  priorData: DataSnapshot;
+  now: number;
+  options: ReconciliationOptions;
+}
+
 interface TransitionStagesState {
   context: ReturnType<typeof buildReconciliationContext>;
   resolved: NodeResolutionAccumulator;
@@ -23,12 +31,9 @@ interface TransitionStagesState {
 }
 
 export function reconcileViewTransition(
-  newView: ViewDefinition,
-  priorView: ViewDefinition,
-  priorData: DataSnapshot,
-  now: number,
-  options: ReconciliationOptions
+  input: ReconcileViewTransitionInput
 ): ReconciliationResult {
+  const { newView, priorView, priorData, now, options } = input;
   const context = buildReconciliationContext(newView, priorView);
   const stageState = runResolutionStages(context, priorData, now, options);
   runPostResolutionStages(stageState, priorData);

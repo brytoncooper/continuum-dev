@@ -662,7 +662,7 @@ Returns cloned object containing:
 - `eventLog`, `pendingIntents`, `checkpoints`
 - `issues`, `diffs`, `resolutions`
 - `settings`:
-  - `allowBlindCarry`
+  - `allowPriorDataWithoutPriorView` (deserialization also accepts legacy `allowBlindCarry`)
   - `allowPartialRestore`
   - `validateOnUpdate`
 

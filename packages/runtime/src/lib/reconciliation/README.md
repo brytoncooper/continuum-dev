@@ -68,16 +68,16 @@ flowchart TD
 
   reconcile --> core --> time --> branch
 
-  subgraph Fresh["Fresh Session Branch"]
-    freshBuild["result-builder.buildFreshSessionResult"]
+  subgraph Fresh["No prior data branch"]
+    freshBuild["result-builder.buildInitialSnapshotFromView"]
     freshTraverse["view-traversal.traverseViewNodes"]
     freshDefaults["collection-resolver.createInitialCollectionValue"]
     freshLineage["result-builder.buildFreshLineage"]
     freshBuild --> freshTraverse --> freshDefaults --> freshLineage
   end
 
-  subgraph Blind["Blind Carry Branch"]
-    blindBuild["result-builder.buildBlindCarryResult"]
+  subgraph Blind["Prior data without prior view branch"]
+    blindBuild["result-builder.buildResultForPriorDataWithoutView"]
     blindTraverse["view-traversal.traverseViewNodes"]
     blindLineage["result-builder.buildLineageFromPrior"]
     blindBuild --> blindTraverse --> blindLineage
@@ -148,18 +148,18 @@ flowchart TD
 
 ## Branching Model
 
-### Fresh Session
+### No prior data
 
-- builder: `result-builder/buildFreshSessionResult`
+- builder: `result-builder/buildInitialSnapshotFromView`
 - used when there is no prior snapshot
 - traverses the new view, initializes defaults, emits `added` outcomes, and starts fresh lineage
 
-### Blind Carry
+### Prior data without prior view
 
-- builder: `result-builder/buildBlindCarryResult`
+- builder: `result-builder/buildResultForPriorDataWithoutView`
 - used when snapshot exists but prior view is unavailable
 - always emits `NO_PRIOR_VIEW`
-- carry behavior is gated by `allowBlindCarry`
+- id-aligned copy is gated by `allowPriorDataWithoutPriorView`
 
 ### Full Transition
 

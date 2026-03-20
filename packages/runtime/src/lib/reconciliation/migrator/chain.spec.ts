@@ -21,9 +21,14 @@ function reconcile(
   priorData: DataSnapshot | null,
   options: ReconciliationOptions = {}
 ) {
-  return runtimeReconcile(newView, priorView, priorData, {
-    clock: () => TEST_NOW,
-    ...options,
+  return runtimeReconcile({
+    newView,
+    priorView,
+    priorData,
+    options: {
+      clock: () => TEST_NOW,
+      ...options,
+    },
   });
 }
 

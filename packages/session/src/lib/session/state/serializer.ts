@@ -41,7 +41,8 @@ export function serializeSession(internal: SessionState): unknown {
     diffs: internal.diffs,
     resolutions: internal.resolutions,
     settings: {
-      allowBlindCarry: internal.reconciliationOptions?.allowBlindCarry,
+      allowPriorDataWithoutPriorView:
+        internal.reconciliationOptions?.allowPriorDataWithoutPriorView,
       allowPartialRestore: internal.reconciliationOptions?.allowPartialRestore,
       validateOnUpdate: internal.validateOnUpdate,
       enableRestoreReviews: internal.restoreReviewsEnabled,
@@ -63,6 +64,7 @@ interface SerializedSessionData {
   diffs: StateDiff[];
   resolutions: ReconciliationResolution[];
   settings?: {
+    allowPriorDataWithoutPriorView?: boolean;
     allowBlindCarry?: boolean;
     allowPartialRestore?: boolean;
     validateOnUpdate?: boolean;
@@ -188,7 +190,9 @@ export function deserializeToState(
     maxPendingIntents: limits?.maxPendingIntents ?? 500,
     maxCheckpoints: limits?.maxCheckpoints ?? 50,
     reconciliationOptions: {
-      allowBlindCarry: raw.settings?.allowBlindCarry,
+      allowPriorDataWithoutPriorView:
+        raw.settings?.allowPriorDataWithoutPriorView ??
+        raw.settings?.allowBlindCarry,
       allowPartialRestore: raw.settings?.allowPartialRestore,
     },
     validateOnUpdate: raw.settings?.validateOnUpdate ?? false,

@@ -4,15 +4,12 @@ import { reconcileImpl } from './reconcile-core.js';
  * Reconciles a pushed `newView` against prior view/data state while preserving
  * user-entered values whenever matching and type compatibility allow it.
  *
- * Preferred call form:
+ * Call form:
  * - `reconcile({ newView, priorView, priorData, options })`
  *
- * Legacy call form (supported, deprecated):
- * - `reconcile(newView, priorView, priorData, options)`
- *
  * Behavior by input shape:
- * - `priorData === null`: returns fresh-session output for the new view.
- * - `priorView === null` with prior data: runs blind carry behavior (option-gated).
+ * - `priorData === null`: returns an initial snapshot built from the new view only.
+ * - `priorView === null` with prior data: prior-data-without-view fit (option-gated).
  * - `priorView` + `priorData`: runs full transition reconciliation including
  *   matching, migrations, detached-value restore, semantic-key moves, and diff
  *   emission.

@@ -156,9 +156,9 @@ In transition reconcile flow, `context.issues` are prepended to final result iss
 ```mermaid
 flowchart TD
   reconcile["reconcile()"] --> noPriorData{"no priorData?"}
-  noPriorData -->|"yes"| fresh["buildFreshSessionResult()"]
+  noPriorData -->|"yes"| fresh["buildInitialSnapshotFromView()"]
   noPriorData -->|"no"| noPriorView{"no priorView?"}
-  noPriorView -->|"yes"| blind["buildBlindCarryResult()"]
+  noPriorView -->|"yes"| blind["buildResultForPriorDataWithoutView()"]
   noPriorView -->|"no"| transition["reconcileViewTransition()"]
 
   transition --> contextGateway["context/index.ts gateway"]

@@ -63,24 +63,9 @@ Supported runtime entrypoint:
 
 - `src/lib/reconcile/index.ts`
 
-Preferred API:
-
 ```typescript
 function reconcile(input: ReconcileInput): ReconciliationResult;
 ```
-
-Legacy API:
-
-```typescript
-function reconcile(
-  newView: ViewDefinition,
-  priorView: ViewDefinition | null,
-  priorData: DataSnapshot | null,
-  options: ReconciliationOptions
-): ReconciliationResult;
-```
-
-The legacy positional form is still supported but deprecated.
 
 ## Public Contract Summary
 
@@ -100,7 +85,7 @@ interface ReconciliationResult {
 ```typescript
 interface ReconciliationOptions {
   allowPartialRestore?: boolean;
-  allowBlindCarry?: boolean;
+  allowPriorDataWithoutPriorView?: boolean;
   migrationStrategies?: Record<string, MigrationStrategy>;
   strategyRegistry?: Record<string, MigrationStrategy>;
   clock?: () => number;
@@ -132,7 +117,7 @@ The exported `MigrationStrategy` is context-shaped:
 
 `reconcile()` always resolves time first, then takes exactly one branch.
 
-### Fresh session
+### Initial snapshot (no prior data)
 
 Condition:
 
@@ -140,12 +125,12 @@ Condition:
 
 Behavior:
 
-- builds a fresh session snapshot from the new view
+- builds an initial snapshot from the new view
 - initializes defaults where appropriate
 - emits added outcomes
 - requires `options.clock`
 
-### Blind carry
+### Prior data without prior view
 
 Condition:
 
@@ -155,7 +140,7 @@ Condition:
 Behavior:
 
 - emits `NO_PRIOR_VIEW`
-- carries by exact scoped ID only when `allowBlindCarry` is enabled
+- copies prior values by exact scoped node id only when `allowPriorDataWithoutPriorView` is enabled
 - does not attempt key or semantic-key matching
 
 ### Full transition
@@ -227,8 +212,8 @@ flowchart TD
   reconcileEntry["reconcile()"] --> resolveTime["resolveReconciliationTimestamp()"]
   resolveTime --> branch{"priorData / priorView"}
 
-  branch -->|"no priorData"| fresh["buildFreshSessionResult()"]
-  branch -->|"priorData and no priorView"| blind["buildBlindCarryResult()"]
+  branch -->|"no priorData"| fresh["buildInitialSnapshotFromView()"]
+  branch -->|"priorData and no priorView"| blind["buildResultForPriorDataWithoutView()"]
   branch -->|"priorData and priorView"| transition["reconcileViewTransition()"]
 
   transition --> context["buildReconciliationContext()"]

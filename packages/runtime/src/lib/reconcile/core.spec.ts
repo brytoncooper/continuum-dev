@@ -6,7 +6,6 @@ import type {
 } from '@continuum-dev/contract';
 import { computeViewHash } from '../reconciliation/result-builder/index.js';
 import type { MigrationStrategy } from '../types.js';
-import { reconcile as runtimeReconcile } from './index.js';
 import {
   makeData,
   makeNode,
@@ -15,25 +14,6 @@ import {
 } from './test-fixtures.js';
 
 describe('reconcile', () => {
-  describe('api signatures', () => {
-    it('produces identical output for object and positional signatures', () => {
-      const priorView = makeView([makeNode({ id: 'a', key: 'k1' })], 'view-1', '1.0');
-      const newView = makeView([makeNode({ id: 'a2', key: 'k1' })], 'view-1', '2.0');
-      const priorData = makeData({ a: { value: 'hello' } });
-      const options = { clock: () => 2000 };
-
-      const fromObject = runtimeReconcile({
-        newView,
-        priorView,
-        priorData,
-        options,
-      });
-      const fromPositional = runtimeReconcile(newView, priorView, priorData, options);
-
-      expect(fromObject).toEqual(fromPositional);
-    });
-  });
-
   describe('edge cases', () => {
     it('returns fresh state with NO_PRIOR_DATA info when no prior data exists', () => {
       const view = makeView([makeNode({ id: 'a' })]);
@@ -67,7 +47,7 @@ describe('reconcile', () => {
       expect(result.issues[0].severity).toBe('warning');
     });
 
-    it('carries values by id with UNVALIDATED_CARRY issues when allowBlindCarry is true and no prior view', () => {
+    it('carries values by id with UNVALIDATED_CARRY issues when allowPriorDataWithoutPriorView is true and no prior view', () => {
       const newView = makeView([
         makeNode({ id: 'a' }),
         makeNode({ id: 'b', type: 'action' }),
@@ -78,7 +58,7 @@ describe('reconcile', () => {
       });
 
       const result = reconcile(newView, null, priorData, {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       });
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
@@ -91,7 +71,7 @@ describe('reconcile', () => {
       expect(unvalidatedIssues.every((i) => i.severity === 'info')).toBe(true);
     });
 
-    it('only carries values for nodes present in new view when allowBlindCarry is true', () => {
+    it('only carries values for nodes present in new view when allowPriorDataWithoutPriorView is true', () => {
       const newView = makeView([makeNode({ id: 'a' })]);
       const priorData = makeData({
         a: { value: 'hello' },
@@ -99,14 +79,14 @@ describe('reconcile', () => {
       });
 
       const result = reconcile(newView, null, priorData, {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       });
 
       expect(result.reconciledState.values['a']).toEqual({ value: 'hello' });
       expect(result.reconciledState.values['orphan']).toBeUndefined();
     });
 
-    it('carries values for nested nodes when allowBlindCarry is true', () => {
+    it('carries values for nested nodes when allowPriorDataWithoutPriorView is true', () => {
       const newView = makeView([
         makeNode({
           id: 'section',
@@ -119,7 +99,7 @@ describe('reconcile', () => {
       });
 
       const result = reconcile(newView, null, priorData, {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       });
 
       expect(result.reconciledState.values['section/nested-input']).toEqual({
@@ -127,12 +107,12 @@ describe('reconcile', () => {
       });
     });
 
-    it('still emits NO_PRIOR_VIEW warning alongside UNVALIDATED_CARRY when allowBlindCarry is true', () => {
+    it('still emits NO_PRIOR_VIEW warning alongside UNVALIDATED_CARRY when allowPriorDataWithoutPriorView is true', () => {
       const newView = makeView([makeNode({ id: 'a' })]);
       const priorData = makeData({ a: { value: 'hello' } });
 
       const result = reconcile(newView, null, priorData, {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       });
 
       expect(
@@ -1186,7 +1166,7 @@ describe('reconcile', () => {
       });
     });
 
-    it('detects duplicates in blind carry scenario', () => {
+    it('detects duplicates when prior view is missing', () => {
       const view = makeView([
         makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
         makeNode({ id: 'duplicate', type: 'field', dataType: 'string' }),
@@ -1194,7 +1174,7 @@ describe('reconcile', () => {
       const priorData = makeData({ duplicate: { value: 'old' } });
 
       const result = reconcile(view, null, priorData, {
-        allowBlindCarry: true,
+        allowPriorDataWithoutPriorView: true,
       });
 
       expect(result.issues.some((i) => i.code === 'DUPLICATE_NODE_ID')).toBe(
