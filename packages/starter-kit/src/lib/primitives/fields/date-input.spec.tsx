@@ -125,8 +125,8 @@ describe('DateInput', () => {
     expect(popup?.dataset.continuumDatePlacement).toBe('up');
     expect(popup?.style.position).toBe('fixed');
     expect(popup?.style.bottom).toBe('98px');
-    expect(popup?.style.height).toBe('404px');
-    expect(popup?.style.overflowY).toBe('hidden');
+    expect(popup?.style.height).toBe('410px');
+    expect(popup?.style.overflowY).toBe('auto');
   });
 
   it('uses the mobile sheet behavior on compact viewports', () => {

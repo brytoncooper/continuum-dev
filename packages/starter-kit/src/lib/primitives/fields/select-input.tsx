@@ -457,7 +457,7 @@ export function SelectInput({
                           overflowY: 'auto',
                           overflowX: 'hidden',
                         }
-                      : desktopPopoverStyle
+                      : (desktopPopoverStyle as CSSProperties)
                   }
                 >
                   {isCompact ? (

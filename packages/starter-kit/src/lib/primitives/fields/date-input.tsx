@@ -965,7 +965,7 @@ export function DateInput({
                           overflowY: 'auto',
                           overflowX: 'hidden',
                         }
-                      : desktopPopoverStyle
+                      : (desktopPopoverStyle as CSSProperties)
                   }
                 >
                   <div
