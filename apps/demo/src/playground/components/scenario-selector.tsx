@@ -40,38 +40,49 @@ const buttonStyle = (active: boolean): CSSProperties => ({
 });
 
 export function ScenarioSelector({
-  scenarios,
+  coreScenario,
+  advancedScenarios,
   activeScenarioId,
   onSelect,
-  queuedScenarios,
 }: {
-  scenarios: PlaygroundScenario[];
+  coreScenario: PlaygroundScenario;
+  advancedScenarios: PlaygroundScenario[];
   activeScenarioId: string;
   onSelect: (scenarioId: string) => void;
-  queuedScenarios?: string[];
 }) {
   const { isMobile } = useResponsiveState();
+  const isCoreActive = coreScenario.id === activeScenarioId;
 
   return (
     <div style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}>
       <div style={introStyle}>
-        Pick a deterministic problem at the top, then advance its steps to compare the same update
-        with and without Continuum reconciliation.
+        Start with the basic example, or try other scenarios.
       </div>
       <div style={listStyle}>
-        {scenarios.map((scenario) => (
-          <button
-            key={scenario.id}
-            type="button"
-            style={buttonStyle(scenario.id === activeScenarioId)}
-            onClick={() => onSelect(scenario.id)}
-          >
-            {scenario.selectorLabel}
-          </button>
-        ))}
+        <button
+          type="button"
+          style={buttonStyle(isCoreActive)}
+          onClick={() => onSelect(coreScenario.id)}
+        >
+          {coreScenario.selectorLabel}
+        </button>
       </div>
-      {queuedScenarios?.length ? (
-        <div style={queuedStyle}>{`Queued after these: ${queuedScenarios.join(', ')}`}</div>
+      {advancedScenarios.length ? (
+        <details>
+          <summary style={queuedStyle}>Try advanced scenarios</summary>
+          <div style={{ ...listStyle, marginTop: space.sm }}>
+            {advancedScenarios.map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                style={buttonStyle(scenario.id === activeScenarioId)}
+                onClick={() => onSelect(scenario.id)}
+              >
+                {scenario.selectorLabel}
+              </button>
+            ))}
+          </div>
+        </details>
       ) : null}
     </div>
   );
