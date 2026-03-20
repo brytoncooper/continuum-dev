@@ -109,7 +109,13 @@ function normalizeStreamPart(
 ): SessionStreamPart | null {
   switch (application.kind) {
     case 'view':
-      return { kind: 'view', view: application.view };
+      return {
+        kind: 'view',
+        view: application.view,
+        ...(application.transformPlan
+          ? { transformPlan: application.transformPlan }
+          : {}),
+      };
     case 'patch':
       return { kind: 'patch', patch: application.patch };
     case 'insert-node':
@@ -182,11 +188,11 @@ function applyThroughStreamingFoundation(
     return application;
   }
 
-  const existingStream = findOpenStream(
-    sessionAdapter,
-    targetViewId,
-    preferredStreamMode
-  );
+  const shouldRestartStreamFromCommittedBase =
+    application.kind === 'view' && Boolean(application.transformPlan);
+  const existingStream = shouldRestartStreamFromCommittedBase
+    ? undefined
+    : findOpenStream(sessionAdapter, targetViewId, preferredStreamMode);
   const streamMode = existingStream?.mode ?? preferredStreamMode;
   let streamId = existingStream?.streamId;
   if (!streamId) {
@@ -232,6 +238,7 @@ export function interpretContinuumVercelAiSdkDataPart(
       return {
         kind: 'view',
         view: part.data.view,
+        transformPlan: part.data.transformPlan,
         streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
@@ -328,122 +335,135 @@ export function applyContinuumVercelAiSdkDataPart(
 ): ContinuumVercelAiSdkPartApplication {
   const sessionAdapter = createContinuumVercelAiSdkSessionAdapter(session);
   const application = interpretContinuumVercelAiSdkDataPart(part);
-
-  if (
-    application.kind === 'view' ||
-    application.kind === 'patch' ||
-    application.kind === 'insert-node' ||
-    application.kind === 'replace-node' ||
-    application.kind === 'remove-node' ||
-    application.kind === 'append-content' ||
-    application.kind === 'state' ||
-    application.kind === 'status' ||
-    application.kind === 'node-status'
-  ) {
-    const streamed = applyThroughStreamingFoundation(application, sessionAdapter);
+  try {
     if (
-      streamed.kind === 'view' ||
-      streamed.kind === 'patch' ||
-      streamed.kind === 'insert-node' ||
-      streamed.kind === 'replace-node' ||
-      streamed.kind === 'remove-node' ||
-      streamed.kind === 'append-content' ||
-      streamed.kind === 'state' ||
-      streamed.kind === 'status' ||
-      streamed.kind === 'node-status'
+      application.kind === 'view' ||
+      application.kind === 'patch' ||
+      application.kind === 'insert-node' ||
+      application.kind === 'replace-node' ||
+      application.kind === 'remove-node' ||
+      application.kind === 'append-content' ||
+      application.kind === 'state' ||
+      application.kind === 'status' ||
+      application.kind === 'node-status'
     ) {
-      return streamed;
-    }
-  }
-
-  if (application.kind === 'view') {
-    sessionAdapter.applyView(application.view, {
-      transient: application.transient,
-    });
-    return application;
-  }
-
-  if (application.kind === 'patch') {
-    const currentView = sessionAdapter.getSnapshot()?.view;
-    if (!currentView) {
-      return {
-        kind: 'ignored',
-        reason:
-          'Received continuum patch part before a session view existed to apply it against.',
-      };
-    }
-
-    sessionAdapter.applyView(
-      applyContinuumViewPatch(currentView, application.patch),
-      {
-        transient: application.transient,
+      const streamed = applyThroughStreamingFoundation(application, sessionAdapter);
+      if (
+        streamed.kind === 'view' ||
+        streamed.kind === 'patch' ||
+        streamed.kind === 'insert-node' ||
+        streamed.kind === 'replace-node' ||
+        streamed.kind === 'remove-node' ||
+        streamed.kind === 'append-content' ||
+        streamed.kind === 'state' ||
+        streamed.kind === 'status' ||
+        streamed.kind === 'node-status'
+      ) {
+        return streamed;
       }
-    );
-    return application;
-  }
-
-  if (
-    application.kind === 'insert-node' ||
-    application.kind === 'replace-node' ||
-    application.kind === 'remove-node' ||
-    application.kind === 'append-content'
-  ) {
-    const currentView = sessionAdapter.getSnapshot()?.view;
-    if (!currentView) {
-      return {
-        kind: 'ignored',
-        reason:
-          `Received continuum ${application.kind} part before a session view existed to apply it against.`,
-      };
     }
 
-    sessionAdapter.applyView(
-      applyContinuumViewStreamPart({
-        currentView,
-        part: application,
-      }).view,
-      {
+    if (application.kind === 'view') {
+      sessionAdapter.applyView(application.view, {
         transient: application.transient,
-      }
-    );
-    return application;
-  }
+        transformPlan: application.transformPlan,
+      });
+      return application;
+    }
 
-  if (application.kind === 'state') {
-    if (typeof sessionAdapter.proposeValue === 'function') {
-      sessionAdapter.proposeValue(
-        application.nodeId,
-        application.value,
-        CONTINUUM_VERCEL_AI_SDK_SOURCE
+    if (application.kind === 'patch') {
+      const currentView = sessionAdapter.getSnapshot()?.view;
+      if (!currentView) {
+        return {
+          kind: 'ignored',
+          reason:
+            'Received continuum patch part before a session view existed to apply it against.',
+        };
+      }
+
+      sessionAdapter.applyView(
+        applyContinuumViewPatch(currentView, application.patch),
+        {
+          transient: application.transient,
+        }
       );
       return application;
     }
 
-    sessionAdapter.updateState(application.nodeId, application.value);
-    return application;
-  }
+    if (
+      application.kind === 'insert-node' ||
+      application.kind === 'replace-node' ||
+      application.kind === 'remove-node' ||
+      application.kind === 'append-content'
+    ) {
+      const currentView = sessionAdapter.getSnapshot()?.view;
+      if (!currentView) {
+        return {
+          kind: 'ignored',
+          reason:
+            `Received continuum ${application.kind} part before a session view existed to apply it against.`,
+        };
+      }
 
-  if (application.kind === 'reset') {
-    if (typeof sessionAdapter.reset === 'function') {
-      sessionAdapter.reset();
+      sessionAdapter.applyView(
+        applyContinuumViewStreamPart({
+          currentView,
+          part: application,
+        }).view,
+        {
+          transient: application.transient,
+        }
+      );
       return application;
     }
 
+    if (application.kind === 'state') {
+      if (typeof sessionAdapter.proposeValue === 'function') {
+        sessionAdapter.proposeValue(
+          application.nodeId,
+          application.value,
+          CONTINUUM_VERCEL_AI_SDK_SOURCE
+        );
+        return application;
+      }
+
+      sessionAdapter.updateState(application.nodeId, application.value);
+      return application;
+    }
+
+    if (application.kind === 'reset') {
+      if (typeof sessionAdapter.reset === 'function') {
+        sessionAdapter.reset();
+        return application;
+      }
+
+      return {
+        kind: 'ignored',
+        reason:
+          'Received continuum reset part, but the session adapter does not expose reset().',
+      };
+    }
+
+    if (application.kind === 'node-status') {
+      return {
+        kind: 'ignored',
+        reason:
+          'Received continuum node-status part, but the session adapter does not expose stream support.',
+      };
+    }
+
+    return application;
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message.trim()
+        : `Failed to apply continuum ${application.kind} part.`;
+
     return {
       kind: 'ignored',
-      reason: 'Received continuum reset part, but the session adapter does not expose reset().',
+      reason: message,
     };
   }
-
-  if (application.kind === 'node-status') {
-    return {
-      kind: 'ignored',
-      reason:
-        'Received continuum node-status part, but the session adapter does not expose stream support.',
-    };
-  }
-
-  return application;
 }
 
 export function applyContinuumVercelAiSdkMessage(

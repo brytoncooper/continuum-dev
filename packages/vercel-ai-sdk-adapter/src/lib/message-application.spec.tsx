@@ -77,6 +77,93 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     expect(session.getSnapshot()?.view.viewId).toBe('loan-form');
   });
 
+  it('applies transform metadata with view parts through the session runtime path', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'tax-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'tax_form',
+          type: 'group',
+          children: [
+            {
+              id: 'name_row',
+              type: 'row',
+              children: [
+                {
+                  id: 'first_name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'first_name',
+                },
+                {
+                  id: 'last_name',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'last_name',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    session.updateState('first_name', { value: 'Jordan', isDirty: true });
+    session.updateState('last_name', { value: 'Lee', isDirty: true });
+
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+    const applications = applyContinuumVercelAiSdkMessage(
+      {
+        id: 'assistant-transform',
+        role: 'assistant',
+        metadata: {},
+        parts: [
+          {
+            type: 'data-continuum-view',
+            data: {
+              view: {
+                viewId: 'tax-form',
+                version: '2',
+                nodes: [
+                  {
+                    id: 'tax_form',
+                    type: 'group',
+                    children: [
+                      {
+                        id: 'full_name',
+                        type: 'field',
+                        dataType: 'string',
+                        key: 'full_name',
+                      },
+                    ],
+                  },
+                ],
+              },
+              transformPlan: {
+                operations: [
+                  {
+                    kind: 'merge',
+                    sourceNodeIds: ['first_name', 'last_name'],
+                    targetNodeId: 'full_name',
+                    strategyId: 'concat-space',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      adapter
+    );
+
+    expect(applications).toHaveLength(1);
+    expect(session.getSnapshot()?.data.values['tax_form/full_name']).toEqual({
+      value: 'Jordan Lee',
+      isDirty: true,
+    });
+  });
+
   it('applies patch parts into the current Continuum session view', () => {
     const session = createSession();
     session.pushView({
@@ -714,5 +801,221 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     expect(session.getCommittedSnapshot()?.view.version).toBe('final');
 
     rendered.unmount();
+  });
+
+  it('restarts from the committed base when a final transform follows a transient preview view', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'tax-form',
+      version: '3',
+      nodes: [
+        {
+          id: 'tax_form',
+          type: 'group',
+          children: [
+            {
+              id: 'full_name',
+              type: 'field',
+              dataType: 'string',
+              key: 'full_name',
+              label: 'Full name',
+            },
+          ],
+        },
+      ],
+    });
+    session.updateState('full_name', { value: 'Jordan Lee', isDirty: true });
+
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+    const previewApplication = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk(
+        {
+          view: {
+            viewId: 'tax-form',
+            version: '4-preview',
+            nodes: [
+              {
+                id: 'tax_form',
+                type: 'group',
+                children: [
+                  {
+                    id: 'name_row',
+                    type: 'row',
+                    children: [
+                      {
+                        id: 'first_name',
+                        type: 'field',
+                        dataType: 'string',
+                        key: 'first_name',
+                        label: 'First name',
+                      },
+                      {
+                        id: 'last_name',
+                        type: 'field',
+                        dataType: 'string',
+                        key: 'last_name',
+                        label: 'Last name',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        { transient: true }
+      ),
+      adapter
+    );
+
+    const previewStreamId =
+      'streamId' in previewApplication ? previewApplication.streamId : undefined;
+    if (!previewStreamId) {
+      throw new Error('Expected transient preview to create a stream id');
+    }
+
+    const finalApplication = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk({
+        view: {
+          viewId: 'tax-form',
+          version: '4',
+          nodes: [
+            {
+              id: 'tax_form',
+              type: 'group',
+              children: [
+                {
+                  id: 'name_row',
+                  type: 'row',
+                  children: [
+                    {
+                      id: 'first_name',
+                      type: 'field',
+                      dataType: 'string',
+                      key: 'first_name',
+                      label: 'First name',
+                    },
+                    {
+                      id: 'last_name',
+                      type: 'field',
+                      dataType: 'string',
+                      key: 'last_name',
+                      label: 'Last name',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        transformPlan: {
+          operations: [
+            {
+              kind: 'split',
+              sourceNodeId: 'full_name',
+              targetNodeIds: ['first_name', 'last_name'],
+              strategyId: 'split-space',
+            },
+          ],
+        },
+      }),
+      adapter
+    );
+
+    expect(finalApplication.kind).toBe('view');
+    expect('streamId' in finalApplication ? finalApplication.streamId : undefined).not.toBe(
+      previewStreamId
+    );
+    expect(session.getCommittedSnapshot()?.view.version).toBe('4');
+    expect(session.getSnapshot()?.data.values['tax_form/name_row/first_name']).toEqual({
+      value: 'Jordan',
+      isDirty: true,
+    });
+    expect(session.getSnapshot()?.data.values['tax_form/name_row/last_name']).toEqual({
+      value: 'Lee',
+      isDirty: true,
+    });
+    expect(
+      session.getStreams().find((stream) => stream.streamId === previewStreamId)?.status
+    ).toBe('superseded');
+  });
+
+  it('returns an ignored application instead of throwing when transform apply fails', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'tax-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'tax_form',
+          type: 'group',
+          children: [
+            {
+              id: 'full_name',
+              type: 'field',
+              dataType: 'string',
+              key: 'full_name',
+            },
+          ],
+        },
+      ],
+    });
+
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+    const application = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkViewDataChunk({
+        view: {
+          viewId: 'tax-form',
+          version: '2',
+          nodes: [
+            {
+              id: 'tax_form',
+              type: 'group',
+              children: [
+                {
+                  id: 'name_row',
+                  type: 'row',
+                  children: [
+                    {
+                      id: 'first_name',
+                      type: 'field',
+                      dataType: 'string',
+                      key: 'first_name',
+                    },
+                    {
+                      id: 'last_name',
+                      type: 'field',
+                      dataType: 'string',
+                      key: 'last_name',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        transformPlan: {
+          operations: [
+            {
+              kind: 'split',
+              sourceNodeId: 'missing_full_name',
+              targetNodeIds: ['first_name', 'last_name'],
+              strategyId: 'split-space',
+            },
+          ],
+        },
+      }),
+      adapter
+    );
+
+    expect(application).toEqual(
+      expect.objectContaining({
+        kind: 'ignored',
+        reason: expect.stringContaining(
+          'Transform source node "missing_full_name" was not found in the prior view.'
+        ),
+      })
+    );
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
   });
 });
