@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildStarterKitPatchTargetCatalog,
-  buildStarterKitStateTargetCatalog,
+  buildContinuumPatchTargetCatalog,
+  buildContinuumStateTargetCatalog,
 } from './catalog.js';
 
 const view = {
@@ -77,7 +77,7 @@ const view = {
 
 describe('execution target catalog builders', () => {
   it('builds a state catalog with canonical ids and collection template fields', () => {
-    expect(buildStarterKitStateTargetCatalog(view)).toEqual([
+    expect(buildContinuumStateTargetCatalog(view)).toEqual([
       {
         nodeId: 'profile_group/full_name',
         key: 'person.fullName',
@@ -133,7 +133,7 @@ describe('execution target catalog builders', () => {
   });
 
   it('builds a patch catalog for every node using raw ids instead of canonical ids', () => {
-    expect(buildStarterKitPatchTargetCatalog(view)).toEqual([
+    expect(buildContinuumPatchTargetCatalog(view)).toEqual([
       {
         nodeId: 'profile_group',
         key: undefined,

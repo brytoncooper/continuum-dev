@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStarterKitStateTargetCatalog } from './catalog.js';
-import { parseStarterKitStateResponse } from './parser.js';
+import { buildContinuumStateTargetCatalog } from './catalog.js';
+import { parseContinuumStateResponse } from './parser.js';
 
 const targetCatalog = [
   {
@@ -69,7 +69,7 @@ const targetCatalog = [
 
 describe('execution target state response parsing', () => {
   it('parses scalar updates arrays and resolves targets by node id, semantic key, or key', () => {
-    const parsed = parseStarterKitStateResponse({
+    const parsed = parseContinuumStateResponse({
       text: JSON.stringify({
         updates: [
           {
@@ -118,7 +118,7 @@ describe('execution target state response parsing', () => {
   });
 
   it('parses object-shaped values payloads using the key as the target reference', () => {
-    const parsed = parseStarterKitStateResponse({
+    const parsed = parseContinuumStateResponse({
       text: JSON.stringify({
         values: {
           'person.email': 'ava@example.com',
@@ -144,7 +144,7 @@ describe('execution target state response parsing', () => {
   });
 
   it('parses collection updates and ignores unknown or empty item fields', () => {
-    const parsed = parseStarterKitStateResponse({
+    const parsed = parseContinuumStateResponse({
       text: JSON.stringify({
         updates: [
           {
@@ -254,7 +254,7 @@ describe('execution target state response parsing', () => {
       ],
     };
 
-    const catalog = buildStarterKitStateTargetCatalog(view);
+    const catalog = buildContinuumStateTargetCatalog(view);
 
     expect(catalog).toEqual([
       {
@@ -289,7 +289,7 @@ describe('execution target state response parsing', () => {
       },
     ]);
 
-    const parsed = parseStarterKitStateResponse({
+    const parsed = parseContinuumStateResponse({
       text: JSON.stringify({
         updates: [
           {
@@ -347,14 +347,14 @@ describe('execution target state response parsing', () => {
 
   it('returns null when the payload is invalid or contains no valid updates', () => {
     expect(
-      parseStarterKitStateResponse({
+      parseContinuumStateResponse({
         text: '{"updates":',
         targetCatalog,
       })
     ).toBeNull();
 
     expect(
-      parseStarterKitStateResponse({
+      parseContinuumStateResponse({
         text: JSON.stringify({
           updates: [
             {

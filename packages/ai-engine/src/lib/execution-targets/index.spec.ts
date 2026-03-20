@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildStarterKitPatchTargetCatalog,
-  buildStarterKitStateTargetCatalog,
-  parseStarterKitStateResponse,
+  buildContinuumPatchTargetCatalog,
+  buildContinuumStateTargetCatalog,
+  parseContinuumStateResponse,
 } from './index.js';
 
 describe('execution target entrypoint', () => {
@@ -21,9 +21,9 @@ describe('execution target entrypoint', () => {
       ],
     };
 
-    const stateCatalog = buildStarterKitStateTargetCatalog(view);
-    const patchCatalog = buildStarterKitPatchTargetCatalog(view);
-    const parsed = parseStarterKitStateResponse({
+    const stateCatalog = buildContinuumStateTargetCatalog(view);
+    const patchCatalog = buildContinuumPatchTargetCatalog(view);
+    const parsed = parseContinuumStateResponse({
       text: JSON.stringify({
         updates: [
           {
