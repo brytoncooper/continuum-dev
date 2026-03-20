@@ -1,4 +1,5 @@
 import type { DetachedValue, ViewDefinition } from '@continuum-dev/contract';
+import type { ContinuumTransformPlan } from '@continuum-dev/protocol';
 import {
   applyContinuumViewUpdate,
   type AppliedContinuumViewState,
@@ -93,6 +94,7 @@ export function reconcileViewUpdate(
   options?: {
     affectedNodeIds?: string[];
     incrementalHint?: 'presentation-content';
+    transformPlan?: ContinuumTransformPlan;
   }
 ): AppliedViewState {
   return applyContinuumViewUpdate({
@@ -107,6 +109,7 @@ export function reconcileViewUpdate(
     priorIssues: internal.issues,
     priorDiffs: internal.diffs,
     priorResolutions: internal.resolutions,
+    transformPlan: options?.transformPlan,
   });
 }
 
@@ -155,7 +158,10 @@ export function pushView(
     internal.currentView,
     internal.currentData,
     view,
-    internal
+    internal,
+    {
+      transformPlan: options?.transformPlan,
+    }
   );
 
   commitAppliedViewState(internal, applied, {

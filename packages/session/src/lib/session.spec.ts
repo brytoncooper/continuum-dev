@@ -154,6 +154,79 @@ describe('Session Ledger', () => {
       expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
     });
 
+    it('pushView can apply transform continuity through the runtime-backed update path', () => {
+      const session = createSession();
+      const viewV1 = makeView(
+        [
+          makeNode({
+            id: 'tax_form',
+            type: 'group',
+            children: [
+              makeNode({
+                id: 'name_row',
+                type: 'row',
+                children: [
+                  makeNode({
+                    id: 'first_name',
+                    key: 'first_name',
+                    label: 'First name',
+                  }),
+                  makeNode({
+                    id: 'last_name',
+                    key: 'last_name',
+                    label: 'Last name',
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+        'tax-form',
+        '1.0'
+      );
+      session.pushView(viewV1);
+      session.updateState('first_name', { value: 'Jordan', isDirty: true });
+      session.updateState('last_name', { value: 'Lee', isDirty: true });
+
+      const viewV2 = makeView(
+        [
+          makeNode({
+            id: 'tax_form',
+            type: 'group',
+            children: [
+              makeNode({
+                id: 'full_name',
+                key: 'full_name',
+                label: 'Full name',
+              }),
+            ],
+          }),
+        ],
+        'tax-form',
+        '2.0'
+      );
+
+      session.pushView(viewV2, {
+        transformPlan: {
+          operations: [
+            {
+              kind: 'merge',
+              sourceNodeIds: ['first_name', 'last_name'],
+              targetNodeId: 'full_name',
+              strategyId: 'concat-space',
+            },
+          ],
+        },
+      });
+
+      const snapshot = session.getSnapshot();
+      expect(snapshot?.data.values['tax_form/full_name']).toEqual({
+        value: 'Jordan Lee',
+        isDirty: true,
+      });
+      expect(session.getDetachedValues()).toEqual({});
+    });
+
     it('patches unchanged branches so simple additions do not rebuild the whole tree', () => {
       const session = createSession();
       const viewV1 = makeView(

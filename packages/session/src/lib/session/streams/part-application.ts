@@ -155,6 +155,9 @@ export function applyPartToOpenStream(
           issues: stream.issues,
           diffs: stream.diffs,
           resolutions: stream.resolutions,
+        },
+        {
+          transformPlan: part.transformPlan,
         }
       );
       applyViewResultToStream(

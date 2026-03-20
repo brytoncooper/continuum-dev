@@ -22,8 +22,17 @@ import type {
   SessionViewApplyOptions,
 } from '@continuum-dev/protocol';
 export {
+  CONTINUUM_TRANSFORM_STRATEGIES,
   INTERACTION_TYPES,
   INTENT_STATUS,
+  type ContinuumCarryTransformOperation,
+  type ContinuumDetachTransformOperation,
+  type ContinuumDropTransformOperation,
+  type ContinuumMergeTransformOperation,
+  type ContinuumSplitTransformOperation,
+  type ContinuumTransformOperation,
+  type ContinuumTransformPlan,
+  type ContinuumTransformStrategyId,
   isInteractionType,
   type ActionContext,
   type ActionHandler,
