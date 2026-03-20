@@ -19,6 +19,7 @@ export function buildViewLineDslSystemPrompt(args: {
     'Supported node types are: group, row, grid, collection, field, textarea, date, select, radio-group, slider, toggle, action, presentation.',
     'Every node line must include id="...".',
     'Use key="..." when semantic continuity matters.',
+    'Use semanticKey="domain.field" on every stateful node (field, textarea, date, select, radio-group, slider, toggle, collection). Use dotted domain notation like person.firstName, tax.filingStatus, order.lineItems.',
     'For field nodes, include dataType="string|number|boolean".',
     'To prefill a scalar node, use defaultValue="...". Never use value="...".',
     'For presentation nodes, include contentType="text|markdown" and content="...".',
@@ -82,24 +83,24 @@ export function buildViewLineDslSystemPrompt(args: {
   sections.push('view viewId="patient_checkin" version="2"');
   sections.push('group id="checkin" label="Urgent Care Check-In"');
   sections.push(
-    '  field id="full_name" key="full_name" label="Full name" dataType="string"'
+    '  field id="full_name" key="full_name" semanticKey="patient.fullName" label="Full name" dataType="string"'
   );
   sections.push('  row id="contact_row"');
   sections.push(
-    '    field id="phone" key="phone" label="Phone" dataType="string"'
+    '    field id="phone" key="phone" semanticKey="patient.phone" label="Phone" dataType="string"'
   );
   sections.push(
-    '    date id="birth_date" key="birth_date" label="Date of birth"'
+    '    date id="birth_date" key="birth_date" semanticKey="patient.birthDate" label="Date of birth"'
   );
   sections.push(
-    '  collection id="medications" key="medications" label="Current medications" defaultValues="[{\\"medication_name\\":\\"Lisinopril\\"}]"'
+    '  collection id="medications" key="medications" semanticKey="patient.medications" label="Current medications" defaultValues="[{\\"medication_name\\":\\"Lisinopril\\"}]"'
   );
   sections.push('    group id="medication_item" label="Medication"');
   sections.push(
-    '      field id="medication_name" key="medication_name" label="Medication name" dataType="string"'
+    '      field id="medication_name" key="medication_name" semanticKey="medication.name" label="Medication name" dataType="string"'
   );
   sections.push(
-    '      field id="medication_dose" key="medication_dose" label="Dose" dataType="string"'
+    '      field id="medication_dose" key="medication_dose" semanticKey="medication.dose" label="Dose" dataType="string"'
   );
   sections.push(
     '  action id="submit_checkin" intentId="submit_checkin.submit" label="Submit"'
@@ -109,20 +110,20 @@ export function buildViewLineDslSystemPrompt(args: {
   sections.push('view viewId="profile_form" version="4"');
   sections.push('group id="profile_root" label="Profile"');
   sections.push(
-    '  field id="first_name" key="first_name" label="First name" dataType="string" defaultValue="Jane"'
+    '  field id="first_name" key="first_name" semanticKey="person.firstName" label="First name" dataType="string" defaultValue="Jane"'
   );
   sections.push(
-    '  toggle id="newsletter" key="newsletter" label="Subscribe" defaultValue=true'
+    '  toggle id="newsletter" key="newsletter" semanticKey="person.newsletter" label="Subscribe" defaultValue=true'
   );
   sections.push(
-    '  collection id="medications" key="medications" label="Medications" defaultValues="[{\\"medication_name\\":\\"Lisinopril\\",\\"medication_dose\\":\\"10mg\\"}]"'
+    '  collection id="medications" key="medications" semanticKey="person.medications" label="Medications" defaultValues="[{\\"medication_name\\":\\"Lisinopril\\",\\"medication_dose\\":\\"10mg\\"}]"'
   );
   sections.push('    group id="medication_item" label="Medication"');
   sections.push(
-    '      field id="medication_name" key="medication_name" label="Medication name" dataType="string"'
+    '      field id="medication_name" key="medication_name" semanticKey="medication.name" label="Medication name" dataType="string"'
   );
   sections.push(
-    '      field id="medication_dose" key="medication_dose" label="Dose" dataType="string"'
+    '      field id="medication_dose" key="medication_dose" semanticKey="medication.dose" label="Dose" dataType="string"'
   );
   sections.push('</example>');
 

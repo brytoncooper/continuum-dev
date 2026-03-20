@@ -170,6 +170,7 @@ export function buildViewDefinitionNodeFromDsl(
   };
 
   if (attrs.key) base.key = attrs.key;
+  if (attrs.semanticKey) base.semanticKey = attrs.semanticKey;
   if (attrs.label) base.label = attrs.label;
   if (attrs.description) base.description = attrs.description;
   if (attrs.placeholder) base.placeholder = attrs.placeholder;
