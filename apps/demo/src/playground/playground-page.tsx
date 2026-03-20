@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { repositoryUrl } from '../site-config';
 import { ExampleGrid, PageSection, PageShell } from '../ui/layout';
 import { color, page, radius, space, type } from '../ui/tokens';
-import { useResponsiveState } from '../ui/responsive';
 import { SiteNav } from '../ui/site-nav';
 import { playgroundContent } from './content/playground-content';
 import { CollectionPane } from './components/collection-pane';
@@ -25,41 +24,69 @@ import {
   playgroundScenariosById,
 } from './scenarios';
 
-const scenarioLayoutStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) 320px',
-  gap: space.lg,
-  alignItems: 'start',
-};
+const coreScenario = playgroundScenariosById[defaultPlaygroundScenarioId];
+const advancedScenarios = playgroundScenarios.filter(
+  (scenario) => scenario.id !== defaultPlaygroundScenarioId
+);
 
-const scenarioMainStyle: CSSProperties = {
-  display: 'grid',
-  gap: space.lg,
-  minWidth: 0,
-};
-
-const stickyRailStyle: CSSProperties = {
-  position: 'sticky',
-  top: space.xxxl,
-  alignSelf: 'start',
-};
-
-const responsiveLayoutStyle: CSSProperties = {
+const sectionWrapStyle: CSSProperties = {
   width: '100%',
   maxWidth: page.width,
+  display: 'grid',
+  gap: space.lg,
 };
 
-const liveAiCalloutStyle: CSSProperties = {
-  marginTop: space.md,
+const helperBarStyle: CSSProperties = {
+  display: 'grid',
+  gap: space.sm,
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+};
+
+const helperButtonStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
+  border: `1px solid ${color.border}`,
+  background: color.surface,
+  borderRadius: radius.pill,
+  padding: `${space.sm}px ${space.md}px`,
+  cursor: 'pointer',
+  textAlign: 'left',
+};
+
+const helperPanelStyle: CSSProperties = {
   display: 'grid',
   gap: space.md,
-  padding: space.md,
-  borderRadius: radius.md,
   border: `1px solid ${color.border}`,
   background: color.surfaceInset,
+  borderRadius: radius.lg,
+  padding: space.lg,
 };
 
-const calloutActionRowStyle: CSSProperties = {
+const stepListStyle: CSSProperties = {
+  display: 'grid',
+  gap: space.sm,
+};
+
+const stepItemStyle = (active: boolean): CSSProperties => ({
+  border: `1px solid ${active ? color.accentStrong : color.border}`,
+  background: active ? color.surfaceAccent : color.surface,
+  borderRadius: radius.md,
+  padding: `${space.sm}px ${space.md}px`,
+  display: 'grid',
+  gap: space.xs,
+});
+
+const stepTitleStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
+};
+
+const stepDescriptionStyle: CSSProperties = {
+  ...type.small,
+  color: color.textMuted,
+};
+
+const linkRowStyle: CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
   gap: space.sm,
@@ -91,9 +118,11 @@ const secondaryLinkStyle: CSSProperties = {
   background: color.surface,
 };
 
+type SupportPanel = 'none' | 'learn' | 'resources';
+
 export function PlaygroundPage() {
-  const { isMobile } = useResponsiveState();
   const [scenarioId, setScenarioId] = useState(defaultPlaygroundScenarioId);
+  const [supportPanel, setSupportPanel] = useState<SupportPanel>('none');
   const [scenarioInputs, setScenarioInputs] = useState<
     Record<string, Record<string, string>>
   >(
@@ -109,6 +138,7 @@ export function PlaygroundPage() {
 
   useEffect(() => {
     setStepIndex(0);
+    setSupportPanel('none');
   }, [scenario]);
 
   const stepTitles = useMemo(
@@ -119,8 +149,7 @@ export function PlaygroundPage() {
     0,
     Math.min(stepIndex, scenario.steps.length - 1)
   );
-  const inputValues =
-    scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
+  const inputValues = scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
   const inputFields = getScenarioInputFields(scenario).map((field) => ({
     ...field,
     value: inputValues[field.key] ?? '',
@@ -138,6 +167,11 @@ export function PlaygroundPage() {
     scenario.kind === 'state-drop'
       ? inputValues[scenario.trackedField.key] ?? ''
       : '';
+  const currentStep = scenario.steps[boundedStepIndex];
+
+  const toggleSupportPanel = (panel: Exclude<SupportPanel, 'none'>) => {
+    setSupportPanel((current) => (current === panel ? 'none' : panel));
+  };
 
   return (
     <PageShell
@@ -147,163 +181,162 @@ export function PlaygroundPage() {
       description={playgroundContent.description}
     >
       <PageSection
-        title="Choose a deterministic scenario"
-        description="Switch scenarios here so you can compare any available problem without scrolling past the current example."
+        title={scenario.title}
+        description={currentStep.description}
       >
-        <ScenarioSelector
-          scenarios={playgroundScenarios}
-          activeScenarioId={scenario.id}
-          onSelect={setScenarioId}
-          queuedScenarios={[...playgroundContent.queuedScenarios]}
-        />
-        <div style={liveAiCalloutStyle}>
-          <div style={{ ...type.small, color: color.text }}>
-            This is the fastest no-key proof path. You can also jump straight to GitHub, install
-            docs, or the Live AI demo.
+        <div style={sectionWrapStyle}>
+          <ScenarioSelector
+            coreScenario={coreScenario}
+            advancedScenarios={advancedScenarios}
+            activeScenarioId={scenario.id}
+            onSelect={setScenarioId}
+          />
+          <ScenarioControls
+            inputTitle={scenario.controls.inputLabel ?? 'Your input'}
+            inputDescription={
+              scenario.controls.inputDescription ??
+              'This value will be used in both panes.'
+            }
+            inputFields={inputFields}
+            stepIndex={boundedStepIndex}
+            onStepChange={setStepIndex}
+            stepTitles={stepTitles}
+            stepDescription={currentStep.description}
+          />
+          <ExampleGrid alignItems="stretch">
+            {scenario.kind === 'state-drop' ? (
+              <>
+                <NaivePane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  userValue={stateDropValue}
+                />
+                <ContinuityPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  userValue={stateDropValue}
+                />
+              </>
+            ) : scenario.kind === 'conflict-proposals' ? (
+              <>
+                <ConflictPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="naive"
+                  inputValues={inputValues}
+                />
+                <ConflictPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="continuum"
+                  inputValues={inputValues}
+                />
+              </>
+            ) : scenario.kind === 'detached-restore' ? (
+              <>
+                <DetachedPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="naive"
+                  inputValues={inputValues}
+                />
+                <DetachedPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="continuum"
+                  inputValues={inputValues}
+                />
+              </>
+            ) : scenario.kind === 'collection-evolution' ? (
+              <>
+                <CollectionPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="naive"
+                  inputValues={inputValues}
+                />
+                <CollectionPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="continuum"
+                  inputValues={inputValues}
+                />
+              </>
+            ) : (
+              <>
+                <RecoveryPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="naive"
+                  inputValues={inputValues}
+                />
+                <RecoveryPane
+                  scenario={scenario}
+                  stepIndex={boundedStepIndex}
+                  mode="continuum"
+                  inputValues={inputValues}
+                />
+              </>
+            )}
+          </ExampleGrid>
+          <div style={helperBarStyle}>
+            <button
+              type="button"
+              style={helperButtonStyle}
+              onClick={() => toggleSupportPanel('learn')}
+            >
+              {supportPanel === 'learn' ? 'Hide context' : 'Why this scenario matters'}
+            </button>
+            <button
+              type="button"
+              style={helperButtonStyle}
+              onClick={() => toggleSupportPanel('resources')}
+            >
+              {supportPanel === 'resources' ? 'Hide links' : 'Open docs and links'}
+            </button>
+            <button
+              type="button"
+              style={helperButtonStyle}
+              onClick={() => setStepIndex(0)}
+            >
+              Restart from step 1
+            </button>
           </div>
-          <div style={calloutActionRowStyle}>
-            <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
-              View on GitHub
-            </a>
-            <a href="/docs" style={secondaryLinkStyle}>
-              Install / Read Docs
-            </a>
-            <a href="/live-ai" style={secondaryLinkStyle}>
-              Open Live AI Demo
-            </a>
-          </div>
-        </div>
-      </PageSection>
-      <PageSection title={scenario.title} description={scenario.problem}>
-        <div
-          style={{
-            ...scenarioLayoutStyle,
-            ...responsiveLayoutStyle,
-            gridTemplateColumns: isMobile
-              ? 'minmax(0, 1fr)'
-              : scenarioLayoutStyle.gridTemplateColumns,
-          }}
-        >
-          <div style={scenarioMainStyle}>
-            <ScenarioControls
-              inputTitle={
-                scenario.controls.inputLabel ?? 'Starting form values'
-              }
-              inputDescription={
-                scenario.controls.inputDescription ??
-                'Edit these values to seed both panes before the deterministic steps replay.'
-              }
-              inputFields={inputFields}
-              stepIndex={boundedStepIndex}
-              onStepChange={setStepIndex}
-              stepTitles={stepTitles}
-            />
-            <ExampleGrid alignItems="stretch">
-              {scenario.kind === 'state-drop' ? (
-                <>
-                  <NaivePane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    userValue={stateDropValue}
-                  />
-                  <ContinuityPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    userValue={stateDropValue}
-                  />
-                </>
-              ) : scenario.kind === 'conflict-proposals' ? (
-                <>
-                  <ConflictPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="naive"
-                    inputValues={inputValues}
-                  />
-                  <ConflictPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="continuum"
-                    inputValues={inputValues}
-                  />
-                </>
-              ) : scenario.kind === 'detached-restore' ? (
-                <>
-                  <DetachedPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="naive"
-                    inputValues={inputValues}
-                  />
-                  <DetachedPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="continuum"
-                    inputValues={inputValues}
-                  />
-                </>
-              ) : scenario.kind === 'collection-evolution' ? (
-                <>
-                  <CollectionPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="naive"
-                    inputValues={inputValues}
-                  />
-                  <CollectionPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="continuum"
-                    inputValues={inputValues}
-                  />
-                </>
-              ) : (
-                <>
-                  <RecoveryPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="naive"
-                    inputValues={inputValues}
-                  />
-                  <RecoveryPane
-                    scenario={scenario}
-                    stepIndex={boundedStepIndex}
-                    mode="continuum"
-                    inputValues={inputValues}
-                  />
-                </>
-              )}
-            </ExampleGrid>
-          </div>
-          <div
-            style={{
-              ...stickyRailStyle,
-              position: isMobile ? 'static' : stickyRailStyle.position,
-              top: isMobile ? undefined : stickyRailStyle.top,
-            }}
-          >
-            <PlaygroundStepCard
-              title="What this scenario proves"
-              description={scenario.problem}
-              whyItMatters={scenario.whyItMatters}
-            />
-          </div>
-        </div>
-      </PageSection>
-      <PageSection
-        title="Convinced by the difference?"
-        description="Use GitHub when you want the source, package layout, and tracked setup path in one place. Use the docs when you are ready to choose an install path directly."
-      >
-        <div style={calloutActionRowStyle}>
-          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
-            View Continuum on GitHub
-          </a>
-          <a href="/docs" style={secondaryLinkStyle}>
-            Read setup docs
-          </a>
-          <a href="/starter-kit" style={secondaryLinkStyle}>
-            Explore Starter Kit
-          </a>
+          {supportPanel === 'learn' ? (
+            <div style={helperPanelStyle}>
+              <PlaygroundStepCard
+                title="Scenario context"
+                description={scenario.problem}
+                whyItMatters={scenario.whyItMatters}
+              />
+              <div style={stepListStyle}>
+                {scenario.steps.map((step, index) => (
+                  <div key={step.title} style={stepItemStyle(index === boundedStepIndex)}>
+                    <div style={stepTitleStyle}>{`Step ${index + 1}: ${step.title}`}</div>
+                    <div style={stepDescriptionStyle}>{step.description}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {supportPanel === 'resources' ? (
+            <div style={helperPanelStyle}>
+              <div style={linkRowStyle}>
+                <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
+                  View Continuum on GitHub
+                </a>
+                <a href="/docs" style={secondaryLinkStyle}>
+                  Read setup docs
+                </a>
+                <a href="/starter-kit" style={secondaryLinkStyle}>
+                  Explore Starter Kit
+                </a>
+                <a href="/live-ai" style={secondaryLinkStyle}>
+                  Open Live AI Demo
+                </a>
+              </div>
+            </div>
+          ) : null}
         </div>
       </PageSection>
     </PageShell>
