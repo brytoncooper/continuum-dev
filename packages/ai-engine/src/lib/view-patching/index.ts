@@ -6,7 +6,11 @@ export {
   buildPatchUserMessage,
   VIEW_PATCH_OUTPUT_CONTRACT,
 } from './prompt.js';
-export { isViewPatchPlan } from './normalize.js';
+export {
+  isViewPatchPlan,
+  normalizeViewPatchOperation,
+  normalizeViewPatchPlan,
+} from './normalize.js';
 export type {
   CompactPatchNode,
   PatchContextPayload,

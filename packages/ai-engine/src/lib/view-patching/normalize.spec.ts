@@ -1,4 +1,8 @@
-import { isViewPatchPlan, normalizeViewPatchOperation } from './normalize.js';
+import {
+  isViewPatchPlan,
+  normalizeViewPatchOperation,
+  normalizeViewPatchPlan,
+} from './normalize.js';
 
 describe('view-patching normalization', () => {
   it('recognizes only patch/full objects with an operations array as patch plans', () => {
@@ -124,5 +128,92 @@ describe('view-patching normalization', () => {
         text: 'extra',
       })
     ).toBeNull();
+  });
+
+  it('rejects whole patch plans when any operation is invalid', () => {
+    expect(
+      normalizeViewPatchPlan({
+        mode: 'patch',
+        operations: [
+          {
+            kind: 'remove-node',
+            nodeId: 'first_name',
+          },
+          {
+            kind: 'replace-node',
+            nodeId: '',
+            node: {
+              id: 'full_name',
+              type: 'field',
+              key: 'full_name',
+              label: 'Full name',
+              dataType: 'string',
+            },
+          },
+        ],
+      })
+    ).toEqual({
+      plan: null,
+      reason: 'Patch operation 2 was invalid or unsupported.',
+    });
+  });
+
+  it('rejects patch plans that normalize down to zero operations', () => {
+    expect(
+      normalizeViewPatchPlan({
+        mode: 'patch',
+        operations: [],
+      })
+    ).toEqual({
+      plan: null,
+      reason: 'Patch plan did not include any usable operations.',
+    });
+  });
+
+  it('normalizes entire patch plans before they reach execution', () => {
+    expect(
+      normalizeViewPatchPlan({
+        mode: 'patch',
+        reason: 'Merge name fields',
+        operations: [
+          {
+            kind: 'insert-node',
+            parentId: 'profile',
+            position: {
+              afterId: 'first_name',
+              beforeId: '   ',
+            },
+            node: {
+              id: 'full_name',
+              type: 'field',
+              key: 'full_name',
+              label: 'Full name',
+              dataType: 'string',
+            },
+          },
+        ],
+      })
+    ).toEqual({
+      plan: {
+        mode: 'patch',
+        reason: 'Merge name fields',
+        operations: [
+          {
+            kind: 'insert-node',
+            parentId: 'profile',
+            position: {
+              afterId: 'first_name',
+            },
+            node: {
+              id: 'full_name',
+              type: 'field',
+              key: 'full_name',
+              label: 'Full name',
+              dataType: 'string',
+            },
+          },
+        ],
+      },
+    });
   });
 });
