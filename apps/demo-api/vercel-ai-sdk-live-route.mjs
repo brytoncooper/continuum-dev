@@ -40,6 +40,9 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
     const instruction =
       body.continuum?.instruction?.trim() ||
       extractLatestUserInstruction(body.messages);
+    const continuumAddons = Array.isArray(body.continuum?.addons)
+      ? Array.from(new Set([...body.continuum.addons, 'strict-continuity']))
+      : ['strict-continuity'];
 
     if (!instruction) {
       return new Response(
@@ -61,11 +64,20 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
         currentData: body.currentData ?? undefined,
       },
       mode: body.continuum?.mode,
-      addons: body.continuum?.addons,
+      addons: continuumAddons,
       outputContract: body.continuum?.outputContract,
       authoringFormat: body.continuum?.authoringFormat ?? 'line-dsl',
       autoApplyView: body.continuum?.autoApplyView,
       viewStreamMode: 'foreground',
+      onResult(result) {
+        if (result.level === 'warning') {
+          console.warn('[vercel-ai-sdk-live-route] Continuum returned without applying changes.', {
+            mode: result.mode,
+            status: result.status,
+            reason: 'reason' in result ? result.reason : undefined,
+          });
+        }
+      },
     });
 
     return createUIMessageStreamResponse({
