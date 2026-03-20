@@ -1,18 +1,92 @@
 import type { CSSProperties } from 'react';
-import { ExampleCard, ExampleGrid, PageSection, PageShell } from '../ui/layout';
+import {
+  LandingCard,
+  LandingGrid,
+  LandingSection,
+  LandingShell,
+} from '../landing/landing-layout';
 import { SiteNav } from '../ui/site-nav';
 import { color, radius, space, type } from '../ui/tokens';
 import {
-  githubProfileUrl,
-  maintainerEmail,
-  maintainerName,
-  repositoryUrl,
-} from '../site-config';
-import { deepReferenceLinks, guideLinks, installOptions, packageLinks } from './docs-content';
+  docsDocuments,
+  docsProofChips,
+  primaryInstall,
+  secondaryInstalls,
+  secondaryLinks,
+} from './docs-content';
+import { DocsDocumentViewer } from './docs-document-viewer';
 
-const cardBodyStyle: CSSProperties = {
+const heroTagStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
+  padding: `${space.sm}px ${space.md}px`,
+  borderRadius: radius.pill,
+  border: `1px solid ${color.borderSoft}`,
+  background: 'rgba(255, 255, 255, 0.7)',
+};
+
+const sectionLabelStyle: CSSProperties = {
+  ...type.small,
+  color: color.textSoft,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+};
+
+const cardTitleStyle: CSSProperties = {
+  ...type.title,
+  color: color.text,
+  maxWidth: 620,
+};
+
+const bodyStyle: CSSProperties = {
   ...type.body,
   color: color.textMuted,
+};
+
+const actionsStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: space.sm,
+};
+
+const actionStyle = (
+  tone: 'default' | 'soft' | 'strong' = 'default'
+): CSSProperties => ({
+  ...type.small,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color:
+    tone === 'strong'
+      ? color.surface
+      : tone === 'soft'
+      ? color.highlight
+      : color.text,
+  textDecoration: 'none',
+  padding: `${space.sm}px ${space.md}px`,
+  border: `1px solid ${
+    tone === 'strong'
+      ? color.accentStrong
+      : tone === 'soft'
+      ? color.highlight
+      : color.border
+  }`,
+  borderRadius: radius.pill,
+  background:
+    tone === 'strong'
+      ? color.accent
+      : tone === 'soft'
+      ? color.highlightSoft
+      : color.surface,
+});
+
+const tertiaryLinkStyle: CSSProperties = {
+  ...type.small,
+  color: color.textMuted,
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: `${space.sm}px ${space.xs}px`,
 };
 
 const codeBlockStyle: CSSProperties = {
@@ -22,8 +96,23 @@ const codeBlockStyle: CSSProperties = {
   padding: space.lg,
   borderRadius: radius.md,
   border: `1px solid ${color.borderSoft}`,
-  background: color.surfaceMuted,
+  background: 'rgba(255, 255, 255, 0.82)',
   overflowX: 'auto',
+};
+
+const secondaryInstallListStyle: CSSProperties = {
+  display: 'grid',
+  gap: space.md,
+};
+
+const secondaryInstallStyle: CSSProperties = {
+  display: 'grid',
+  gap: space.sm,
+};
+
+const secondaryLabelStyle: CSSProperties = {
+  ...type.small,
+  color: color.text,
 };
 
 const linkListStyle: CSSProperties = {
@@ -31,158 +120,104 @@ const linkListStyle: CSSProperties = {
   gap: space.sm,
 };
 
-const actionStyle: CSSProperties = {
-  ...type.small,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+const linkStyle: CSSProperties = {
+  ...type.body,
   color: color.text,
   textDecoration: 'none',
-  padding: `${space.sm}px ${space.md}px`,
-  border: `1px solid ${color.borderStrong}`,
-  borderRadius: radius.pill,
+  padding: `${space.md}px ${space.md}px`,
+  borderRadius: radius.md,
+  border: `1px solid ${color.borderSoft}`,
   background: color.surface,
 };
 
-const installMetaStyle: CSSProperties = {
-  ...type.small,
-  color: color.textSoft,
-};
-
-function installCardSpan(title: string): 6 | 12 {
-  return title === 'Core only' ? 12 : 6;
-}
-
 export function DocsPage() {
   return (
-    <PageShell
+    <LandingShell
       nav={<SiteNav />}
-      eyebrow="Docs"
-      title="Install Continuum from the open-source repo with docs for Starter Kit, React, and core."
-      description="These docs are the fastest path from GitHub to installation. Use the Starter Kit when you want a polished UI quickly, or stay headless with React and core when you want full control."
-    >
-      <PageSection
-        title="Start Here"
-        description="Start with GitHub when you want the source, package layout, and tracked markdown in one place. Then choose the install path that matches how much UI you want Continuum to provide."
-      >
-        <ExampleGrid alignItems="stretch">
-          <ExampleCard
-            title="Inspect source before install"
-            description="GitHub is the fastest trust step because it gives you the repository, package docs, and tracked setup path in one click."
-            span={12}
-            fullHeight
-          >
-            <div style={linkListStyle}>
-              <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
-                View Continuum on GitHub
-              </a>
-              <a href="/playground" style={actionStyle}>
-                Try the static continuity demo
-              </a>
+      heroVisual={
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.sm }}>
+          {docsProofChips.map((tag) => (
+            <div key={tag} style={heroTagStyle}>
+              {tag}
             </div>
-          </ExampleCard>
-          {installOptions.map((option) => (
-            <ExampleCard
-              key={option.title}
-              title={option.title}
-              description={option.description}
-              span={installCardSpan(option.title)}
-              fullHeight
+          ))}
+        </div>
+      }
+      eyebrow="Docs"
+      title="Start with Starter Kit."
+      description="It's the fastest way to get Continuum running in a React app. If you want a lower-level install, the headless React and core packages are below."
+    >
+      <LandingGrid alignItems="stretch">
+        <LandingCard span={12} tone="strong">
+          <div style={sectionLabelStyle}>{primaryInstall.label}</div>
+          <div style={cardTitleStyle}>{primaryInstall.title}</div>
+          <div style={bodyStyle}>{primaryInstall.body}</div>
+          <pre style={codeBlockStyle}>
+            <code>{primaryInstall.command}</code>
+          </pre>
+          <div style={actionsStyle}>
+            <a
+              href={primaryInstall.quickStartHref}
+              style={actionStyle('strong')}
             >
-              <div style={installMetaStyle}>Install</div>
-              <pre style={codeBlockStyle}>
-                <code>{option.command}</code>
-              </pre>
-            </ExampleCard>
-          ))}
-        </ExampleGrid>
-      </PageSection>
-      <PageSection
-        title="Read The Guides"
-        description="These are the tracked docs to read before wiring an integration, sharing the project internally, or committing to an install path."
-      >
-        <ExampleGrid alignItems="stretch">
-          {guideLinks.map((item) => (
-            <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
-              <div style={linkListStyle}>
-                <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  Read on GitHub
-                </a>
-              </div>
-            </ExampleCard>
-          ))}
-        </ExampleGrid>
-      </PageSection>
-      <PageSection
-        title="Package Docs"
-        description="The npm surface is intentionally layered: core for the runtime spine, React for headless UI bindings, starter-kit for convenience, and prompts for model-facing helpers."
-      >
-        <ExampleGrid alignItems="stretch">
-          {packageLinks.map((item) => (
-            <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
-              <div style={linkListStyle}>
-                <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  Open package README
-                </a>
-              </div>
-            </ExampleCard>
-          ))}
-        </ExampleGrid>
-      </PageSection>
-      <PageSection
-        title="Deep Reference"
-        description="When you need exact contracts or engine details before installing deeper into the stack, jump directly into the tracked references."
-      >
-        <ExampleGrid alignItems="stretch">
-          {deepReferenceLinks.map((item) => (
-            <ExampleCard key={item.title} title={item.title} description={item.description} span={6} fullHeight>
-              <div style={linkListStyle}>
-                <a href={item.href} target="_blank" rel="noreferrer" style={actionStyle}>
-                  Open tracked reference
-                </a>
-              </div>
-            </ExampleCard>
-          ))}
-        </ExampleGrid>
-      </PageSection>
-      <PageSection
-        title="Links"
-        description="These are the public links most likely to help a new evaluator move from trust to install."
-      >
-        <ExampleGrid alignItems="stretch">
-          <ExampleCard
-            title="Repository"
-            description="The source of truth for release history, package docs, and tracked markdown."
-            span={4}
-            fullHeight
-          >
-            <a href={repositoryUrl} target="_blank" rel="noreferrer" style={actionStyle}>
-              View on GitHub
+              Read Quick Start
             </a>
-          </ExampleCard>
-          <ExampleCard
-            title="GitHub"
-            description="Profile link for the project owner and launch posts."
-            span={4}
-            fullHeight
-          >
-            <a href={githubProfileUrl} target="_blank" rel="noreferrer" style={actionStyle}>
-              Open profile
+            <a href={primaryInstall.demoHref} style={actionStyle()}>
+              Open demo
             </a>
-          </ExampleCard>
-          <ExampleCard
-            title="Maintainer"
-            description="Contact for partnerships, support, or launch follow-up."
-            span={4}
-            fullHeight
-          >
-            <div style={{ ...cardBodyStyle, marginBottom: space.sm }}>{maintainerName}</div>
-            <a href={`mailto:${maintainerEmail}`} style={actionStyle}>
-              {maintainerEmail}
+            <a href="#advanced-docs" style={tertiaryLinkStyle}>
+              See lower-level installs
             </a>
-          </ExampleCard>
-        </ExampleGrid>
-      </PageSection>
-    </PageShell>
+          </div>
+        </LandingCard>
+      </LandingGrid>
+
+      <LandingSection>
+        <LandingGrid alignItems="stretch">
+          <LandingCard span={12} tone="default">
+            <DocsDocumentViewer documents={docsDocuments} />
+          </LandingCard>
+        </LandingGrid>
+      </LandingSection>
+
+      <div id="advanced-docs">
+        <LandingSection
+          title="Lower-level installs and reference docs"
+          description="Install the headless React or core packages directly, or jump to the source docs."
+        >
+          <LandingGrid alignItems="stretch">
+            <LandingCard span={6} tone="soft" fullHeight>
+              <div style={sectionLabelStyle}>Direct installs</div>
+              <div style={secondaryInstallListStyle}>
+                {secondaryInstalls.map((item) => (
+                  <div key={item.label} style={secondaryInstallStyle}>
+                    <div style={secondaryLabelStyle}>{item.label}</div>
+                    <pre style={codeBlockStyle}>
+                      <code>{item.command}</code>
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </LandingCard>
+            <LandingCard span={6} tone="default" fullHeight>
+              <div style={sectionLabelStyle}>Reference docs</div>
+              <div style={linkListStyle}>
+                {secondaryLinks.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={linkStyle}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </LandingCard>
+          </LandingGrid>
+        </LandingSection>
+      </div>
+    </LandingShell>
   );
 }

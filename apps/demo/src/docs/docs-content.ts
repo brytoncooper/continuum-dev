@@ -1,145 +1,92 @@
-import { repositoryFileUrl } from '../site-config';
+import overviewMarkdown from '../../../../README.md?raw';
+import quickStartMarkdown from '../../../../docs/QUICK_START.md?raw';
+import { repositoryFileUrl, repositoryUrl } from '../site-config';
 
-export type DocsInstallOption = {
+export type DocsPrimaryInstall = {
+  label: string;
   title: string;
-  description: string;
+  body: string;
+  command: string;
+  quickStartHref: string;
+  demoHref: string;
+};
+
+export type DocsSecondaryInstall = {
+  label: string;
   command: string;
 };
 
 export type DocsLinkItem = {
-  title: string;
-  description: string;
+  label: string;
   href: string;
 };
 
-export const installOptions: DocsInstallOption[] = [
+export type DocsDocument = {
+  id: 'quick-start' | 'overview';
+  label: string;
+  repoPath: string;
+  githubHref: string;
+  body: string;
+};
+
+export const docsProofChips = [
+  'Starter Kit',
+  'Headless React',
+  'Core package',
+];
+
+export const primaryInstall: DocsPrimaryInstall = {
+  label: 'Recommended install',
+  title: 'Starter Kit',
+  body: 'Use Starter Kit for the fastest way to get Continuum running in a React app.',
+  command: 'npm install @continuum-dev/starter-kit react',
+  quickStartHref: '#docs-viewer',
+  demoHref: '/playground',
+};
+
+export const docsDocuments: DocsDocument[] = [
   {
-    title: 'Starter Kit',
-    description:
-      'Fastest path for teams that want the slim rendering preset, styles, hooks, and session tooling.',
-    command: 'npm install @continuum-dev/starter-kit react',
+    id: 'quick-start',
+    label: 'Quick Start',
+    repoPath: 'docs/QUICK_START.md',
+    githubHref: repositoryFileUrl('docs/QUICK_START.md'),
+    body: quickStartMarkdown,
   },
   {
-    title: 'Starter Kit + AI',
-    description:
-      'Default AI facade for the common wrapper path: starter rendering, provider helpers, authoring engine, and Vercel bridge under one package name.',
-    command: 'npm install @continuum-dev/starter-kit-ai react',
+    id: 'overview',
+    label: 'README',
+    repoPath: 'README.md',
+    githubHref: repositoryFileUrl('README.md'),
+    body: overviewMarkdown,
   },
+];
+
+export const secondaryInstalls: DocsSecondaryInstall[] = [
   {
-    title: 'AI Core',
-    description:
-      'Default headless AI facade for custom UI and orchestration: React bindings, session, engine, provider helpers, and Vercel transport under one package.',
-    command: 'npm install @continuum-dev/ai-core react',
-  },
-  {
-    title: 'Headless React',
-    description:
-      'Use Continuum as a headless continuity layer and bring your own components and styling from day one.',
+    label: 'Headless React',
     command: 'npm install @continuum-dev/react @continuum-dev/core react',
   },
   {
-    title: 'Core only',
-    description:
-      'Build directly against the runtime spine when you want lower-level session and reconciliation control.',
+    label: 'Core',
     command: 'npm install @continuum-dev/core',
   },
 ];
 
-export const guideLinks: DocsLinkItem[] = [
+export const secondaryLinks: DocsLinkItem[] = [
   {
-    title: 'Quick Start',
-    description: 'From install to working Continuum app with the recommended starter and headless paths.',
-    href: repositoryFileUrl('docs/QUICK_START.md'),
-  },
-  {
-    title: 'Integration Guide',
-    description: 'Production patterns for persistence, migrations, server-driven views, and lifecycle control.',
+    label: 'Integration Guide',
     href: repositoryFileUrl('docs/INTEGRATION_GUIDE.md'),
   },
   {
-    title: 'AI Integration',
-    description: 'Prompt composition, correction loops, and agent-side view generation guidance.',
+    label: 'AI Integration',
     href: repositoryFileUrl('docs/AI_INTEGRATION.md'),
   },
-];
-
-export const packageLinks: DocsLinkItem[] = [
   {
-    title: '@continuum-dev/contract',
-    description: 'Shared view and data contracts for the whole Continuum stack.',
-    href: repositoryFileUrl('packages/contract/README.md'),
+    label: 'View Contract',
+    href: repositoryFileUrl('docs/VIEW_CONTRACT.md'),
   },
   {
-    title: '@continuum-dev/runtime',
-    description: 'Stateless reconciliation engine for evolving views and preserved state.',
-    href: repositoryFileUrl('packages/runtime/README.md'),
-  },
-  {
-    title: '@continuum-dev/session',
-    description: 'Stateful session lifecycle, proposals, checkpoints, and persistence.',
-    href: repositoryFileUrl('packages/session/README.md'),
-  },
-  {
-    title: '@continuum-dev/core',
-    description: 'Thin facade over contract, runtime, and session for lower-level adopters.',
-    href: repositoryFileUrl('packages/core/README.md'),
-  },
-  {
-    title: '@continuum-dev/react',
-    description: 'Headless React bindings built on top of core.',
-    href: repositoryFileUrl('packages/react/README.md'),
-  },
-  {
-    title: '@continuum-dev/starter-kit',
-    description: 'Slim preset layer with primitives, styles, hook re-exports, and session tooling.',
-    href: repositoryFileUrl('packages/starter-kit/README.md'),
-  },
-  {
-    title: '@continuum-dev/starter-kit-ai',
-    description: 'Starter AI facade that re-exports the common wrapper path under one package name.',
-    href: repositoryFileUrl('packages/starter-kit-ai/README.md'),
-  },
-  {
-    title: '@continuum-dev/ai-core',
-    description: 'Headless AI facade that re-exports the custom UI and transport path under one package name.',
-    href: repositoryFileUrl('packages/ai-core/README.md'),
-  },
-  {
-    title: '@continuum-dev/ai-connect',
-    description: 'Headless provider clients and model catalogs for AI generation flows.',
-    href: repositoryFileUrl('packages/ai-connect/README.md'),
-  },
-  {
-    title: '@continuum-dev/ai-engine',
-    description: 'Shared headless planning, authoring, parsing, normalization, and apply helpers.',
-    href: repositoryFileUrl('packages/ai-engine/README.md'),
-  },
-  {
-    title: '@continuum-dev/prompts',
-    description: 'Prompt templates and helpers for create, evolve, and correction loops.',
-    href: repositoryFileUrl('packages/prompts/README.md'),
-  },
-];
-
-export const deepReferenceLinks: DocsLinkItem[] = [
-  {
-    title: 'Contract Reference',
-    description: 'View and data contract details for the lowest-level model.',
-    href: repositoryFileUrl('packages/contract/CONTRACT_REFERENCE.md'),
-  },
-  {
-    title: 'React Deep Dive',
-    description: 'Rendering behavior, collections, failure isolation, and hook internals.',
-    href: repositoryFileUrl('packages/react/LIBRARY_DEEP_DIVE.md'),
-  },
-  {
-    title: 'Session Reference',
-    description: 'Session lifecycle, proposals, checkpoints, and persistence behavior.',
-    href: repositoryFileUrl('packages/session/SESSION_LIBRARY_REFERENCE.md'),
-  },
-  {
-    title: 'Runtime Reference',
-    description: 'Reconciliation engine details and matching behavior.',
-    href: repositoryFileUrl('packages/runtime/RUNTIME_COMPREHENSIVE_REFERENCE.md'),
+    label: 'Repository',
+    href: repositoryUrl,
   },
 ];
