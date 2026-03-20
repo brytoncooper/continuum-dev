@@ -54,36 +54,15 @@ const inputStyle = {
   ...type.body,
 } as const;
 
-const modeRowStyle = {
+const staticValueStyle = {
+  ...inputStyle,
   display: 'flex',
-  flexWrap: 'wrap' as const,
-  gap: space.sm,
-} as const;
-
-const modeButtonStyle = {
-  boxSizing: 'border-box' as const,
-  height: control.height,
-  padding: `0 ${space.lg}px`,
-  borderRadius: radius.pill,
-  border: `1px solid ${color.border}`,
-  background: color.surface,
-  color: color.text,
-  cursor: 'pointer',
-  ...type.body,
-  fontWeight: 600,
+  alignItems: 'center',
 } as const;
 
 const helperTextStyle = {
   ...type.small,
   color: color.textMuted,
-} as const;
-
-const inlineNoteStyle = {
-  ...helperTextStyle,
-  padding: space.md,
-  borderRadius: radius.md,
-  border: `1px solid ${color.borderSoft}`,
-  background: color.surfaceMuted,
 } as const;
 
 const chatLockWrapperStyle = {
@@ -112,6 +91,10 @@ const chatLockCardStyle = {
   boxShadow: '0 12px 28px rgba(19, 19, 18, 0.08)',
 } as const;
 
+const workbenchWrapStyle = {
+  display: 'grid',
+} as const;
+
 export interface VercelAiSdkControlsPanelProps {
   initialView: ViewDefinition;
   isMobile: boolean;
@@ -133,117 +116,68 @@ export function VercelAiSdkControlsPanel({
 }: VercelAiSdkControlsPanelProps) {
   return (
     <aside style={panelStyle}>
-      <div style={{ ...type.section, color: color.text }}>
-        Starter-kit first
-      </div>
-      <div style={helperTextStyle}>
-        The wrapper is deliberately thin: starter-kit owns the preset UI and
-        session tools, while Vercel AI SDK keeps handling transport and
-        streaming.
+      <div style={{ display: 'grid', gap: space.xs }}>
+        <div style={{ ...type.section, color: color.text }}>
+          Add stable Continuum state to Vercel AI SDK
+        </div>
+        <div style={helperTextStyle}>
+          Keep your existing route and transport. Continuum preserves user-entered state while streamed UI changes land.
+        </div>
       </div>
 
       <div style={controlCardStyle}>
-        <div style={{ ...type.label, color: color.textSoft }}>
-          Transport mode
-        </div>
-        <div style={modeRowStyle}>
-          <button
-            type="button"
-            onClick={() => {
-              settings.setMode('mock');
+        <div style={{ ...type.label, color: color.textSoft }}>Provider</div>
+        <label style={controlGroupStyle}>
+          <span style={fieldLabelStyle}>
+            {settings.selectedProvider.tokenLabel}
+          </span>
+          <input
+            type="password"
+            value={settings.activeApiKey}
+            onChange={(event) => {
+              settings.setApiKey(event.target.value);
             }}
-            aria-pressed={settings.mode === 'mock'}
+            placeholder="Paste key"
             style={{
-              ...modeButtonStyle,
-              background:
-                settings.mode === 'mock' ? color.accent : modeButtonStyle.background,
-              color:
-                settings.mode === 'mock' ? color.surface : modeButtonStyle.color,
-              border:
-                settings.mode === 'mock'
-                  ? `1px solid ${color.borderStrong}`
-                  : modeButtonStyle.border,
+              ...inputStyle,
+              border: settings.apiKeyValidationMessage
+                ? '1px solid #c25b56'
+                : inputStyle.border,
             }}
-          >
-            Mock demo
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              settings.setMode('live');
-            }}
-            aria-pressed={settings.mode === 'live'}
-            style={{
-              ...modeButtonStyle,
-              background:
-                settings.mode === 'live' ? color.accent : modeButtonStyle.background,
-              color:
-                settings.mode === 'live' ? color.surface : modeButtonStyle.color,
-              border:
-                settings.mode === 'live'
-                  ? `1px solid ${color.borderStrong}`
-                  : modeButtonStyle.border,
-            }}
-          >
-            Live BYOK
-          </button>
-        </div>
+          />
+        </label>
+        <div
+          style={{
+            ...controlGridStyle,
+            gridTemplateColumns: isMobile
+              ? 'minmax(0, 1fr)'
+              : controlGridStyle.gridTemplateColumns,
+          }}
+        >
+          <label style={controlGroupStyle}>
+            <span style={fieldLabelStyle}>Provider</span>
+            <select
+              value={settings.providerId}
+              onChange={(event) => {
+                settings.setProviderId(
+                  event.target.value as typeof settings.providerId
+                );
+              }}
+              style={inputStyle}
+            >
+              {settings.providerCatalog.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        {settings.mode === 'live' ? (
-          <div
-            style={{
-              ...controlGridStyle,
-              gridTemplateColumns: isMobile
-                ? 'minmax(0, 1fr)'
-                : controlGridStyle.gridTemplateColumns,
-            }}
-          >
-            <label style={controlGroupStyle}>
-              <span style={fieldLabelStyle}>Provider</span>
-              <select
-                value={settings.providerId}
-                onChange={(event) => {
-                  settings.setProviderId(
-                    event.target.value as typeof settings.providerId
-                  );
-                }}
-                style={inputStyle}
-              >
-                {settings.providerCatalog.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label style={controlGroupStyle}>
-              <span style={fieldLabelStyle}>
-                {settings.selectedProvider.tokenLabel}
-              </span>
-              <input
-                type="password"
-                value={settings.activeApiKey}
-                onChange={(event) => {
-                  settings.setApiKey(event.target.value);
-                }}
-                placeholder={
-                  settings.selectedProvider.serverKeyAvailable
-                    ? 'Optional override'
-                    : 'Paste key'
-                }
-                style={{
-                  ...inputStyle,
-                  border:
-                    settings.apiKeyValidationMessage && settings.mode === 'live'
-                      ? '1px solid #c25b56'
-                      : inputStyle.border,
-                }}
-              />
-            </label>
-
-            <label style={controlGroupStyle}>
-              <span style={fieldLabelStyle}>Model</span>
+          <label style={controlGroupStyle}>
+            <span style={fieldLabelStyle}>Model</span>
+            {settings.providerId === 'openai' ? (
+              <div style={staticValueStyle}>GPT-5.4</div>
+            ) : (
               <select
                 value={settings.selectedModel}
                 onChange={(event) => {
@@ -260,17 +194,10 @@ export function VercelAiSdkControlsPanel({
                   </option>
                 ))}
               </select>
-            </label>
-          </div>
-        ) : null}
-
-        <div style={inlineNoteStyle}>{settings.liveStatusText}</div>
+            )}
+          </label>
+        </div>
       </div>
-
-      <StarterKitSessionWorkbench
-        initialView={initialView}
-        resetLabel="Reset session"
-      />
 
       <div style={chatLockWrapperStyle}>
         <StarterKitChatBox
@@ -281,10 +208,13 @@ export function VercelAiSdkControlsPanel({
               chatOptions: {
                 transport,
               },
+              title: 'Try a UI change request',
+              description:
+                'Send one prompt through the Vercel AI SDK stream. Continuum keeps matching fields stable when the form changes.',
+              instructionLabel: 'Request',
               instructionPlaceholder:
-                settings.mode === 'live'
-                  ? 'Try: turn this into a business lead form with company, budget, and timeline.'
-                  : 'Try: make this mobile-first and add a household members section.',
+                'Add company size, budget, and timeline without losing what I already typed.',
+              submitLabel: 'Apply change',
               onError,
               onSubmittingChange,
             },
@@ -294,16 +224,28 @@ export function VercelAiSdkControlsPanel({
           <div style={chatLockOverlayStyle}>
             <div style={chatLockCardStyle}>
               <div style={{ ...type.section, color: color.text }}>
-                Live chat locked
+                Add a key to continue
               </div>
               <div style={helperTextStyle}>
-                Add a provider key above to unlock real Vercel AI SDK requests.
-                Mock mode is still available if you just want to inspect the
-                Continuum session flow.
+                Paste your provider key above to enable live requests. Continuum stays in the same Vercel AI SDK flow you already use.
               </div>
             </div>
           </div>
         ) : null}
+      </div>
+
+      <div style={workbenchWrapStyle}>
+        <style>
+          {`[data-vercel-workbench] > div:first-child > span {
+            display: none;
+          }`}
+        </style>
+        <div data-vercel-workbench>
+          <StarterKitSessionWorkbench
+            initialView={initialView}
+            resetLabel="Form Reset"
+          />
+        </div>
       </div>
     </aside>
   );
