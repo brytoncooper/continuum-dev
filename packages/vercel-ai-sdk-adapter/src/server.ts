@@ -93,6 +93,9 @@ export type ContinuumVercelAiSdkRouteRequestBody =
   } & Record<string, unknown>;
 
 type ContinuumUiChunk = InferUIMessageChunk<ContinuumVercelAiSdkMessage>;
+interface WriteExecutionEventResult {
+  wroteMutation: boolean;
+}
 
 function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
@@ -276,11 +279,35 @@ function toPatchOperation(
   return null;
 }
 
+function normalizeMutationlessExecutionResult(
+  result: ContinuumExecutionFinalResult,
+  wroteMutation: boolean
+): ContinuumExecutionFinalResult {
+  if (wroteMutation || result.mode === 'noop' || result.level !== 'success') {
+    return result;
+  }
+
+  return {
+    mode: 'noop',
+    source: result.source,
+    status:
+      result.mode === 'patch'
+        ? 'Patch update could not be applied; no changes were made.'
+        : result.mode === 'transform'
+          ? 'Transform update could not be applied; no changes were made.'
+        : 'Continuum completed without applying any changes.',
+    level: 'warning',
+    trace: result.trace,
+    requestedMode: result.mode,
+    reason: `The ${result.mode} result did not emit any mutation parts to the UI stream.`,
+  };
+}
+
 function writeExecutionEvent(
   writer: UIMessageStreamWriter<ContinuumVercelAiSdkMessage>,
   event: ContinuumExecutionEvent,
   viewStreamMode: SessionStreamMode
-): void {
+): WriteExecutionEventResult {
   if (event.kind === 'status') {
     writeChunk(writer, {
       type: 'data-continuum-status',
@@ -290,7 +317,7 @@ function writeExecutionEvent(
       },
       transient: event.level === 'info' || event.level === 'warning',
     });
-    return;
+    return { wroteMutation: false };
   }
 
   if (event.kind === 'state') {
@@ -301,11 +328,12 @@ function writeExecutionEvent(
         value: event.update.value,
       },
     });
-    return;
+    return { wroteMutation: true };
   }
 
   if (event.kind === 'patch') {
     const operations: ContinuumViewPatchOperation[] = [];
+    let wroteMutation = false;
 
     for (const operation of event.patchPlan.operations) {
       if (operation.kind === 'append-content') {
@@ -317,6 +345,7 @@ function writeExecutionEvent(
             targetViewId: event.currentView.viewId,
           },
         });
+        wroteMutation = true;
         continue;
       }
 
@@ -339,9 +368,10 @@ function writeExecutionEvent(
           patch,
         },
       });
+      wroteMutation = true;
     }
 
-    return;
+    return { wroteMutation };
   }
 
   if (event.kind === 'view-preview') {
@@ -353,7 +383,7 @@ function writeExecutionEvent(
       },
       transient: true,
     });
-    return;
+    return { wroteMutation: true };
   }
 
   if (event.kind === 'view-final') {
@@ -361,10 +391,16 @@ function writeExecutionEvent(
       type: 'data-continuum-view',
       data: {
         view: event.view,
+        ...(event.transformPlan
+          ? { transformPlan: event.transformPlan }
+          : {}),
         streamMode: viewStreamMode,
       },
     });
+    return { wroteMutation: true };
   }
+
+  return { wroteMutation: false };
 }
 
 async function resolveRouteAdapter(
@@ -468,18 +504,20 @@ export async function writeContinuumExecutionToUiMessageWriter(
   });
 
   let next = await iterator.next();
+  let wroteMutation = false;
   while (!next.done) {
     if (next.value.kind !== 'error') {
-      writeExecutionEvent(
+      const writeResult = writeExecutionEvent(
         args.writer,
         next.value,
         args.viewStreamMode ?? 'draft'
       );
+      wroteMutation = wroteMutation || writeResult.wroteMutation;
     }
     next = await iterator.next();
   }
 
-  return next.value;
+  return normalizeMutationlessExecutionResult(next.value, wroteMutation);
 }
 
 export function createContinuumUiMessageStream(
@@ -506,7 +544,7 @@ export function createContinuumUiMessageStream(
             type: 'data-continuum-status',
             data: {
               status: result.status,
-              level: 'success',
+              level: result.level,
             },
           });
         }
