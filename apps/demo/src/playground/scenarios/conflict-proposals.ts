@@ -116,12 +116,12 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
     'AI suggestions should not overwrite a form the user already filled out.',
   selectorLabel: 'AI overwrite conflict',
   problem:
-    'The user has already filled out five profile fields. A later deterministic AI pass tries to replace three of them. Without continuity, those user values are overwritten directly. With Continuum, the same update becomes proposals the user can accept or reject.',
+    'Start with five filled fields, then go to step 2. AI suggests new values. The naive pane overwrites. Continuum stages suggestions for review.',
   whyItMatters:
-    'This is the next honest failure mode after state drop: even when the field survives, a naive pipeline can still clobber what the user already entered.',
+    'User input needs protection from being overwritten.',
   controls: {
     helperText:
-      'Step 1 loads the user-entered profile. Step 2 runs the deterministic AI pass that tries to replace three of those values.',
+      'Step 1 shows user values. Step 2 shows AI suggestions.',
   },
   trackedFields: [
     { key: 'profile.name', label: 'Name' },
@@ -156,16 +156,16 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
   steps: [
     {
       id: 'initial-user-values',
-      title: 'Step 1: User-entered values are loaded',
+      title: 'Step 1: User values',
       description:
-        'Both panes start with the same five dirty fields already filled in by the user.',
+        'Both panes start with the same user-entered values.',
       view: initialView,
     },
     {
-      id: 'deterministic-ai-pass',
-      title: 'Step 2: A deterministic AI pass tries to replace three fields',
+      id: 'ai-pass',
+      title: 'Step 2: AI suggestions arrive',
       description:
-        'The next update keeps the same form but attempts to replace title, company, and notes with AI-authored values.',
+        'AI proposes new values. See what happens.',
       view: evolvedView,
     },
   ],

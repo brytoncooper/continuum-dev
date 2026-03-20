@@ -75,14 +75,14 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
     'When an AI update goes bad, the user should be able to get the exact last good draft back.',
   selectorLabel: 'Rewind recovery',
   problem:
-    'The user already has a working draft. Then a deterministic AI update replaces that form with the wrong screen. Without checkpoints, the user can only look at a broken rewrite. With Continuum, the session can rewind to the exact prior draft state.',
+    'Start with a working draft. Go to step 2, a bad update breaks it. The naive pane is stuck. Continuum can restore the last good version.',
   whyItMatters:
-    'Preserving data during a good update is only half the story. Real systems also need a way to recover from a bad one. Rewind turns the last good state into something the user can actually return to.',
+    'Sometimes updates go wrong. You need a way back.',
   controls: {
-    inputLabel: 'Starting form values',
+    inputLabel: 'Your draft',
     inputDescription:
-      'Edit the working draft here, then advance to the bad update and use the snapshot tool to restore the last good state.',
-    helperText: '',
+      'Enter values, go to step 2 to break it, then restore.',
+    helperText: 'Step 2 has a restore button on the Continuum side.',
   },
   trackedFields: [
     { key: 'profile.name', label: 'Name' },
@@ -105,17 +105,17 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
   ],
   steps: [
     {
-      id: 'recovery-start',
-      title: 'Step 1: The user has a working draft',
+      id: 'working-draft',
+      title: 'Step 1: Working draft',
       description:
-        'Both panes begin with the same filled-in draft before anything goes wrong.',
+        'Both panes start with your entered values.',
       view: initialView,
     },
     {
-      id: 'recovery-bad-update',
-      title: 'Step 2: A bad AI update replaces the working form',
+      id: 'bad-update',
+      title: 'Step 2: Bad update',
       description:
-        'The next deterministic view throws away the draft form and replaces it with the wrong generated screen. The Continuum side then exposes the saved snapshot tool so the user can restore the draft directly.',
+        'Something goes wrong. Restore the good version.',
       view: badView,
     },
   ],

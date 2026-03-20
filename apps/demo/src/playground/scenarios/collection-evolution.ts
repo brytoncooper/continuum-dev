@@ -117,14 +117,14 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
     'Collection items should keep the user data they already hold when each repeated item evolves.',
   selectorLabel: 'Collection evolution',
   problem:
-    'The user fills in two repeated contact rows. Then the AI upgrades each collection item into a richer card layout with a new container path. Without continuity, those repeated values fall off because the item field ids no longer line up.',
+    'Enter two contacts, then go to step 2. The layout changes to cards. The naive pane loses the data. Continuum keeps it.',
   whyItMatters:
-    'Generated UIs do not just mutate one field at a time. They often evolve repeated structures in-place. If every item loses its data during that upgrade, repeated workflows feel fragile immediately.',
+    'Lists often change layout. The data should stay.',
   controls: {
-    inputLabel: 'Starting form values',
+    inputLabel: 'Contact values',
     inputDescription:
-      'Seed two repeated contacts here. Both panes replay the same collection evolution next.',
-    helperText: '',
+      'Enter two contacts for both panes.',
+    helperText: 'Go to step 2 to change the layout.',
   },
   inputFields: [
     {
@@ -192,16 +192,16 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
   steps: [
     {
       id: 'collection-initial',
-      title: 'Step 1: The user fills repeated rows',
+      title: 'Step 1: Two contacts',
       description:
-        'Both panes start with the same two collection items already filled in.',
+        'Both panes start with two entered contacts.',
       view: initialView,
     },
     {
       id: 'collection-evolved',
-      title: 'Step 2: The AI upgrades each item into a richer card layout',
+      title: 'Step 2: Layout changes',
       description:
-        'The repeated item template gains a new container path and one new status field. Continuum remaps the existing item values into the new item shape.',
+        'Rows become cards. See what happens to the data.',
       view: evolvedView,
     },
   ],

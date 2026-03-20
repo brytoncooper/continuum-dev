@@ -114,14 +114,14 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
     'A single AI update should be able to restructure the form and still respect dirty user input.',
   selectorLabel: 'Compound update',
   problem:
-    'The user has already filled out the draft. Then one deterministic AI pass both reorganizes the form into new sections and proposes replacement values for several dirty fields. Without continuity, the moved fields are overwritten immediately.',
+    'Start with a filled draft. Go to step 2. The layout changes and AI suggests new values. The naive pane overwrites everything. Continuum keeps your values and shows suggestions.',
   whyItMatters:
-    'Real AI-driven UIs rarely fail in isolation. A single update often changes structure and content at once. That is where continuity has to prove it can keep the right data attached and still protect the user from unwanted overwrites.',
+    'Updates can change structure and content at once. Both need to be handled safely.',
   controls: {
-    inputLabel: 'Starting form values',
+    inputLabel: 'Your draft',
     inputDescription:
-      'Edit the user draft here, then advance one step to run the combined structure change and proposal pass.',
-    helperText: '',
+      'Enter values, go to step 2 to see the change.',
+    helperText: 'Step 2 changes layout and shows AI suggestions.',
   },
   trackedFields: [
     { key: 'profile.name', label: 'Name' },
@@ -153,17 +153,16 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
   ],
   steps: [
     {
-      id: 'compound-initial',
-      title: 'Step 1: The user draft is already filled in',
-      description: 'Both panes start from the same dirty profile draft.',
+      id: 'filled-draft',
+      title: 'Step 1: Filled draft',
+      description: 'Both panes start with your entered values.',
       view: initialView,
     },
     {
-      id: 'compound-update',
-      title:
-        'Step 2: The AI reorganizes the form and proposes replacements in one pass',
+      id: 'layout-and-suggestions',
+      title: 'Step 2: New layout and suggestions',
       description:
-        'The view moves the fields under new groups while the same update also proposes replacement values for title, company, and notes.',
+        'Layout changes. AI suggests new values. See what happens.',
       view: evolvedView,
     },
   ],

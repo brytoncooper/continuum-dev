@@ -145,12 +145,12 @@ export const detachedRestoreScenario: PlaygroundDetachedScenario = {
     'Removed or incompatible fields should come back with their prior user data intact.',
   selectorLabel: 'Detached restore',
   problem:
-    'The user already entered values. Then the AI removes one field entirely and changes another into an incompatible node type. Without Continuum, that data is gone or reset. With Continuum, the values are detached, preserved, and restored automatically when compatible fields return.',
+    'Start with four filled fields. Go to step 2, some fields disappear. Go to step 3, they return. The naive pane loses the data. Continuum brings it back.',
   whyItMatters:
-    'Dynamic forms do more than reorder fields. They can delete sections for a while or swap a field into a different node type entirely. If the original field comes back later, users should not have to re-enter everything.',
+    'Fields can disappear and return. The data should come back with them.',
   controls: {
     helperText:
-      'Step 1 loads the original values. Step 2 removes one field and changes another into an incompatible type. Step 3 brings compatible fields back and shows whether prior values return.',
+      'Step 1: filled values. Step 2: fields removed. Step 3: fields and data return.',
   },
   trackedFields: [
     { key: 'profile.name', label: 'Name' },
@@ -179,25 +179,24 @@ export const detachedRestoreScenario: PlaygroundDetachedScenario = {
   ],
   steps: [
     {
-      id: 'detached-initial-values',
-      title: 'Step 1: The user already filled out the original fields',
+      id: 'initial-values',
+      title: 'Step 1: Filled values',
       description:
-        'Both panes start from the same dirty user data before the view evolves.',
+        'Both panes start with the same entered values.',
       view: initialView,
     },
     {
-      id: 'detached-and-type-changed',
-      title:
-        'Step 2: One field disappears and another changes to an incompatible type',
+      id: 'fields-removed',
+      title: 'Step 2: Fields removed',
       description:
-        'Location is removed entirely while notes becomes a generated presentation node. Continuum detaches those prior values instead of losing them.',
+        'Some fields disappear. Continuum saves the data.',
       view: detachedView,
     },
     {
-      id: 'restored-fields-return',
-      title: 'Step 3: Compatible fields return',
+      id: 'fields-return',
+      title: 'Step 3: Fields return',
       description:
-        'The original field shapes come back with new ids. Continuum restores the detached values automatically when the matching keys and compatible node types return.',
+        'Fields come back. Continuum restores the data.',
       view: restoredView,
     },
   ],

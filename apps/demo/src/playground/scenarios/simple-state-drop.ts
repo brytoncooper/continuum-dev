@@ -44,21 +44,21 @@ export const simpleStateDropScenario: PlaygroundStateDropScenario = {
   title: 'A renamed field should not erase what the user typed.',
   selectorLabel: 'Renamed field',
   problem:
-    'The user enters a name. Then the next deterministic view wraps that field in a group and gives it a new id. Without continuity, the state falls off because the original node id no longer exists.',
+    'Type a name, then go to step 2. The naive pane loses it. Continuum keeps it.',
   whyItMatters:
-    'This is the smallest honest version of the continuity problem: the meaning of the field stayed the same, but the structure changed enough that naive state models drop the value.',
+    'Structure changes. User intent should not.',
   trackedField: {
     key: 'person.name',
     label: 'Name',
   },
   controls: {
-    inputLabel: 'User enters',
+    inputLabel: 'Your name',
     inputDescription:
-      'Type once here. Both panes replay the same deterministic user action and the same view evolution.',
+      'Enter a name to use in both panes.',
     inputPlaceholder: 'Enter Name',
     inputValue: 'Bryton Cooper',
     helperText:
-      'Move to step 2 to simulate the deterministic AI update that changes the form structure.',
+      'Go to step 2 to see what happens.',
   },
   nextProblems: [
     'Wrapped fields that move under new containers',
@@ -68,16 +68,16 @@ export const simpleStateDropScenario: PlaygroundStateDropScenario = {
   steps: [
     {
       id: 'initial-form',
-      title: 'Step 1: User enters data',
+      title: 'Step 1: Enter a name',
       description:
-        'The first view renders a single field with a stable semantic key.',
+        'Type a name in the field.',
       view: initialView,
     },
     {
       id: 'ai-update',
-      title: 'Step 2: The form evolves',
+      title: 'Step 2: The form changes',
       description:
-        'The next deterministic view wraps the field in a group and renames its id while keeping the same semantic meaning.',
+        'The field moves and gets renamed.',
       view: evolvedView,
     },
   ],
