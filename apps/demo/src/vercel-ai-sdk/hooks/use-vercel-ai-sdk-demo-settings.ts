@@ -4,8 +4,8 @@ const VERCEL_AI_SDK_SETTINGS_STORAGE_KEY =
   'continuum_demo_vercel_ai_sdk_settings_v2';
 
 export const VERCEL_AI_SDK_API_KEY_HEADER = 'x-demo-provider-api-key';
+const OPENAI_FIXED_MODEL = 'gpt-5.4';
 
-export type DemoMode = 'mock' | 'live';
 export type DemoProviderId = 'openai' | 'anthropic';
 
 export interface DemoProviderOption {
@@ -22,7 +22,6 @@ interface ProvidersPayload {
 }
 
 interface StoredSettings {
-  mode?: DemoMode;
   providerId?: DemoProviderId;
   apiKeys?: Partial<Record<DemoProviderId, string>>;
   models?: Partial<Record<DemoProviderId, string>>;
@@ -35,8 +34,8 @@ const fallbackProviderCatalog: DemoProviderOption[] = [
     id: 'openai',
     label: 'OpenAI',
     tokenLabel: 'OpenAI API key',
-    defaultModel: 'gpt-5',
-    models: ['gpt-5', 'gpt-5-mini', 'gpt-5.4', 'gpt-5-nano'],
+    defaultModel: OPENAI_FIXED_MODEL,
+    models: [OPENAI_FIXED_MODEL],
     serverKeyAvailable: false,
   },
   {
@@ -72,7 +71,9 @@ function readStoredSettings(): StoredSettings {
   }
 }
 
-function normalizeProvidersPayload(payload: unknown): DemoProviderOption[] | null {
+function normalizeProvidersPayload(
+  payload: unknown
+): DemoProviderOption[] | null {
   if (!payload || typeof payload !== 'object') {
     return null;
   }
@@ -82,21 +83,23 @@ function normalizeProvidersPayload(payload: unknown): DemoProviderOption[] | nul
     return null;
   }
 
-  const normalized = providers.filter((provider): provider is DemoProviderOption => {
-    if (!provider || typeof provider !== 'object') {
-      return false;
-    }
+  const normalized = providers.filter(
+    (provider): provider is DemoProviderOption => {
+      if (!provider || typeof provider !== 'object') {
+        return false;
+      }
 
-    const candidate = provider as Partial<DemoProviderOption>;
-    return (
-      (candidate.id === 'openai' || candidate.id === 'anthropic') &&
-      typeof candidate.label === 'string' &&
-      typeof candidate.tokenLabel === 'string' &&
-      typeof candidate.defaultModel === 'string' &&
-      Array.isArray(candidate.models) &&
-      typeof candidate.serverKeyAvailable === 'boolean'
-    );
-  });
+      const candidate = provider as Partial<DemoProviderOption>;
+      return (
+        (candidate.id === 'openai' || candidate.id === 'anthropic') &&
+        typeof candidate.label === 'string' &&
+        typeof candidate.tokenLabel === 'string' &&
+        typeof candidate.defaultModel === 'string' &&
+        Array.isArray(candidate.models) &&
+        typeof candidate.serverKeyAvailable === 'boolean'
+      );
+    }
+  );
 
   return normalized.length > 0 ? normalized : null;
 }
@@ -120,7 +123,6 @@ function getApiKeyValidationMessage(rawValue: string): string | null {
 }
 
 export interface UseVercelAiSdkDemoSettingsResult {
-  mode: DemoMode;
   providerId: DemoProviderId;
   providerCatalog: DemoProviderOption[];
   selectedProvider: DemoProviderOption;
@@ -133,7 +135,6 @@ export interface UseVercelAiSdkDemoSettingsResult {
   hasLiveAccess: boolean;
   isChatLocked: boolean;
   liveStatusText: string;
-  setMode(mode: DemoMode): void;
   setProviderId(providerId: DemoProviderId): void;
   setApiKey(apiKey: string): void;
   setModel(model: string): void;
@@ -141,7 +142,6 @@ export interface UseVercelAiSdkDemoSettingsResult {
 
 export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
   const storedSettings = useMemo(() => readStoredSettings(), []);
-  const [mode, setMode] = useState<DemoMode>(storedSettings.mode ?? 'mock');
   const [providerId, setProviderId] = useState<DemoProviderId>(
     storedSettings.providerId ?? 'openai'
   );
@@ -153,8 +153,9 @@ export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
     ...defaultProviderValues,
     ...(storedSettings.models ?? {}),
   });
-  const [providerCatalog, setProviderCatalog] =
-    useState<DemoProviderOption[]>(fallbackProviderCatalog);
+  const [providerCatalog, setProviderCatalog] = useState<DemoProviderOption[]>(
+    fallbackProviderCatalog
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -162,7 +163,6 @@ export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
     }
 
     const payload: StoredSettings = {
-      mode,
       providerId,
       apiKeys: apiKeysByProvider,
       models: modelsByProvider,
@@ -176,7 +176,7 @@ export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
     } catch {
       // Ignore localStorage errors in the demo.
     }
-  }, [apiKeysByProvider, mode, modelsByProvider, providerId]);
+  }, [apiKeysByProvider, modelsByProvider, providerId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,33 +211,42 @@ export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
     }
   }, [providerCatalog, providerId]);
 
+  const normalizedProviderCatalog = providerCatalog.map((provider) =>
+    provider.id === 'openai'
+      ? {
+          ...provider,
+          defaultModel: OPENAI_FIXED_MODEL,
+          models: [OPENAI_FIXED_MODEL],
+        }
+      : provider
+  );
+
   const selectedProvider =
-    providerCatalog.find((provider) => provider.id === providerId) ??
+    normalizedProviderCatalog.find((provider) => provider.id === providerId) ??
     fallbackProviderCatalog[0];
   const activeApiKey = apiKeysByProvider[providerId] ?? '';
   const trimmedApiKey = activeApiKey.trim();
   const apiKeyValidationMessage = getApiKeyValidationMessage(activeApiKey);
   const hasUsableBrowserKey =
     trimmedApiKey.length > 0 && apiKeyValidationMessage === null;
-  const selectedModel = modelsByProvider[providerId] ?? '';
-  const resolvedModel = selectedModel.trim() || selectedProvider.defaultModel;
-  const hasLiveAccess =
-    selectedProvider.serverKeyAvailable || hasUsableBrowserKey;
-  const liveStatusText =
-    mode === 'mock'
-      ? 'Mock mode is deterministic and free. It shows the stream/session contract without asking for a key.'
-      : apiKeyValidationMessage
-        ? apiKeyValidationMessage
-        : hasUsableBrowserKey
-          ? 'Live mode will send your browser key to the Worker for this request only. The key stays in localStorage on this device.'
-          : selectedProvider.serverKeyAvailable
-            ? 'Live mode can use the Worker-configured provider secret. Add your own key if you want to override it.'
-            : `Live mode is disabled until you add a ${selectedProvider.tokenLabel.toLowerCase()}.`;
+  const selectedModel =
+    providerId === 'openai'
+      ? OPENAI_FIXED_MODEL
+      : modelsByProvider[providerId] ?? '';
+  const resolvedModel =
+    providerId === 'openai'
+      ? OPENAI_FIXED_MODEL
+      : selectedModel.trim() || selectedProvider.defaultModel;
+  const hasLiveAccess = hasUsableBrowserKey;
+  const liveStatusText = apiKeyValidationMessage
+    ? apiKeyValidationMessage
+    : hasUsableBrowserKey
+    ? 'Ready for a live request. Your key stays in localStorage on this device and is sent only with the current request.'
+    : `Paste your ${selectedProvider.tokenLabel.toLowerCase()} to unlock the live demo.`;
 
   return {
-    mode,
     providerId,
-    providerCatalog,
+    providerCatalog: normalizedProviderCatalog,
     selectedProvider,
     activeApiKey,
     trimmedApiKey,
@@ -246,9 +255,8 @@ export function useVercelAiSdkDemoSettings(): UseVercelAiSdkDemoSettingsResult {
     apiKeyValidationMessage,
     hasUsableBrowserKey,
     hasLiveAccess,
-    isChatLocked: mode === 'live' && !hasLiveAccess,
+    isChatLocked: !hasLiveAccess,
     liveStatusText,
-    setMode,
     setProviderId,
     setApiKey: (apiKey) => {
       setApiKeysByProvider((current) => ({
