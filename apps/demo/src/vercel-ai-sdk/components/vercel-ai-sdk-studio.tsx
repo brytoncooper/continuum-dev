@@ -1,5 +1,4 @@
 import { DefaultChatTransport } from 'ai';
-import type { ViewDefinition } from '@continuum-dev/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildContinuumVercelAiSdkRequestBody } from '@continuum-dev/vercel-ai-sdk-adapter';
 import {
@@ -31,8 +30,8 @@ export function VercelAiSdkStudio() {
   const settings = useVercelAiSdkDemoSettings();
   const { isMobile } = useResponsiveState();
   const [isGenerating, setIsGenerating] = useState(false);
-  const latestViewRef = useRef<ViewDefinition>(initialVercelAiSdkView);
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const loggedWarningRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!snapshot) {
@@ -42,58 +41,76 @@ export function VercelAiSdkStudio() {
 
   const liveView = snapshot?.view ?? initialVercelAiSdkView;
 
+  const latestStreamStatus = streaming.activeStream?.latestStatus ?? null;
+
   useEffect(() => {
-    latestViewRef.current = liveView;
-  }, [liveView]);
+    if (!latestStreamStatus || latestStreamStatus.level !== 'warning') {
+      loggedWarningRef.current = null;
+      return;
+    }
+
+    const signature = `${latestStreamStatus.level}:${latestStreamStatus.status}`;
+    if (loggedWarningRef.current === signature) {
+      return;
+    }
+
+    loggedWarningRef.current = signature;
+    console.warn(
+      '[vercel-ai-sdk-demo] Continuum warning:',
+      latestStreamStatus.status
+    );
+  }, [latestStreamStatus]);
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api:
-          settings.mode === 'live'
-            ? '/api/vercel-ai-sdk/chat'
-            : '/api/vercel-ai-sdk/demo',
+        api: '/api/vercel-ai-sdk/chat',
         headers: () => {
           const headers = new Headers();
 
-          if (settings.mode === 'live' && settings.hasUsableBrowserKey) {
+          if (settings.hasUsableBrowserKey) {
             headers.set(VERCEL_AI_SDK_API_KEY_HEADER, settings.trimmedApiKey);
           }
 
           return headers;
         },
-        body: () =>
-          buildContinuumVercelAiSdkRequestBody({
+        body: () => {
+          // Author new requests from committed state while a transient preview stream is open.
+          const requestSnapshot =
+            streaming.activeStream != null
+              ? session.getCommittedSnapshot() ?? session.getSnapshot() ?? null
+              : session.getSnapshot() ?? session.getCommittedSnapshot() ?? null;
+
+          return buildContinuumVercelAiSdkRequestBody({
             body: {
               providerId: settings.providerId,
               model: settings.resolvedModel,
             },
-            currentView: latestViewRef.current,
-            currentData: session.getSnapshot()?.data.values ?? null,
-          }),
+            currentView: requestSnapshot?.view ?? initialVercelAiSdkView,
+            currentData: requestSnapshot?.data.values ?? null,
+          });
+        },
       }),
     [
       session,
       settings.hasUsableBrowserKey,
-      settings.mode,
       settings.providerId,
       settings.resolvedModel,
       settings.trimmedApiKey,
+      streaming.activeStream,
     ]
   );
 
   const chatRuntimeKey = [
-    settings.mode,
     settings.providerId,
     settings.resolvedModel,
     settings.trimmedApiKey,
-    settings.selectedProvider.serverKeyAvailable ? 'env' : 'no-env',
   ].join(':');
 
   const previewStatusText =
     streaming.activeStream?.latestStatus?.status ??
     (isGenerating || streaming.isStreaming
-      ? 'Streaming Continuum update parts directly into the active session while preserving your edits.'
+      ? 'Streaming through the Vercel AI SDK while Continuum preserves matching form state.'
       : null);
 
   return (
