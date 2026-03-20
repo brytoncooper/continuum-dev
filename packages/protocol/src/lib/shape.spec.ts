@@ -14,6 +14,7 @@ const SOURCES: SourceFileMap = {
   'reconciliation.ts': loadSource('./reconciliation.ts'),
   'restore-reviews.ts': loadSource('./restore-reviews.ts'),
   'streams.ts': loadSource('./streams.ts'),
+  'transforms.ts': loadSource('./transforms.ts'),
   'view-patch.ts': loadSource('./view-patch.ts'),
 };
 
@@ -298,6 +299,7 @@ describe('protocol public shape', () => {
       './lib/reconciliation.js',
       './lib/restore-reviews.js',
       './lib/streams.js',
+      './lib/transforms.js',
       './lib/view-patch.js',
     ]);
   });
@@ -313,6 +315,7 @@ describe('protocol public shape', () => {
           'reconciliation.ts': SOURCES['reconciliation.ts'],
           'restore-reviews.ts': SOURCES['restore-reviews.ts'],
           'streams.ts': SOURCES['streams.ts'],
+          'transforms.ts': SOURCES['transforms.ts'],
           'view-patch.ts': SOURCES['view-patch.ts'],
         }).map(([fileName, source]) => [fileName, getExportedDeclarationNames(source)])
       )
@@ -365,6 +368,17 @@ describe('protocol public shape', () => {
         'SessionStreamStatusLevel',
         'SessionViewApplyOptions',
       ],
+      'transforms.ts': [
+        'CONTINUUM_TRANSFORM_STRATEGIES',
+        'ContinuumCarryTransformOperation',
+        'ContinuumDetachTransformOperation',
+        'ContinuumDropTransformOperation',
+        'ContinuumMergeTransformOperation',
+        'ContinuumSplitTransformOperation',
+        'ContinuumTransformOperation',
+        'ContinuumTransformPlan',
+        'ContinuumTransformStrategyId',
+      ],
       'view-patch.ts': [
         'ContinuumViewPatch',
         'ContinuumViewPatchOperation',
@@ -415,6 +429,10 @@ describe('protocol public shape', () => {
         [
           'SessionViewApplyOptions',
           getInterfaceMembers(SOURCES['streams.ts'], 'SessionViewApplyOptions'),
+        ],
+        [
+          'ContinuumTransformPlan',
+          getInterfaceMembers(SOURCES['transforms.ts'], 'ContinuumTransformPlan'),
         ],
         [
           'SessionStreamStartOptions',
@@ -526,6 +544,7 @@ describe('protocol public shape', () => {
         'resolution',
       ],
       ReconciliationResult: ['diffs', 'issues', 'reconciledState', 'resolutions'],
+      ContinuumTransformPlan: ['operations'],
       SessionStream: [
         'affectedNodeIds',
         'baseViewVersion',
@@ -554,7 +573,7 @@ describe('protocol public shape', () => {
         'supersede?',
         'targetViewId',
       ],
-      SessionViewApplyOptions: ['transient?'],
+      SessionViewApplyOptions: ['transformPlan?', 'transient?'],
       StateDiff: ['newValue?', 'nodeId', 'oldValue?', 'reason?', 'type'],
     });
   });
@@ -595,6 +614,15 @@ describe('protocol public shape', () => {
         SOURCES['streams.ts'],
         'SessionStreamMode'
       ),
+      continuumTransformOperation: getDiscriminantUnionValues(
+        SOURCES['transforms.ts'],
+        'ContinuumTransformOperation',
+        'kind'
+      ),
+      continuumTransformStrategyId: getStringLiteralUnionValues(
+        SOURCES['transforms.ts'],
+        'ContinuumTransformStrategyId'
+      ),
       sessionStreamPart: getDiscriminantUnionValues(
         SOURCES['streams.ts'],
         'SessionStreamPart',
@@ -630,6 +658,18 @@ describe('protocol public shape', () => {
       detachedRestoreReviewStatus: ['approved', 'candidates', 'waiting'],
       detachedRestoreScope: ['draft', 'live'],
       reconciliationMatchSources: ['id', 'key', 'semanticKey'],
+      continuumTransformOperation: [
+        'carry',
+        'detach',
+        'drop',
+        'merge',
+        'split',
+      ],
+      continuumTransformStrategyId: [
+        'concat-space',
+        'identity',
+        'split-space',
+      ],
       sessionStreamMode: ['draft', 'foreground'],
       sessionStreamPart: [
         'append-content',

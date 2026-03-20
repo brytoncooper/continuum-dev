@@ -9,11 +9,13 @@ import type {
   ContinuumViewPatch,
   ContinuumViewPatchPosition,
 } from './view-patch.js';
+import type { ContinuumTransformPlan } from './transforms.js';
 
 export type ContinuumViewStreamPart =
   | {
       kind: 'view';
       view: ViewDefinition;
+      transformPlan?: ContinuumTransformPlan;
     }
   | {
       kind: 'patch';
@@ -54,6 +56,7 @@ export type ContinuumViewStreamPart =
 
 export interface SessionViewApplyOptions {
   transient?: boolean;
+  transformPlan?: ContinuumTransformPlan;
 }
 
 export type SessionStreamMode = 'foreground' | 'draft';

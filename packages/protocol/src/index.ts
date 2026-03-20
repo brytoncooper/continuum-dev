@@ -5,4 +5,5 @@ export * from './lib/proposals.js';
 export * from './lib/reconciliation.js';
 export * from './lib/restore-reviews.js';
 export * from './lib/streams.js';
+export * from './lib/transforms.js';
 export * from './lib/view-patch.js';
