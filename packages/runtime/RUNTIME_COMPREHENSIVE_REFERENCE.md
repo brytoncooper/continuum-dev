@@ -30,17 +30,12 @@ The reconciliation core is pure and side-effect free. For identical inputs and t
 
 ### Published exports
 
-The package currently publishes:
+The package publishes:
 
-- root export: `@continuum-dev/runtime`
-- validator subpath: `@continuum-dev/runtime/validator`
+- root: `@continuum-dev/runtime` — `reconcile`, `applyContinuumViewUpdate`, `applyContinuumNodeValueWrite`, `decideContinuumNodeValueWrite`, shared protocol constants, core reconciliation types, and boundary input/output types for the root entrypoints
+- subpaths: `@continuum-dev/runtime/validator`, `node-lookup`, `canonical-snapshot`, `value-write`, `view-stream`, `restore-candidates`
 
-The root export includes:
-
-- `reconcile`
-- runtime types from `src/lib/types.ts`
-- validator exports
-- view-patch helpers from `src/lib/view-patch/index.ts`
+View patch mechanics under `src/lib/view-patch` are internal implementation; consumers use `applyContinuumViewUpdate` or `applyContinuumViewStreamPart` (via the `view-stream` subpath) so work always re-enters reconcile-backed paths.
 
 The validator subpath re-exports the validator boundary from `src/validator.ts`.
 
@@ -50,12 +45,12 @@ Public barrel:
 
 - `src/index.ts`
 
-Current root exports:
+Current root exports are explicit re-exports from:
 
 - `./lib/reconcile/index.js`
-- `./lib/types.js`
-- `./lib/validator/index.js`
-- `./lib/view-patch/index.js`
+- `./lib/runtime-boundaries/view-updates.js` (via `applyContinuumViewUpdate` and its boundary types)
+- `./lib/runtime-boundaries/direct-updates.js` (value write entrypoints and their boundary types)
+- `./lib/types.js` (shared protocol constants plus curated reconcile types)
 
 ### Supported reconcile entrypoint
 
@@ -240,7 +235,7 @@ The runtime is organized into a few clear layers.
 | `reconciliation/result-builder` | fresh/blind result builders, final assembly, lineage merge | [`src/lib/reconciliation/result-builder/README.md`](./src/lib/reconciliation/result-builder/README.md) |
 | `reconciliation/view-traversal` | deterministic DFS traversal and structural traversal issues | [`src/lib/reconciliation/view-traversal/README.md`](./src/lib/reconciliation/view-traversal/README.md) |
 | `validator` | constraint validation and issue emission | [`src/lib/validator/README.md`](./src/lib/validator/README.md) |
-| `view-patch` | view patch application helpers exported from the package root | `src/lib/view-patch/index.ts` |
+| `view-patch` | internal patch application helpers used behind runtime structural flows | `src/lib/view-patch/index.ts` |
 
 ## What Is Stable vs Internal
 
@@ -251,7 +246,7 @@ Safe to rely on from package docs:
 - the top-level result shape
 - the three-branch execution model
 - documented matching precedence and detached-value safety behavior
-- validator and view-patch exports exposed through the package surface
+- validator exports and the documented runtime subpaths exposed through the package surface
 
 Do not treat as stable public API just because source files exist:
 

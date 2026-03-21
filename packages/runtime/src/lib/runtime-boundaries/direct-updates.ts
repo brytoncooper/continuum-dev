@@ -1,205 +1,318 @@
 import {
+
   type DataSnapshot,
+
   type NodeValue,
+
   type ViewDefinition,
+
 } from '@continuum-dev/contract';
+
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
+
 import { validateNodeValue } from '../validator/index.js';
+
+import { sanitizeContinuumDataSnapshot } from './canonical-data.js';
+
 import { resolveNodeLookupEntry } from './node-lookup.js';
+
 import type {
-  ApplyContinuumNodeValueInput,
-  ApplyContinuumNodeValueResult,
-  ApplyContinuumViewportStateInput,
-  ApplyContinuumViewportStateResult,
-  ClassifyContinuumValueIngressInput,
-  ContinuumValueIngressDecision,
+
+  ApplyContinuumNodeValueWriteInput,
+
+  ApplyContinuumNodeValueWriteResult,
+
+  DecideContinuumNodeValueWriteInput,
+
+  ContinuumNodeValueWriteDecision,
+
 } from './types.js';
 
-function buildUnknownNodeIssues(nodeId: string) {
-  return [
-    {
-      severity: ISSUE_SEVERITY.WARNING,
-      nodeId,
-      message: `Node ${nodeId} not found in current view`,
-      code: ISSUE_CODES.UNKNOWN_NODE,
-    },
-  ];
-}
 
-function ensureSnapshot(
-  data: DataSnapshot | null,
-  sessionId: string,
-  timestamp: number,
-  view: ViewDefinition | null
-): DataSnapshot {
-  if (data) {
-    return data;
-  }
 
-  return {
-    values: {},
-    lineage: {
-      timestamp,
-      sessionId,
-      viewId: view?.viewId,
-      viewVersion: view?.version,
-    },
-  };
-}
+/**
+ * Decides whether a non-user value write should apply immediately or become a proposal.
+ */
+export function decideContinuumNodeValueWrite(
 
-function isProtectedValue(value: NodeValue | undefined): boolean {
-  return Boolean(value?.isDirty || value?.isSticky);
-}
+  input: DecideContinuumNodeValueWriteInput
 
-export function classifyContinuumValueIngress(
-  input: ClassifyContinuumValueIngressInput
-): ContinuumValueIngressDecision {
+): ContinuumNodeValueWriteDecision {
+
   if (!input.view) {
+
     return {
+
       kind: 'unknown-node',
+
       nodeId: input.nodeId,
+
       issues: buildUnknownNodeIssues(input.nodeId),
+
     };
+
   }
+
+
 
   const lookup = resolveNodeLookupEntry(input.view.nodes, input.nodeId);
+
   if (!lookup) {
+
     return {
+
       kind: 'unknown-node',
+
       nodeId: input.nodeId,
+
       issues: buildUnknownNodeIssues(input.nodeId),
+
     };
+
   }
+
+
 
   const currentValue = input.data?.values[lookup.canonicalId];
+
   if (isProtectedValue(currentValue)) {
+
     return {
+
       kind: 'proposal',
+
       canonicalId: lookup.canonicalId,
+
       node: lookup.node,
+
       currentValue,
+
     };
+
   }
+
+
 
   return {
+
     kind: 'apply',
+
     canonicalId: lookup.canonicalId,
+
     node: lookup.node,
+
     currentValue,
+
   };
+
 }
 
-export function applyContinuumNodeValueUpdate(
-  input: ApplyContinuumNodeValueInput
-): ApplyContinuumNodeValueResult {
+
+
+/**
+ * Applies one node value write to canonical snapshot data and updates lineage metadata.
+ */
+export function applyContinuumNodeValueWrite(
+
+  input: ApplyContinuumNodeValueWriteInput
+
+): ApplyContinuumNodeValueWriteResult {
+
+  const currentData = sanitizeContinuumDataSnapshot(input.data);
+
   if (!input.view) {
+
     return {
+
       kind: 'unknown-node',
+
       nodeId: input.nodeId,
-      data: input.data,
+
+      data: currentData,
+
       issues: buildUnknownNodeIssues(input.nodeId),
+
     };
+
   }
+
+
 
   const lookup = resolveNodeLookupEntry(input.view.nodes, input.nodeId);
+
   if (!lookup) {
+
     return {
+
       kind: 'unknown-node',
+
       nodeId: input.nodeId,
-      data: input.data,
+
+      data: currentData,
+
       issues: buildUnknownNodeIssues(input.nodeId),
+
     };
+
   }
 
+
+
   const next = ensureSnapshot(
-    input.data,
+
+    currentData,
+
     input.sessionId,
+
     input.timestamp,
+
     input.view
+
   );
+
   const issues =
+
     input.validate === true ? validateNodeValue(lookup.node, input.value) : [];
 
+
+
   return {
+
     kind: 'applied',
+
     canonicalId: lookup.canonicalId,
+
     node: lookup.node,
-    data: {
+
+    data: sanitizeContinuumDataSnapshot({
+
       ...next,
+
       values: {
+
         ...next.values,
+
         [lookup.canonicalId]: input.value,
+
       },
+
       lineage: {
+
         ...next.lineage,
+
         timestamp: input.timestamp,
+
         viewId: input.view?.viewId ?? next.lineage.viewId,
+
         viewVersion: input.view?.version ?? next.lineage.viewVersion,
+
         ...(input.interactionId
+
           ? { lastInteractionId: input.interactionId }
+
           : {}),
+
       },
+
       valueLineage: {
+
         ...(next.valueLineage ?? {}),
+
         [lookup.canonicalId]: {
+
           ...(next.valueLineage?.[lookup.canonicalId] ?? {}),
+
           lastUpdated: input.timestamp,
+
           ...(input.interactionId
+
             ? { lastInteractionId: input.interactionId }
+
             : {}),
+
         },
+
       },
-    },
+
+    })!,
+
     issues,
+
   };
+
 }
 
-export function applyContinuumViewportStateUpdate(
-  input: ApplyContinuumViewportStateInput
-): ApplyContinuumViewportStateResult {
-  if (!input.view) {
-    return {
-      kind: 'unknown-node',
-      nodeId: input.nodeId,
-      data: input.data,
-      issues: buildUnknownNodeIssues(input.nodeId),
-    };
+
+
+function buildUnknownNodeIssues(nodeId: string) {
+
+  return [
+
+    {
+
+      severity: ISSUE_SEVERITY.WARNING,
+
+      nodeId,
+
+      message: `Node ${nodeId} not found in current view`,
+
+      code: ISSUE_CODES.UNKNOWN_NODE,
+
+    },
+
+  ];
+
+}
+
+
+
+function ensureSnapshot(
+
+  data: DataSnapshot | null,
+
+  sessionId: string,
+
+  timestamp: number,
+
+  view: ViewDefinition | null
+
+): DataSnapshot {
+
+  const sanitized = sanitizeContinuumDataSnapshot(data);
+
+  if (sanitized) {
+
+    return sanitized;
+
   }
 
-  const lookup = resolveNodeLookupEntry(input.view.nodes, input.nodeId);
-  if (!lookup) {
-    return {
-      kind: 'unknown-node',
-      nodeId: input.nodeId,
-      data: input.data,
-      issues: buildUnknownNodeIssues(input.nodeId),
-    };
-  }
 
-  const next = ensureSnapshot(
-    input.data,
-    input.sessionId,
-    input.timestamp,
-    input.view
-  );
 
   return {
-    kind: 'applied',
-    canonicalId: lookup.canonicalId,
-    node: lookup.node,
-    data: {
-      ...next,
-      viewContext: {
-        ...(next.viewContext ?? {}),
-        [lookup.canonicalId]: input.state,
-      },
-      lineage: {
-        ...next.lineage,
-        timestamp: input.timestamp,
-        viewId: input.view.viewId,
-        viewVersion: input.view.version,
-      },
+
+    values: {},
+
+    lineage: {
+
+      timestamp,
+
+      sessionId,
+
+      viewId: view?.viewId,
+
+      viewVersion: view?.version,
+
     },
-    issues: [],
+
   };
+
 }
+
+
+
+function isProtectedValue(value: NodeValue | undefined): boolean {
+
+  return Boolean(value?.isDirty || value?.isSticky);
+
+}
+

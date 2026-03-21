@@ -15,12 +15,18 @@ import type {
 
 export type { ContinuumViewStreamPart } from '@continuum-dev/protocol';
 
+/**
+ * Resolved node context used by lookup-driven runtime helpers.
+ */
 export interface RuntimeNodeLookupEntry {
   canonicalId: string;
   node: ViewNode;
   parentNode: ViewNode | null;
 }
 
+/**
+ * Inputs for applying a structural view update through the runtime boundary.
+ */
 export interface ApplyContinuumViewUpdateInput {
   baseView: ViewDefinition | null;
   baseData: DataSnapshot | null;
@@ -36,6 +42,9 @@ export interface ApplyContinuumViewUpdateInput {
   transformPlan?: ContinuumTransformPlan;
 }
 
+/**
+ * Result of a structural view update after reconcile and optional transforms.
+ */
 export interface AppliedContinuumViewState {
   priorView: ViewDefinition | null;
   view: ViewDefinition;
@@ -46,13 +55,19 @@ export interface AppliedContinuumViewState {
   strategy: 'full' | 'incremental';
 }
 
-export interface ClassifyContinuumValueIngressInput {
+/**
+ * Inputs for deciding whether a non-user value write should apply directly or become a proposal.
+ */
+export interface DecideContinuumNodeValueWriteInput {
   view: ViewDefinition | null;
   data: DataSnapshot | null;
   nodeId: string;
 }
 
-export type ContinuumValueIngressDecision =
+/**
+ * Decision returned by the runtime before a non-user value write is applied.
+ */
+export type ContinuumNodeValueWriteDecision =
   | {
       kind: 'unknown-node';
       nodeId: string;
@@ -71,7 +86,10 @@ export type ContinuumValueIngressDecision =
       currentValue: NodeValue | undefined;
     };
 
-export interface ApplyContinuumNodeValueInput {
+/**
+ * Inputs for applying a single node value write to canonical snapshot data.
+ */
+export interface ApplyContinuumNodeValueWriteInput {
   view: ViewDefinition | null;
   data: DataSnapshot | null;
   nodeId: string;
@@ -82,7 +100,10 @@ export interface ApplyContinuumNodeValueInput {
   validate?: boolean;
 }
 
-export type ApplyContinuumNodeValueResult =
+/**
+ * Result of applying a node value write.
+ */
+export type ApplyContinuumNodeValueWriteResult =
   | {
       kind: 'unknown-node';
       nodeId: string;
@@ -97,35 +118,17 @@ export type ApplyContinuumNodeValueResult =
       issues: ReconciliationIssue[];
     };
 
-export interface ApplyContinuumViewportStateInput {
-  view: ViewDefinition | null;
-  data: DataSnapshot | null;
-  nodeId: string;
-  state: NonNullable<DataSnapshot['viewContext']>[string];
-  sessionId: string;
-  timestamp: number;
-}
-
-export type ApplyContinuumViewportStateResult =
-  | {
-      kind: 'unknown-node';
-      nodeId: string;
-      data: DataSnapshot | null;
-      issues: ReconciliationIssue[];
-    }
-  | {
-      kind: 'applied';
-      canonicalId: string;
-      node: ViewNode;
-      data: DataSnapshot;
-      issues: ReconciliationIssue[];
-    };
-
+/**
+ * Inputs for applying one streamed structural part to the current view.
+ */
 export interface ApplyContinuumViewStreamPartInput {
   currentView: ViewDefinition;
   part: Exclude<ContinuumViewStreamPart, { kind: 'view' }>;
 }
 
+/**
+ * Result of applying one streamed structural part.
+ */
 export interface ApplyContinuumViewStreamPartResult {
   view: ViewDefinition;
   affectedNodeIds: string[];

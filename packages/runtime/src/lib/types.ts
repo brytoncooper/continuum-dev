@@ -67,6 +67,9 @@ export interface ReconciliationOptions {
   clock?: () => number;
 }
 
+/**
+ * Inputs for the stable `reconcile()` runtime entrypoint.
+ */
 export interface ReconcileInput {
   newView: ViewDefinition;
   priorView: ViewDefinition | null;
@@ -74,6 +77,9 @@ export interface ReconcileInput {
   options: ReconciliationOptions;
 }
 
+/**
+ * Context passed to a custom migration strategy when a node changes shape.
+ */
 export interface MigrationStrategyContext {
   nodeId: string;
   priorNode: ViewNode;
@@ -81,6 +87,9 @@ export interface MigrationStrategyContext {
   priorValue: unknown;
 }
 
+/**
+ * Custom per-node migration function used during reconciliation.
+ */
 export type MigrationStrategy = (
   context: MigrationStrategyContext
 ) => unknown;

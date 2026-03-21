@@ -232,32 +232,41 @@ The exported `MigrationStrategy` type is context-shaped: `({ nodeId, priorNode, 
 
 ## Public API Surface
 
-The package currently exposes:
-
-### Root Import
+### Root import (contract boundary)
 
 ```typescript
 import {
   reconcile,
-  validateNodeValue,
-  applyContinuumViewPatch,
-  patchViewDefinition,
-  patchViewNode,
+  applyContinuumViewUpdate,
+  applyContinuumNodeValueWrite,
+  decideContinuumNodeValueWrite,
 } from '@continuum-dev/runtime';
 ```
 
-This root surface includes:
+The root entry exposes `reconcile`, the structural and value-write entrypoints above, shared protocol constants (`ISSUE_CODES`, `VIEW_DIFFS`, and related), and runtime types from `src/lib/types.ts`. Low-level view patch mechanics are internal to the package; structural changes should go through `applyContinuumViewUpdate` or streamed parts via `applyContinuumViewStreamPart` on the `view-stream` subpath.
 
-- `reconcile`
-- runtime types from `src/lib/types.ts`
-- validator exports
-- view-patch helpers
+Root type exports include the reconcile contract (`ReconciliationOptions`, `ReconcileInput`, `ReconciliationIssue`, `ReconciliationResolution`, `StateDiff`) plus the boundary input and result types for `applyContinuumViewUpdate`, `applyContinuumNodeValueWrite`, and `decideContinuumNodeValueWrite`.
 
-### Validator Subpath
+### Explicit subpaths
 
 ```typescript
 import { validateNodeValue } from '@continuum-dev/runtime/validator';
+import {
+  collectCanonicalNodeIds,
+  resolveNodeLookupEntry,
+} from '@continuum-dev/runtime/node-lookup';
+import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
+import {
+  applyContinuumNodeValueWrite,
+  decideContinuumNodeValueWrite,
+} from '@continuum-dev/runtime/value-write';
+import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
+import { findRestoreCandidates } from '@continuum-dev/runtime/restore-candidates';
 ```
+
+`resolveNodeLookupEntry` accepts canonical ids and also accepts a bare `node.id` when that id uniquely identifies one node. It returns `null` when the node cannot be resolved or when the bare id is ambiguous.
+
+`applyContinuumViewStreamPart` is the public streamed-structure helper. It applies progressive structural parts, including `append-content`, and returns `{ view, affectedNodeIds, incrementalHint? }`.
 
 ### Reconcile Signature
 

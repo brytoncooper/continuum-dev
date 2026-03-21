@@ -22,8 +22,20 @@
       "@continuum-dev/contract": ["./packages/contract/src/index.ts"],
       "@continuum-dev/protocol": ["./packages/protocol/src/index.ts"],
       "@continuum-dev/runtime": ["./packages/runtime/src/index.ts"],
-      "@continuum-dev/runtime/state-ops": [
-        "./packages/runtime/src/lib/state-ops/index.ts"
+      "@continuum-dev/runtime/node-lookup": [
+        "./packages/runtime/src/node-lookup.ts"
+      ],
+      "@continuum-dev/runtime/canonical-snapshot": [
+        "./packages/runtime/src/canonical-snapshot.ts"
+      ],
+      "@continuum-dev/runtime/value-write": [
+        "./packages/runtime/src/value-write.ts"
+      ],
+      "@continuum-dev/runtime/view-stream": [
+        "./packages/runtime/src/view-stream.ts"
+      ],
+      "@continuum-dev/runtime/restore-candidates": [
+        "./packages/runtime/src/restore-candidates.ts"
       ],
       "@continuum-dev/runtime/validator": [
         "./packages/runtime/src/validator.ts"

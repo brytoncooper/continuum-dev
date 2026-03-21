@@ -4,6 +4,7 @@ import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { reconcile } from '../reconcile/index.js';
 import type { ApplyContinuumViewUpdateInput, AppliedContinuumViewState } from './types.js';
 import { patchViewDefinition } from '../view-patch/index.js';
+import { sanitizeContinuumDataSnapshot } from './canonical-data.js';
 import { resolveNodeLookupEntry } from './node-lookup.js';
 import { applyContinuumTransformPlan } from './transform-plans.js';
 
@@ -102,16 +103,17 @@ function lockPopulatedValuesAsDirty(nodeValue: NodeValue): NodeValue {
 }
 
 function sanitizePriorDataForReconcile(priorData: DataSnapshot): DataSnapshot {
+  const canonicalPriorData = sanitizeContinuumDataSnapshot(priorData)!;
   const sanitizedValues: Record<string, NodeValue> = {};
 
-  for (const [nodeId, nodeValue] of Object.entries(priorData.values)) {
+  for (const [nodeId, nodeValue] of Object.entries(canonicalPriorData.values)) {
     sanitizedValues[nodeId] = lockPopulatedValuesAsDirty(
       stripSuggestionsFromNodeValue(nodeValue)
     );
   }
 
   const sanitizedDetachedValues: Record<string, DetachedValue> = {};
-  const detachedValues = priorData.detachedValues ?? {};
+  const detachedValues = canonicalPriorData.detachedValues ?? {};
   for (const [key, detached] of Object.entries(detachedValues)) {
     const detachedValue =
       detached.value &&
@@ -126,23 +128,31 @@ function sanitizePriorDataForReconcile(priorData: DataSnapshot): DataSnapshot {
     };
   }
 
-  return {
-    ...priorData,
+  const sanitized: DataSnapshot = {
     values: sanitizedValues,
-    ...(Object.keys(sanitizedDetachedValues).length > 0
-      ? { detachedValues: sanitizedDetachedValues }
-      : {}),
+    lineage: canonicalPriorData.lineage,
   };
+
+  if (canonicalPriorData.valueLineage) {
+    sanitized.valueLineage = canonicalPriorData.valueLineage;
+  }
+
+  if (Object.keys(sanitizedDetachedValues).length > 0) {
+    sanitized.detachedValues = sanitizedDetachedValues;
+  }
+
+  return sanitized;
 }
 
 function tryApplyPresentationIncrementalUpdate(
   input: ApplyContinuumViewUpdateInput,
   patchedView: AppliedContinuumViewState['view']
 ): AppliedContinuumViewState | null {
+  const baseData = sanitizeContinuumDataSnapshot(input.baseData);
   if (
     input.incrementalHint !== 'presentation-content' ||
     input.transformPlan?.operations.length ||
-    !input.baseData ||
+    !baseData ||
     !input.baseView ||
     !input.affectedNodeIds ||
     input.affectedNodeIds.length === 0
@@ -168,16 +178,16 @@ function tryApplyPresentationIncrementalUpdate(
   return {
     priorView: input.baseView,
     view: patchedView,
-    data: {
-      ...input.baseData,
+    data: sanitizeContinuumDataSnapshot({
+      ...baseData,
       lineage: {
-        ...input.baseData.lineage,
-        timestamp: input.clock ? input.clock() : input.baseData.lineage.timestamp + 1,
+        ...baseData.lineage,
+        timestamp: input.clock ? input.clock() : baseData.lineage.timestamp + 1,
         sessionId: input.sessionId,
         viewId: patchedView.viewId,
         viewVersion: patchedView.version,
       },
-    },
+    })!,
     issues: [
       ...(input.priorIssues ?? []),
       ...collectDuplicateIssues(patchedView.nodes),
@@ -200,6 +210,9 @@ export function assertValidView(view: AppliedContinuumViewState['view']): void {
   }
 }
 
+/**
+ * Applies a structural view update and re-enters reconcile to preserve canonical data safety.
+ */
 export function applyContinuumViewUpdate(
   input: ApplyContinuumViewUpdateInput
 ): AppliedContinuumViewState {
@@ -221,13 +234,13 @@ export function applyContinuumViewUpdate(
     },
   });
 
-  let data: AppliedContinuumViewState['data'] = {
+  let data: AppliedContinuumViewState['data'] = sanitizeContinuumDataSnapshot({
     ...result.reconciledState,
     lineage: {
       ...result.reconciledState.lineage,
       sessionId: input.sessionId,
     },
-  };
+  })!;
   let diffs = result.diffs;
   let resolutions = result.resolutions;
   let issues = result.issues;
@@ -263,7 +276,7 @@ export function applyContinuumViewUpdate(
   return {
     priorView,
     view: patchedView,
-    data,
+    data: sanitizeContinuumDataSnapshot(data)!,
     issues,
     diffs,
     resolutions,

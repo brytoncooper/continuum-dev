@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
-import {
-  applyContinuumNodeValueUpdate,
-  applyContinuumViewStreamPart,
-  applyContinuumViewUpdate,
-  classifyContinuumValueIngress,
-} from './index.js';
+import { applyContinuumNodeValueWrite, decideContinuumNodeValueWrite } from './direct-updates.js';
+import { applyContinuumViewStreamPart } from './stream-parts.js';
+import { applyContinuumViewUpdate } from './view-updates.js';
 
 function makeView(
   nodes: ViewNode[],
@@ -25,7 +22,7 @@ describe('runtime state operations', () => {
       sessionId: 'session-1',
       clock: () => 100,
     });
-    const updated = applyContinuumNodeValueUpdate({
+    const updated = applyContinuumNodeValueWrite({
       view,
       data: applied.data,
       nodeId: 'email',
@@ -37,7 +34,7 @@ describe('runtime state operations', () => {
 
     expect(updated.kind).toBe('applied');
 
-    const decision = classifyContinuumValueIngress({
+    const decision = decideContinuumNodeValueWrite({
       view,
       data: updated.kind === 'applied' ? updated.data : applied.data,
       nodeId: 'email',
@@ -53,9 +50,30 @@ describe('runtime state operations', () => {
     }
   });
 
+  it('does not treat suggestion-only values as protected proposal state', () => {
+    const view = makeView([{ id: 'email', type: 'field', dataType: 'string' }]);
+    const decision = decideContinuumNodeValueWrite({
+      view,
+      data: {
+        values: {
+          email: { value: 'user@example.com', suggestion: 'ai@example.com' },
+        },
+        lineage: {
+          timestamp: 100,
+          sessionId: 'session-1',
+          viewId: 'profile',
+          viewVersion: '1',
+        },
+      },
+      nodeId: 'email',
+    });
+
+    expect(decision.kind).toBe('apply');
+  });
+
   it('applies direct updates with canonical lineage metadata', () => {
     const view = makeView([{ id: 'name', type: 'field', dataType: 'string' }]);
-    const update = applyContinuumNodeValueUpdate({
+    const update = applyContinuumNodeValueWrite({
       view,
       data: null,
       nodeId: 'name',

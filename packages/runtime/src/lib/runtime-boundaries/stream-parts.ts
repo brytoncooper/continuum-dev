@@ -173,6 +173,9 @@ function buildPatchForStructuralPart(
   }
 }
 
+/**
+ * Applies one streamed structural part to the current view.
+ */
 export function applyContinuumViewStreamPart(
   input: ApplyContinuumViewStreamPartInput
 ): ApplyContinuumViewStreamPartResult {

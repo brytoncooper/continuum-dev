@@ -37,11 +37,35 @@
       "import": "./validator.js",
       "default": "./validator.js"
     },
-    "./state-ops": {
-      "@continuum-dev/source": "./src/lib/state-ops/index.ts",
-      "types": "./state-ops.d.ts",
-      "import": "./state-ops.js",
-      "default": "./state-ops.js"
+    "./node-lookup": {
+      "@continuum-dev/source": "./src/node-lookup.ts",
+      "types": "./node-lookup.d.ts",
+      "import": "./node-lookup.js",
+      "default": "./node-lookup.js"
+    },
+    "./canonical-snapshot": {
+      "@continuum-dev/source": "./src/canonical-snapshot.ts",
+      "types": "./canonical-snapshot.d.ts",
+      "import": "./canonical-snapshot.js",
+      "default": "./canonical-snapshot.js"
+    },
+    "./value-write": {
+      "@continuum-dev/source": "./src/value-write.ts",
+      "types": "./value-write.d.ts",
+      "import": "./value-write.js",
+      "default": "./value-write.js"
+    },
+    "./view-stream": {
+      "@continuum-dev/source": "./src/view-stream.ts",
+      "types": "./view-stream.d.ts",
+      "import": "./view-stream.js",
+      "default": "./view-stream.js"
+    },
+    "./restore-candidates": {
+      "@continuum-dev/source": "./src/restore-candidates.ts",
+      "types": "./restore-candidates.d.ts",
+      "import": "./restore-candidates.js",
+      "default": "./restore-candidates.js"
     }
   },
   "files": [

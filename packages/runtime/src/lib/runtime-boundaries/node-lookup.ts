@@ -2,6 +2,9 @@ import type { ViewNode } from '@continuum-dev/contract';
 import { getChildNodes } from '@continuum-dev/contract';
 import type { RuntimeNodeLookupEntry } from './types.js';
 
+/**
+ * Builds a canonical-id lookup for every node in the view tree.
+ */
 export function collectNodesByCanonicalId(
   nodes: ViewNode[]
 ): Map<string, RuntimeNodeLookupEntry> {
@@ -28,10 +31,19 @@ export function collectNodesByCanonicalId(
   return byId;
 }
 
+/**
+ * Collects every canonical node id reachable from the provided view tree.
+ */
 export function collectCanonicalNodeIds(nodes: ViewNode[]): Set<string> {
   return new Set(collectNodesByCanonicalId(nodes).keys());
 }
 
+/**
+ * Resolves a caller-supplied node identifier to runtime lookup context.
+ *
+ * Accepts a canonical id directly, or a bare `node.id` when that id matches exactly one node.
+ * Returns `null` when the node is missing or when a bare id is ambiguous.
+ */
 export function resolveNodeLookupEntry(
   nodes: ViewNode[],
   requestedId: string
