@@ -271,6 +271,51 @@ describe('session streams subsystem', () => {
     });
   });
 
+  it('preserves focus across streamed structural changes when the node can be uniquely resolved', () => {
+    const session = createSession();
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [{ id: 'email', type: 'field', dataType: 'string' }],
+          } as ViewNode,
+        ],
+        'profile',
+        '1'
+      )
+    );
+    session.setFocusedNodeId('profile/email');
+
+    const stream = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+    session.applyStreamPart(stream.streamId, {
+      kind: 'view',
+      view: makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [
+              {
+                id: 'contact_row',
+                type: 'row',
+                children: [{ id: 'email', type: 'field', dataType: 'string' }],
+              },
+            ],
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      ),
+    });
+
+    expect(session.getFocusedNodeId()).toBe('profile/contact_row/email');
+  });
+
   it('detaches user edits on render-only nodes when the stream aborts', () => {
     const session = createSession();
     session.pushView(makeView([], 'profile', '1'));
@@ -292,6 +337,48 @@ describe('session streams subsystem', () => {
     const detached = Object.values(session.getDetachedValues());
     expect(detached).toHaveLength(1);
     expect(detached[0]?.value).toEqual({ value: 'typed', isDirty: true });
+  });
+
+  it('clears focus when a foreground stream removes the focused node', () => {
+    const session = createSession();
+    const received: (string | null)[] = [];
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [{ id: 'email', type: 'field', dataType: 'string' }],
+          } as ViewNode,
+        ],
+        'profile',
+        '1'
+      )
+    );
+    session.onFocusChange((id) => received.push(id));
+    session.setFocusedNodeId('profile/email');
+
+    const stream = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+    session.applyStreamPart(stream.streamId, {
+      kind: 'view',
+      view: makeView(
+        [
+          {
+            id: 'profile',
+            type: 'group',
+            children: [],
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      ),
+    });
+
+    expect(session.getFocusedNodeId()).toBeNull();
+    expect(received).toEqual(['profile/email', null]);
   });
 
   it('fails stale commits deterministically without mutating committed state', () => {

@@ -1,3 +1,4 @@
+import type { DataSnapshot } from '@continuum-dev/contract';
 import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { autoCheckpoint, createManualCheckpoint, restoreFromCheckpoint, rewind } from './checkpoint-manager.js';
@@ -160,6 +161,66 @@ describe('restoreFromCheckpoint', () => {
     expect(internal.currentData?.values.a.value).toBeInstanceOf(Date);
     expect(internal.currentData?.values.a.value).toEqual(createdAt);
   });
+
+  it('strips legacy viewContext when restoring from checkpoint', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: 'changed' } },
+      lineage: { timestamp: 2000, sessionId: 's' },
+    };
+    const cp = {
+      checkpointId: 'cp-1',
+      sessionId: 's',
+      snapshot: {
+        view: { viewId: 's1', version: '1.0', nodes: [] },
+        data: {
+          values: { a: { value: 'hello' } },
+          viewContext: { a: { scrollX: 12 } },
+          lineage: { timestamp: 1000, sessionId: 's' },
+        } as unknown as DataSnapshot,
+      },
+      eventIndex: 0,
+      timestamp: 1000,
+      trigger: 'manual' as const,
+    };
+
+    restoreFromCheckpoint(internal, cp);
+
+    expect('viewContext' in (internal.currentData as object)).toBe(false);
+  });
+
+  it('clears focus when restoring to a view that no longer contains the focused node', () => {
+    const internal = createEmptySessionState('s', () => 5000);
+    internal.currentView = {
+      viewId: 's1',
+      version: '1.0',
+      nodes: [{ id: 'a', type: 'field', dataType: 'string' }],
+    };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+    internal.focusedNodeId = 'a';
+    const cp = {
+      checkpointId: 'cp-1',
+      sessionId: 's',
+      snapshot: {
+        view: { viewId: 's1', version: '2.0', nodes: [] },
+        data: {
+          values: {},
+          lineage: { timestamp: 1001, sessionId: 's' },
+        },
+      },
+      eventIndex: 0,
+      timestamp: 1001,
+      trigger: 'manual' as const,
+    };
+
+    restoreFromCheckpoint(internal, cp);
+
+    expect(internal.focusedNodeId).toBeNull();
+  });
 });
 
 describe('rewind', () => {
@@ -187,5 +248,35 @@ describe('rewind', () => {
     autoCheckpoint(internal);
 
     expect(() => rewind(internal, 'nonexistent')).toThrow();
+  });
+
+  it('clears focus when rewinding to a checkpoint without the focused node', () => {
+    let time = 1000;
+    const internal = createEmptySessionState('s', () => time++);
+    internal.currentView = {
+      viewId: 's1',
+      version: '1.0',
+      nodes: [{ id: 'a', type: 'field', dataType: 'string' }],
+    };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+    autoCheckpoint(internal);
+    internal.currentView = {
+      viewId: 's2',
+      version: '2.0',
+      nodes: [{ id: 'b', type: 'field', dataType: 'string' }],
+    };
+    internal.currentData = {
+      values: { b: { value: 'world' } },
+      lineage: { timestamp: 1001, sessionId: 's' },
+    };
+    autoCheckpoint(internal);
+    internal.focusedNodeId = 'b';
+
+    rewind(internal, internal.checkpoints[0].checkpointId);
+
+    expect(internal.focusedNodeId).toBeNull();
   });
 });

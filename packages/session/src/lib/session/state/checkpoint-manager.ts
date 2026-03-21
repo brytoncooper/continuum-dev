@@ -1,4 +1,6 @@
 import type { Checkpoint } from '@continuum-dev/protocol';
+import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
+import { syncFocusedNodeIdToRenderView } from '../focus.js';
 import type { SessionState } from './session-state.js';
 import { generateId } from './session-state.js';
 import {
@@ -97,7 +99,9 @@ export function restoreFromCheckpoint(
   if (internal.destroyed) return;
 
   internal.currentView = cloneCheckpointSnapshot(cp.snapshot.view);
-  internal.currentData = cloneCheckpointSnapshot(cp.snapshot.data);
+  internal.currentData = sanitizeContinuumDataSnapshot(
+    cloneCheckpointSnapshot(cp.snapshot.data)
+  );
   internal.priorView = null;
   internal.stableViewVersion = cp.snapshot.view.version;
   internal.eventLog = internal.eventLog.slice(0, cp.eventIndex);
@@ -107,6 +111,7 @@ export function restoreFromCheckpoint(
   internal.pendingIntents = [];
   internal.streams.clear();
   internal.activeForegroundStreamId = null;
+  syncFocusedNodeIdToRenderView(internal);
 
   notifySnapshotAndIssueListeners(internal);
   notifyStreamListeners(internal);
@@ -129,7 +134,9 @@ export function rewind(internal: SessionState, checkpointId: string): void {
   internal.checkpoints = internal.checkpoints.slice(0, idx + 1);
 
   internal.currentView = cloneCheckpointSnapshot(cp.snapshot.view);
-  internal.currentData = cloneCheckpointSnapshot(cp.snapshot.data);
+  internal.currentData = sanitizeContinuumDataSnapshot(
+    cloneCheckpointSnapshot(cp.snapshot.data)
+  );
   internal.priorView = null;
   internal.stableViewVersion = cp.snapshot.view.version;
   internal.eventLog = internal.eventLog.slice(0, cp.eventIndex);
@@ -139,6 +146,7 @@ export function rewind(internal: SessionState, checkpointId: string): void {
   internal.pendingIntents = [];
   internal.streams.clear();
   internal.activeForegroundStreamId = null;
+  syncFocusedNodeIdToRenderView(internal);
 
   notifySnapshotAndIssueListeners(internal);
   notifyStreamListeners(internal);

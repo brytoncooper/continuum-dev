@@ -8,6 +8,7 @@ import {
   notifySnapshotAndIssueListeners,
   notifyStreamListeners,
 } from '../listeners/index.js';
+import { syncFocusedNodeIdToRenderView } from '../focus.js';
 import { generateId } from '../state/index.js';
 import type { SessionState } from '../state/index.js';
 import { commitAppliedViewState } from '../updates/index.js';
@@ -34,6 +35,7 @@ function applyTerminalStreamState(
     storeRenderOnlyDetachedValues(internal, stream);
   }
 
+  syncFocusedNodeIdToRenderView(internal);
   notifySnapshotAndIssueListeners(internal);
   notifyStreamListeners(internal);
 

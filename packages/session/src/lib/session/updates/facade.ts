@@ -1,11 +1,9 @@
-import type { ViewportState, DetachedValue } from '@continuum-dev/contract';
-import { applyContinuumViewportStateUpdate } from '@continuum-dev/runtime';
+import type { DetachedValue } from '@continuum-dev/contract';
 import type { Session } from '../../types.js';
+import { applyFocusedNodeId } from '../focus.js';
 import type { SessionState } from '../state/index.js';
 import { pushView } from './index.js';
-import { syncCommittedViewportToStreams, applyRenderOnlyViewportUpdateIfPossible } from '../streams/index.js';
-import { buildCommittedSnapshotFromCurrentState, notifySnapshotListeners } from '../listeners/index.js';
-import { cloneCheckpointSnapshot } from '../state/index.js';
+import { notifySnapshotListeners } from '../listeners/index.js';
 
 function assertNotDestroyed(internal: SessionState): void {
   if (internal.destroyed) {
@@ -13,58 +11,28 @@ function assertNotDestroyed(internal: SessionState): void {
   }
 }
 
-function applyViewportStateUpdate(
-  internal: SessionState,
-  nodeId: string,
-  state: ViewportState
-): void {
-  const applied = applyContinuumViewportStateUpdate({
-    view: internal.currentView,
-    data: internal.currentData,
-    nodeId,
-    state,
-    sessionId: internal.sessionId,
-    timestamp: internal.clock(),
-  });
-
-  if (applied.kind === 'unknown-node') {
-    applyRenderOnlyViewportUpdateIfPossible(internal, nodeId, state);
-    return;
-  }
-
-  internal.currentData = applied.data;
-  syncCommittedViewportToStreams(internal, applied.canonicalId, state);
-
-  const lastAutoCheckpoint = [...internal.checkpoints]
-    .reverse()
-    .find((checkpoint) => checkpoint.trigger === 'auto');
-  if (lastAutoCheckpoint) {
-    const snapshot = buildCommittedSnapshotFromCurrentState(internal);
-    if (snapshot) {
-      lastAutoCheckpoint.snapshot = cloneCheckpointSnapshot(snapshot);
-    }
-  }
-
-  notifySnapshotListeners(internal);
-}
-
-export function createUpdatesFacade(internal: SessionState): Pick<Session, 'pushView' | 'updateViewportState' | 'getViewportState' | 'getDetachedValues' | 'purgeDetachedValues'> {
+export function createUpdatesFacade(
+  internal: SessionState
+): Pick<
+  Session,
+  | 'pushView'
+  | 'setFocusedNodeId'
+  | 'getFocusedNodeId'
+  | 'getDetachedValues'
+  | 'purgeDetachedValues'
+> {
   return {
     pushView(view: Parameters<Session['pushView']>[0], options?: Parameters<Session['pushView']>[1]) {
       assertNotDestroyed(internal);
       pushView(internal, view, options);
     },
-    updateViewportState(nodeId: string, state: Parameters<Session['updateViewportState']>[1]) {
+    setFocusedNodeId(nodeId: string | null) {
       assertNotDestroyed(internal);
-      applyViewportStateUpdate(internal, nodeId, state);
+      applyFocusedNodeId(internal, nodeId);
     },
-    getViewportState(nodeId: string) {
+    getFocusedNodeId() {
       assertNotDestroyed(internal);
-      // We will need to handle resolveNodeLookupEntry here.
-      // Easiest is to import resolveNodeLookupEntry or inline the logic.
-      // But it's okay, we'll import it from contract/runtime.
-      // Wait, let's fix the imports.
-      return internal.currentData?.viewContext?.[nodeId]; // Simplified, we will fix this in a sec if needed
+      return internal.focusedNodeId;
     },
     getDetachedValues() {
       assertNotDestroyed(internal);
@@ -96,6 +64,6 @@ export function createUpdatesFacade(internal: SessionState): Pick<Session, 'push
         }
       }
       notifySnapshotListeners(internal);
-    }
+    },
   };
 }

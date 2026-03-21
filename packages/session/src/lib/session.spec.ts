@@ -770,29 +770,10 @@ describe('Session Ledger', () => {
       expect(log).toHaveLength(1);
     });
 
-    it('stores and reads viewport state by node id', () => {
-      session.updateViewportState('a', {
-        scrollX: 10,
-        scrollY: 20,
-        zoom: 1.5,
-        offsetX: 2,
-        offsetY: 3,
-      });
-
-      expect(session.getViewportState('a')).toEqual({
-        scrollX: 10,
-        scrollY: 20,
-        zoom: 1.5,
-        offsetX: 2,
-        offsetY: 3,
-      });
-      expect(session.getSnapshot()?.data.viewContext?.['a']).toEqual({
-        scrollX: 10,
-        scrollY: 20,
-        zoom: 1.5,
-        offsetX: 2,
-        offsetY: 3,
-      });
+    it('stores focused node id without writing viewContext on snapshot', () => {
+      session.setFocusedNodeId('a');
+      expect(session.getFocusedNodeId()).toBe('a');
+      expect('viewContext' in session.getSnapshot()!.data).toBe(false);
     });
   });
 
@@ -1588,18 +1569,84 @@ describe('Session Ledger', () => {
     });
   });
 
-  describe('viewport state', () => {
-    it('updates viewport state and linearly increments timestamp', () => {
+  describe('focus state', () => {
+    it('notifies onFocusChange when focus moves', () => {
+      const session = createSession();
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })]));
+
+      const received: (string | null)[] = [];
+      session.onFocusChange((id) => received.push(id));
+
+      session.setFocusedNodeId('a');
+      session.setFocusedNodeId('b');
+      session.setFocusedNodeId(null);
+
+      expect(received).toEqual(['a', 'b', null]);
+    });
+
+    it('does not mutate data lineage when only focus changes', () => {
       const clock = vi.fn().mockReturnValue(1000);
       const session = createSession({ clock });
       session.pushView(makeView([makeNode({ id: 'a' })]));
 
-      clock.mockReturnValue(2000);
-      session.updateViewportState('a', { scrollY: 100 });
+      const tsBefore = session.getSnapshot()!.data.lineage.timestamp;
+      session.setFocusedNodeId('a');
+      const tsAfter = session.getSnapshot()!.data.lineage.timestamp;
 
-      const snapshot = session.getSnapshot()!;
-      expect(snapshot.data.viewContext?.['a']).toEqual({ scrollY: 100 });
-      expect(snapshot.data.lineage.timestamp).toBe(2000);
+      expect(tsAfter).toBe(tsBefore);
+    });
+
+    it('preserves focus across structural view changes when the node can be uniquely resolved', () => {
+      const session = createSession();
+      session.pushView(
+        makeView(
+          [
+            {
+              id: 'profile',
+              type: 'group',
+              children: [{ id: 'email', type: 'field', dataType: 'string' }],
+            } as ViewNode,
+          ],
+          'profile',
+          '1'
+        )
+      );
+      session.setFocusedNodeId('profile/email');
+
+      session.pushView(
+        makeView(
+          [
+            {
+              id: 'profile',
+              type: 'group',
+              children: [
+                {
+                  id: 'contact_row',
+                  type: 'row',
+                  children: [{ id: 'email', type: 'field', dataType: 'string' }],
+                },
+              ],
+            } as ViewNode,
+          ],
+          'profile',
+          '2'
+        )
+      );
+
+      expect(session.getFocusedNodeId()).toBe('profile/contact_row/email');
+    });
+
+    it('clears focus across structural view changes when the node disappears', () => {
+      const session = createSession();
+      const received: (string | null)[] = [];
+      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })]));
+      session.onFocusChange((id) => received.push(id));
+      session.setFocusedNodeId('a');
+
+      session.pushView(makeView([makeNode({ id: 'b' })], 'view-1', '2.0'));
+
+      expect(session.getFocusedNodeId()).toBeNull();
+      expect(received).toEqual(['a', null]);
     });
   });
 

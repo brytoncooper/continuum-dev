@@ -1,4 +1,5 @@
 import type { ContinuitySnapshot } from '@continuum-dev/contract';
+import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
 import type { ReconciliationIssue } from '@continuum-dev/runtime';
 import type { SessionState } from '../state/index.js';
 import {
@@ -12,7 +13,7 @@ function freezeSnapshot(
 ): ContinuitySnapshot {
   const snapshot: ContinuitySnapshot = {
     view: { ...view },
-    data: { ...data },
+    data: sanitizeContinuumDataSnapshot({ ...data })!,
   };
   Object.freeze(snapshot.view);
   Object.freeze(snapshot.data);
@@ -138,6 +139,27 @@ export function subscribeSnapshot(
   internal.snapshotListeners.add(listener);
   return () => {
     internal.snapshotListeners.delete(listener);
+  };
+}
+
+export function notifyFocusListeners(internal: SessionState): void {
+  const id = internal.focusedNodeId;
+  for (const listener of [...internal.focusListeners]) {
+    try {
+      listener(id);
+    } catch {
+      continue;
+    }
+  }
+}
+
+export function subscribeFocus(
+  internal: SessionState,
+  listener: (focusedNodeId: string | null) => void
+): () => void {
+  internal.focusListeners.add(listener);
+  return () => {
+    internal.focusListeners.delete(listener);
   };
 }
 

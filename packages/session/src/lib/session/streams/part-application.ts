@@ -1,16 +1,17 @@
 import type { SessionStreamPart } from '../../types.js';
 import {
-  applyContinuumNodeValueUpdate,
-  applyContinuumViewStreamPart,
-  classifyContinuumValueIngress,
-  collectCanonicalNodeIds,
+  applyContinuumNodeValueWrite,
+  decideContinuumNodeValueWrite,
 } from '@continuum-dev/runtime';
+import { collectCanonicalNodeIds } from '@continuum-dev/runtime/node-lookup';
+import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
 import type { SessionState } from '../state/index.js';
 import { reconcileViewUpdate } from '../updates/index.js';
 import {
   appendUnknownNodeStreamIssue,
   resolveStreamNode,
 } from './helpers.js';
+import { syncFocusedNodeIdToRenderView } from '../focus.js';
 import {
   syncCommittedValueToStreams,
   syncIssuesForStreamStateUpdate,
@@ -34,7 +35,7 @@ function applyStatePartToStream(
   part: Extract<SessionStreamPart, { kind: 'state' }>
 ): void {
   const now = internal.clock();
-  const decision = classifyContinuumValueIngress({
+  const decision = decideContinuumNodeValueWrite({
     view: internal.currentView,
     data: internal.currentData,
     nodeId: part.nodeId,
@@ -53,7 +54,7 @@ function applyStatePartToStream(
   }
 
   if (decision.kind === 'apply') {
-    const applied = applyContinuumNodeValueUpdate({
+    const applied = applyContinuumNodeValueWrite({
       view: internal.currentView,
       data: internal.currentData,
       nodeId: decision.canonicalId,
@@ -87,7 +88,7 @@ function applyStatePartToStream(
     return;
   }
 
-  const applied = applyContinuumNodeValueUpdate({
+  const applied = applyContinuumNodeValueWrite({
     view: stream.workingView,
     data: stream.workingData,
     nodeId: workingLookup.canonicalId,
@@ -165,6 +166,7 @@ export function applyPartToOpenStream(
         applied,
         collectCanonicalNodeIds(applied.view.nodes)
       );
+      syncFocusedNodeIdToRenderView(internal);
       break;
     }
     case 'patch':
@@ -214,6 +216,7 @@ export function applyPartToOpenStream(
         }
       );
       applyViewResultToStream(stream, applied, next.affectedNodeIds);
+      syncFocusedNodeIdToRenderView(internal);
       break;
     }
     case 'state':

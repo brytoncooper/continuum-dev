@@ -1,3 +1,4 @@
+import type { DataSnapshot } from '@continuum-dev/contract';
 import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { serializeSession, deserializeToState } from './serializer.js';
@@ -65,30 +66,48 @@ describe('serializeSession', () => {
     expect(serialized.currentData.values.a.value).toEqual(createdAt);
   });
 
-  it('preserves viewport state before persistence encoding', () => {
+  it('drops legacy viewContext from currentData before persistence encoding', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
       values: { a: { value: 'hello' } },
-      viewContext: {
-        a: { scrollX: 12, scrollY: 20, zoom: 1.25, offsetX: 5, offsetY: 8 },
-      },
+      viewContext: { a: { scrollX: 12 } },
       lineage: { timestamp: 1000, sessionId: 's' },
-    };
+    } as unknown as DataSnapshot;
 
     const serialized = serializeSession(internal) as {
-      currentData: {
-        viewContext?: Record<string, { scrollX?: number; scrollY?: number; zoom?: number; offsetX?: number; offsetY?: number }>;
-      };
+      currentData: Record<string, unknown>;
     };
 
-    expect(serialized.currentData.viewContext?.a).toEqual({
-      scrollX: 12,
-      scrollY: 20,
-      zoom: 1.25,
-      offsetX: 5,
-      offsetY: 8,
-    });
+    expect('viewContext' in serialized.currentData).toBe(false);
+  });
+
+  it('drops legacy viewContext from checkpoint snapshots before persistence encoding', () => {
+    const internal = createEmptySessionState('s', () => 1000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.checkpoints = [
+      {
+        checkpointId: 'cp-1',
+        sessionId: 's',
+        snapshot: {
+          view: { viewId: 's1', version: '1.0', nodes: [] },
+          data: {
+            values: { a: { value: 'hello' } },
+            viewContext: { a: { scrollX: 12 } },
+            lineage: { timestamp: 1000, sessionId: 's' },
+          } as unknown as DataSnapshot,
+        },
+        eventIndex: 0,
+        timestamp: 1000,
+        trigger: 'manual',
+      },
+    ];
+
+    const serialized = serializeSession(internal) as {
+      checkpoints: Array<{ snapshot: { data: Record<string, unknown> } }>;
+    };
+
+    expect('viewContext' in serialized.checkpoints[0].snapshot.data).toBe(false);
   });
 });
 
@@ -133,7 +152,7 @@ describe('deserializeToState', () => {
     expect(restored.issues).toEqual([]);
   });
 
-  it('restores viewport state', () => {
+  it('strips legacy viewContext when deserializing', () => {
     const data = {
       sessionId: 's',
       currentView: { viewId: 's1', version: '1', nodes: [] },
@@ -154,13 +173,61 @@ describe('deserializeToState', () => {
     };
 
     const restored = deserializeToState(data, () => 0);
-    expect(restored.currentData?.viewContext?.chart).toEqual({
-      scrollX: 5,
-      scrollY: 15,
-      zoom: 2,
-      offsetX: 1,
-      offsetY: 3,
-    });
+    expect(restored.currentData).not.toBeNull();
+    expect('viewContext' in (restored.currentData as object)).toBe(false);
+  });
+
+  it('strips legacy viewContext from checkpoint snapshots when deserializing', () => {
+    const data = {
+      sessionId: 's',
+      currentView: { viewId: 's1', version: '1', nodes: [] },
+      currentData: null,
+      priorView: null,
+      eventLog: [],
+      pendingIntents: [],
+      checkpoints: [
+        {
+          checkpointId: 'cp-1',
+          sessionId: 's',
+          snapshot: {
+            view: { viewId: 's1', version: '1', nodes: [] },
+            data: {
+              values: {},
+              viewContext: {
+                chart: { scrollX: 5 },
+              },
+              lineage: { timestamp: 1, sessionId: 's' },
+            },
+          },
+          eventIndex: 0,
+          timestamp: 1,
+          trigger: 'manual',
+        },
+      ],
+      issues: [],
+      diffs: [],
+      resolutions: [],
+    };
+
+    const restored = deserializeToState(data, () => 0);
+
+    expect('viewContext' in (restored.checkpoints[0].snapshot.data as object)).toBe(
+      false
+    );
+  });
+
+  it('drops focus when deserializing', () => {
+    const internal = createEmptySessionState('s', () => 1000);
+    internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
+    internal.focusedNodeId = 'a';
+
+    const restored = deserializeToState(serializeSession(internal), () => 2000);
+
+    expect(restored.focusedNodeId).toBeNull();
   });
 
   it('throws when payload is not an object', () => {

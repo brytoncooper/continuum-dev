@@ -5,6 +5,7 @@ import {
   type AppliedContinuumViewState,
 } from '@continuum-dev/runtime';
 import type { SessionViewApplyOptions } from '../../types.js';
+import { syncFocusedNodeIdToRenderView } from '../focus.js';
 import type { SessionState } from '../state/index.js';
 import { autoCheckpoint } from '../state/index.js';
 import { markAllPendingIntentsAsStale } from '../interactions/index.js';
@@ -125,6 +126,7 @@ export function commitAppliedViewState(
   internal.issues = applied.issues;
   internal.diffs = applied.diffs;
   internal.resolutions = applied.resolutions;
+  syncFocusedNodeIdToRenderView(internal);
 
   if (
     !isTransient &&

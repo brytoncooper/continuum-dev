@@ -66,11 +66,11 @@ Public entrypoints:
 
 Public `Session` methods:
 
-- readers: `sessionId`, `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getPendingIntents`, `getDetachedValues`, `getCheckpoints`, `getViewportState`, `getPendingProposals`, `getRegisteredActions`
-- view/data: `pushView`, `recordIntent`, `updateState`, `updateViewportState`, `proposeValue`, `acceptProposal`, `rejectProposal`, `purgeDetachedValues`
+- readers: `sessionId`, `getSnapshot`, `getIssues`, `getDiffs`, `getResolutions`, `getEventLog`, `getPendingIntents`, `getDetachedValues`, `getCheckpoints`, `getFocusedNodeId`, `getPendingProposals`, `getRegisteredActions`
+- view/data: `pushView`, `recordIntent`, `updateState`, `setFocusedNodeId`, `proposeValue`, `acceptProposal`, `rejectProposal`, `purgeDetachedValues`
 - intents/actions: `submitIntent`, `validateIntent`, `cancelIntent`, `registerAction`, `unregisterAction`, `dispatchAction`
 - checkpointing: `checkpoint`, `restoreFromCheckpoint`, `rewind`
-- lifecycle/subscriptions: `reset`, `onSnapshot`, `onIssues`, `serialize`, `destroy`
+- lifecycle/subscriptions: `reset`, `onSnapshot`, `onStreams`, `onIssues`, `onFocusChange`, `serialize`, `destroy`
 
 ## 4) Architecture and Call Flow
 
@@ -601,15 +601,15 @@ Role:
 
 - view validation, reconciliation, stale-intent marking, auto-checkpointing, notifications
 
-### Function: `assertValidView(view): void`
+### View validation
+
+`pushView` relies on the runtime view-update boundary for validation before reconciliation.
 
 Validation rules:
 
 - `viewId` must be non-empty string
 - `version` must be non-empty string
 - `nodes` must be array
-
-Throws descriptive errors on invalid input.
 
 ### Function: `pushView(internal, view): void`
 

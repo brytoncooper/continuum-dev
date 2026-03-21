@@ -13,6 +13,7 @@ import type {
   ReconciliationResolution,
   StateDiff,
 } from '@continuum-dev/runtime';
+import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
 import type { SessionState } from './session-state.js';
 
 const CURRENT_FORMAT_VERSION = 1;
@@ -32,11 +33,11 @@ export function serializeSession(internal: SessionState): unknown {
     formatVersion: CURRENT_FORMAT_VERSION,
     sessionId: internal.sessionId,
     currentView: internal.currentView,
-    currentData: internal.currentData,
+    currentData: sanitizeContinuumDataSnapshot(internal.currentData),
     priorView: internal.priorView,
     eventLog: internal.eventLog,
     pendingIntents: internal.pendingIntents,
-    checkpoints: internal.checkpoints,
+    checkpoints: sanitizeCheckpoints(internal.checkpoints),
     issues: internal.issues,
     diffs: internal.diffs,
     resolutions: internal.resolutions,
@@ -75,6 +76,16 @@ interface SerializedSessionData {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function sanitizeCheckpoints(checkpoints: Checkpoint[]): Checkpoint[] {
+  return checkpoints.map((checkpoint) => ({
+    ...checkpoint,
+    snapshot: {
+      ...checkpoint.snapshot,
+      data: sanitizeContinuumDataSnapshot(checkpoint.snapshot.data)!,
+    },
+  }));
 }
 
 function assertArrayField(
@@ -202,7 +213,7 @@ export function deserializeToState(
         ? raw.settings.stableViewVersion
         : raw.currentView?.version ?? null,
     currentView: raw.currentView ?? null,
-    currentData: raw.currentData ?? null,
+    currentData: sanitizeContinuumDataSnapshot(raw.currentData ?? null),
     priorView: raw.priorView ?? null,
     issues: raw.issues ?? [],
     diffs: raw.diffs ?? [],
@@ -211,10 +222,14 @@ export function deserializeToState(
     pendingIntents: (raw.pendingIntents ?? []).slice(
       -(limits?.maxPendingIntents ?? 500)
     ),
-    checkpoints: (raw.checkpoints ?? []).slice(-(limits?.maxCheckpoints ?? 50)),
+    checkpoints: sanitizeCheckpoints(
+      (raw.checkpoints ?? []).slice(-(limits?.maxCheckpoints ?? 50))
+    ),
     snapshotListeners: new Set(),
     streamListeners: new Set(),
     issueListeners: new Set(),
+    focusedNodeId: null,
+    focusListeners: new Set(),
     pendingProposals: {},
     actionRegistry: new Map(),
     streams: new Map(),

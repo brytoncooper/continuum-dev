@@ -27,7 +27,7 @@ Standard state managers are optimized for deterministic single-author UIs. They 
 
 **Continuum Session** is a stateful lifecycle manager built on top of `@continuum-dev/runtime`. It converts a stream of AI view mutations and user interactions into a structured, event-sourced session ledger.
 
-It tracks event history, manages checkpoints, protects dirty user input with proposals, and serializes the entire session into a portable blob for resumable experiences.
+It tracks event history, manages checkpoints, protects dirty user input with proposals, and serializes durable session state into a portable blob for resumable experiences.
 
 Streaming guide: [STREAMING.md](./STREAMING.md)
 
@@ -174,11 +174,17 @@ session.recordIntent({
 
 `recordIntent` clones incoming payload objects before storing them and deduplicates issues by `nodeId + code`.
 
-#### Viewport APIs
+#### Focus APIs
+
+Focus is **not** part of `DataSnapshot`. It tracks which canonical node id is focused for UI orchestration (for example restoring focus after streamed view updates). After pushed or streamed view changes, focus is revalidated against the active render tree and clears if the node no longer resolves uniquely. Focus is not serialized. Scroll, zoom, and other layout state belong in local or app-level state, not the continuity snapshot.
 
 ```typescript
-session.updateViewportState('table_1', { scrollY: 320, isFocused: true });
-const viewport = session.getViewportState('table_1');
+session.setFocusedNodeId('table_1');
+const id = session.getFocusedNodeId();
+
+session.onFocusChange((focusedNodeId) => {
+  // focusedNodeId is string | null
+});
 ```
 
 #### Streaming APIs

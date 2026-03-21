@@ -5,7 +5,8 @@ import type {
   ActionSessionRef,
 } from '@continuum-dev/protocol';
 import { INTERACTION_TYPES } from '@continuum-dev/protocol';
-import { classifyContinuumValueIngress, resolveNodeLookupEntry } from '@continuum-dev/runtime';
+import { decideContinuumNodeValueWrite } from '@continuum-dev/runtime';
+import { resolveNodeLookupEntry } from '@continuum-dev/runtime/node-lookup';
 import type { Session } from '../../types.js';
 import type { SessionState } from '../state/index.js';
 import { submitIntent, validateIntent, cancelIntent, recordIntent } from './index.js';
@@ -25,7 +26,7 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
     },
     proposeValue(nodeId: string, value: NodeValue, source?: string) {
       assertNotDestroyed(internal);
-      const decision = classifyContinuumValueIngress({
+      const decision = decideContinuumNodeValueWrite({
         view: internal.currentView,
         data: internal.currentData,
         nodeId,

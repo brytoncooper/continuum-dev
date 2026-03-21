@@ -1,4 +1,5 @@
 import type { DataSnapshot, NodeValue, ViewDefinition } from '@continuum-dev/contract';
+import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
 
 export function ensureStreamData(
   data: DataSnapshot | null,
@@ -6,8 +7,9 @@ export function ensureStreamData(
   now: number,
   view: ViewDefinition | null
 ): DataSnapshot {
-  if (data) {
-    return data;
+  const sanitized = sanitizeContinuumDataSnapshot(data);
+  if (sanitized) {
+    return sanitized;
   }
 
   return {
@@ -31,7 +33,7 @@ export function applyNodeValueToSnapshot(
 ): DataSnapshot {
   const next = ensureStreamData(data, sessionId, now, view);
 
-  return {
+  return sanitizeContinuumDataSnapshot({
     ...next,
     values: {
       ...next.values,
@@ -50,30 +52,5 @@ export function applyNodeValueToSnapshot(
         lastUpdated: now,
       },
     },
-  };
-}
-
-export function applyViewportToSnapshot(
-  data: DataSnapshot | null,
-  canonicalId: string,
-  state: NonNullable<DataSnapshot['viewContext']>[string],
-  sessionId: string,
-  now: number,
-  view: ViewDefinition | null
-): DataSnapshot {
-  const next = ensureStreamData(data, sessionId, now, view);
-
-  return {
-    ...next,
-    viewContext: {
-      ...(next.viewContext ?? {}),
-      [canonicalId]: state,
-    },
-    lineage: {
-      ...next.lineage,
-      timestamp: now,
-      viewId: view?.viewId ?? next.lineage.viewId,
-      viewVersion: view?.version ?? next.lineage.viewVersion,
-    },
-  };
+  })!;
 }

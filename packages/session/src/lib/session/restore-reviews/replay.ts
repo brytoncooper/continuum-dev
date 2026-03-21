@@ -1,6 +1,6 @@
 import type { DetachedValue } from '@continuum-dev/contract';
 import type { SessionState } from '../state/index.js';
-import { findNodeByIdentity } from '@continuum-dev/runtime';
+import { findNodeByIdentity } from '@continuum-dev/runtime/restore-candidates';
 import type { InternalApprovedRestoreTarget, RejectedRestoreReviewState } from './types.js';
 import type { DetachedRestoreReviewCandidate } from '../../types.js';
 import type { ScopeSnapshot } from './scopes.js';

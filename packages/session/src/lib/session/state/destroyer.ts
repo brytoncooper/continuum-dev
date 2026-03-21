@@ -26,5 +26,7 @@ export function teardownSessionAndClearState(internal: SessionState): {
   internal.snapshotListeners.clear();
   internal.streamListeners.clear();
   internal.issueListeners.clear();
+  internal.focusListeners.clear();
+  internal.focusedNodeId = null;
   return result;
 }

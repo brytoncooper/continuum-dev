@@ -1,5 +1,5 @@
 import type { DetachedValue } from '@continuum-dev/contract';
-import { applyContinuumNodeValueUpdate } from '@continuum-dev/runtime';
+import { applyContinuumNodeValueWrite } from '@continuum-dev/runtime';
 import type { SessionState } from '../state/index.js';
 import { syncIssuesForStreamStateUpdate } from '../streams/sync.js';
 import { isProtectedValue } from '../streams/helpers.js';
@@ -28,7 +28,7 @@ export function applyDetachedValueToScope(args: ApplyArgs): boolean {
     return false;
   }
 
-  const applied = applyContinuumNodeValueUpdate({
+  const applied = applyContinuumNodeValueWrite({
     view: args.scopeSnapshot.view,
     data: args.scopeSnapshot.data,
     nodeId: args.targetNodeId,

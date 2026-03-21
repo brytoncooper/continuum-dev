@@ -1,6 +1,11 @@
 import type { Session } from '../../types.js';
 import type { SessionState } from '../state/index.js';
-import { subscribeSnapshot, subscribeStreams, subscribeIssues } from './index.js';
+import {
+  subscribeSnapshot,
+  subscribeStreams,
+  subscribeIssues,
+  subscribeFocus,
+} from './index.js';
 
 function assertNotDestroyed(internal: SessionState): void {
   if (internal.destroyed) {
@@ -8,7 +13,7 @@ function assertNotDestroyed(internal: SessionState): void {
   }
 }
 
-export function createListenersFacade(internal: SessionState): Pick<Session, 'getIssues' | 'getDiffs' | 'getResolutions' | 'onSnapshot' | 'onStreams' | 'onIssues'> {
+export function createListenersFacade(internal: SessionState): Pick<Session, 'getIssues' | 'getDiffs' | 'getResolutions' | 'onSnapshot' | 'onStreams' | 'onIssues' | 'onFocusChange'> {
   return {
     getIssues() {
       assertNotDestroyed(internal);
@@ -48,6 +53,10 @@ export function createListenersFacade(internal: SessionState): Pick<Session, 'ge
     onIssues(listener: Parameters<Session['onIssues']>[0]) {
       assertNotDestroyed(internal);
       return subscribeIssues(internal, listener);
-    }
+    },
+    onFocusChange(listener: Parameters<Session['onFocusChange']>[0]) {
+      assertNotDestroyed(internal);
+      return subscribeFocus(internal, listener);
+    },
   };
 }

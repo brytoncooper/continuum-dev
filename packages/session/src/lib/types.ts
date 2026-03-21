@@ -1,7 +1,6 @@
 import type {
   ContinuitySnapshot,
   DetachedValue,
-  ViewportState,
   ViewDefinition,
   NodeValue,
 } from '@continuum-dev/contract';
@@ -263,13 +262,13 @@ export interface Session {
    */
   updateState(nodeId: string, payload: unknown): void;
   /**
-   * Returns viewport metadata for a node, if present.
+   * Canonical id of the focused node when known, otherwise null.
    */
-  getViewportState(nodeId: string): ViewportState | undefined;
+  getFocusedNodeId(): string | null;
   /**
-   * Updates viewport metadata and notifies snapshot listeners.
+   * Sets focused node by id or clears focus when null.
    */
-  updateViewportState(nodeId: string, state: ViewportState): void;
+  setFocusedNodeId(nodeId: string | null): void;
   /**
    * Returns the interaction timeline.
    */
@@ -361,6 +360,12 @@ export interface Session {
    * Returns an unsubscribe function.
    */
   onIssues(listener: (issues: ReconciliationIssue[]) => void): () => void;
+  /**
+   * Subscribes to focused node id changes.
+   */
+  onFocusChange(
+    listener: (focusedNodeId: string | null) => void
+  ): () => void;
   /**
    * Serializes the complete session into a JSON-compatible blob.
    */

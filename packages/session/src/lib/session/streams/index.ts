@@ -8,7 +8,5 @@ export {
 } from './coordinator.js';
 export {
   applyRenderOnlyValueUpdateIfPossible,
-  applyRenderOnlyViewportUpdateIfPossible,
   syncCommittedValueToStreams,
-  syncCommittedViewportToStreams,
 } from './sync.js';

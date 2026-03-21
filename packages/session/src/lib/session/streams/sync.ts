@@ -1,8 +1,5 @@
-import type { DataSnapshot, NodeValue } from '@continuum-dev/contract';
-import {
-  applyContinuumNodeValueUpdate,
-  applyContinuumViewportStateUpdate,
-} from '@continuum-dev/runtime';
+import type { NodeValue } from '@continuum-dev/contract';
+import { applyContinuumNodeValueWrite } from '@continuum-dev/runtime';
 import {
   notifySnapshotAndIssueListeners,
   notifyStreamListeners,
@@ -53,7 +50,7 @@ export function syncCommittedValueToStreams(
       continue;
     }
 
-    const result = applyContinuumNodeValueUpdate({
+    const result = applyContinuumNodeValueWrite({
       view: stream.workingView,
       data: stream.workingData,
       nodeId: lookup.canonicalId,
@@ -68,44 +65,6 @@ export function syncCommittedValueToStreams(
 
     stream.workingData = result.data;
     syncIssuesForStreamStateUpdate(internal, stream, lookup.canonicalId, result.issues);
-    stream.updatedAt = now;
-  }
-}
-
-export function syncCommittedViewportToStreams(
-  internal: SessionState,
-  canonicalId: string,
-  state: NonNullable<DataSnapshot['viewContext']>[string]
-): void {
-  const now = internal.clock();
-
-  for (const stream of internal.streams.values()) {
-    if (stream.status !== 'open' || !stream.workingView) {
-      continue;
-    }
-
-    const lookup = resolveStreamNodeForCommittedUpdate(
-      internal,
-      stream,
-      canonicalId
-    );
-    if (!lookup) {
-      continue;
-    }
-
-    const result = applyContinuumViewportStateUpdate({
-      view: stream.workingView,
-      data: stream.workingData,
-      nodeId: lookup.canonicalId,
-      state,
-      sessionId: internal.sessionId,
-      timestamp: now,
-    });
-    if (result.kind !== 'applied') {
-      continue;
-    }
-
-    stream.workingData = result.data;
     stream.updatedAt = now;
   }
 }
@@ -131,7 +90,7 @@ export function applyRenderOnlyValueUpdateIfPossible(
   }
 
   const now = internal.clock();
-  const result = applyContinuumNodeValueUpdate({
+  const result = applyContinuumNodeValueWrite({
     view: activeStream.workingView,
     data: activeStream.workingData,
     nodeId: workingLookup.canonicalId,
@@ -152,46 +111,6 @@ export function applyRenderOnlyValueUpdateIfPossible(
     workingLookup.canonicalId,
     result.issues
   );
-  activeStream.updatedAt = now;
-  notifySnapshotAndIssueListeners(internal);
-  notifyStreamListeners(internal);
-  return true;
-}
-
-export function applyRenderOnlyViewportUpdateIfPossible(
-  internal: SessionState,
-  nodeId: string,
-  state: NonNullable<DataSnapshot['viewContext']>[string]
-): boolean {
-  const activeStream = getActiveForegroundStream(internal);
-  if (!activeStream || !activeStream.workingView) {
-    return false;
-  }
-
-  const committedLookup = resolveCommittedNode(internal, nodeId);
-  if (committedLookup) {
-    return false;
-  }
-
-  const workingLookup = resolveStreamNode(activeStream, nodeId);
-  if (!workingLookup) {
-    return false;
-  }
-
-  const now = internal.clock();
-  const result = applyContinuumViewportStateUpdate({
-    view: activeStream.workingView,
-    data: activeStream.workingData,
-    nodeId: workingLookup.canonicalId,
-    state,
-    sessionId: internal.sessionId,
-    timestamp: now,
-  });
-  if (result.kind !== 'applied') {
-    return false;
-  }
-
-  activeStream.workingData = result.data;
   activeStream.updatedAt = now;
   notifySnapshotAndIssueListeners(internal);
   notifyStreamListeners(internal);

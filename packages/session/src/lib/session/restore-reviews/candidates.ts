@@ -1,4 +1,4 @@
-import { findRestoreCandidates } from '@continuum-dev/runtime';
+import { findRestoreCandidates } from '@continuum-dev/runtime/restore-candidates';
 import type { DetachedValue } from '@continuum-dev/contract';
 import type { DetachedRestoreReviewCandidate, DetachedRestoreScope } from '../../types.js';
 import { scopeKey, type ScopeSnapshot } from './scopes.js';

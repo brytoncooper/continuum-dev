@@ -9,7 +9,7 @@ import {
   notifySnapshotAndIssueListeners,
 } from '../listeners/index.js';
 import { cloneCheckpointSnapshot } from '../state/index.js';
-import { applyContinuumNodeValueUpdate } from '@continuum-dev/runtime';
+import { applyContinuumNodeValueWrite } from '@continuum-dev/runtime';
 import {
   applyRenderOnlyValueUpdateIfPossible,
   syncCommittedValueToStreams,
@@ -91,7 +91,7 @@ export function recordIntent(
   }
 
   const payload = { ...(partial.payload as NodeValue) };
-  const updateResult = applyContinuumNodeValueUpdate({
+  const updateResult = applyContinuumNodeValueWrite({
     view: internal.currentView,
     data: internal.currentData,
     nodeId: partial.nodeId,

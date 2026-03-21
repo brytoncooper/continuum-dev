@@ -2,7 +2,7 @@
 
 Continuum streaming now has a strict ownership split:
 
-- `@continuum-dev/runtime` owns view patching, direct value application, viewport updates, ingress classification, and canonical reconciliation outputs.
+- `@continuum-dev/runtime` owns streamed structural parts (`applyContinuumViewStreamPart` on the `view-stream` subpath), direct value writes and write decisions on the root contract, and canonical reconciliation outputs.
 - `@continuum-dev/session` owns stream lifecycle, proposals, checkpoints, persistence, and render-vs-committed snapshot orchestration.
 
 ## Snapshot Model

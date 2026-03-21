@@ -60,6 +60,8 @@ export interface SessionState {
   destroyed: boolean;
   approvedRestoreTargets: Record<string, InternalApprovedRestoreTarget>;
   rejectedRestoreReviews: Record<string, RejectedRestoreReviewState>;
+  focusedNodeId: string | null;
+  focusListeners: Set<(focusedNodeId: string | null) => void>;
 }
 
 /**
@@ -102,6 +104,8 @@ export function createEmptySessionState(
     destroyed: false,
     approvedRestoreTargets: {},
     rejectedRestoreReviews: {},
+    focusedNodeId: null,
+    focusListeners: new Set(),
   };
 }
 
@@ -126,6 +130,14 @@ export function resetSessionState(internal: SessionState): void {
   internal.activeForegroundStreamId = null;
   internal.approvedRestoreTargets = {};
   internal.rejectedRestoreReviews = {};
+  internal.focusedNodeId = null;
+  for (const listener of [...internal.focusListeners]) {
+    try {
+      listener(null);
+    } catch {
+      continue;
+    }
+  }
 }
 
 /**
@@ -155,6 +167,14 @@ export function replaceInternalState(
   internal.activeForegroundStreamId = null;
   internal.approvedRestoreTargets = { ...next.approvedRestoreTargets };
   internal.rejectedRestoreReviews = { ...next.rejectedRestoreReviews };
+  internal.focusedNodeId = null;
+  for (const listener of [...internal.focusListeners]) {
+    try {
+      listener(null);
+    } catch {
+      continue;
+    }
+  }
 }
 
 /**
