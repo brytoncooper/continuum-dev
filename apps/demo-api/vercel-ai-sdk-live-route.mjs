@@ -27,6 +27,22 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       });
     }
 
+    const instruction =
+      body.continuum?.instruction?.trim() ||
+      extractLatestUserInstruction(body.messages);
+    const continuumAddons = Array.isArray(body.continuum?.addons)
+      ? Array.from(new Set([...body.continuum.addons, 'strict-continuity']))
+      : ['strict-continuity'];
+
+    if (!instruction) {
+      return new Response(
+        'Add an instruction before sending a live Vercel AI SDK request.',
+        {
+          status: 400,
+        }
+      );
+    }
+
     const providerId =
       typeof body.providerId === 'string' ? body.providerId : 'openai';
     const requestedModel =
@@ -37,21 +53,6 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       headers: request.headers,
       env,
     });
-    const instruction =
-      body.continuum?.instruction?.trim() ||
-      extractLatestUserInstruction(body.messages);
-    const continuumAddons = Array.isArray(body.continuum?.addons)
-      ? Array.from(new Set([...body.continuum.addons, 'strict-continuity']))
-      : ['strict-continuity'];
-
-    if (!instruction) {
-      return new Response(
-        'Add an instruction before sending a Continuum Vercel AI SDK request.',
-        {
-          status: 400,
-        }
-      );
-    }
 
     const stream = createContinuumUiMessageStream({
       adapter: createVercelAiSdkContinuumExecutionAdapter({

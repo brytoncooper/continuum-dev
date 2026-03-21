@@ -238,9 +238,25 @@ export default defineConfig(({ command }) => ({
         __dirname,
         '../../packages/runtime/src/validator.ts'
       ),
-      '@continuum-dev/runtime/state-ops': resolve(
+      '@continuum-dev/runtime/node-lookup': resolve(
         __dirname,
-        '../../packages/runtime/src/lib/state-ops/index.ts'
+        '../../packages/runtime/src/node-lookup.ts'
+      ),
+      '@continuum-dev/runtime/canonical-snapshot': resolve(
+        __dirname,
+        '../../packages/runtime/src/canonical-snapshot.ts'
+      ),
+      '@continuum-dev/runtime/value-write': resolve(
+        __dirname,
+        '../../packages/runtime/src/value-write.ts'
+      ),
+      '@continuum-dev/runtime/view-stream': resolve(
+        __dirname,
+        '../../packages/runtime/src/view-stream.ts'
+      ),
+      '@continuum-dev/runtime/restore-candidates': resolve(
+        __dirname,
+        '../../packages/runtime/src/restore-candidates.ts'
       ),
       '@continuum-dev/runtime': resolve(
         __dirname,
