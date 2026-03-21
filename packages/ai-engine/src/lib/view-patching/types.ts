@@ -1,5 +1,5 @@
 import type { ViewNode } from '@continuum-dev/core';
-import type { ContinuumViewPatchPosition } from '@continuum-dev/runtime/state-ops';
+import type { ContinuumViewPatchPosition } from '@continuum-dev/protocol';
 
 export interface PatchNodeHint {
   path: string;

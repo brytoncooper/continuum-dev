@@ -3,7 +3,7 @@ import type {
   ContinuumTransformOperation,
   ViewDefinition,
 } from '@continuum-dev/core';
-import { resolveNodeLookupEntry } from '@continuum-dev/core';
+import { resolveNodeLookupEntry } from '@continuum-dev/runtime/node-lookup';
 import { buildPatchContext } from '../view-patching/index.js';
 
 export interface NormalizedContinuumTransformPlan {

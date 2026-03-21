@@ -1,6 +1,6 @@
 import type { ViewDefinition } from '@continuum-dev/core';
-import { patchViewDefinition } from '@continuum-dev/runtime';
-import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/state-ops';
+import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
+import { isDeepStrictEqual } from 'node:util';
 import { normalizeViewPatchOperation } from './normalize.js';
 import type { ViewPatchPlan } from './types.js';
 
@@ -27,6 +27,7 @@ export function applyPatchPlanToView(
   }
 
   let nextView = structuredClone(currentView);
+  let changed = false;
 
   for (const rawOperation of plan.operations) {
     const operation = normalizeViewPatchOperation(rawOperation);
@@ -35,23 +36,24 @@ export function applyPatchPlanToView(
     }
 
     try {
+      const priorView = nextView;
       const result = applyContinuumViewStreamPart({
         currentView: nextView,
         part: operation,
       });
+      changed = changed || result.view !== priorView;
       nextView = result.view;
     } catch {
       return null;
     }
   }
 
-  const finalizedView = patchViewDefinition(currentView, nextView);
-  if (finalizedView === currentView) {
+  if (!changed || isDeepStrictEqual(nextView, currentView)) {
     return null;
   }
 
   return {
-    ...finalizedView,
+    ...nextView,
     version: bumpVersion(currentView.version),
   };
 }

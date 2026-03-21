@@ -1,5 +1,5 @@
 import type { ViewNode } from '@continuum-dev/core';
-import type { ContinuumViewPatchPosition } from '@continuum-dev/runtime/state-ops';
+import type { ContinuumViewPatchPosition } from '@continuum-dev/protocol';
 import { normalizeViewDefinition } from '../view-guardrails/index.js';
 import type { ViewPatchOperation, ViewPatchPlan } from './types.js';
 

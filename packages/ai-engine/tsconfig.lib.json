@@ -28,6 +28,9 @@
       "path": "../runtime/tsconfig.lib.json"
     },
     {
+      "path": "../protocol/tsconfig.lib.json"
+    },
+    {
       "path": "../core/tsconfig.lib.json"
     }
   ]
