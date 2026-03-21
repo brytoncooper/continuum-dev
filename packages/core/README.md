@@ -16,7 +16,9 @@ It re-exports the public surface from:
 - `@continuum-dev/runtime`
 - `@continuum-dev/session`
 
-Use it when you want one dependency edge for the lower-level Continuum model, or when other framework bindings should depend on the runtime spine without naming each package separately.
+The runtime package keeps a small **root** API (`reconcile`, structural and value-write entrypoints, shared protocol constants, and core types). Helpers such as validation, node lookup, streamed view parts, and restore-candidate search are published on explicit `@continuum-dev/runtime/...` subpaths. Core does not narrow that layout: anything those packages export remains available through core, but understanding `@continuum-dev/runtime` on its own makes the contract clearer than treating core as the definition of “what runtime is.”
+
+Use core when you want one dependency edge for the lower-level Continuum model, or when other framework bindings should depend on the runtime spine without naming each package separately.
 
 ## Install
 

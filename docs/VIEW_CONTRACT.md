@@ -416,7 +416,6 @@ interface CollectionNodeState {
 ```ts
 interface DataSnapshot {
   values: Record<string, NodeValue>;
-  viewContext?: Record<string, ViewportState>;
   lineage: SnapshotLineage;
   valueLineage?: Record<string, ValueLineage>;
   detachedValues?: Record<string, DetachedValue>;

@@ -105,7 +105,6 @@ interface NodeValue<T = unknown> {
 
 interface DataSnapshot {
   values: Record<string, NodeValue>;
-  viewContext?: Record<string, ViewContext>;
   lineage: SnapshotLineage;
   valueLineage?: Record<string, ValueLineage>;
   detachedValues?: Record<string, DetachedValue>;
@@ -168,6 +167,10 @@ session.getDetachedValues(); // Record<string, DetachedValue>
 // Update node state (user interaction)
 session.updateState('nodeId', { value: 'hello' });
 
+// Focus (session-level; not part of DataSnapshot)
+session.setFocusedNodeId('nodeId');
+session.getFocusedNodeId(); // string | null
+
 // Record a custom interaction event
 session.recordIntent({
   nodeId: 'name',
@@ -189,7 +192,7 @@ session.rewind(checkpointId); // restores to that checkpoint, trims stack
 session.reset(); // reset to empty session state
 
 // Persistence
-const blob = session.serialize(); // { formatVersion: 1, ...full state }
+const blob = session.serialize(); // { formatVersion: 1, ...durable session state (focus excluded) }
 
 // Listeners (return unsubscribe functions)
 const unsub1 = session.onSnapshot((snapshot) => {}); // receives ContinuitySnapshot | null
@@ -207,6 +210,7 @@ import {
   ContinuumRenderer,
   useContinuumSession,
   useContinuumState,
+  useContinuumFocus,
   useContinuumSnapshot,
   useContinuumDiagnostics,
   useContinuumHydrated,
@@ -229,6 +233,8 @@ const session = useContinuumSession();
 
 // Read/write a single node's state (uses useSyncExternalStore)
 const [value, setValue] = useContinuumState('nodeId');
+
+const [isFocused, setFocused] = useContinuumFocus('nodeId');
 
 // Subscribe to the full snapshot (re-renders on every change)
 const snapshot = useContinuumSnapshot(); // ContinuitySnapshot | null
@@ -401,7 +407,7 @@ INTENT_STATUS.CANCELLED; // 'cancelled'
 
 ```
 packages/contract/   - Types, interfaces, constants (ViewDefinition, DataSnapshot, NodeValue)
-packages/runtime/    - Reconciliation engine (reconcile function)
+packages/runtime/    - Reconciliation engine (contract root plus explicit subpaths for helpers)
 packages/session/    - Session lifecycle (createSession, deserialize)
 packages/react/      - React bindings (Provider, Renderer, hooks)
 packages/angular/    - Angular bindings (provideContinuum, signals, standalone renderer, forms)
