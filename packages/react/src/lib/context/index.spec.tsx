@@ -282,7 +282,7 @@ describe('getChangedNodeIds (via store node subscriptions)', () => {
     unmount();
   });
 
-  it('returns empty array when values and viewContext refs are identical', () => {
+  it('does not fire node listener when snapshot values are unchanged', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;
     const f1Listener = vi.fn();
@@ -421,7 +421,7 @@ describe('getChangedNodeIds (via store node subscriptions)', () => {
     unmount();
   });
 
-  it('detects changed viewContext reference for same node id', () => {
+  it('notifies node listener when focus moves to that node id', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;
     const f1Listener = vi.fn();
@@ -447,7 +447,7 @@ describe('getChangedNodeIds (via store node subscriptions)', () => {
     f1Listener.mockClear();
 
     act(() => {
-      session!.updateViewportState('f1', { isFocused: true });
+      session!.setFocusedNodeId('f1');
     });
 
     expect(f1Listener).toHaveBeenCalled();
@@ -488,7 +488,7 @@ describe('getChangedNodeIds (via store node subscriptions)', () => {
     unmount();
   });
 
-  it('handles snapshots with empty values and viewContext objects', () => {
+  it('handles snapshots with empty values', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;
     const listener = vi.fn();
@@ -816,7 +816,7 @@ describe('createContinuumStore (via context capture)', () => {
     unmount();
   });
 
-  it('getNodeViewport returns undefined when no viewport set', () => {
+  it('getFocusedNodeId returns null when nothing focused', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;
 
@@ -837,11 +837,11 @@ describe('createContinuumStore (via context capture)', () => {
       session!.pushView(simpleView);
     });
 
-    expect(store!.getNodeViewport('f1')).toBeUndefined();
+    expect(store!.getFocusedNodeId()).toBeNull();
     unmount();
   });
 
-  it('getNodeViewport returns viewport for known node id', () => {
+  it('getFocusedNodeId returns canonical id after setFocusedNodeId', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;
 
@@ -860,10 +860,10 @@ describe('createContinuumStore (via context capture)', () => {
 
     act(() => {
       session!.pushView(simpleView);
-      session!.updateViewportState('f1', { scrollX: 10, zoom: 2 });
+      session!.setFocusedNodeId('f1');
     });
 
-    expect(store!.getNodeViewport('f1')).toEqual({ scrollX: 10, zoom: 2 });
+    expect(store!.getFocusedNodeId()).toBe('f1');
     unmount();
   });
 

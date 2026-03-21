@@ -13,7 +13,7 @@ import {
   useContinuumDiagnostics,
   useContinuumStreaming,
   useContinuumStreams,
-  useContinuumViewport,
+  useContinuumFocus,
   useContinuumAction,
   useContinuumHydrated,
   useContinuumConflict,
@@ -22,11 +22,7 @@ import {
   ContinuumProvider,
   ContinuumRenderScopeContext,
 } from '../context/index.js';
-import type {
-  NodeValue,
-  ViewDefinition,
-  ViewportState,
-} from '@continuum-dev/contract';
+import type { NodeValue, ViewDefinition } from '@continuum-dev/contract';
 
 function requireSession<T>(value: T | null): T {
   if (!value) {
@@ -345,7 +341,7 @@ describe('useContinuumSnapshot', () => {
   });
 });
 
-describe('useContinuumViewport', () => {
+describe('useContinuumFocus', () => {
   const componentMap = { field: () => <div /> };
   const viewDef: ViewDefinition = {
     viewId: 'v1',
@@ -353,17 +349,17 @@ describe('useContinuumViewport', () => {
     nodes: [{ id: 'f1', type: 'field', dataType: 'string' }],
   };
 
-  it('reads and writes viewport state', () => {
-    let hookViewport: ViewportState | undefined;
-    let setHookViewport: ((state: ViewportState) => void) | null = null;
+  it('reads and writes focus as boolean', () => {
+    let focused: boolean | undefined;
+    let setFocused: ((v: boolean) => void) | null = null;
 
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(viewDef);
 
-      const [viewport, setViewport] = useContinuumViewport('f1');
-      hookViewport = viewport;
-      setHookViewport = setViewport;
+      const [isFocused, setFn] = useContinuumFocus('f1');
+      focused = isFocused;
+      setFocused = setFn;
       return null;
     }
 
@@ -372,10 +368,10 @@ describe('useContinuumViewport', () => {
         <App />
       </ContinuumProvider>
     );
-    expect(hookViewport).toBeUndefined();
+    expect(focused).toBe(false);
 
-    act(() => requireSession(setHookViewport)({ isFocused: true }));
-    expect(hookViewport).toEqual({ isFocused: true });
+    act(() => requireSession(setFocused)(true));
+    expect(focused).toBe(true);
   });
 
   it('warns when called inside node scope', () => {
@@ -383,7 +379,7 @@ describe('useContinuumViewport', () => {
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined);
     function App() {
-      useContinuumViewport('f1');
+      useContinuumFocus('f1');
       return null;
     }
     render(
@@ -1020,7 +1016,7 @@ describe('shallowNodeValueEqual (via useContinuumState caching)', () => {
   });
 });
 
-describe('shallowViewportEqual (via useContinuumViewport caching)', () => {
+describe('useContinuumFocus subscription behavior', () => {
   const componentMap = { field: () => <div /> };
   const viewDef: ViewDefinition = {
     viewId: 'v1',
@@ -1028,16 +1024,16 @@ describe('shallowViewportEqual (via useContinuumViewport caching)', () => {
     nodes: [{ id: 'f1', type: 'field', dataType: 'string' }],
   };
 
-  it('same ref returns cached viewport', () => {
-    let viewportRef: ViewportState | undefined;
+  it('keeps focus true when unrelated value updates occur', () => {
+    let focusedRef: boolean | undefined;
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
 
     function App() {
       const session = useContinuumSession();
       capturedSession = session;
       if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
+      const [isFocused] = useContinuumFocus('f1');
+      focusedRef = isFocused;
       return null;
     }
 
@@ -1048,192 +1044,19 @@ describe('shallowViewportEqual (via useContinuumViewport caching)', () => {
     );
 
     act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        isFocused: true,
-      });
+      requireSession(capturedSession).setFocusedNodeId('f1');
     });
-    const first = viewportRef;
-    expect(first?.isFocused).toBe(true);
+    expect(focusedRef).toBe(true);
 
     act(() => {
       requireSession(capturedSession).updateState('f1', { value: 'x' });
     });
 
-    expect(viewportRef).toBe(first);
-    expect(viewportRef?.isFocused).toBe(true);
+    expect(focusedRef).toBe(true);
   });
 
-  it('matching viewport fields returns cached ref', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      capturedSession = session;
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        scrollX: 10,
-        isFocused: false,
-      });
-    });
-    const first = viewportRef;
-    expect(first?.scrollX).toBe(10);
-    expect(first?.isFocused).toBe(false);
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        scrollX: 10,
-        isFocused: false,
-      });
-    });
-
-    expect(viewportRef).toBe(first);
-    expect(viewportRef?.scrollX).toBe(10);
-    expect(viewportRef?.isFocused).toBe(false);
-  });
-
-  it('different scrollX returns new ref', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      capturedSession = session;
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', { scrollX: 0 });
-    });
-    const first = viewportRef;
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        scrollX: 100,
-      });
-    });
-
-    expect(viewportRef).not.toBe(first);
-  });
-
-  it('different zoom returns new ref', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      capturedSession = session;
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', { zoom: 1 });
-    });
-    const first = viewportRef;
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', { zoom: 2 });
-    });
-
-    expect(viewportRef).not.toBe(first);
-  });
-
-  it('different isFocused returns new ref', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      capturedSession = session;
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        isFocused: false,
-      });
-    });
-    const first = viewportRef;
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        isFocused: true,
-      });
-    });
-
-    expect(viewportRef).not.toBe(first);
-  });
-
-  it('left undefined returns new ref', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      capturedSession = session;
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-    expect(viewportRef).toBeUndefined();
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        isFocused: true,
-      });
-    });
-
-    expect(viewportRef).toBeDefined();
-  });
-
-  it('right undefined returns new ref', () => {
-    let viewportRef: ViewportState | undefined;
+  it('clears focus when session resets', () => {
+    let focusedRef: boolean | undefined;
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     let hasPushed = false;
 
@@ -1244,8 +1067,8 @@ describe('shallowViewportEqual (via useContinuumViewport caching)', () => {
         session.pushView(viewDef);
         hasPushed = true;
       }
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
+      const [isFocused] = useContinuumFocus('f1');
+      focusedRef = isFocused;
       return null;
     }
 
@@ -1256,17 +1079,15 @@ describe('shallowViewportEqual (via useContinuumViewport caching)', () => {
     );
 
     act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        isFocused: true,
-      });
+      requireSession(capturedSession).setFocusedNodeId('f1');
     });
-    expect(viewportRef).toBeDefined();
+    expect(focusedRef).toBe(true);
 
     act(() => {
       requireSession(capturedSession).reset();
     });
 
-    expect(viewportRef).toBeUndefined();
+    expect(focusedRef).toBe(false);
   });
 });
 
@@ -1715,7 +1536,7 @@ describe('useContinuumSnapshot additional', () => {
   });
 });
 
-describe('useContinuumViewport additional', () => {
+describe('useContinuumFocus additional', () => {
   const componentMap = { field: () => <div /> };
   const viewDef: ViewDefinition = {
     viewId: 'v1',
@@ -1726,14 +1547,14 @@ describe('useContinuumViewport additional', () => {
     ],
   };
 
-  it('returns undefined initially', () => {
-    let viewportRef: ViewportState | undefined;
+  it('returns false initially', () => {
+    let focusedRef: boolean | undefined;
 
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
+      const [isFocused] = useContinuumFocus('f1');
+      focusedRef = isFocused;
       return null;
     }
 
@@ -1742,19 +1563,19 @@ describe('useContinuumViewport additional', () => {
         <App />
       </ContinuumProvider>
     );
-    expect(viewportRef).toBeUndefined();
+    expect(focusedRef).toBe(false);
   });
 
-  it('returns cached viewport when shallow-equal', () => {
-    let viewportRef: ViewportState | undefined;
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+  it('updates after setFocused true', () => {
+    let focusedRef: boolean | undefined;
+    let setFocusedFn: ((v: boolean) => void) | null = null;
 
     function App() {
       const session = useContinuumSession();
-      capturedSession = session;
       if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
+      const [isFocused, setFn] = useContinuumFocus('f1');
+      focusedRef = isFocused;
+      setFocusedFn = setFn;
       return null;
     }
 
@@ -1763,53 +1584,16 @@ describe('useContinuumViewport additional', () => {
         <App />
       </ContinuumProvider>
     );
+    expect(focusedRef).toBe(false);
 
     act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        scrollX: 5,
-        isFocused: true,
-      });
-    });
-    const first = viewportRef;
-
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        scrollX: 5,
-        isFocused: true,
-      });
+      requireSession(setFocusedFn)(true);
     });
 
-    expect(viewportRef).toBe(first);
+    expect(focusedRef).toBe(true);
   });
 
-  it('updates viewport after setViewport call', () => {
-    let viewportRef: ViewportState | undefined;
-    let setViewportFn: ((state: ViewportState) => void) | null = null;
-
-    function App() {
-      const session = useContinuumSession();
-      if (!session.getSnapshot()) session.pushView(viewDef);
-      const [viewport, setViewport] = useContinuumViewport('f1');
-      viewportRef = viewport;
-      setViewportFn = setViewport;
-      return null;
-    }
-
-    render(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-    expect(viewportRef).toBeUndefined();
-
-    act(() => {
-      requireSession(setViewportFn)({ zoom: 2, isExpanded: true });
-    });
-
-    expect(viewportRef).toEqual({ zoom: 2, isExpanded: true });
-  });
-
-  it('does not re-render when unrelated node viewport changes', () => {
+  it('does not re-render f1 when f2 receives focus', () => {
     let renderCount = 0;
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
 
@@ -1817,7 +1601,7 @@ describe('useContinuumViewport additional', () => {
       const session = useContinuumSession();
       capturedSession = session;
       if (!session.getSnapshot()) session.pushView(viewDef);
-      useContinuumViewport('f1');
+      useContinuumFocus('f1');
       renderCount++;
       return null;
     }
@@ -1830,12 +1614,47 @@ describe('useContinuumViewport additional', () => {
     const initialCount = renderCount;
 
     act(() => {
-      requireSession(capturedSession).updateViewportState('f2', {
-        isFocused: true,
-      });
+      requireSession(capturedSession).setFocusedNodeId('f2');
     });
 
     expect(renderCount).toBe(initialCount);
+  });
+
+  it('updates when a pushed view removes the focused node', () => {
+    let focusedRef: boolean | undefined;
+    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
+
+    function App() {
+      const session = useContinuumSession();
+      capturedSession = session;
+      if (!session.getSnapshot()) {
+        session.pushView(viewDef);
+      }
+      const [isFocused] = useContinuumFocus('f1');
+      focusedRef = isFocused;
+      return null;
+    }
+
+    render(
+      <ContinuumProvider components={componentMap}>
+        <App />
+      </ContinuumProvider>
+    );
+
+    act(() => {
+      requireSession(capturedSession).setFocusedNodeId('f1');
+    });
+    expect(focusedRef).toBe(true);
+
+    act(() => {
+      requireSession(capturedSession).pushView({
+        viewId: 'v1',
+        version: '2.0',
+        nodes: [{ id: 'f2', type: 'field', dataType: 'string' }],
+      });
+    });
+
+    expect(focusedRef).toBe(false);
   });
 });
 

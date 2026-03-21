@@ -28,9 +28,8 @@ import {
   useContinuumSnapshot,
   useContinuumState,
   useContinuumSuggestions,
-  useContinuumViewport,
+  useContinuumFocus,
 } from '../hooks/index.js';
-import type { ViewportState } from '@continuum-dev/contract';
 import { ContinuumRenderer } from './index.js';
 
 const viewDef: ViewDefinition = {
@@ -164,27 +163,19 @@ describe('react integration', () => {
     view.unmount();
   });
 
-  it('supports viewport updates through useContinuumViewport', () => {
+  it('supports focus through useContinuumFocus', () => {
     function App() {
       const session = useContinuumSession();
-      const [viewport, setViewport] = useContinuumViewport('field');
+      const [focused, setFocused] = useContinuumFocus('field');
       if (!session.getSnapshot()) {
         session.pushView(viewDef);
       }
       return (
         <button
-          data-testid="viewport-button"
-          onClick={() =>
-            setViewport({
-              scrollX: 20,
-              scrollY: 30,
-              zoom: 1.2,
-              offsetX: 4,
-              offsetY: 7,
-            })
-          }
+          data-testid="focus-button"
+          onClick={() => setFocused(!focused)}
         >
-          {viewport?.zoom ?? 0}
+          {focused ? '1' : '0'}
         </button>
       );
     }
@@ -196,12 +187,12 @@ describe('react integration', () => {
     );
 
     const button = view.container.querySelector(
-      '[data-testid="viewport-button"]'
+      '[data-testid="focus-button"]'
     ) as HTMLButtonElement;
     act(() => {
       button.click();
     });
-    expect(button.textContent).toBe('1.2');
+    expect(button.textContent).toBe('1');
     view.unmount();
   });
 
@@ -3994,12 +3985,12 @@ describe('hook flows integration', () => {
     rendered.unmount();
   });
 
-  it('useContinuumViewport returns undefined before set', () => {
-    let vp: ViewportState | undefined = { isFocused: true };
+  it('useContinuumFocus returns false before set', () => {
+    let focused: boolean | undefined;
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(simpleView);
-      [vp] = useContinuumViewport('f1');
+      [focused] = useContinuumFocus('f1');
       return null;
     }
     const rendered = renderIntoDom(
@@ -4007,17 +3998,19 @@ describe('hook flows integration', () => {
         <App />
       </ContinuumProvider>
     );
-    expect(vp).toBeUndefined();
+    expect(focused).toBe(false);
     rendered.unmount();
   });
 
-  it('useContinuumViewport returns updated viewport', () => {
-    let vp: ViewportState | undefined;
-    let setVp: ((v: ViewportState) => void) | null = null;
+  it('useContinuumFocus returns true after setFocused true', () => {
+    let focused = false;
+    let setFocused: ((v: boolean) => void) | null = null;
     function App() {
       const session = useContinuumSession();
       if (!session.getSnapshot()) session.pushView(simpleView);
-      [vp, setVp] = useContinuumViewport('f1');
+      const [f, s] = useContinuumFocus('f1');
+      focused = f;
+      setFocused = s;
       return null;
     }
     const rendered = renderIntoDom(
@@ -4026,20 +4019,19 @@ describe('hook flows integration', () => {
       </ContinuumProvider>
     );
     act(() => {
-      requireSession(setVp)({ zoom: 3, isFocused: true });
+      requireSession(setFocused)(true);
     });
-    expect(vp?.zoom).toBe(3);
-    expect(vp?.isFocused).toBe(true);
+    expect(focused).toBe(true);
     rendered.unmount();
   });
 
-  it('useContinuumViewport does not re-render for unrelated node change', () => {
+  it('useContinuumFocus does not re-render f1 when f2 receives focus', () => {
     let renderCount = 0;
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     function App() {
       capturedSession = useContinuumSession();
       if (!capturedSession.getSnapshot()) capturedSession.pushView(simpleView);
-      useContinuumViewport('f1');
+      useContinuumFocus('f1');
       renderCount++;
       return null;
     }
@@ -4050,44 +4042,9 @@ describe('hook flows integration', () => {
     );
     const before = renderCount;
     act(() => {
-      requireSession(capturedSession).updateViewportState('f2', {
-        isFocused: true,
-      });
+      requireSession(capturedSession).setFocusedNodeId('f2');
     });
     expect(renderCount).toBe(before);
-    rendered.unmount();
-  });
-
-  it('useContinuumViewport caches ref for shallow-equal viewport', () => {
-    const refs: (ViewportState | undefined)[] = [];
-    let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
-    function App() {
-      capturedSession = useContinuumSession();
-      if (!capturedSession.getSnapshot()) capturedSession.pushView(simpleView);
-      const [vp] = useContinuumViewport('f1');
-      refs.push(vp);
-      return null;
-    }
-    const rendered = renderIntoDom(
-      <ContinuumProvider components={componentMap}>
-        <App />
-      </ContinuumProvider>
-    );
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        zoom: 1,
-        isFocused: false,
-      });
-    });
-    const afterFirst = refs[refs.length - 1];
-    act(() => {
-      requireSession(capturedSession).updateViewportState('f1', {
-        zoom: 1,
-        isFocused: false,
-      });
-    });
-    expect(refs[refs.length - 1]).toBe(afterFirst);
-    expect(refs[refs.length - 1]?.zoom).toBe(1);
     rendered.unmount();
   });
 
@@ -4749,7 +4706,7 @@ describe('hook flows integration', () => {
     expect(() => renderIntoDom(<Orphan />)).toThrow('<ContinuumProvider>');
   });
 
-  it('useContinuumViewport warns when used inside collection scope', () => {
+  it('useContinuumFocus warns when used inside collection scope', () => {
     const warnSpy = vi
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined);
@@ -4769,7 +4726,7 @@ describe('hook flows integration', () => {
       );
     }
     function InnerVpApp() {
-      useContinuumViewport('f1');
+      useContinuumFocus('f1');
       return null;
     }
     renderIntoDom(

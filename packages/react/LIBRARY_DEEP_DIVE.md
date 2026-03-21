@@ -71,7 +71,7 @@ flowchart LR
     Provider["ContinuumProvider"]
     Store["ContinuumStore"]
     Contexts["ContinuumContext\nContinuumRenderSnapshotContext\nContinuumRenderScopeContext"]
-    Hooks["hooks/\nstate\nsnapshots\nstreams\nviewport\ndiagnostics\nrestore\nsuggestions\nactions"]
+    Hooks["hooks/\nstate\nsnapshots\nstreams\nfocus\ndiagnostics\nrestore\nsuggestions\nactions"]
     Renderer["renderer/\nContinuumRenderer\nNodeRenderer"]
     Components["consumer component map"]
   end
@@ -109,7 +109,7 @@ Primary public symbols:
 - `useContinuumSnapshot`
 - `useContinuumCommittedSnapshot`
 - `useContinuumStreams`, `useContinuumStreaming`
-- `useContinuumViewport`
+- `useContinuumFocus`
 - `useContinuumDiagnostics`
 - `useContinuumConflict`
 - `useContinuumRestoreReviews`, `useContinuumRestoreCandidates`
@@ -333,7 +333,7 @@ Key methods:
 - `getSnapshot()`, `getCommittedSnapshot()`
 - `getStreams()`, `getActiveStream()`
 - `subscribeSnapshot()`, `subscribeStreams()`, `subscribeDiagnostics()`, `subscribeNode()`
-- `getNodeValue()`, `getNodeViewport()`
+- `getNodeValue()`, `getFocusedNodeId()`
 - `destroy()`
 
 ### `createContinuumStore(session): ContinuumStore`
@@ -344,7 +344,7 @@ Behavior:
 2. Fan out `session.onSnapshot` into:
    - snapshot listeners
    - diagnostics listeners
-   - only the node listeners whose values or viewport state changed
+   - only the node listeners whose values changed, plus node listeners for the previous and next focused ids when focus changes
 3. Fan out `session.onStreams` into stream listeners.
 4. Fan out `session.onIssues` into diagnostics listeners.
 5. Expose stable getters and subscription helpers for the rest of the library.
@@ -452,7 +452,7 @@ Submodules:
 - `state.ts`: canonical node-value subscriptions (`useContinuumState`)
 - `snapshots.ts`: current and committed snapshot hooks
 - `streams.ts`: raw stream-list hook and foreground streaming summary hook
-- `viewport.ts`: viewport-state subscriptions
+- `focus.ts`: focus subscriptions (`useContinuumFocus`)
 - `diagnostics.ts`: diagnostics and conflict hooks
 - `restore.ts`: detached restore review and candidate hooks
 - `suggestions.ts`: bulk suggestion state/actions
@@ -500,13 +500,14 @@ Behavior:
 - `useContinuumStreams()` returns the raw stream metadata array from the store.
 - `useContinuumStreaming()` derives `{ streams, activeStream, isStreaming }` for the active foreground stream.
 
-### `useContinuumViewport(nodeId)`
+### `useContinuumFocus(nodeId)`
 
 Behavior:
 
-- Subscribes to one node's viewport state through `store.subscribeNode(nodeId, ...)`.
-- Shallow-compares viewport fields to avoid unnecessary rerenders.
-- Logs a development warning if called inside a collection item scope, because viewport state is not item-scoped.
+- Subscribes through `store.subscribeNode(nodeId, ...)` and `session.onFocusChange` so the hook updates when this node's focus boolean changes or when snapshot-driven node subscriptions fire.
+- Returns `[isFocused, setFocused]` where `setFocused(true)` calls `session.setFocusedNodeId(nodeId)` and `setFocused(false)` clears focus when this node is currently focused.
+- Session revalidates focus against the active render tree after pushed and streamed view changes, so this hook also updates when a focused node moves or disappears.
+- Logs a development warning if called inside a collection item scope, because focus is not supported for collection item nodes.
 
 ### `useContinuumDiagnostics()` and `useContinuumConflict(nodeId)`
 
@@ -882,7 +883,7 @@ For fast AI/human lookup, this is the high-value function index across source an
 - `useContinuumCommittedSnapshot` (`hooks/snapshots.ts`)
 - `useContinuumStreams` (`hooks/streams.ts`)
 - `useContinuumStreaming` (`hooks/streams.ts`)
-- `useContinuumViewport` (`hooks/viewport.ts`)
+- `useContinuumFocus` (`hooks/focus.ts`)
 - `useContinuumDiagnostics` (`hooks/diagnostics.ts`)
 - `useContinuumConflict` (`hooks/diagnostics.ts`)
 - `useContinuumRestoreReviews` (`hooks/restore.ts`)

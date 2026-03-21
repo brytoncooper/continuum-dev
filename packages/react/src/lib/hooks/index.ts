@@ -19,4 +19,4 @@ export {
 export { useContinuumState } from './state.js';
 export { useContinuumStreaming, useContinuumStreams } from './streams.js';
 export { useContinuumSuggestions } from './suggestions.js';
-export { useContinuumViewport } from './viewport.js';
+export { useContinuumFocus } from './focus.js';

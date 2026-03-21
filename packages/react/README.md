@@ -243,7 +243,7 @@ flowchart LR
     Provider["ContinuumProvider"]
     Store["ContinuumStore"]
     Contexts["ContinuumContext\nContinuumRenderSnapshotContext\nContinuumRenderScopeContext"]
-    Hooks["hooks/\nstate\nsnapshots\nstreams\nviewport\ndiagnostics\nrestore\nsuggestions\nactions"]
+    Hooks["hooks/\nstate\nsnapshots\nstreams\nfocus\ndiagnostics\nrestore\nsuggestions\nactions"]
     Renderer["renderer/\nContinuumRenderer\nNodeRenderer"]
     Components["your component map"]
   end
@@ -355,15 +355,13 @@ Returns timeline and reconciliation metadata:
 const { issues, checkpoints } = useContinuumDiagnostics();
 ```
 
-#### `useContinuumViewport(nodeId)`
+#### `useContinuumFocus(nodeId)`
 
-Tracks non-data state (focus, expansion, scroll, zoom, offsets) inside the session model.
+Returns whether this canonical node is the session focus and a setter. Focus is **not** stored on `DataSnapshot`; it is session-level state for UI orchestration (for example restoring focus after streamed view updates). The session revalidates focus against the active render tree after pushed or streamed view changes and clears it if the node disappears. Scroll, zoom, and expansion belong in local or app-level state. In development, calling this inside a collection item scope logs a warning because focus is not supported for collection item nodes.
 
 ```ts
-const [viewport, setViewport] = useContinuumViewport('table');
+const [isFocused, setFocused] = useContinuumFocus('table');
 ```
-
-If this hook is called from inside a collection-item scope, Continuum logs a development warning because viewport state is not currently scoped per collection item.
 
 #### `useContinuumSession()`
 

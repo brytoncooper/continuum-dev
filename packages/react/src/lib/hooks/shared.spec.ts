@@ -5,7 +5,6 @@ import {
   shallowNodeValueEqual,
   shallowRestoreCandidatesEqual,
   shallowRestoreReviewsEqual,
-  shallowViewportEqual,
 } from './shared.js';
 
 describe('hooks shared helpers', () => {
@@ -41,31 +40,6 @@ describe('hooks shared helpers', () => {
         }
       )
     ).toBe(false);
-  });
-
-  it('compares viewport state by rendering-relevant fields', () => {
-    expect(
-      shallowViewportEqual(
-        {
-          scrollX: 1,
-          scrollY: 2,
-          zoom: 3,
-          offsetX: 4,
-          offsetY: 5,
-          isExpanded: true,
-          isFocused: false,
-        },
-        {
-          scrollX: 1,
-          scrollY: 2,
-          zoom: 3,
-          offsetX: 4,
-          offsetY: 5,
-          isExpanded: true,
-          isFocused: false,
-        }
-      )
-    ).toBe(true);
   });
 
   it('matches restore scopes, candidates, and reviews by stable identity fields', () => {

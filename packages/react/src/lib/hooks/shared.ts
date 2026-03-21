@@ -3,7 +3,6 @@ import type {
   DetachedRestoreReviewCandidate,
   DetachedRestoreScope,
   NodeValue,
-  ViewportState,
 } from '@continuum-dev/core';
 
 export const EMPTY_RESTORE_REVIEWS: DetachedRestoreReview[] = [];
@@ -39,27 +38,6 @@ export function shallowNodeValueEqual(
     left.isSticky === right.isSticky &&
     left.isValid === right.isValid &&
     left.suggestion === right.suggestion
-  );
-}
-
-export function shallowViewportEqual(
-  left: ViewportState | undefined,
-  right: ViewportState | undefined
-): boolean {
-  if (left === right) {
-    return true;
-  }
-  if (!left || !right) {
-    return false;
-  }
-  return (
-    left.scrollX === right.scrollX &&
-    left.scrollY === right.scrollY &&
-    left.zoom === right.zoom &&
-    left.offsetX === right.offsetX &&
-    left.offsetY === right.offsetY &&
-    left.isExpanded === right.isExpanded &&
-    left.isFocused === right.isFocused
   );
 }
 
