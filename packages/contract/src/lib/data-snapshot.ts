@@ -8,10 +8,6 @@ export interface DataSnapshot {
    */
   values: Record<string, NodeValue>;
   /**
-   * Per-node UI state keyed by node id.
-   */
-  viewContext?: Record<string, ViewportState>;
-  /**
    * Provenance for the snapshot as a whole.
    */
   lineage: SnapshotLineage;
@@ -73,45 +69,6 @@ export interface CollectionNodeState {
    */
   items: CollectionItemState[];
 }
-
-/**
- * Ephemeral viewport and interaction state for a node.
- */
-export interface ViewportState {
-  /**
-   * Horizontal scroll position.
-   */
-  scrollX?: number;
-  /**
-   * Vertical scroll position.
-   */
-  scrollY?: number;
-  /**
-   * Zoom factor applied to the viewport.
-   */
-  zoom?: number;
-  /**
-   * Horizontal pan offset.
-   */
-  offsetX?: number;
-  /**
-   * Vertical pan offset.
-   */
-  offsetY?: number;
-  /**
-   * Whether the associated UI region is expanded.
-   */
-  isExpanded?: boolean;
-  /**
-   * Whether the associated UI region currently has focus.
-   */
-  isFocused?: boolean;
-}
-
-/**
- * Backward-compatible alias for viewport context.
- */
-export type ViewContext = ViewportState;
 
 /**
  * Global provenance metadata for a data snapshot.

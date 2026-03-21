@@ -13,7 +13,7 @@ The package exports only three model modules:
 
 `contract` defines the durable, declarative Continuum vocabulary:
 - view AST types like `ViewDefinition`, `ViewNode`, `FieldNode`, `GroupNode`, `CollectionNode`, `RowNode`, and `GridNode`
-- user-owned state types like `DataSnapshot`, `NodeValue`, `ValueLineage`, `SnapshotLineage`, and `ViewportState`
+- user-owned state types like `DataSnapshot`, `NodeValue`, `ValueLineage`, and `SnapshotLineage`
 - detached preservation types like `DetachedValue`
 - the top-level `ContinuitySnapshot` pair of `{ view, data }`
 
@@ -45,8 +45,7 @@ ContinuitySnapshot
    |- values: Record<nodeId, NodeValue>
    |- detachedValues: Record<nodeId, DetachedValue>
    |- lineage: SnapshotLineage
-   |- valueLineage: Record<nodeId, ValueLineage>
-   `- viewContext: Record<nodeId, ViewportState>
+   `- valueLineage: Record<nodeId, ValueLineage>
 ```
 
 ## Core Invariants
