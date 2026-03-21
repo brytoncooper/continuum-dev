@@ -13,15 +13,15 @@ import type {
 } from '../../types.js';
 import { traverseViewNodes } from '../view-traversal/index.js';
 import { buildLineageFromPrior } from './reconciled-lineage.js';
-import type { BlindCarryResultInput } from './types.js';
+import type { PriorDataWithoutViewInput } from './types.js';
 
-export function buildBlindCarryResult(
-  input: BlindCarryResultInput
+export function buildResultForPriorDataWithoutView(
+  input: PriorDataWithoutViewInput
 ): ReconciliationResult {
   const { newView, priorData, now, options } = input;
-  const issues = buildBlindCarryIssues(newView);
+  const issues = buildPriorDataWithoutViewIssues(newView);
 
-  if (!options.allowBlindCarry) {
+  if (!options.allowPriorDataWithoutPriorView) {
     return {
       reconciledState: {
         values: {},
@@ -63,7 +63,9 @@ export function buildBlindCarryResult(
   };
 }
 
-function buildBlindCarryIssues(newView: ViewDefinition): ReconciliationIssue[] {
+function buildPriorDataWithoutViewIssues(
+  newView: ViewDefinition
+): ReconciliationIssue[] {
   return [
     {
       severity: ISSUE_SEVERITY.WARNING,

@@ -16,11 +16,11 @@ import { generateSessionId } from './view-hash.js';
 import { buildFreshLineage } from './reconciled-lineage.js';
 import type {
   FreshNodeCollectionInput,
-  FreshSessionResultInput,
+  InitialSnapshotFromViewInput,
 } from './types.js';
 
-export function buildFreshSessionResult(
-  input: FreshSessionResultInput
+export function buildInitialSnapshotFromView(
+  input: InitialSnapshotFromViewInput
 ): ReconciliationResult {
   const { newView, now } = input;
   const values: Record<string, NodeValue> = {};
