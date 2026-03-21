@@ -59,41 +59,31 @@ If tests and implementation are written together, there is a natural pull to adj
 
 # This Project's Conventions
 
-Condensed cheat sheet. Each item links to the full rule for details.
+Condensed cheat sheet for CooperContinuum. Full detail lives under `.cursor/rules/`.
 
-## Feature Isolation (critical)
+## Nx and import boundaries
 
-Features (`packages/web/features/*`) are isolated. They NEVER import from each other. If a feature needs something from another domain, it goes through shared adapters and its own facade. Read `.cursor/rules/feature-isolation.mdc` for the full rule.
+- Allowed **cross-library imports** are defined only by `@nx/enforce-module-boundaries` → `depConstraints` in `eslint.config.mjs`. Before adding an import or dependency, confirm source and target `nx.tags` satisfy those constraints.
+- Ring names and tag meanings are summarized in `.cursor/rules/clean-architecture-layer-mapping.mdc`. Use it to reason about direction; do not treat it as overriding ESLint.
 
-## Feature Facade Pattern
+## Inner packages stay framework-free
 
-Components and pages import from their feature's facade files only:
-- `./queries`, `./mutations`, `./adapters` -- never from `@global/*` or `@tanstack/*` directly.
-- The facade is the only layer that touches global packages.
-- Read `.cursor/rules/feature-architecture.mdc` for the full rule.
+- `packages/contract`, `packages/runtime`, and `packages/session` must not depend on React, Angular, routers, or vendor SDKs. UI and integrations live in outer packages and apps. See `.cursor/rules/clean-architecture-framework-boundaries.mdc`.
 
-## Reference Implementation
+## Ports and payloads
 
-Vendors (`packages/web/features/vendors`) is the reference feature. When unsure how something should be structured, check vendors first. But remember -- if your problem doesn't match what vendors does, don't force the pattern (see "Deciding: Follow a Pattern or Build Something New" above).
+- When inner code needs the outside world, depend on a **port** (narrow interface or callback) with **contract-shaped** types, not vendor types. See `.cursor/rules/clean-architecture-dependency-inversion.mdc` and `.cursor/rules/clean-code-modules-and-objects.mdc`.
 
-## Angular Conventions
+## Tests and public API
 
-- Signals over observables for component state.
-- `inject()` over constructor injection.
-- `ChangeDetectionStrategy.OnPush` on all components.
-- No comments in code.
-- Read `.cursor/rules/cursor.mdc` for the full list.
+- Prove behavior through **public package surfaces** or ports with fakes; avoid coupling to private modules or incidental UI structure. See `.cursor/rules/clean-architecture-test-boundaries.mdc` and `.cursor/rules/clean-code-tests.mdc`.
+- Add **TSDoc** on **exported** symbols that are part of a package's public consumer surface, per `.cursor/rules/public-api-docs.mdc`.
 
-## Shared Utilities
+## Serialization (v0)
 
-Before building something from scratch, check if a shared package already provides it:
-- `@master-detail-layout` -- layout components and list-page composables
-- `@shared-lists` -- searchable list, sort/filter options
-- `@shared-drawers` -- drawer components and utilities
-- `@shared-feedback` -- alerts, confirmations, toasts
+- This repo is v0 pre-release. Follow `.cursor/rules/version-context.mdc` for `formatVersion` and avoid extra migration machinery until v1.
 
-Read the package's `index.ts` to see what's exported.
+## Subagents and skills
 
-## Skills
-
-Before building something, check if there's a skill for it in `.cursor/skills/`. Skills contain step-by-step patterns for common tasks like adding drawers, configuring list pages, setting up features, and committing changes.
+- Specialized audits live as subagents in `.cursor/agents/` (for example `continuum-nx-boundary-audit`, `continuum-framework-boundary-audit`). Invoke when you need an isolated review pass.
+- Workflow skills live in `.cursor/skills/` (for example `staged-commit`). Use them when the task matches their description.
