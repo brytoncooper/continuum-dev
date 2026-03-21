@@ -45,4 +45,7 @@ export { StarterKitStyleProvider, starterKitDefaultStyles } from './lib/style-co
 export type { StarterKitStyleConfig, StarterKitStyleSlot } from './lib/style-config.js';
 
 export { StarterKitSessionWorkbench } from './lib/ai/session-workbench.js';
-export type { StarterKitCheckpointPreview } from './lib/ai/session-workbench.js';
+export type {
+  StarterKitCheckpointPreview,
+  StarterKitSessionWorkbenchProps,
+} from './lib/ai/session-workbench.js';

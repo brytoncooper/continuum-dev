@@ -5,6 +5,7 @@ import {
 } from '@continuum-dev/starter-kit-ai';
 import type { DefaultChatTransport } from 'ai';
 import type { ViewDefinition } from '@continuum-dev/core';
+import { useCallback, useState } from 'react';
 import { color, control, radius, space, type } from '../../ui/tokens';
 import type { UseVercelAiSdkDemoSettingsResult } from '../hooks/use-vercel-ai-sdk-demo-settings';
 
@@ -114,6 +115,12 @@ export function VercelAiSdkControlsPanel({
   onSubmittingChange,
   onError,
 }: VercelAiSdkControlsPanelProps) {
+  const [vercelAiSdkChatRemountSerial, setVercelAiSdkChatRemountSerial] =
+    useState(0);
+  const remountVercelAiSdkChatToClearTranscript = useCallback(() => {
+    setVercelAiSdkChatRemountSerial((serial) => serial + 1);
+  }, []);
+
   return (
     <aside style={panelStyle}>
       <div style={{ display: 'grid', gap: space.xs }}>
@@ -201,7 +208,7 @@ export function VercelAiSdkControlsPanel({
 
       <div style={chatLockWrapperStyle}>
         <StarterKitChatBox
-          key={chatRuntimeKey}
+          key={`${chatRuntimeKey}:${vercelAiSdkChatRemountSerial}`}
           driver={{
             kind: 'vercel-ai-sdk',
             props: {
@@ -244,6 +251,7 @@ export function VercelAiSdkControlsPanel({
           <StarterKitSessionWorkbench
             initialView={initialView}
             resetLabel="Form Reset"
+            onAfterSessionReset={remountVercelAiSdkChatToClearTranscript}
           />
         </div>
       </div>

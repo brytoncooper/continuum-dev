@@ -38,6 +38,11 @@ export interface UseSessionWorkbenchArgs {
     checkpoint: StarterKitCheckpointPreview | null
   ) => void;
   clearCheckpointPreviewSignal?: number;
+  /**
+   * Same contract as `StarterKitSessionWorkbenchProps.onAfterSessionReset`.
+   * Invoked at the end of `reset()` after Continuum state is cleared and `initialView` is reapplied.
+   */
+  onAfterSessionReset?: () => void;
 }
 
 export interface UseSessionWorkbenchResult {
@@ -189,6 +194,7 @@ export function useSessionWorkbench(
     sessionAdapter.applyView(args.initialView);
     setSelectedCheckpointId('');
     args.onCheckpointPreviewRequest?.(null);
+    args.onAfterSessionReset?.();
   }
 
   function rewindSelectedCheckpoint(): void {

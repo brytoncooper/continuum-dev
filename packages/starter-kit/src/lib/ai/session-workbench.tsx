@@ -20,6 +20,18 @@ export interface StarterKitSessionWorkbenchProps {
     checkpoint: StarterKitCheckpointPreview | null
   ) => void;
   clearCheckpointPreviewSignal?: number;
+  /**
+   * Runs **after** the workbench reset button finishes Continuum work, in this order:
+   * 1. `session.reset()` — clears committed view/data, streams, checkpoints, proposals, etc.
+   * 2. `applyView(initialView)` — restores the baseline view.
+   * 3. Checkpoint preview UI is cleared.
+   * 4. **Then** this callback runs.
+   *
+   * Continuum does **not** clear separate UI state (e.g. a Vercel AI SDK `useChat` message list).
+   * Typical integration: bump a React `key` on the chat subtree here so the transcript resets in
+   * sync with the form reset, without adding server-side session storage.
+   */
+  onAfterSessionReset?: () => void;
 }
 
 export function StarterKitSessionWorkbench({
@@ -28,6 +40,7 @@ export function StarterKitSessionWorkbench({
   showInlineCheckpointPreview = true,
   onCheckpointPreviewRequest,
   clearCheckpointPreviewSignal,
+  onAfterSessionReset,
 }: StarterKitSessionWorkbenchProps) {
   const {
     sessionId,
@@ -49,6 +62,7 @@ export function StarterKitSessionWorkbench({
     initialView,
     onCheckpointPreviewRequest,
     clearCheckpointPreviewSignal,
+    onAfterSessionReset,
   });
 
   return (

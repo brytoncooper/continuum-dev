@@ -154,6 +154,8 @@ Supported slots:
 
 `StarterKitSessionWorkbench` stays in this package because it is session tooling, not provider-specific AI UI.
 
+The **Reset** control clears Continuum session state and reapplies `initialView`. That does not remove other client state (for example a Vercel AI SDK chat transcript). Use optional `onAfterSessionReset` for companion resets—typical pattern: increment a React `key` on the chat subtree so `useChat` remounts empty. See TSDoc on `StarterKitSessionWorkbenchProps`.
+
 ```tsx
 import { StarterKitSessionWorkbench } from '@continuum-dev/starter-kit';
 

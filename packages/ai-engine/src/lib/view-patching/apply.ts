@@ -1,6 +1,6 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
-import { isDeepStrictEqual } from 'node:util';
+import { deepEqual } from './deep-equal.js';
 import { normalizeViewPatchOperation } from './normalize.js';
 import type { ViewPatchPlan } from './types.js';
 
@@ -48,7 +48,7 @@ export function applyPatchPlanToView(
     }
   }
 
-  if (!changed || isDeepStrictEqual(nextView, currentView)) {
+  if (!changed || deepEqual(nextView, currentView)) {
     return null;
   }
 
