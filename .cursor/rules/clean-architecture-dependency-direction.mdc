@@ -1,0 +1,25 @@
+---
+description: Inward-only source dependencies and inner-friendly data at architectural boundaries
+alwaysApply: true
+---
+
+# Clean Architecture — dependency direction
+
+## Absolutes
+
+- **Source dependencies point only inward**, toward more stable policy. Outer layers may depend on inner layers; inner layers must not depend on outer layers by name, import, or type surface.
+- **Data crossing a boundary** must be in the shape that is most convenient for the **receiver** on the inner side: plain records, contract types, and narrow value objects. Do not pass framework types, vendor SDK types, transport objects, or storage driver shapes inward.
+- **Before adding an import, a new package dependency, or a cross-boundary public API**, complete the procedure below. If any step fails, stop and redesign (port, adapter, or move code outward).
+
+## Required procedure
+
+1. Identify the **source** project’s `scope:*` tag(s) and its architectural ring (see `clean-architecture-layer-mapping.mdc`).
+2. Identify the **target** project’s `scope:*` tag(s) and ring.
+3. Confirm the dependency **points inward** (outer → inner), not the reverse.
+4. If control must flow **outward** (inner calls I/O, UI, or a vendor), the inner side depends only on a **port** it defines; the outer side implements it (see `clean-architecture-dependency-inversion.mdc`).
+5. Confirm payloads are **inner-friendly** (contract/DTO-shaped), not outer-shaped.
+6. Confirm the edge is **allowed** by `@nx/enforce-module-boundaries` → `depConstraints` in `eslint.config.mjs` for both projects’ tags.
+
+## Defaults
+
+- When unsure which ring a project belongs to, read its `package.json` / `project.json` `nx.tags` and map them using `clean-architecture-layer-mapping.mdc`.

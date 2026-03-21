@@ -1,0 +1,16 @@
+---
+description: Tests as the outermost layer; stable seams over UI structure
+alwaysApply: true
+---
+
+# Clean Architecture — test boundaries
+
+## Absolutes
+
+- **Tests sit outside** production rings: they exercise **behavior** through **stable seams** (use cases, ports with fakes, `runtime` / `session` / `core` public APIs), not through incidental UI layout or component hierarchy details.
+- **Business rules** are proven with tests that do **not** depend on React tree shape, CSS class names, or private component implementation. UI tests assert **given DTO or props → expected render or interaction** at the boundary that is meant to be stable.
+- **Do not** couple tests to structural implementation detail in inner layers (private modules, internal file layout) when a **public package surface** or **port** is the intended contract.
+
+## Defaults
+
+- For general test quality and process, follow `clean-code-tests.mdc`. This rule only governs **where** tests attach in the architecture and **what** they should avoid coupling to.

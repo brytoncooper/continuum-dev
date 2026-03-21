@@ -1,0 +1,17 @@
+---
+description: Frameworks as details, humble UI, composition roots
+alwaysApply: true
+---
+
+# Clean Architecture — frameworks and composition
+
+## Absolutes
+
+- **Frameworks are details.** No React, Angular, router, meta-framework hooks, decorators tied to those stacks, or vendor SDK entrypoints in `packages/contract`, `packages/runtime`, or `packages/session`.
+- **Humble Object:** UI components in `scope:react` / `scope:angular` stay **thin**: render props or simple view-model data. Put orchestration, branching, and mapping in **testable** modules (builders, presenters, facades, hooks colocated in outer packages) that output **plain DTOs** for the view.
+- **Composition root (“Main”):** `apps/*`, `scope:starter-kit`, and `scope:starter-kit-ai` **wire** concrete outer implementations into inner ports. They are allowed to be “dirty” with framework and vendor imports; they **must not** host core business rules that belong in `runtime` or `session`.
+- **Defer decisions:** Core use-case behavior must remain definable and testable **without** committing to a specific UI framework, LLM vendor, or database. Keep those choices in outer scopes and composition roots.
+
+## Defaults
+
+- If a framework forces inheritance or base classes, **isolate** that in an outer adapter or wrapper; do not pull that requirement into inner packages.

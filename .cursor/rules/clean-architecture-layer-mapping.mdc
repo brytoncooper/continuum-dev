@@ -1,0 +1,43 @@
+---
+description: Maps Clean Architecture rings to Nx scope tags; ESLint is the allowed-edge source of truth
+alwaysApply: true
+---
+
+# Clean Architecture — layer mapping (this workspace)
+
+## Absolutes
+
+- **Allowed import edges** are defined only by `@nx/enforce-module-boundaries` → `depConstraints` in `eslint.config.mjs`. Do not rely on this file to invent new allowed edges; use it to **name** rings and **reason** about direction.
+- **Before any new cross-library import**, confirm the source and target libraries’ `nx.tags` satisfy `depConstraints`.
+
+## Ring → primary `scope:*` tags
+
+- **Entities / enterprise rules:** `scope:contract`, `scope:protocol`, `scope:prompts`, `scope:shared`, `scope:async`, `scope:colors`, `scope:strings`
+- **Use cases / application:** `scope:runtime`, `scope:session`
+- **Interface adapters:** `scope:core`, `scope:adapters`, `scope:vercel-ai-sdk-adapter`
+- **Frameworks & drivers:** `scope:react`, `scope:angular`, `scope:ai-connect`, `scope:ai-engine`, `scope:starter-kit`, `scope:starter-kit-ai`, `scope:playground`, `scope:demo`
+
+## Dependency direction (conceptual)
+
+```mermaid
+flowchart TB
+  drivers[drivers_apps_frameworks_vendors]
+  adapters[adapters_facades_sdk_wrappers]
+  application[application_runtime_session]
+  domain[domain_contract_protocol]
+
+  drivers --> adapters
+  drivers --> application
+  drivers --> domain
+  adapters --> application
+  adapters --> domain
+  application --> domain
+```
+
+## Enforcement follow-ups (separate from rule text)
+
+- Keep **documented policy** and **`depConstraints`** aligned. If a package is tagged and depended on but not named in `depConstraints`, treat that as a **tooling gap to fix in a dedicated change** (for example `scope:protocol` is used by `packages/runtime` but is not listed in `depConstraints` today).
+
+## Defaults
+
+- Prefer **adding** or **adjusting** `depConstraints` and tags in the same change when you intentionally introduce a new architectural edge, so agents and CI stay consistent.

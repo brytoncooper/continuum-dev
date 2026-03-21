@@ -1,0 +1,19 @@
+---
+description: Package-level cohesion and coupling (REP, CCP, CRP, ADP, SDP, SAP)
+alwaysApply: true
+---
+
+# Clean Architecture — package cohesion and coupling
+
+## Absolutes
+
+- **REP (Reuse/Release Equivalence):** Version and release **packages** as units. Do not treat arbitrary folders as shareable libraries without a matching release and dependency story.
+- **CCP (Common Closure):** Put code that changes **for the same reasons and times** in the same package. Split packages when change drivers diverge.
+- **CRP (Common Reuse):** Do not force consumers to depend on what they do not use. Narrow **public exports**; split packages when reuse sets differ.
+- **ADP (Acyclic Dependencies):** **No cycles** in the component graph. Break cycles with **dependency inversion** or a **new inner-oriented shared** package, never by having inner code depend on outer names.
+- **SDP (Stable Dependencies):** Volatile packages must not be depended on by **more stable** policy packages. Depend in the direction of **stability**.
+- **SAP (Stable Abstractions):** **Stable** packages skew toward **abstractions and contracts**. **Volatile** packages skew toward **concrete** integrations (UI, vendors).
+
+## Defaults
+
+- When a new dependency would violate ADP or SDP, **stop** and adjust tags, `depConstraints`, or boundaries in `eslint.config.mjs` in the same architectural change.

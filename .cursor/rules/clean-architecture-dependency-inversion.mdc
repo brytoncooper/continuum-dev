@@ -1,0 +1,24 @@
+---
+description: Ports defined inward, adapters outward; SOLID at architectural boundaries
+alwaysApply: true
+---
+
+# Clean Architecture — dependency inversion and ports
+
+## Absolutes
+
+- When control runs **from inside toward outside** (use case needs network, filesystem, UI, LLM, or DB), **inner** code depends only on an **abstraction** (port): a small interface, callback, or function type that uses **inner-friendly** types. **Outer** packages implement that port with concrete details.
+- **Do not** satisfy an inner need by importing an outer framework or vendor module from `packages/contract`, `packages/runtime`, or `packages/session`.
+- **Extend behavior** by adding **new adapter types or modules** in outer layers, not by growing stable inner dispatch into a vendor switchboard unless the **policy** itself changes.
+
+## SOLID at this boundary
+
+- **SRP:** One module or package answers to **one** architectural reason to change; split ports and adapters by role.
+- **OCP:** Prefer **new** outer implementations behind stable ports over editing inner policy for each new integration.
+- **LSP:** Any implementation of a port must be substitutable without callers branching on concrete types.
+- **ISP:** Prefer **several small ports** over one large interface that forces unused methods on implementers.
+- **DIP:** High-level policy and low-level detail both depend on **abstractions** owned by the inner side (or shared contract shapes), not on each other’s concrete modules.
+
+## Defaults
+
+- Name ports after **capabilities** the application needs (`ClockPort`, `ViewGenerationPort`), not after vendors (`AnthropicClient` belongs in an outer adapter).
