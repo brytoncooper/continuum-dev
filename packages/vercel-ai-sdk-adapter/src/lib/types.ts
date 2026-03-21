@@ -1,9 +1,7 @@
 import type { InferUIMessageChunk, UIMessage } from 'ai';
 import type {
   ContinuumTransformPlan,
-  ContinuumViewPatchPosition,
   ViewNode,
-  ContinuumViewPatch,
   NodeValue,
   SessionStream,
   SessionStreamMode,
@@ -13,6 +11,10 @@ import type {
   SessionViewApplyOptions,
   ViewDefinition,
 } from '@continuum-dev/core';
+import type {
+  ContinuumViewPatch,
+  ContinuumViewPatchPosition,
+} from '@continuum-dev/protocol';
 
 export type ContinuumVercelAiSdkStatusLevel =
   | 'info'

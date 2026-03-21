@@ -1,4 +1,3 @@
-import { patchViewDefinition } from '@continuum-dev/core';
 import type {
   ContinuumVercelAiSdkSessionAdapter,
   ContinuumVercelAiSdkSessionLike,
@@ -48,15 +47,12 @@ export function createContinuumVercelAiSdkSessionAdapter(
     view: Parameters<ContinuumVercelAiSdkSessionAdapter['applyView']>[0],
     options?: Parameters<ContinuumVercelAiSdkSessionAdapter['applyView']>[1]
   ) => {
-    const previousView = session.getSnapshot()?.view;
-    const patchedView = patchViewDefinition(previousView, view);
-
     if (hasApplyView(session)) {
-      session.applyView(patchedView, options);
+      session.applyView(view, options);
       return;
     }
 
-    session.pushView?.(patchedView, options);
+    session.pushView?.(view, options);
   };
 
   if (!hasApplyView(session) && typeof session.pushView !== 'function') {

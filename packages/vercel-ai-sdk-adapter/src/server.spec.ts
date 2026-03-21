@@ -92,7 +92,29 @@ group id="tax_root" label="Tax form"
       if (request.mode === 'transform') {
         return {
           text: JSON.stringify({
-            operations: [
+            patchOperations: [
+              {
+                kind: 'remove-node',
+                nodeId: 'first_name',
+              },
+              {
+                kind: 'remove-node',
+                nodeId: 'last_name',
+              },
+              {
+                kind: 'insert-node',
+                parentId: 'name_row',
+                node: {
+                  id: 'full_name',
+                  type: 'field',
+                  key: 'full_name',
+                  semanticKey: 'person.fullName',
+                  label: 'Full name',
+                  dataType: 'string',
+                },
+              },
+            ],
+            continuityOperations: [
               {
                 kind: 'merge',
                 sourceNodeIds: ['first_name', 'last_name'],

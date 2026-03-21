@@ -9,11 +9,13 @@ import {
   type UIMessageStreamWriter,
 } from 'ai';
 import type {
+  SessionStreamMode,
+} from '@continuum-dev/core';
+import type {
   ContinuumViewPatch,
   ContinuumViewPatchOperation,
   ContinuumViewPatchPosition,
-  SessionStreamMode,
-} from '@continuum-dev/core';
+} from '@continuum-dev/protocol';
 import {
   parseJson,
   streamContinuumExecution,

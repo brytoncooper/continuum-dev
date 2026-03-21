@@ -1,9 +1,6 @@
 import { isDataUIPart } from 'ai';
-import {
-  applyContinuumViewPatch,
-  applyContinuumViewStreamPart,
-  type SessionStreamMode,
-} from '@continuum-dev/core';
+import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
+import type { SessionStreamMode } from '@continuum-dev/core';
 import type { SessionStreamPart } from '@continuum-dev/core';
 import { createContinuumVercelAiSdkSessionAdapter } from './session-adapter.js';
 import { isContinuumVercelAiSdkDataPart } from './data-parts.js';
@@ -382,7 +379,10 @@ export function applyContinuumVercelAiSdkDataPart(
       }
 
       sessionAdapter.applyView(
-        applyContinuumViewPatch(currentView, application.patch),
+        applyContinuumViewStreamPart({
+          currentView,
+          part: { kind: 'patch', patch: application.patch },
+        }).view,
         {
           transient: application.transient,
         }

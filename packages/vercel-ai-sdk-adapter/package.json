@@ -52,6 +52,8 @@
   "dependencies": {
     "@continuum-dev/ai-engine": "^0.3.0",
     "@continuum-dev/core": "^0.3.0",
+    "@continuum-dev/protocol": "^0.3.0",
+    "@continuum-dev/runtime": "^0.3.0",
     "@ai-sdk/react": "^3.0.118",
     "ai": "^6.0.116",
     "zod": "^3.24.2"
