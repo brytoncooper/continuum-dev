@@ -17,7 +17,7 @@ export {
   useContinuumSnapshot,
   useContinuumState,
   useContinuumSuggestions,
-  useContinuumViewport,
+  useContinuumFocus,
 } from '@continuum-dev/react';
 export { starterKitComponentMap } from './lib/component-map.js';
 export * from './lib/primitives/index.js';
