@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# Formatting and file layout
+
+## Absolutes
+
+- Keep lines within **120** columns unless an existing formatter or tool forces an exception.
+- Order files like a **newspaper**: public exports and high-level flow **first**, details **below**. When it helps reading, place **callers above callees** in the same file.
+
+## Defaults
+
+- Use **blank lines** to separate ideas; keep related lines **dense** without decorative gaps. Declare locals **close to first use**.

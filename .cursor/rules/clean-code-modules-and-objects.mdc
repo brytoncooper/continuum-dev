@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# Modules, objects, and data
+
+## Absolutes
+
+- **Plain data** (DTOs, records, wire shapes) stay **behavior-free**. Put rules and orchestration in **domain modules or services**, not on transport types.
+- Avoid **train wrecks** through foreign objects (`a.getB().getC().getD()`). Prefer asking the owning module for an operation or passing only what the caller needs.
+
+## Defaults
+
+- **Separate construction from use**: build graphs and wire dependencies at **composition roots** (for example app entry, providers, factories), not deep inside leaf logic. Respect existing **Nx module boundaries** and **restricted imports** enforced in ESLint.

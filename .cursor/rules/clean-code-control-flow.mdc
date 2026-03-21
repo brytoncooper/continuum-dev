@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+# Control flow
+
+## Absolutes
+
+- Do not drive business logic with **numeric or string error codes** returned from functions. Prefer **throwing errors** with context, or **discriminated result types** where the codebase already uses that pattern.
+- **Extract complex conditions** into **well-named** booleans or predicates so the call site reads as intent (`if (shouldArchiveSession(state))`).
+- Replace **magic numbers and strings** that carry meaning with **named constants** or enums.
+
+## Defaults
+
+- Prefer **one central place** for large `switch` or `if` chains that dispatch on the same discriminant; avoid copy-pasted dispatch across modules. Use maps, registries, or small factories as fits the codebase.

@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# TypeScript exhaustiveness
+
+## Absolutes
+
+- When branching on a **discriminated union** or **enum**, handle **every** variant explicitly.
+- A **`default`** branch in exhaustive business logic should be used for **`never` checks** (and fail or throw), not to **silently** treat unknown cases as a normal outcome.
+
+## Defaults
+
+- Prefer **`switch`** or **`if` chains** that the type checker can verify, or a map with a **total** key set, over open-ended fallbacks when correctness matters.

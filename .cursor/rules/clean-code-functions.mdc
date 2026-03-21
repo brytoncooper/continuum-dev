@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+# Functions
+
+## Absolutes
+
+- Do not use **boolean parameters** to select substantially different behavior. Prefer two functions or an options object with **named fields** (or a small strategy) so call sites read clearly.
+- Prefer at most **two positional parameters** on new APIs. With three or more values, use a **single parameter object** with a **named type** (not a repeated untyped bag of fields).
+- **Command/query separation**: functions that return a useful value should not mutate unrelated hidden state. Functions that mutate should be named as actions, not as queries.
+- **DRY**: extract duplicated non-trivial logic into a shared function rather than copying branches.
+
+## Defaults
+
+- Aim for **about twenty lines or fewer** per function when it stays clear. If a function grows, extract helpers so reading order follows the **stepdown** rule (high-level first, details below).
+
+## Canonical verbs
+
+Use the same verb vocabulary as in the naming rule: **`get`** (local read), **`fetch`** (network), **`load`** (persistence/hydration), **`create`**, **`build`**, **`parse`**, **`validate`**, **`handle`**, **`run`** / **`execute`**. Do not mix synonyms for the same idea (for example both `fetch` and `retrieve` for network).

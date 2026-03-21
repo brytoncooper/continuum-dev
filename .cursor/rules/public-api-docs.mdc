@@ -1,0 +1,20 @@
+---
+description: TSDoc and JSDoc on exported public APIs only; consumer-oriented contracts
+alwaysApply: true
+---
+
+# Public API documentation
+
+## Absolutes
+
+- Add **TSDoc** (TypeScript) or **JSDoc** (JavaScript) only on **exported** symbols that are part of a **public package surface** intended for consumers.
+- Docs must answer what a consumer needs: **purpose**, **parameters**, **return value**, **errors thrown**, and **stability or format constraints** when relevant.
+- Do **not** add narrative comments that explain implementation inside modules. Prefer clearer names and structure.
+
+## Defaults
+
+- Keep public docs short and contract-focused. Do not restate types verbatim unless it clarifies behavior that types do not capture.
+
+## Coordination with editor settings
+
+- If global user rules forbid all comments, **relax that for this workspace**: public API TSDoc/JSDoc here is required policy and overrides a blanket no-comment preference.

@@ -272,6 +272,8 @@ export default [
       '**/*.cjs',
       '**/*.mjs',
     ],
-    rules: {},
+    rules: {
+      'max-params': ['warn', { max: 4 }],
+    },
   },
 ];

@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# Errors and absence
+
+## Absolutes
+
+- **Throw** with **context**: what failed, which inputs matter, and **cause** when wrapping an underlying error. Do not swallow errors without an explicit, justified handler.
+- For **optional or absent** values on **new** TypeScript APIs, prefer **`undefined`** and optional properties. Use **`null`** only when a boundary (protocol, database, or existing public API) requires it. Stay **consistent per exported surface**.
+
+## Defaults
+
+- Prefer **fail-fast throws** at trust boundaries over ambiguous return sentinels. When wrapping third-party libraries, map their failures to **stable project error types** where it helps callers.

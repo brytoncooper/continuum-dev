@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# Temporal coupling
+
+## Absolutes
+
+- Do not expose APIs that require callers to remember **fragile call order** when the type system or a single higher-level operation can enforce order.
+- When step B requires the result of step A, pass **A’s output into B** or expose **one function** that performs **A then B** safely.
+
+## Defaults
+
+- Treat undocumented ordering requirements as a **design smell** to remove during refactors, even if legacy code still uses them temporarily.

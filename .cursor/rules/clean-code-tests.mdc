@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+# Tests
+
+## Absolutes
+
+- Tests are **first-class**: maintain them like production code. Extract **helpers and builders** instead of duplicating large setup blocks.
+- Each test should target **one behavior or rule**. Avoid mixing unrelated assertions that force unrelated reasons to fail.
+
+## Defaults
+
+- Keep tests **fast**, **independent**, **repeatable**, and **self-validating** (clear pass or fail). Add or update tests **with** the behavior they cover.

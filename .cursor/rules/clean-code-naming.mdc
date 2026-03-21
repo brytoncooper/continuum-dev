@@ -1,0 +1,26 @@
+---
+description: Clean Code naming — intent, no misleading types, one verb per concept
+alwaysApply: true
+---
+
+# Naming
+
+## Absolutes
+
+- Names express **role and usage** at the scope where they live. Avoid noise placeholders (`tmp`, `data`, `info`, `obj`, `mgr`) unless the domain truly is generic data or management.
+- Do not use **collection type words** in identifiers unless the value is that type (`List`, `Map`, `Set`, `Queue`, and so on).
+- No **`I` prefix** on interfaces or type aliases. No Hungarian notation. No **`m_`** or other member prefixes.
+- **One verb per abstract operation** repo-wide. Canonical verbs (use these words only in these senses):
+  - **`get`**: synchronous read from an in-memory structure or already-loaded state.
+  - **`fetch`**: I/O that retrieves data over a network or external system.
+  - **`load`**: hydrate or read from persistence (disk, session restore, deserialization pipeline).
+  - **`create`**: allocate a new domain or API object.
+  - **`build`**: construct a derived value or structure from inputs without implying persistence.
+  - **`parse`**: transform raw text or bytes into structured data; **`serialize`** / **`deserialize`** for wire or storage forms.
+  - **`validate`**: check invariants and fail or report; **`assert`** only for programmer errors or impossible states.
+  - **`handle`**: react to an event or message; **`run`** / **`execute`** for a procedure or pipeline step.
+- **Types and classes**: noun phrases. **Functions and methods**: verb phrases.
+
+## Defaults
+
+- Prefer pronounceable, searchable names; length scales with scope (short locals in tight loops, longer names for module-level and exported symbols).
