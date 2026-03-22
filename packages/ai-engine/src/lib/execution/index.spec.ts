@@ -165,6 +165,267 @@ describe('continuum execution fallback behavior', () => {
     });
   });
 
+  it('threads conversation summary and detached fields into planner prompts for referential restore requests', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'planner') {
+        expect(request.systemPrompt).toContain('Restore continuity context');
+        expect(request.userMessage).toContain(
+          'Recent conversation summary (bounded):'
+        );
+        expect(request.userMessage).toContain(
+          'Assistant removed phone and notes fields.'
+        );
+        expect(request.userMessage).toContain(
+          'Detached fields (restore continuity):'
+        );
+        expect(request.userMessage).toContain('detached:phone');
+        return {
+          text: JSON.stringify({
+            mode: 'view',
+            fallback: 'view',
+            reason: 'continuity restore',
+            authoringMode: 'evolve-view',
+          }),
+        };
+      }
+
+      if (request.mode === 'view') {
+        return {
+          text: `view viewId="lead-form" version="1"
+group id="profile"
+  field id="email" key="lead.email" label="Email" dataType="string"`,
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'You got rid of a bunch of my stuff — bring it back.',
+      context: {
+        currentView,
+        currentData: {},
+        conversationSummary: 'Assistant removed phone and notes fields.',
+        detachedFields: [
+          {
+            detachedKey: 'detached:phone',
+            previousNodeType: 'field',
+            reason: 'node-removed',
+            viewVersion: '0',
+            valuePreview: '555',
+          },
+        ],
+      },
+    });
+
+    expect(result.mode).toBe('view');
+    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
+      'planner',
+      'view',
+    ]);
+  });
+
+  it('retries state once when populate yields only empty values then succeeds', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    let stateCalls = 0;
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'planner') {
+        return {
+          text: JSON.stringify({
+            mode: 'state',
+            fallback: 'view',
+            reason: 'populate',
+          }),
+        };
+      }
+
+      if (request.mode === 'state') {
+        stateCalls += 1;
+        if (stateCalls === 1) {
+          return {
+            text: JSON.stringify({
+              updates: [{ key: 'lead.email', value: '' }],
+            }),
+          };
+        }
+        return {
+          text: JSON.stringify({
+            updates: [{ key: 'lead.email', value: 'jordan@example.com' }],
+            status: 'Filled email',
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'populate the email',
+      context: {
+        currentView,
+        currentData: {},
+      },
+    });
+
+    expect(result.mode).toBe('state');
+    expect(stateCalls).toBe(2);
+    expect(
+      generate.mock.calls.filter(([request]) => request.mode === 'state').length
+    ).toBe(2);
+    expect(result).toMatchObject({
+      updates: [
+        {
+          nodeId: 'profile/email',
+          value: { value: 'jordan@example.com' },
+        },
+      ],
+    });
+  });
+
+  it('retries patch once when structural instruction yields no operations then succeeds', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    let patchCalls = 0;
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'planner') {
+        return {
+          text: JSON.stringify({
+            mode: 'patch',
+            fallback: 'view',
+            reason: 'add field',
+          }),
+        };
+      }
+
+      if (request.mode === 'patch') {
+        patchCalls += 1;
+        if (patchCalls === 1) {
+          return {
+            text: JSON.stringify({
+              mode: 'patch',
+              operations: [],
+            }),
+          };
+        }
+        return {
+          text: JSON.stringify({
+            mode: 'patch',
+            operations: [
+              {
+                kind: 'insert-node',
+                parentId: 'profile',
+                position: { afterId: 'email' },
+                node: {
+                  id: 'budget',
+                  type: 'field',
+                  dataType: 'string',
+                  key: 'lead.budget',
+                  label: 'Budget',
+                },
+              },
+            ],
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Add a budget field under email.',
+      context: {
+        currentView,
+        currentData: {},
+      },
+    });
+
+    expect(result.mode).toBe('patch');
+    expect(patchCalls).toBe(2);
+    expect(
+      generate.mock.calls.filter(([request]) => request.mode === 'patch').length
+    ).toBe(2);
+    expect(result).toMatchObject({
+      patchPlan: {
+        mode: 'patch',
+        operations: [
+          expect.objectContaining({
+            kind: 'insert-node',
+            parentId: 'profile',
+          }),
+        ],
+      },
+    });
+  });
+
   it('routes schema-evolution requests through transform mode with continuity metadata', async () => {
     const currentView = {
       viewId: 'tax-form',

@@ -48,6 +48,7 @@ export function buildViewAuthoringUserMessage(args: {
   instruction: string;
   currentView?: unknown;
   detachedFields?: unknown[];
+  conversationSummary?: string;
   validationErrors?: string[];
   runtimeErrors?: string[];
 }): string {

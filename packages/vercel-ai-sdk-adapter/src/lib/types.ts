@@ -90,6 +90,24 @@ export interface ContinuumVercelAiSdkNodeStatusData {
   streamMode?: SessionStreamMode;
 }
 
+/**
+ * Serialized Continuum execution trace emitted once per completed run for
+ * observability: user instruction, each LLM phase (planner, patch, view, …)
+ * with prompts and model output, plus a short final summary.
+ *
+ * The stream part type is `data-continuum-execution-trace`. It does not mutate
+ * session state when applied.
+ */
+export interface ContinuumVercelAiSdkExecutionTraceData {
+  instruction: string;
+  trace: unknown[];
+  result: {
+    mode: string;
+    status: string;
+    level: ContinuumVercelAiSdkStatusLevel;
+  };
+}
+
 export type ContinuumVercelAiSdkDataParts = Record<string, unknown> & {
   'continuum-view': ContinuumVercelAiSdkViewData;
   'continuum-patch': ContinuumVercelAiSdkPatchData;
@@ -101,6 +119,7 @@ export type ContinuumVercelAiSdkDataParts = Record<string, unknown> & {
   'continuum-reset': ContinuumVercelAiSdkResetData;
   'continuum-status': ContinuumVercelAiSdkStatusData;
   'continuum-node-status': ContinuumVercelAiSdkNodeStatusData;
+  'continuum-execution-trace': ContinuumVercelAiSdkExecutionTraceData;
 };
 
 export type ContinuumVercelAiSdkMessage = UIMessage<
@@ -168,6 +187,12 @@ export type ContinuumVercelAiSdkNodeStatusPart = {
   data: ContinuumVercelAiSdkNodeStatusData;
 };
 
+export type ContinuumVercelAiSdkExecutionTracePart = {
+  type: 'data-continuum-execution-trace';
+  id?: string;
+  data: ContinuumVercelAiSdkExecutionTraceData;
+};
+
 export type ContinuumVercelAiSdkDataPart =
   | ContinuumVercelAiSdkViewPart
   | ContinuumVercelAiSdkPatchPart
@@ -178,7 +203,8 @@ export type ContinuumVercelAiSdkDataPart =
   | ContinuumVercelAiSdkStatePart
   | ContinuumVercelAiSdkResetPart
   | ContinuumVercelAiSdkStatusPart
-  | ContinuumVercelAiSdkNodeStatusPart;
+  | ContinuumVercelAiSdkNodeStatusPart
+  | ContinuumVercelAiSdkExecutionTracePart;
 
 export type ContinuumVercelAiSdkDataChunk =
   | (ContinuumVercelAiSdkViewPart & { transient?: boolean })
@@ -190,7 +216,8 @@ export type ContinuumVercelAiSdkDataChunk =
   | (ContinuumVercelAiSdkStatePart & { transient?: boolean })
   | (ContinuumVercelAiSdkResetPart & { transient?: boolean })
   | (ContinuumVercelAiSdkStatusPart & { transient?: boolean })
-  | (ContinuumVercelAiSdkNodeStatusPart & { transient?: boolean });
+  | (ContinuumVercelAiSdkNodeStatusPart & { transient?: boolean })
+  | (ContinuumVercelAiSdkExecutionTracePart & { transient?: boolean });
 
 export type ContinuumVercelAiSdkMessageChunk =
   | InferUIMessageChunk<ContinuumVercelAiSdkMessage>

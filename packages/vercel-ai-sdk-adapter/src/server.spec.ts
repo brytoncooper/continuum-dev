@@ -367,6 +367,71 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
 
     const body = await response.text();
     expect(body).toContain('data-continuum-view');
+    expect(body).toContain('data-continuum-execution-trace');
     expect(body).toContain('loan_form');
+  });
+
+  it('passes conversation summary and detached values into Continuum execution context', async () => {
+    const streamSpy = vi
+      .spyOn(aiEngine, 'streamContinuumExecution')
+      .mockImplementation((async function* (args) {
+        expect(args.context?.conversationSummary).toBe(
+          'Assistant removed several fields.'
+        );
+        expect(args.context?.detachedFields?.length).toBeGreaterThan(0);
+        expect(args.context?.detachedFields?.[0]?.detachedKey).toBe(
+          'detached:phone'
+        );
+        yield {
+          kind: 'status',
+          status: 'done',
+          level: 'info',
+        } as never;
+        return {
+          mode: 'noop',
+          source: 'test',
+          status: 'noop',
+          level: 'warning',
+          trace: [],
+          requestedMode: 'view',
+          reason: 'test',
+        } as never;
+      }) as typeof aiEngine.streamContinuumExecution);
+
+    try {
+      const handler = createContinuumVercelAiSdkRouteHandler({
+        adapter: createExecutionAdapter(),
+        defaultAuthoringFormat: 'line-dsl',
+      });
+
+      const response = await handler(
+        new Request('http://localhost/api/chat', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            continuum: {
+              instruction: 'It does not have any of the previous stuff.',
+            },
+            conversationSummary: 'Assistant removed several fields.',
+            detachedValues: {
+              'detached:phone': {
+                previousNodeType: 'field',
+                reason: 'node-removed',
+                viewVersion: '1',
+                key: 'person.phone',
+                value: { value: '555-0100' },
+              },
+            },
+          }),
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect(streamSpy).toHaveBeenCalled();
+    } finally {
+      streamSpy.mockRestore();
+    }
   });
 });

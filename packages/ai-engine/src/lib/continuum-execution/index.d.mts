@@ -35,7 +35,9 @@ export function getAvailableContinuumExecutionModes(args?: {
   hasStateTargets?: boolean;
 }): ContinuumExecutionMode[];
 
-export function buildContinuumExecutionPlannerSystemPrompt(): string;
+export function buildContinuumExecutionPlannerSystemPrompt(args?: {
+  hasRestoreContinuity?: boolean;
+}): string;
 
 export function buildContinuumExecutionPlannerUserPrompt(args?: {
   availableModes?: ContinuumExecutionMode[];
@@ -44,6 +46,8 @@ export function buildContinuumExecutionPlannerUserPrompt(args?: {
   compactTree?: unknown[];
   currentData?: Record<string, unknown>;
   instruction?: string;
+  conversationSummary?: string;
+  detachedFields?: unknown[];
 }): string;
 
 export function parseContinuumExecutionPlan(args?: {

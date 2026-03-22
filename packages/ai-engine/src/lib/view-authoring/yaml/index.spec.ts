@@ -92,16 +92,17 @@ version: "2"
   });
 
   it('builds yaml prompts and user messages', () => {
-    expect(
-      buildViewYamlSystemPrompt({ mode: 'create-view' })
-    ).toContain('```yaml');
-    expect(
-      buildViewYamlUserMessage({
-        mode: 'correction-loop',
-        instruction: 'Fix it',
-        validationErrors: ['bad structure'],
-        runtimeErrors: ['boom'],
-      })
-    ).toContain('Return exactly one ```yaml fenced block');
+    const systemPrompt = buildViewYamlSystemPrompt({ mode: 'create-view' });
+    const userMessage = buildViewYamlUserMessage({
+      mode: 'correction-loop',
+      instruction: 'Fix it',
+      validationErrors: ['bad structure'],
+      runtimeErrors: ['boom'],
+    });
+
+    expect(systemPrompt).toContain('Continuum product context:');
+    expect(systemPrompt).toContain('```yaml');
+    expect(userMessage).toContain('Continuum context:');
+    expect(userMessage).toContain('Return exactly one ```yaml fenced block');
   });
 });

@@ -70,6 +70,9 @@ describe('continuum execution planner prompts', () => {
 
     expect(prompt).toContain('Return exactly one JSON object and nothing else.');
     expect(prompt).toContain('Choose one mode from the provided availableModes array.');
+    expect(prompt).toContain('Continuum product context:');
+    expect(prompt).toContain('Treat valid modes as runtime contracts');
+    expect(prompt).toContain('"Populate the email"');
     expect(prompt).toContain('"Make first name and last name into full name"');
     expect(prompt).toContain('"I need to do my taxes"');
   });
@@ -118,7 +121,43 @@ describe('continuum execution planner prompts', () => {
     expect(prompt).not.toContain(longValue);
     expect(prompt).toContain('[3 items]');
     expect(prompt).toContain('{street, city, zip, country, ...}');
+    expect(prompt).toContain('browser session');
+    expect(prompt).toContain('help with the current UI');
     expect(prompt).toContain('Instruction:\nPut email next to phone');
+  });
+
+  it('appends restore continuity guidance when hasRestoreContinuity is true', () => {
+    expect(
+      buildContinuumExecutionPlannerSystemPrompt({ hasRestoreContinuity: true })
+    ).toContain('Restore continuity context');
+    expect(buildContinuumExecutionPlannerSystemPrompt()).not.toContain(
+      'Restore continuity context'
+    );
+  });
+
+  it('includes conversation summary and detached fields in the user prompt when provided', () => {
+    const prompt = buildContinuumExecutionPlannerUserPrompt({
+      availableModes: ['patch', 'view'],
+      patchTargets,
+      stateTargets,
+      compactTree: [],
+      currentData: {},
+      instruction: 'Bring back what you removed.',
+      conversationSummary: 'Prior: user had five fields.',
+      detachedFields: [
+        {
+          detachedKey: 'detached:notes',
+          previousNodeType: 'field',
+          reason: 'node-removed',
+          viewVersion: '1',
+        },
+      ],
+    });
+
+    expect(prompt).toContain('Recent conversation summary (bounded):');
+    expect(prompt).toContain('Prior: user had five fields.');
+    expect(prompt).toContain('Detached fields (restore continuity):');
+    expect(prompt).toContain('detached:notes');
   });
 });
 

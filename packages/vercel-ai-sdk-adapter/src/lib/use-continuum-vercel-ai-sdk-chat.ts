@@ -57,6 +57,24 @@ function shouldApplyContinuumPartImmediately(
   );
 }
 
+function getMessagesForContinuumApplyScan<
+  UI_MESSAGE extends ContinuumVercelAiSdkMessage,
+>(
+  messages: readonly UI_MESSAGE[],
+  status: UseChatHelpers<UI_MESSAGE>['status']
+): readonly UI_MESSAGE[] {
+  if (status === 'streaming' || status === 'submitted') {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.role === 'assistant') {
+        return messages.slice(i);
+      }
+    }
+    return [];
+  }
+  return messages;
+}
+
 export function useContinuumVercelAiSdkChat<
   UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
 >(
@@ -155,7 +173,12 @@ export function useContinuumVercelAiSdkChat<
       return;
     }
 
-    for (const message of chat.messages) {
+    const messagesToScan = getMessagesForContinuumApplyScan(
+      chat.messages,
+      chat.status
+    );
+
+    for (const message of messagesToScan) {
       if (message.role !== 'assistant') {
         continue;
       }
@@ -209,7 +232,13 @@ export function useContinuumVercelAiSdkChat<
         }
       });
     }
-  }, [autoApplyMessages, chat.messages, continuumSession, onContinuumPart]);
+  }, [
+    autoApplyMessages,
+    chat.messages,
+    chat.status,
+    continuumSession,
+    onContinuumPart,
+  ]);
 
   useEffect(() => {
     if (chat.status === 'submitted') {

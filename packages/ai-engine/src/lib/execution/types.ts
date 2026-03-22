@@ -39,6 +39,7 @@ export interface ContinuumExecutionRequest {
   maxTokens?: number;
   model?: string;
   providerOptions?: Record<string, unknown>;
+  abortSignal?: AbortSignal;
 }
 
 export interface ContinuumExecutionResponse {
@@ -60,9 +61,19 @@ export interface ContinuumExecutionContext {
   currentView?: ViewDefinition;
   currentData?: Record<string, NodeValue | undefined>;
   detachedFields?: DetachedFieldHint[];
+  /**
+   * Bounded, caller-supplied text (for example recent user-visible turns) so
+   * referential follow-ups can be interpreted against prior intent.
+   */
+  conversationSummary?: string;
   issues?: unknown[];
 }
 
+/**
+ * Inputs for `streamContinuumExecution`. Initial view authoring may stream a
+ * full text document; follow-up edits can later move toward smaller patch and
+ * state events once that path is validated in product.
+ */
 export interface StreamContinuumExecutionArgs {
   adapter: ContinuumExecutionAdapter;
   instruction: string;

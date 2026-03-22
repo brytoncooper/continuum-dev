@@ -314,6 +314,11 @@ export function interpretContinuumVercelAiSdkDataPart(
         streamMode: readPartStreamMode(part),
         transient: 'transient' in part ? part.transient === true : undefined,
       };
+    case 'data-continuum-execution-trace':
+      return {
+        kind: 'ignored',
+        reason: 'continuum-execution-trace',
+      };
     default:
       return {
         kind: 'ignored',

@@ -21,11 +21,17 @@ export function getAvailableContinuumExecutionModes(args = {}) {
   return availableModes;
 }
 
-export function buildContinuumExecutionPlannerSystemPrompt() {
-  return [
+export function buildContinuumExecutionPlannerSystemPrompt(args = {}) {
+  const lines = [
     'You are a fast Continuum execution planner.',
     'Return exactly one JSON object and nothing else.',
     'Choose one mode from the provided availableModes array.',
+    'Continuum product context:',
+    '- The current view is a live UI the user is looking at and working on in a web browser.',
+    '- The user is talking in messy natural language about what they want to happen on that current form.',
+    '- Your job is not to invent system policy or redesign the whole app architecture. Your job is to choose the execution contract that best helps the user accomplish what they asked for on the current form.',
+    '- Prefer preserving the current workflow and making the smallest useful change unless the request clearly implies broader change.',
+    '- Treat valid modes as runtime contracts that implement user intent, not as the main goal.',
     'Response shape:',
     '{"mode":"patch","reason":"localized layout edit","fallback":"view","targetNodeIds":["email"],"targetSemanticKeys":["person.email"]}',
     'When mode="view", you may also include authoringMode="create-view" or authoringMode="evolve-view".',
@@ -41,33 +47,51 @@ export function buildContinuumExecutionPlannerSystemPrompt() {
     '- Do not invent target ids or semantic keys.',
     '- Use semantic keys when they are available and meaningful for the request.',
     '- Use fallback="view" when patch, transform, or state would be unsafe if validation fails.',
-    'Choose state only when the user is clearly providing data for the current form or asking the assistant to populate it.',
+    'Choose state only when the user is clearly asking for value changes on the current form, including populate, prefill, sample-data, and fill-out requests.',
     'Do not choose state just because a generic field like goal, notes, summary, or description could technically hold the sentence.',
     'If the user is describing the kind of form, workflow, or task they need, choose view.',
     'If the instruction introduces a new domain or workflow not already expressed by the current view, choose view.',
     'When choosing view for a new domain, new workflow, or broad rebuild, set authoringMode="create-view".',
     'When choosing view to broadly revise the current workflow while keeping it recognizably related, set authoringMode="evolve-view".',
     'Prefer patch for local edits like add/remove/move/rename/reorder one field or section.',
+    'Prefer patch when the user wants more, less, shorter, cleaner, nicer, or better and the likely answer is a local UI adjustment rather than a new workflow.',
     'Prefer transform when the request merges fields, splits fields, repurposes existing data, or otherwise changes how prior values should flow into the next schema.',
     'Requests like "put these on one line", "make side by side", and "move this under that" are usually patch.',
     'Requests like "make first and last name into full name" or "split full name into first and last" are usually transform.',
-    'Prefer state for fill/prefill/sample data/value-only changes.',
+    'Prefer state for fill, prefill, sample-data, and value-only changes.',
     'Prefer view for brand new forms, broad redesigns, workflow changes, or requests that reshape much of the form.',
     'Examples:',
     '- {"instruction":"Prefill this with Jordan Lee, jordan@example.com","mode":"state","fallback":"view","targetSemanticKeys":["person.fullName","person.email"]}',
+    '- {"instruction":"Populate the email","mode":"state","fallback":"view","targetSemanticKeys":["person.email"]}',
     '- {"instruction":"Add a secondary email","mode":"patch","fallback":"view","targetSemanticKeys":["person.email"]}',
+    '- {"instruction":"Make this shorter","mode":"patch","fallback":"view","targetNodeIds":["intro_section"]}',
+    '- {"instruction":"Make it nicer","mode":"patch","fallback":"view","targetNodeIds":["contact_section"]}',
     '- {"instruction":"Put the email fields on one line","mode":"patch","fallback":"view","targetSemanticKeys":["person.email","person.secondaryEmail"]}',
     '- {"instruction":"Make first name and last name into full name","mode":"transform","fallback":"view","targetSemanticKeys":["person.fullName"]}',
     '- {"instruction":"I need to do my taxes","mode":"view","fallback":"view","authoringMode":"create-view"}',
     'If a mode is not available, do not choose it.',
     'Be decisive. Keep reason short.',
-  ].join('\n');
+  ];
+
+  if (args.hasRestoreContinuity) {
+    lines.push(
+      'Restore continuity context:',
+      '- When the user refers to removed content, prior fields, "previous stuff", "you removed", or asks to bring back data, treat that as continuity restoration when detached fields or a recent conversation summary are provided.',
+      '- Prefer patch or state to reintroduce fields or restore values when the current view and catalogs can support it, instead of replacing the whole form.',
+      '- Prefer transform when prior values must be remapped across a structural schema change.'
+    );
+  }
+
+  return lines.join('\n');
 }
 
 export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
   const sections = [
     'Choose the best Continuum execution mode for this request.',
-    'The user is talking to the assistant about what should happen next.',
+    'The user is in a browser session working on the current form below.',
+    'They are describing what they want to happen next in natural language.',
+    'You are deciding how Continuum should help with the current UI, not classifying abstract data-model operations in a vacuum.',
+    'Assume the user is reacting to what they see on the current form unless the instruction clearly asks for a brand-new workflow.',
     'Do not treat the instruction as a literal field value unless it is clearly a fill/prefill request or a direct payload of values.',
     '',
     'availableModes:',
@@ -93,9 +117,31 @@ export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
     'Current populated values:',
     JSON.stringify(summarizeCurrentData(args.currentData), null, 2),
     '',
-    'Instruction:',
-    typeof args.instruction === 'string' ? args.instruction.trim() : '',
   ];
+
+  if (
+    typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+  ) {
+    sections.push(
+      'Recent conversation summary (bounded):',
+      args.conversationSummary.trim(),
+      ''
+    );
+  }
+
+  if (Array.isArray(args.detachedFields) && args.detachedFields.length > 0) {
+    sections.push(
+      'Detached fields (restore continuity):',
+      JSON.stringify(args.detachedFields, null, 2),
+      ''
+    );
+  }
+
+  sections.push(
+    'Instruction:',
+    typeof args.instruction === 'string' ? args.instruction.trim() : ''
+  );
 
   return sections.join('\n');
 }

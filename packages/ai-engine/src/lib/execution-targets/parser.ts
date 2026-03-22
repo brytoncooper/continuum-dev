@@ -7,6 +7,136 @@ import type {
   ContinuumStateUpdate,
 } from './types.js';
 
+function findTargetInCatalog(
+  catalog: ContinuumExecutionTarget[],
+  nodeId: string
+): ContinuumExecutionTarget | null {
+  for (const target of catalog) {
+    if (target.nodeId === nodeId) {
+      return target;
+    }
+    if (Array.isArray(target.templateFields)) {
+      const nested = findTargetInCatalog(target.templateFields, nodeId);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  return null;
+}
+
+function isPopulateLikeInstruction(instruction: string): boolean {
+  const t = instruction.trim().toLowerCase();
+  if (/\b(clear|empty|erase|reset|remove|delete)\b/.test(t)) {
+    return false;
+  }
+  return /\b(populate|prefill|fill out|fill in|fill\b|sample|demo|mock|dummy|fake|example)\b/.test(
+    t
+  );
+}
+
+function isWeakPopulateScalarUpdate(
+  update: ContinuumStateUpdate,
+  catalog: ContinuumExecutionTarget[]
+): boolean {
+  const target = findTargetInCatalog(catalog, update.nodeId);
+  if (!target || target.nodeType === 'collection') {
+    return false;
+  }
+
+  const wrapped = update.value;
+  if (!wrapped || typeof wrapped !== 'object' || !('value' in wrapped)) {
+    return true;
+  }
+
+  const inner = wrapped.value;
+  if (inner === undefined || inner === null) {
+    return true;
+  }
+
+  if (typeof inner === 'string') {
+    return inner.trim().length === 0;
+  }
+
+  return false;
+}
+
+function isWeakPopulateCollectionUpdate(
+  update: ContinuumStateUpdate,
+  catalog: ContinuumExecutionTarget[]
+): boolean {
+  const target = findTargetInCatalog(catalog, update.nodeId);
+  if (!target || target.nodeType !== 'collection') {
+    return false;
+  }
+
+  const wrapped = update.value;
+  if (!wrapped || typeof wrapped !== 'object' || !('value' in wrapped)) {
+    return true;
+  }
+
+  const inner = wrapped.value;
+  if (
+    !inner ||
+    typeof inner !== 'object' ||
+    !('items' in inner) ||
+    !Array.isArray((inner as { items: unknown }).items)
+  ) {
+    return true;
+  }
+
+  const items = (inner as { items: ContinuumCollectionItem[] }).items;
+  if (items.length === 0) {
+    return true;
+  }
+
+  return items.every((item) => {
+    const values = item.values;
+    if (!values || typeof values !== 'object') {
+      return true;
+    }
+    return Object.values(values).every((cell) => {
+      if (!cell || typeof cell !== 'object' || !('value' in cell)) {
+        return true;
+      }
+      const v = (cell as { value: ContinuumScalarValue }).value;
+      if (typeof v === 'string') {
+        return v.trim().length === 0;
+      }
+      return false;
+    });
+  });
+}
+
+export type ContinuumStateResponseQuality = 'valid' | 'weak_noop' | 'invalid';
+
+export function evaluateStateResponseQuality(
+  parsed: { updates: ContinuumStateUpdate[]; status?: string } | null,
+  instruction: string,
+  targetCatalog: ContinuumExecutionTarget[]
+): ContinuumStateResponseQuality {
+  if (!parsed || parsed.updates.length === 0) {
+    return 'invalid';
+  }
+
+  if (!isPopulateLikeInstruction(instruction)) {
+    return 'valid';
+  }
+
+  const allWeak = parsed.updates.every((update) => {
+    const target = findTargetInCatalog(targetCatalog, update.nodeId);
+    if (!target) {
+      return false;
+    }
+    if (target.nodeType === 'collection') {
+      return isWeakPopulateCollectionUpdate(update, targetCatalog);
+    }
+    return isWeakPopulateScalarUpdate(update, targetCatalog);
+  });
+
+  return allWeak ? 'weak_noop' : 'valid';
+}
+
 function resolveStateTarget(
   targetCatalog: ContinuumExecutionTarget[],
   reference: Record<string, unknown>

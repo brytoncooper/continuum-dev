@@ -248,6 +248,8 @@ export function normalizeContinuumTransformPlan(
 
 export function buildTransformSystemPrompt(): string {
   return [
+    'You help a user working on a live Continuum form in a web browser.',
+    'Use transform mode only when the user wants the current form changed in a way that requires explicit continuity between old fields and new fields.',
     'You author deterministic Continuum transform plans between an existing view and the next view.',
     'Return exactly one JSON object and nothing else.',
     'Do not wrap the JSON in markdown fences.',
@@ -277,6 +279,10 @@ export function buildTransformUserMessage(args: {
 
   return [
     'Return the Continuum transform plan as JSON only.',
+    'Continuum context:',
+    '- The user is working on the current form in a browser.',
+    '- The next view is the intended UI after the requested change.',
+    '- Your job is to preserve meaningful user data as the form changes shape.',
     '',
     'Planner-selected targets:',
     JSON.stringify(args.selectedTargets, null, 2),
@@ -317,6 +323,9 @@ export interface NormalizedSurgicalTransformPlan {
 
 export function buildSurgicalTransformSystemPrompt(): string {
   return [
+    'You help a user working in a browser on a live Continuum form.',
+    'They asked for a change to the current UI that may reshape fields while keeping prior data meaningful.',
+    'Your job is to evolve the existing form carefully, not to replace it wholesale unless the requested change truly requires that.',
     'You produce surgical Continuum transform plans.',
     'A surgical transform combines structural changes to the view with data continuity instructions.',
     'Return exactly one JSON object and nothing else.',
@@ -353,11 +362,16 @@ export function buildSurgicalTransformUserMessage(args: {
   currentView: ViewDefinition;
   currentData: unknown;
   selectedTargets: string[];
+  conversationSummary?: string;
 }): string {
   const context = buildPatchContext(args.currentView);
 
-  return [
+  const lines = [
     'Return the surgical Continuum transform as JSON only.',
+    'Continuum context:',
+    '- The current view is the live browser UI the user is working with.',
+    '- Your patch operations directly reshape that current UI.',
+    '- Your continuity operations preserve or intentionally discard prior data as needed.',
     '',
     'Planner-selected targets:',
     JSON.stringify(args.selectedTargets, null, 2),
@@ -371,9 +385,22 @@ export function buildSurgicalTransformUserMessage(args: {
     'Current populated values:',
     JSON.stringify(args.currentData ?? null, null, 2),
     '',
-    'Instruction:',
-    args.instruction.trim(),
-  ].join('\n');
+  ];
+
+  if (
+    typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+  ) {
+    lines.push(
+      'Recent conversation summary (bounded):',
+      args.conversationSummary.trim(),
+      ''
+    );
+  }
+
+  lines.push('Instruction:', args.instruction.trim());
+
+  return lines.join('\n');
 }
 
 export function normalizeSurgicalTransformPlan(

@@ -7,8 +7,10 @@ export * from './lib/view-authoring/yaml/index.js';
 export {
   buildContinuumStateTargetCatalog,
   buildContinuumPatchTargetCatalog,
+  evaluateStateResponseQuality,
   parseContinuumStateResponse,
   type ContinuumExecutionTarget,
+  type ContinuumStateResponseQuality,
   type ContinuumStateUpdate,
 } from './lib/execution-targets/index.js';
 export {

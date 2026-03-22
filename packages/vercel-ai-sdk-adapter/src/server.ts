@@ -17,6 +17,7 @@ import type {
   ContinuumViewPatchPosition,
 } from '@continuum-dev/protocol';
 import {
+  buildDetachedFieldHints,
   parseJson,
   streamContinuumExecution,
   type ContinuumExecutionAdapter,
@@ -25,6 +26,7 @@ import {
   type ContinuumExecutionFinalResult,
   type ContinuumExecutionRequest,
   type ContinuumExecutionResponse,
+  type ContinuumExecutionTraceEntry,
   type ContinuumViewAuthoringFormat,
   type ViewPatchOperation,
 } from '@continuum-dev/ai-engine';
@@ -104,6 +106,36 @@ function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+function buildRouteContinuumExecutionContext(
+  body: ContinuumVercelAiSdkRequestBody
+): ContinuumExecutionContext {
+  const conversationSummary =
+    typeof body.conversationSummary === 'string' &&
+    body.conversationSummary.trim().length > 0
+      ? body.conversationSummary.trim()
+      : undefined;
+
+  let detachedFields: ContinuumExecutionContext['detachedFields'];
+  if (Array.isArray(body.detachedFields) && body.detachedFields.length > 0) {
+    detachedFields = body.detachedFields;
+  } else if (
+    body.detachedValues &&
+    typeof body.detachedValues === 'object' &&
+    !Array.isArray(body.detachedValues)
+  ) {
+    detachedFields = buildDetachedFieldHints(
+      body.detachedValues as Record<string, unknown>
+    );
+  }
+
+  return {
+    currentView: body.currentView ?? undefined,
+    currentData: body.currentData ?? undefined,
+    ...(conversationSummary ? { conversationSummary } : {}),
+    ...(detachedFields && detachedFields.length > 0 ? { detachedFields } : {}),
+  };
+}
+
 function textFromPart(part: unknown): string {
   if (!part || typeof part !== 'object') {
     return '';
@@ -168,6 +200,35 @@ function toExecutionResponse(
     json: request.outputKind === 'json-object' ? parseJson(text) : null,
     raw,
   };
+}
+
+function serializeExecutionRequestForObservability(
+  request: ContinuumExecutionRequest
+): Record<string, unknown> {
+  const { abortSignal: _ignored, ...rest } = request;
+  return rest as Record<string, unknown>;
+}
+
+function serializeExecutionResponseForObservability(
+  response: ContinuumExecutionResponse
+): { text: string; json?: unknown | null } {
+  const out: { text: string; json?: unknown | null } = {
+    text: response.text,
+  };
+  if (response.json !== undefined) {
+    out.json = response.json;
+  }
+  return out;
+}
+
+function serializeExecutionTraceForObservability(
+  trace: ContinuumExecutionTraceEntry[]
+): unknown[] {
+  return trace.map((entry) => ({
+    phase: entry.phase,
+    request: serializeExecutionRequestForObservability(entry.request),
+    response: serializeExecutionResponseForObservability(entry.response),
+  }));
 }
 
 function mergeProviderOptions(
@@ -460,6 +521,7 @@ export function createVercelAiSdkContinuumExecutionAdapter(
           request.temperature
         ),
         maxOutputTokens: request.maxTokens,
+        ...(request.abortSignal ? { abortSignal: request.abortSignal } : {}),
         providerOptions: mergeProviderOptions(
           providerOptions,
           request.providerOptions
@@ -485,6 +547,7 @@ export function createVercelAiSdkContinuumExecutionAdapter(
           request.temperature
         ),
         maxOutputTokens: request.maxTokens,
+        ...(request.abortSignal ? { abortSignal: request.abortSignal } : {}),
         providerOptions: mergeProviderOptions(
           providerOptions,
           request.providerOptions
@@ -546,6 +609,19 @@ export function createContinuumUiMessageStream(
           authoringFormat: args.authoringFormat,
           autoApplyView: args.autoApplyView,
           viewStreamMode: args.viewStreamMode,
+        });
+
+        writeChunk(writer, {
+          type: 'data-continuum-execution-trace',
+          data: {
+            instruction: args.instruction,
+            trace: serializeExecutionTraceForObservability(result.trace),
+            result: {
+              mode: result.mode,
+              status: result.status,
+              level: result.level,
+            },
+          },
         });
 
         if (args.writeFinalStatus ?? true) {
@@ -639,10 +715,7 @@ export function createContinuumVercelAiSdkRouteHandler(
     const stream = createContinuumUiMessageStream({
       adapter,
       instruction,
-      context: {
-        currentView: body.currentView ?? undefined,
-        currentData: body.currentData ?? undefined,
-      },
+      context: buildRouteContinuumExecutionContext(body),
       mode: body.continuum?.mode ?? options.defaultMode,
       addons: body.continuum?.addons,
       outputContract: body.continuum?.outputContract,

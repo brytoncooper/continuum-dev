@@ -10,8 +10,9 @@ describe('view line dsl prompts', () => {
       addons: ['strict-continuity', 'attachments', 'attachments'],
     });
 
+    expect(prompt).toContain('Continuum product context:');
     expect(prompt).toContain(
-      'Return a corrected next view that resolves the provided errors while preserving unchanged semantics.'
+      'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
     );
     expect(
       prompt.match(
@@ -35,6 +36,7 @@ describe('view line dsl prompts', () => {
       runtimeErrors: [],
     });
 
+    expect(message).toContain('Continuum context:');
     expect(message).toContain('Current view:\n{\n  "viewId": "profile"\n}');
     expect(message).toContain('Detached fields:\nnone');
     expect(message).toContain('Validation errors:\nmissing primary action');

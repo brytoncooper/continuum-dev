@@ -1,4 +1,5 @@
 import { createUIMessageStreamResponse } from 'ai';
+import { buildDetachedFieldHints } from '@continuum-dev/ai-engine';
 import {
   createContinuumUiMessageStream,
   createVercelAiSdkContinuumExecutionAdapter,
@@ -54,6 +55,23 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       env,
     });
 
+    const conversationSummary =
+      typeof body.conversationSummary === 'string' &&
+      body.conversationSummary.trim().length > 0
+        ? body.conversationSummary.trim()
+        : undefined;
+
+    let detachedFields;
+    if (Array.isArray(body.detachedFields) && body.detachedFields.length > 0) {
+      detachedFields = body.detachedFields;
+    } else if (
+      body.detachedValues &&
+      typeof body.detachedValues === 'object' &&
+      !Array.isArray(body.detachedValues)
+    ) {
+      detachedFields = buildDetachedFieldHints(body.detachedValues);
+    }
+
     const stream = createContinuumUiMessageStream({
       adapter: createVercelAiSdkContinuumExecutionAdapter({
         label: `${resolvedProvider.provider.label} (${resolvedProvider.modelId})`,
@@ -63,6 +81,8 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       context: {
         currentView: body.currentView ?? undefined,
         currentData: body.currentData ?? undefined,
+        ...(conversationSummary ? { conversationSummary } : {}),
+        ...(detachedFields && detachedFields.length > 0 ? { detachedFields } : {}),
       },
       mode: body.continuum?.mode,
       addons: continuumAddons,

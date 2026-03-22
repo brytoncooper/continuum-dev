@@ -25,6 +25,7 @@ const CONTINUUM_DATA_TYPES = new Set([
   'data-continuum-reset',
   'data-continuum-status',
   'data-continuum-node-status',
+  'data-continuum-execution-trace',
 ]);
 
 export interface ContinuumVercelAiSdkDataChunkOptions {

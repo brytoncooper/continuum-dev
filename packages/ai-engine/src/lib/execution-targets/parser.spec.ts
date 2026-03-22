@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildContinuumStateTargetCatalog } from './catalog.js';
-import { parseContinuumStateResponse } from './parser.js';
+import {
+  evaluateStateResponseQuality,
+  parseContinuumStateResponse,
+} from './parser.js';
 
 const targetCatalog = [
   {
@@ -366,5 +369,58 @@ describe('execution target state response parsing', () => {
         targetCatalog,
       })
     ).toBeNull();
+  });
+});
+
+describe('evaluateStateResponseQuality', () => {
+  it('flags populate-style instructions with only empty string values as weak_noop', () => {
+    const parsed = parseContinuumStateResponse({
+      text: JSON.stringify({
+        updates: [{ semanticKey: 'person.email', value: '' }],
+      }),
+      targetCatalog,
+    });
+    expect(parsed).not.toBeNull();
+    expect(
+      evaluateStateResponseQuality(
+        parsed!,
+        'populate the email',
+        targetCatalog
+      )
+    ).toBe('weak_noop');
+  });
+
+  it('treats non-populate instructions with empty strings as valid', () => {
+    const parsed = parseContinuumStateResponse({
+      text: JSON.stringify({
+        updates: [{ semanticKey: 'person.email', value: '' }],
+      }),
+      targetCatalog,
+    });
+    expect(parsed).not.toBeNull();
+    expect(
+      evaluateStateResponseQuality(
+        parsed!,
+        'set the email field',
+        targetCatalog
+      )
+    ).toBe('valid');
+  });
+
+  it('treats populate instructions with meaningful values as valid', () => {
+    const parsed = parseContinuumStateResponse({
+      text: JSON.stringify({
+        updates: [{ semanticKey: 'person.email', value: 'a@b.co' }],
+      }),
+      targetCatalog,
+    });
+    expect(parsed).not.toBeNull();
+    expect(
+      evaluateStateResponseQuality(
+        parsed!,
+        'populate the email',
+        targetCatalog
+      )
+    ).toBe('valid');
   });
 });

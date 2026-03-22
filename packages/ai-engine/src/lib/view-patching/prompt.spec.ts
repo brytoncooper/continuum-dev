@@ -8,6 +8,7 @@ describe('view-patching prompts', () => {
   it('documents the patch/full modes and supported operations', () => {
     const prompt = buildPatchSystemPrompt();
 
+    expect(prompt).toContain('live Continuum form');
     expect(prompt).toContain('mode="patch"');
     expect(prompt).toContain('mode="full"');
     expect(prompt).toContain('fullStrategy as either "evolve" or "replace"');
@@ -73,6 +74,7 @@ describe('view-patching prompts', () => {
       detachedFields: [],
     });
 
+    expect(message).toContain('live browser UI');
     expect(message).toContain('"viewId": "invoice"');
     expect(message).toContain('"version": "7"');
     expect(message).toContain('Node index:');

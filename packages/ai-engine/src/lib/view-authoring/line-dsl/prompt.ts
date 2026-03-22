@@ -10,6 +10,10 @@ export function buildViewLineDslSystemPrompt(args: {
 }): string {
   const sections = [
     '<instructions>',
+    'Continuum product context:',
+    '- The output you write becomes the UI a user sees in a live browser session.',
+    '- When evolving or correcting a current view, treat the existing UI as the thing the user is already working with.',
+    '- Your job is to help the user accomplish what they want on that current form while keeping the workflow stable unless broader change is clearly required.',
     'Return only Continuum View DSL.',
     'Do not return JSON.',
     'Do not return markdown fences.',
@@ -58,7 +62,7 @@ export function buildViewLineDslSystemPrompt(args: {
     args.mode === 'create-view'
       ? 'Create a brand-new view from the user request.'
       : args.mode === 'correction-loop'
-        ? 'Return a corrected next view that resolves the provided errors while preserving unchanged semantics.'
+        ? 'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
         : 'Evolve the existing view instead of replacing it wholesale unless the instruction clearly requires a different workflow.',
     'If the user asks to populate, prefill, or fill out the form, preserve the structure and add defaultValue/defaultValues instead of changing layout.',
   ];
@@ -135,13 +139,30 @@ export function buildViewLineDslUserMessage(args: {
   instruction: string;
   currentView?: unknown;
   detachedFields?: unknown[];
+  conversationSummary?: string;
   validationErrors?: string[];
   runtimeErrors?: string[];
 }): string {
   const sections = ['<input>'];
 
+  sections.push(
+    'Continuum context:\n' +
+      '- The current view represents the live browser UI the user is working on.\n' +
+      '- Your response becomes the next version of that UI.\n' +
+      '- Keep the current workflow stable unless the instruction clearly asks for broader change.'
+  );
+
   if (typeof args.currentView !== 'undefined') {
     sections.push(`Current view:\n${JSON.stringify(args.currentView, null, 2)}`);
+  }
+
+  if (
+    typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+  ) {
+    sections.push(
+      'Recent conversation summary (bounded):\n' + args.conversationSummary.trim()
+    );
   }
 
   if (Array.isArray(args.detachedFields)) {

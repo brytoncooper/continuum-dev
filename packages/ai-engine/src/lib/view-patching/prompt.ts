@@ -59,6 +59,10 @@ export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
 
 export function buildPatchSystemPrompt(): string {
   return [
+    'You help a user who is editing a live Continuum form in a web browser.',
+    'The node index and compact tree describe the current UI they are looking at right now.',
+    'Your job is to adjust that existing UI so it better matches what the user is asking for.',
+    'Prefer small, stable, reversible structural edits that preserve the current workflow unless the request clearly implies broader change.',
     'You generate Continuum update plans for small, localized Continuum UI edits.',
     'Return JSON only.',
     'Do not wrap the JSON in markdown fences.',
@@ -69,6 +73,7 @@ export function buildPatchSystemPrompt(): string {
     '- When mode="full", include fullStrategy as either "evolve" or "replace".',
     'Rules:',
     '- Prefer mode="patch" when the user asks for a localized change.',
+    '- Requests like "add more", "make this shorter", "make it nicer", and "ask less" should usually stay local unless the existing UI clearly cannot support the request without a broader redesign.',
     '- If instruction implies a brand new or replacement workflow, choose mode="full" and fullStrategy="replace".',
     '- If instruction can still evolve the current workflow but patching is unsafe, choose mode="full" and fullStrategy="evolve".',
     '- Supported operation kinds are: insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content.',
@@ -105,9 +110,10 @@ export function buildPatchUserMessage(args: {
   nodeHints: PatchNodeHint[];
   compactTree: CompactPatchNode[];
   detachedFields: DetachedFieldHint[];
+  conversationSummary?: string;
 }): string {
   return [
-    `Current view:\n${JSON.stringify(
+    `Current view (live browser UI the user is working on):\n${JSON.stringify(
       {
         viewId: args.viewId,
         version: args.version,
@@ -115,6 +121,7 @@ export function buildPatchUserMessage(args: {
       null,
       2
     )}`,
+    'You are adjusting this current UI, not designing an abstract schema from scratch.',
     'The node index lists existing ids, keys, labels, and structural hints. Use it to target existing nodes precisely.',
     `Node index:\n${JSON.stringify(args.nodeHints, null, 2)}`,
     'The compact tree shows the full current hierarchy. When you replace or insert a collection, include a complete collection node with a valid template subtree and any needed defaultValues.',
@@ -125,6 +132,13 @@ export function buildPatchUserMessage(args: {
         ? JSON.stringify(args.detachedFields, null, 2)
         : 'none'
     }`,
+    ...(typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+      ? [
+          'Recent conversation summary (bounded):',
+          args.conversationSummary.trim(),
+        ]
+      : []),
     `Instruction:\n${args.instruction.trim()}`,
   ].join('\n\n');
 }

@@ -12,6 +12,7 @@ import {
 import {
   buildContinuumPatchTargetCatalog,
   buildContinuumStateTargetCatalog,
+  evaluateStateResponseQuality,
   parseContinuumStateResponse,
   type ContinuumExecutionTarget,
 } from '../execution-targets/index.js';
@@ -88,6 +89,13 @@ function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
+function looksLikeStructuralEditInstruction(instruction: string): boolean {
+  const t = instruction.trim().toLowerCase();
+  return /\b(add|remove|move|delete|more|fewer|less|short|shorter|reorder|layout|row|column|section|field|label|insert|wrap)\b/.test(
+    t
+  );
+}
+
 function inferPromptMode(
   requestedMode: PromptMode | undefined,
   currentView: ViewDefinition | undefined
@@ -101,16 +109,24 @@ function inferPromptMode(
 
 function buildStateSystemPrompt(): string {
   return [
-    'You author Continuum data updates for a client-side session runtime.',
+    'You help a user working in a web browser on a live Continuum form session.',
+    'The state target catalog and current values describe fields the user can edit right now on the form they are looking at.',
+    'Interpret their natural-language request in that product context.',
+    'Your job is to help them manipulate values on the current form, not redesign structure or reason about internal data modeling abstractions.',
+    'Your response is applied directly as session data updates to the current UI.',
     'Return exactly one JSON object and nothing else.',
     'Do not wrap the JSON in markdown fences.',
     'Return a state response, not a view or patch response.',
     'State response shape: {"updates":[...],"status":"optional short summary"}.',
     'Each update must target one of the provided selected targets by semanticKey, key, or nodeId.',
     'If no selected targets are provided, infer the smallest useful targets from the available state target catalog.',
+    'Infer likely scope from the user request. For a request like "populate the email", updating one likely field is appropriate. For a request like "fill this out", multiple related fields can be appropriate.',
     'Only update existing stateful nodes that should actually change.',
     'Do not invent new node ids, semantic keys, or keys.',
     'Do not mutate view structure.',
+    'When the user asks to populate, prefill, fill out, or use sample or demo values, supply plausible non-empty example values for the matched fields unless they gave explicit values in the instruction.',
+    'When the instruction is vague, do your best using the current form context instead of refusing unnecessarily.',
+    'Do not return empty-string values for populate or prefill requests when a meaningful example would help.',
     'If no existing target clearly matches the instruction, return {"updates":[],"status":"No safe state update found."} instead of guessing.',
     'For collections, target the collection node and provide {"value":{"items":[...]}}.',
     'Collection item objects should use template field semanticKey, key, or nodeId from the provided catalog.',
@@ -123,9 +139,15 @@ function buildStateUserMessage(args: {
   currentData: unknown;
   stateTargets: ContinuumExecutionTarget[];
   selectedTargets: string[];
+  supplementalContext?: string;
+  conversationSummary?: string;
 }): string {
-  return [
+  const sections = [
     'Return the next Continuum state updates as JSON only.',
+    'Continuum context:',
+    '- The current form is already on screen in the browser.',
+    '- The user wants this current form adjusted or populated.',
+    '- The runtime will apply your response directly to the current session values.',
     '',
     'Selected targets:',
     args.selectedTargets.length > 0
@@ -138,9 +160,22 @@ function buildStateUserMessage(args: {
     'Current state values:',
     JSON.stringify(args.currentData ?? null, null, 2),
     '',
-    'Instruction:',
-    args.instruction.trim(),
-  ].join('\n');
+  ];
+  if (
+    typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+  ) {
+    sections.push(
+      'Recent conversation summary (bounded):',
+      args.conversationSummary.trim(),
+      ''
+    );
+  }
+  sections.push('Instruction:', args.instruction.trim());
+  if (args.supplementalContext && args.supplementalContext.trim().length > 0) {
+    sections.push('', args.supplementalContext.trim());
+  }
+  return sections.join('\n');
 }
 
 function toTraceEntry(
@@ -298,6 +333,9 @@ export async function* streamContinuumExecution(
   const currentView = args.context?.currentView;
   const currentData = args.context?.currentData ?? {};
   const detachedFields = args.context?.detachedFields ?? [];
+  const conversationSummary = args.context?.conversationSummary?.trim() ?? '';
+  const hasRestoreContinuity =
+    conversationSummary.length > 0 || detachedFields.length > 0;
   const issues = args.context?.issues ?? [];
   const authoringFormat = args.authoringFormat ?? 'line-dsl';
   const promptMode = inferPromptMode(args.mode, currentView);
@@ -341,7 +379,9 @@ export async function* streamContinuumExecution(
       };
 
       const plannerRequest: ContinuumExecutionRequest = {
-        systemPrompt: buildContinuumExecutionPlannerSystemPrompt(),
+        systemPrompt: buildContinuumExecutionPlannerSystemPrompt({
+          hasRestoreContinuity,
+        }),
         userMessage: buildContinuumExecutionPlannerUserPrompt({
           availableModes: availableExecutionModes,
           patchTargets,
@@ -349,6 +389,8 @@ export async function* streamContinuumExecution(
           compactTree: patchContext.compactTree,
           currentData,
           instruction: args.instruction,
+          conversationSummary: conversationSummary || undefined,
+          detachedFields,
         }),
         mode: 'planner',
         outputKind: 'json-object',
@@ -395,29 +437,76 @@ export async function* streamContinuumExecution(
     ];
 
     if (executionPlan.mode === 'state' && currentView) {
-      const stateRequest: ContinuumExecutionRequest = {
+      const stateRetryFeedback =
+        'The previous JSON was rejected by validation: populate, prefill, fill, sample, or demo requests must include plausible non-empty values for the targeted fields, or return {"updates":[],"status":"No safe state update found."} if no safe update is possible.';
+
+      const stateRequestBase = {
         systemPrompt: buildStateSystemPrompt(),
         userMessage: buildStateUserMessage({
           instruction: args.instruction,
           currentData,
           stateTargets,
           selectedTargets,
+          conversationSummary: conversationSummary || undefined,
         }),
-        mode: 'state',
-        outputKind: 'json-object',
+        mode: 'state' as const,
+        outputKind: 'json-object' as const,
         temperature: 0,
       };
-      const stateResponse = await runGenerate(
+      let stateResponse = await runGenerate(
         args.adapter,
-        stateRequest,
+        stateRequestBase,
         trace
       );
-      const parsedState = parseContinuumStateResponse({
+      let parsedState = parseContinuumStateResponse({
         text: stateResponse.text,
         targetCatalog: stateTargets,
       });
+      let stateQuality = parsedState
+        ? evaluateStateResponseQuality(
+            parsedState,
+            args.instruction,
+            stateTargets
+          )
+        : 'invalid';
 
-      if (parsedState && parsedState.updates.length > 0) {
+      if (stateQuality === 'weak_noop') {
+        yield {
+          kind: 'status',
+          status:
+            'State response looked empty for a populate-style request; retrying with validation feedback.',
+          level: 'info',
+        };
+        const retryRequest: ContinuumExecutionRequest = {
+          ...stateRequestBase,
+          userMessage: buildStateUserMessage({
+            instruction: args.instruction,
+            currentData,
+            stateTargets,
+            selectedTargets,
+            conversationSummary: conversationSummary || undefined,
+            supplementalContext: stateRetryFeedback,
+          }),
+        };
+        stateResponse = await runGenerate(args.adapter, retryRequest, trace);
+        parsedState = parseContinuumStateResponse({
+          text: stateResponse.text,
+          targetCatalog: stateTargets,
+        });
+        stateQuality = parsedState
+          ? evaluateStateResponseQuality(
+              parsedState,
+              args.instruction,
+              stateTargets
+            )
+          : 'invalid';
+      }
+
+      if (
+        parsedState &&
+        parsedState.updates.length > 0 &&
+        stateQuality !== 'weak_noop'
+      ) {
         for (const update of parsedState.updates) {
           yield {
             kind: 'state',
@@ -458,43 +547,90 @@ export async function* streamContinuumExecution(
         : promptMode;
 
     if (executionPlan.mode === 'patch' && currentView) {
+      const patchRetryFeedback =
+        'The previous JSON did not yield usable patch operations. Return mode="patch" with a non-empty operations array using only supported kinds, valid existing node ids from the index, or mode="full" with fullStrategy if a full view change is required.';
+
+      const patchUserMessageBase = [
+        buildPatchUserMessage({
+          viewId: currentView.viewId,
+          version: currentView.version,
+          instruction: args.instruction,
+          nodeHints: patchContext.nodeHints,
+          compactTree: patchContext.compactTree,
+          detachedFields,
+          conversationSummary: conversationSummary || undefined,
+        }),
+        'Planner-selected localized targets:',
+        JSON.stringify(selectedTargets, null, 2),
+      ].join('\n\n');
+
       const patchRequest: ContinuumExecutionRequest = {
         systemPrompt: buildPatchSystemPrompt(),
-        userMessage: [
-          buildPatchUserMessage({
-            viewId: currentView.viewId,
-            version: currentView.version,
-            instruction: args.instruction,
-            nodeHints: patchContext.nodeHints,
-            compactTree: patchContext.compactTree,
-            detachedFields,
-          }),
-          'Planner-selected localized targets:',
-          JSON.stringify(selectedTargets, null, 2),
-        ].join('\n\n'),
+        userMessage: patchUserMessageBase,
         mode: 'patch',
         outputKind: 'json-object',
         outputContract: VIEW_PATCH_OUTPUT_CONTRACT,
         temperature: 0,
       };
-      const patchResponse = await runGenerate(
+      let patchResponse = await runGenerate(
         args.adapter,
         patchRequest,
         trace
       );
-      const rawPatchValue =
+      let rawPatchValue =
         patchResponse.json ?? parseJson<unknown>(patchResponse.text);
-      const normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
-      const parsedPatch = normalizedPatch.plan;
+      let normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
+      let parsedPatch = normalizedPatch.plan;
 
       if (!parsedPatch) {
-        const firstOp = Array.isArray((rawPatchValue as any)?.operations) ? (rawPatchValue as any).operations[0] : null;
-        const opKeys = firstOp && typeof firstOp === 'object' ? JSON.stringify(firstOp).slice(0, 200) : 'no operations';
+        const firstOp = Array.isArray((rawPatchValue as any)?.operations)
+          ? (rawPatchValue as any).operations[0]
+          : null;
+        const opKeys =
+          firstOp && typeof firstOp === 'object'
+            ? JSON.stringify(firstOp).slice(0, 200)
+            : 'no operations';
         yield {
           kind: 'status',
           status: `[debug] Patch normalization failed: ${normalizedPatch.reason ?? 'unknown reason'}. First op: ${opKeys}`,
           level: 'info',
         };
+      }
+
+      const rawPatchPlan =
+        rawPatchValue && typeof rawPatchValue === 'object'
+          ? (rawPatchValue as Record<string, unknown>)
+          : null;
+      const rawHadEmptyPatchOperations =
+        rawPatchPlan &&
+        rawPatchPlan.mode === 'patch' &&
+        Array.isArray(rawPatchPlan.operations) &&
+        rawPatchPlan.operations.length === 0;
+
+      const patchLooksEmpty =
+        (parsedPatch?.mode === 'patch' && parsedPatch.operations.length === 0) ||
+        rawHadEmptyPatchOperations === true;
+
+      if (patchLooksEmpty && looksLikeStructuralEditInstruction(args.instruction)) {
+        yield {
+          kind: 'status',
+          status:
+            'Patch response had no operations; retrying once with validation feedback.',
+          level: 'info',
+        };
+        const patchRetryRequest: ContinuumExecutionRequest = {
+          ...patchRequest,
+          userMessage: `${patchUserMessageBase}\n\n${patchRetryFeedback}`,
+        };
+        patchResponse = await runGenerate(
+          args.adapter,
+          patchRetryRequest,
+          trace
+        );
+        rawPatchValue =
+          patchResponse.json ?? parseJson<unknown>(patchResponse.text);
+        normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
+        parsedPatch = normalizedPatch.plan;
       }
 
       if (
@@ -559,6 +695,7 @@ export async function* streamContinuumExecution(
           currentView,
           currentData,
           selectedTargets,
+          conversationSummary: conversationSummary || undefined,
         }),
         mode: 'transform',
         outputKind: 'json-object',
@@ -671,6 +808,7 @@ export async function* streamContinuumExecution(
           nextPromptMode === 'create-view' ? undefined : currentView,
         detachedFields:
           nextPromptMode === 'create-view' ? undefined : detachedFields,
+        conversationSummary: conversationSummary || undefined,
         runtimeErrors:
           nextPromptMode === 'correction-loop'
             ? buildRuntimeErrors(issues)

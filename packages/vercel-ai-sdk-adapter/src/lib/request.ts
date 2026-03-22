@@ -1,6 +1,7 @@
 import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
 import type { ContinuumViewAuthoringFormat } from '@continuum-dev/ai-engine';
 import type {
+  DetachedFieldHint,
   PromptAddon,
   PromptMode,
   PromptOutputContract,
@@ -18,6 +19,9 @@ export interface ContinuumVercelAiSdkRequestOptions {
 export interface ContinuumVercelAiSdkRequestBody {
   currentView?: ViewDefinition | null;
   currentData?: Record<string, NodeValue | undefined> | null;
+  conversationSummary?: string | null;
+  detachedValues?: Record<string, unknown> | null;
+  detachedFields?: DetachedFieldHint[] | null;
   continuum?: ContinuumVercelAiSdkRequestOptions;
 }
 
@@ -45,6 +49,18 @@ export function buildContinuumVercelAiSdkRequestBody<
 
   if ('currentData' in options) {
     result.currentData = options.currentData ?? null;
+  }
+
+  if ('conversationSummary' in options) {
+    result.conversationSummary = options.conversationSummary ?? null;
+  }
+
+  if ('detachedValues' in options) {
+    result.detachedValues = options.detachedValues ?? null;
+  }
+
+  if ('detachedFields' in options) {
+    result.detachedFields = options.detachedFields ?? null;
   }
 
   if (options.continuum) {
