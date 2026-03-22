@@ -54,3 +54,5 @@ docs/*
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
 test-output
+
+apps/demo-api/demo-observability.sqlite*
