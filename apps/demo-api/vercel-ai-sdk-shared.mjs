@@ -1,8 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 
-export const VERCEL_AI_SDK_DEMO_PATH = '/api/vercel-ai-sdk/demo';
-export const VERCEL_AI_SDK_LEGACY_DEMO_PATH = '/api/vercel-ai-sdk-demo';
 export const VERCEL_AI_SDK_LIVE_PATH = '/api/vercel-ai-sdk/chat';
 export const VERCEL_AI_SDK_PROVIDERS_PATH = '/api/vercel-ai-sdk/providers';
 export const VERCEL_AI_SDK_API_KEY_HEADER = 'x-demo-provider-api-key';
@@ -29,13 +27,6 @@ const PROVIDER_CATALOG = [
 const providerCatalogById = new Map(
   PROVIDER_CATALOG.map((provider) => [provider.id, provider])
 );
-
-export function isVercelAiSdkDemoPath(pathname) {
-  return (
-    pathname === VERCEL_AI_SDK_DEMO_PATH ||
-    pathname === VERCEL_AI_SDK_LEGACY_DEMO_PATH
-  );
-}
 
 export function isVercelAiSdkLivePath(pathname) {
   return pathname === VERCEL_AI_SDK_LIVE_PATH;

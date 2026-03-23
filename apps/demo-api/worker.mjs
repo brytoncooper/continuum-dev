@@ -1,8 +1,4 @@
 import {
-  handleVercelAiSdkDemoRequest,
-  isVercelAiSdkDemoPath,
-} from './vercel-ai-sdk-demo-route.mjs';
-import {
   handleVercelAiSdkLiveRequest,
   isVercelAiSdkLivePath,
 } from './vercel-ai-sdk-live-route.mjs';
@@ -44,10 +40,6 @@ export default {
 
     if (isAnthropicPath(url.pathname)) {
       return handleAnthropicProxy(request);
-    }
-
-    if (isVercelAiSdkDemoPath(url.pathname)) {
-      return handleVercelAiSdkDemoRequest(request);
     }
 
     if (isVercelAiSdkLivePath(url.pathname)) {

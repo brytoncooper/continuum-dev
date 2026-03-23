@@ -56,3 +56,4 @@ vitest.config.*.timestamp*
 test-output
 
 apps/demo-api/demo-observability.sqlite*
+apps/demo-api/logs/
