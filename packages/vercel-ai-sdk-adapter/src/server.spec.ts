@@ -3,8 +3,11 @@ import * as aiEngine from '@continuum-dev/ai-engine';
 import type { ContinuumExecutionAdapter } from '@continuum-dev/ai-engine';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildConversationTranscriptFromMessages,
+  buildRouteContinuumExecutionContext,
   createContinuumUiMessageStream,
   createContinuumVercelAiSdkRouteHandler,
+  extractChatAttachmentsFromMessages,
   writeContinuumExecutionToUiMessageWriter,
 } from './server.js';
 
@@ -16,11 +19,25 @@ function createExecutionAdapter(): ContinuumExecutionAdapter {
   return {
     label: 'Fake AI SDK',
     async generate(request) {
-      expect(request.mode).toBe('view');
-      return {
-        text: generatedViewText,
-        raw: generatedViewText,
-      };
+      if (request.mode === 'planner') {
+        return {
+          text: JSON.stringify({
+            mode: 'view',
+            fallback: 'view',
+            reason: 'test',
+            authoringMode: 'create-view',
+          }),
+        };
+      }
+
+      if (request.mode === 'view') {
+        return {
+          text: generatedViewText,
+          raw: generatedViewText,
+        };
+      }
+
+      throw new Error(`Unexpected mode: ${request.mode}`);
     },
   };
 }
@@ -371,6 +388,122 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
     expect(body).toContain('loan_form');
   });
 
+  it('derives conversation summary from prior chat messages for Continuum context', async () => {
+    const streamSpy = vi
+      .spyOn(aiEngine, 'streamContinuumExecution')
+      .mockImplementation((async function* (args) {
+        expect(args.context?.conversationSummary).toContain('Prior conversation');
+        expect(args.context?.conversationSummary).toContain('Harborline live UI');
+        expect(args.context?.conversationSummary).toContain('Assistant: Understood.');
+        expect(args.context?.conversationSummary).not.toContain('Update my profile');
+        yield {
+          kind: 'status',
+          status: 'done',
+          level: 'info',
+        } as never;
+        return {
+          mode: 'noop',
+          source: 'test',
+          status: 'noop',
+          level: 'warning',
+          trace: [],
+          requestedMode: 'view',
+          reason: 'test',
+        } as never;
+      }) as typeof aiEngine.streamContinuumExecution);
+
+    try {
+      const handler = createContinuumVercelAiSdkRouteHandler({
+        adapter: createExecutionAdapter(),
+        defaultAuthoringFormat: 'line-dsl',
+      });
+
+      const response = await handler(
+        new Request('http://localhost/api/chat', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                role: 'user',
+                content: 'Harborline live UI — describe workflows in chat.',
+              },
+              {
+                role: 'assistant',
+                content: 'Understood.',
+              },
+              {
+                role: 'user',
+                parts: [{ type: 'text', text: 'Update my profile' }],
+              },
+            ],
+          }),
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect(streamSpy).toHaveBeenCalled();
+    } finally {
+      streamSpy.mockRestore();
+    }
+  });
+
+  it('merges explicit conversationSummary with derived prior messages', async () => {
+    const streamSpy = vi
+      .spyOn(aiEngine, 'streamContinuumExecution')
+      .mockImplementation((async function* (args) {
+        const summary = args.context?.conversationSummary ?? '';
+        expect(summary).toContain('Explicit bounded note.');
+        expect(summary).toContain('Prior conversation');
+        expect(summary).toContain('Earlier user line.');
+        yield {
+          kind: 'status',
+          status: 'done',
+          level: 'info',
+        } as never;
+        return {
+          mode: 'noop',
+          source: 'test',
+          status: 'noop',
+          level: 'warning',
+          trace: [],
+          requestedMode: 'view',
+          reason: 'test',
+        } as never;
+      }) as typeof aiEngine.streamContinuumExecution);
+
+    try {
+      const handler = createContinuumVercelAiSdkRouteHandler({
+        adapter: createExecutionAdapter(),
+        defaultAuthoringFormat: 'line-dsl',
+      });
+
+      const response = await handler(
+        new Request('http://localhost/api/chat', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationSummary: 'Explicit bounded note.',
+            messages: [
+              { role: 'user', content: 'Earlier user line.' },
+              { role: 'assistant', content: 'Reply.' },
+              { role: 'user', content: 'Latest instruction' },
+            ],
+          }),
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect(streamSpy).toHaveBeenCalled();
+    } finally {
+      streamSpy.mockRestore();
+    }
+  });
+
   it('passes conversation summary and detached values into Continuum execution context', async () => {
     const streamSpy = vi
       .spyOn(aiEngine, 'streamContinuumExecution')
@@ -433,5 +566,82 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
     } finally {
       streamSpy.mockRestore();
     }
+  });
+});
+
+describe('buildConversationTranscriptFromMessages', () => {
+  it('returns undefined when there is no prior turn before the latest user message', () => {
+    expect(
+      buildConversationTranscriptFromMessages([{ role: 'user', content: 'Only' }])
+    ).toBeUndefined();
+  });
+
+  it('includes prior user and assistant lines and excludes the latest user instruction', () => {
+    const transcript = buildConversationTranscriptFromMessages([
+      { role: 'user', content: 'Context about the live UI.' },
+      { role: 'assistant', content: 'Acknowledged.' },
+      { role: 'user', parts: [{ type: 'text', text: 'Latest ask' }] },
+    ]);
+    expect(transcript).toContain('Prior conversation');
+    expect(transcript).toContain('User: Context about the live UI.');
+    expect(transcript).toContain('Assistant: Acknowledged.');
+    expect(transcript).not.toContain('Latest ask');
+  });
+});
+
+describe('chat file attachments', () => {
+  it('extractChatAttachmentsFromMessages parses image and PDF data URL parts from the latest user message', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+    const pdf = 'data:application/pdf;base64,JVBERi0x';
+    const attachments = extractChatAttachmentsFromMessages([
+      { role: 'assistant', parts: [{ type: 'text', text: 'hi' }] },
+      {
+        role: 'user',
+        parts: [
+          { type: 'text', text: 'see files' },
+          { type: 'file', url: png, mediaType: 'image/png', filename: 'x.png' },
+          {
+            type: 'file',
+            url: pdf,
+            mediaType: 'application/pdf',
+            filename: 'a.pdf',
+          },
+        ],
+      },
+    ]);
+    expect(attachments).toHaveLength(2);
+    expect(attachments[0]).toMatchObject({
+      kind: 'image',
+      mediaType: 'image/png',
+      base64: 'iVBORw0KGgo=',
+      filename: 'x.png',
+    });
+    expect(attachments[1]).toMatchObject({
+      kind: 'file',
+      mediaType: 'application/pdf',
+      base64: 'JVBERi0x',
+      filename: 'a.pdf',
+    });
+  });
+
+  it('buildRouteContinuumExecutionContext forwards chatAttachments', () => {
+    const pdf = 'data:application/pdf;base64,JVBERi0x';
+    const context = buildRouteContinuumExecutionContext({
+      messages: [
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              url: pdf,
+              mediaType: 'application/pdf',
+              filename: 'a.pdf',
+            },
+          ],
+        },
+      ],
+    } as never);
+    expect(context.chatAttachments?.length).toBe(1);
+    expect(context.chatAttachments?.[0].kind).toBe('file');
   });
 });

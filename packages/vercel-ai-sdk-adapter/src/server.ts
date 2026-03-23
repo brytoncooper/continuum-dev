@@ -3,8 +3,11 @@ import {
   createUIMessageStreamResponse,
   generateText,
   streamText,
+  type FilePart,
   type InferUIMessageChunk,
   type LanguageModel,
+  type ModelMessage,
+  type TextPart,
   type UIMessage,
   type UIMessageStreamWriter,
 } from 'ai';
@@ -20,6 +23,7 @@ import {
   buildDetachedFieldHints,
   parseJson,
   streamContinuumExecution,
+  type ContinuumChatAttachment,
   type ContinuumExecutionAdapter,
   type ContinuumExecutionContext,
   type ContinuumExecutionEvent,
@@ -36,7 +40,10 @@ import type {
   PromptOutputContract,
 } from '@continuum-dev/prompts';
 import type { ContinuumVercelAiSdkRequestBody } from './lib/request.js';
-import type { ContinuumVercelAiSdkMessage } from './lib/types.js';
+import type {
+  ContinuumVercelAiSdkExecutionTraceData,
+  ContinuumVercelAiSdkMessage,
+} from './lib/types.js';
 import { resolveTemperatureForLanguageModel } from './lib/resolve-temperature-for-language-model.js';
 
 export interface VercelAiSdkContinuumExecutionAdapterOptions {
@@ -64,6 +71,8 @@ export interface WriteContinuumExecutionToUiMessageWriterArgs {
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
+  emitViewPreviews?: boolean;
+  viewPreviewThrottleMs?: number;
   viewStreamMode?: SessionStreamMode;
 }
 
@@ -106,14 +115,291 @@ function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function buildRouteContinuumExecutionContext(
-  body: ContinuumVercelAiSdkRequestBody
+const MAX_CONVERSATION_CONTEXT_CHARS = 12000;
+
+const FALLBACK_INSTRUCTION_FOR_ATTACHMENTS =
+  'Use the attached file(s) to inform your response.';
+
+function parseDataUrlToBase64(
+  url: string
+): { mediaType: string; base64: string } | null {
+  const match = /^data:([^;,]+);base64,(.+)$/i.exec(url);
+  if (!match) {
+    return null;
+  }
+  return {
+    mediaType: match[1].trim(),
+    base64: match[2],
+  };
+}
+
+/**
+ * Collects user file parts from the **latest** user message in a Vercel AI SDK
+ * chat `messages` array. Only `data:` URLs with a `;base64,` payload are
+ * supported (matching typical browser `FileUIPart` serialization).
+ *
+ * @param messages - Same `messages` array as the chat POST body.
+ * @returns Attachments in adapter-ready form, newest user message only.
+ */
+export function extractChatAttachmentsFromMessages(
+  messages: ContinuumVercelAiSdkRouteRequestBody['messages']
+): ContinuumChatAttachment[] {
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message || typeof message !== 'object') {
+      continue;
+    }
+    if ((message as { role?: unknown }).role !== 'user') {
+      continue;
+    }
+
+    const parts = (message as { parts?: unknown }).parts;
+    if (!Array.isArray(parts)) {
+      return [];
+    }
+
+    const collected: ContinuumChatAttachment[] = [];
+    for (const part of parts) {
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+      if ((part as { type?: unknown }).type !== 'file') {
+        continue;
+      }
+      const url = (part as { url?: unknown }).url;
+      if (typeof url !== 'string' || url.length === 0) {
+        continue;
+      }
+      const parsed = parseDataUrlToBase64(url);
+      if (!parsed) {
+        continue;
+      }
+      const declaredType = (part as { mediaType?: unknown }).mediaType;
+      const resolvedMediaType =
+        typeof declaredType === 'string' && declaredType.trim().length > 0
+          ? declaredType.trim()
+          : parsed.mediaType;
+      const filename = (part as { filename?: unknown }).filename;
+      const namedFilename =
+        typeof filename === 'string' && filename.trim().length > 0
+          ? filename.trim()
+          : undefined;
+      const isImage = resolvedMediaType.startsWith('image/');
+      collected.push(
+        isImage
+          ? {
+              kind: 'image',
+              mediaType: resolvedMediaType,
+              base64: parsed.base64,
+              ...(namedFilename ? { filename: namedFilename } : {}),
+            }
+          : {
+              kind: 'file',
+              mediaType: resolvedMediaType,
+              base64: parsed.base64,
+              ...(namedFilename ? { filename: namedFilename } : {}),
+            }
+      );
+    }
+    return collected;
+  }
+
+  return [];
+}
+
+type LanguageModelPromptArgs =
+  | { kind: 'prompt'; system: string; prompt: string }
+  | { kind: 'messages'; system: string; messages: ModelMessage[] };
+
+function buildLanguageModelPromptArgs(
+  request: ContinuumExecutionRequest
+): LanguageModelPromptArgs {
+  const attachments = request.attachments ?? [];
+  if (attachments.length === 0) {
+    return {
+      kind: 'prompt',
+      system: request.systemPrompt,
+      prompt: request.userMessage,
+    };
+  }
+
+  const userContent: Array<TextPart | FilePart> = [
+    { type: 'text', text: request.userMessage },
+  ];
+  for (const attachment of attachments) {
+    userContent.push({
+      type: 'file',
+      data: attachment.base64,
+      mediaType: attachment.mediaType,
+      ...(attachment.filename ? { filename: attachment.filename } : {}),
+    });
+  }
+
+  return {
+    kind: 'messages',
+    system: request.systemPrompt,
+    messages: [{ role: 'user', content: userContent }],
+  };
+}
+
+function joinBoundedConversationSections(sections: string[]): string | undefined {
+  const trimmed = sections
+    .map((section) => section.trim())
+    .filter((section) => section.length > 0);
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  let joined = trimmed.join('\n\n');
+  if (joined.length > MAX_CONVERSATION_CONTEXT_CHARS) {
+    joined = joined.slice(joined.length - MAX_CONVERSATION_CONTEXT_CHARS);
+  }
+
+  return joined;
+}
+
+function extractMessagePlainText(message: unknown): string {
+  if (!message || typeof message !== 'object') {
+    return '';
+  }
+
+  const record = message as Record<string, unknown>;
+  if (typeof record.content === 'string') {
+    return record.content.trim();
+  }
+
+  const parts = record.parts;
+  if (!Array.isArray(parts)) {
+    return '';
+  }
+
+  return parts.map((part) => textFromPart(part)).join(' ').trim();
+}
+
+function messageHasUserVisibleContent(message: unknown): boolean {
+  if (extractMessagePlainText(message).length > 0) {
+    return true;
+  }
+  const parts = (message as { parts?: unknown }).parts;
+  if (!Array.isArray(parts)) {
+    return false;
+  }
+  return parts.some(
+    (part) =>
+      part &&
+      typeof part === 'object' &&
+      (part as { type?: unknown }).type === 'file'
+  );
+}
+
+function findLastUserMessageIndex(messages: unknown[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message || typeof message !== 'object') {
+      continue;
+    }
+
+    if ((message as { role?: unknown }).role !== 'user') {
+      continue;
+    }
+
+    if (messageHasUserVisibleContent(message)) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Builds a bounded transcript of chat turns **before** the latest user message,
+ * for `ContinuumExecutionContext.conversationSummary` (planner and view prompts).
+ *
+ * @param messages - Same `messages` array as the Vercel AI SDK chat POST body.
+ * @param maxChars - Soft cap per section before the global join (default 8000).
+ * @returns `undefined` when there is no prior turn, or plain text lines `User:` / `Assistant:` / `System:`.
+ */
+export function buildConversationTranscriptFromMessages(
+  messages: ContinuumVercelAiSdkRouteRequestBody['messages'],
+  maxChars = 8000
+): string | undefined {
+  if (!Array.isArray(messages) || messages.length <= 1) {
+    return undefined;
+  }
+
+  const lastUserIndex = findLastUserMessageIndex(messages);
+  if (lastUserIndex <= 0) {
+    return undefined;
+  }
+
+  const prior = messages.slice(0, lastUserIndex);
+  const lines: string[] = [];
+
+  for (const message of prior) {
+    if (!message || typeof message !== 'object') {
+      continue;
+    }
+
+    const role = (message as { role?: unknown }).role;
+    const text = extractMessagePlainText(message);
+    if (!text) {
+      continue;
+    }
+
+    const label =
+      role === 'assistant'
+        ? 'Assistant'
+        : role === 'user'
+          ? 'User'
+          : role === 'system'
+            ? 'System'
+            : 'Other';
+
+    lines.push(`${label}: ${text}`);
+  }
+
+  if (lines.length === 0) {
+    return undefined;
+  }
+
+  let result = lines.join('\n');
+  if (result.length > maxChars) {
+    result = result.slice(result.length - maxChars);
+  }
+
+  return `Prior conversation (most recent last):\n${result}`;
+}
+
+/**
+ * Builds `ContinuumExecutionContext` from a Vercel AI SDK chat POST body (current
+ * view, data, merged conversation summary, detached fields, integration catalog,
+ * registered actions, chat attachments). Prefer this over ad hoc context objects so planner and
+ * view phases receive the same fields as `createContinuumVercelAiSdkRouteHandler`.
+ *
+ * @param body - Parsed JSON body from `POST` (must include fields the client sent).
+ */
+export function buildRouteContinuumExecutionContext(
+  body: ContinuumVercelAiSdkRouteRequestBody
 ): ContinuumExecutionContext {
-  const conversationSummary =
+  const explicitSummary =
     typeof body.conversationSummary === 'string' &&
     body.conversationSummary.trim().length > 0
       ? body.conversationSummary.trim()
       : undefined;
+
+  const derivedFromMessages = Array.isArray(body.messages)
+    ? buildConversationTranscriptFromMessages(body.messages)
+    : undefined;
+
+  const conversationSummary = joinBoundedConversationSections(
+    [explicitSummary, derivedFromMessages].filter(
+      (section): section is string => typeof section === 'string'
+    )
+  );
 
   let detachedFields: ContinuumExecutionContext['detachedFields'];
   if (Array.isArray(body.detachedFields) && body.detachedFields.length > 0) {
@@ -128,11 +414,30 @@ function buildRouteContinuumExecutionContext(
     );
   }
 
+  const integrationCatalog =
+    body.integrationCatalog &&
+    typeof body.integrationCatalog === 'object' &&
+    !Array.isArray(body.integrationCatalog)
+      ? body.integrationCatalog
+      : undefined;
+
+  const registeredActions =
+    body.registeredActions &&
+    typeof body.registeredActions === 'object' &&
+    !Array.isArray(body.registeredActions)
+      ? body.registeredActions
+      : undefined;
+
+  const chatAttachments = extractChatAttachmentsFromMessages(body.messages);
+
   return {
     currentView: body.currentView ?? undefined,
     currentData: body.currentData ?? undefined,
     ...(conversationSummary ? { conversationSummary } : {}),
     ...(detachedFields && detachedFields.length > 0 ? { detachedFields } : {}),
+    ...(integrationCatalog ? { integrationCatalog } : {}),
+    ...(registeredActions ? { registeredActions } : {}),
+    ...(chatAttachments.length > 0 ? { chatAttachments } : {}),
   };
 }
 
@@ -206,7 +511,17 @@ function serializeExecutionRequestForObservability(
   request: ContinuumExecutionRequest
 ): Record<string, unknown> {
   const { abortSignal: _ignored, ...rest } = request;
-  return rest as Record<string, unknown>;
+  const attachments = rest.attachments;
+  if (!attachments?.length) {
+    return rest as Record<string, unknown>;
+  }
+  return {
+    ...rest,
+    attachments: attachments.map((attachment) => ({
+      ...attachment,
+      base64: `[base64 ${attachment.base64.length} chars]`,
+    })),
+  } as Record<string, unknown>;
 }
 
 function serializeExecutionResponseForObservability(
@@ -229,6 +544,26 @@ function serializeExecutionTraceForObservability(
     request: serializeExecutionRequestForObservability(entry.request),
     response: serializeExecutionResponseForObservability(entry.response),
   }));
+}
+
+/**
+ * Builds the same observability payload as the `data-continuum-execution-trace` UI stream
+ * part: instruction, per-phase trace with attachment base64 redacted to lengths, and a
+ * short result summary.
+ */
+export function serializeContinuumExecutionForObservability(
+  instruction: string,
+  result: ContinuumExecutionFinalResult
+): ContinuumVercelAiSdkExecutionTraceData {
+  return {
+    instruction,
+    trace: serializeExecutionTraceForObservability(result.trace),
+    result: {
+      mode: result.mode,
+      status: result.status,
+      level: result.level,
+    },
+  };
 }
 
 function mergeProviderOptions(
@@ -512,10 +847,10 @@ export function createVercelAiSdkContinuumExecutionAdapter(
         options.providerOptions,
         await options.resolveProviderOptions?.(request)
       );
-      const result = await generateText({
+      const promptArgs = buildLanguageModelPromptArgs(request);
+      const sharedCall = {
         model,
-        system: request.systemPrompt,
-        prompt: request.userMessage,
+        system: promptArgs.system,
         temperature: resolveTemperatureForLanguageModel(
           model,
           request.temperature
@@ -526,7 +861,17 @@ export function createVercelAiSdkContinuumExecutionAdapter(
           providerOptions,
           request.providerOptions
         ) as never,
-      });
+      };
+      const result =
+        promptArgs.kind === 'prompt'
+          ? await generateText({
+              ...sharedCall,
+              prompt: promptArgs.prompt,
+            })
+          : await generateText({
+              ...sharedCall,
+              messages: promptArgs.messages,
+            });
 
       return toExecutionResponse(request, result.text, result);
     },
@@ -538,10 +883,10 @@ export function createVercelAiSdkContinuumExecutionAdapter(
         options.providerOptions,
         await options.resolveProviderOptions?.(request)
       );
-      const result = streamText({
+      const promptArgs = buildLanguageModelPromptArgs(request);
+      const sharedCall = {
         model,
-        system: request.systemPrompt,
-        prompt: request.userMessage,
+        system: promptArgs.system,
         temperature: resolveTemperatureForLanguageModel(
           model,
           request.temperature
@@ -552,7 +897,17 @@ export function createVercelAiSdkContinuumExecutionAdapter(
           providerOptions,
           request.providerOptions
         ) as never,
-      });
+      };
+      const result =
+        promptArgs.kind === 'prompt'
+          ? streamText({
+              ...sharedCall,
+              prompt: promptArgs.prompt,
+            })
+          : streamText({
+              ...sharedCall,
+              messages: promptArgs.messages,
+            });
 
       for await (const chunk of result.textStream) {
         yield chunk;
@@ -613,15 +968,10 @@ export function createContinuumUiMessageStream(
 
         writeChunk(writer, {
           type: 'data-continuum-execution-trace',
-          data: {
-            instruction: args.instruction,
-            trace: serializeExecutionTraceForObservability(result.trace),
-            result: {
-              mode: result.mode,
-              status: result.status,
-              level: result.level,
-            },
-          },
+          data: serializeContinuumExecutionForObservability(
+            args.instruction,
+            result
+          ),
         });
 
         if (args.writeFinalStatus ?? true) {
@@ -687,11 +1037,16 @@ export function createContinuumVercelAiSdkRouteHandler(
       });
     }
 
-    const instruction =
+    const context = buildRouteContinuumExecutionContext(body);
+    const chatAttachments = context.chatAttachments ?? [];
+    let instruction =
       body.continuum?.instruction?.trim() ||
       extractLatestUserInstruction(body.messages);
+    if (!instruction.trim() && chatAttachments.length > 0) {
+      instruction = FALLBACK_INSTRUCTION_FOR_ATTACHMENTS;
+    }
 
-    if (!instruction) {
+    if (!instruction.trim()) {
       return new Response(
         'Add an instruction before sending a Continuum Vercel AI SDK request.',
         {
@@ -715,7 +1070,7 @@ export function createContinuumVercelAiSdkRouteHandler(
     const stream = createContinuumUiMessageStream({
       adapter,
       instruction,
-      context: buildRouteContinuumExecutionContext(body),
+      context,
       mode: body.continuum?.mode ?? options.defaultMode,
       addons: body.continuum?.addons,
       outputContract: body.continuum?.outputContract,
@@ -724,6 +1079,8 @@ export function createContinuumVercelAiSdkRouteHandler(
         options.defaultAuthoringFormat ??
         'line-dsl',
       autoApplyView: body.continuum?.autoApplyView,
+      emitViewPreviews: body.continuum?.emitViewPreviews,
+      viewPreviewThrottleMs: body.continuum?.viewPreviewThrottleMs,
       viewStreamMode: options.defaultViewStreamMode,
     });
 

@@ -51,4 +51,39 @@ describe('buildContinuumVercelAiSdkRequestBody', () => {
       currentData: null,
     });
   });
+
+  it('includes registeredActions on the request body when provided', () => {
+    const body = buildContinuumVercelAiSdkRequestBody({
+      registeredActions: {
+        'intent.a': { label: 'Run A', description: 'Desc' },
+      },
+    });
+
+    expect(body.registeredActions).toEqual({
+      'intent.a': { label: 'Run A', description: 'Desc' },
+    });
+  });
+
+  it('includes integrationCatalog on the request body when provided', () => {
+    const catalog = {
+      productSummary: 'Test.',
+      endpoints: [
+        {
+          id: 'e1',
+          method: 'GET',
+          path: '/x',
+          description: 'd',
+          userAction: 'act',
+          persistedFields: [
+            { semanticKey: 'a.b', label: 'L', required: true },
+          ],
+        },
+      ],
+    };
+    const body = buildContinuumVercelAiSdkRequestBody({
+      integrationCatalog: catalog,
+    });
+
+    expect(body.integrationCatalog).toEqual(catalog);
+  });
 });

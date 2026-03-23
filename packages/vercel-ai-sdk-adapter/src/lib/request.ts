@@ -1,5 +1,9 @@
 import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
-import type { ContinuumViewAuthoringFormat } from '@continuum-dev/ai-engine';
+import type {
+  ContinuumIntegrationCatalog,
+  ContinuumRegisteredActions,
+  ContinuumViewAuthoringFormat,
+} from '@continuum-dev/ai-engine';
 import type {
   DetachedFieldHint,
   PromptAddon,
@@ -14,6 +18,14 @@ export interface ContinuumVercelAiSdkRequestOptions {
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
+  emitViewPreviews?: boolean;
+  viewPreviewThrottleMs?: number;
+  /**
+   * When true, a demo host may stream a plain assistant reply that describes
+   * multimodal input (text and files) instead of running Continuum execution.
+   * Requires `messages` on the POST body.
+   */
+  debugEcho?: boolean;
 }
 
 export interface ContinuumVercelAiSdkRequestBody {
@@ -22,6 +34,16 @@ export interface ContinuumVercelAiSdkRequestBody {
   conversationSummary?: string | null;
   detachedValues?: Record<string, unknown> | null;
   detachedFields?: DetachedFieldHint[] | null;
+  /**
+   * Optional simulated product backend catalog (for example demo app endpoints
+   * and persisted fields). Forwarded into `ContinuumExecutionContext`.
+   */
+  integrationCatalog?: ContinuumIntegrationCatalog | null;
+  /**
+   * Optional snapshot of `Session.getRegisteredActions()` for prompts (intent
+   * ids → labels). Forwarded into `ContinuumExecutionContext`.
+   */
+  registeredActions?: ContinuumRegisteredActions | null;
   continuum?: ContinuumVercelAiSdkRequestOptions;
 }
 
@@ -31,6 +53,11 @@ export interface BuildContinuumVercelAiSdkRequestBodyOptions<
   body?: BODY | null;
   currentView?: ViewDefinition | null;
   currentData?: Record<string, NodeValue | undefined> | null;
+  conversationSummary?: string | null;
+  detachedValues?: Record<string, unknown> | null;
+  detachedFields?: DetachedFieldHint[] | null;
+  integrationCatalog?: ContinuumIntegrationCatalog | null;
+  registeredActions?: ContinuumRegisteredActions | null;
   continuum?: ContinuumVercelAiSdkRequestOptions;
 }
 
@@ -61,6 +88,14 @@ export function buildContinuumVercelAiSdkRequestBody<
 
   if ('detachedFields' in options) {
     result.detachedFields = options.detachedFields ?? null;
+  }
+
+  if ('integrationCatalog' in options) {
+    result.integrationCatalog = options.integrationCatalog ?? null;
+  }
+
+  if ('registeredActions' in options) {
+    result.registeredActions = options.registeredActions ?? null;
   }
 
   if (options.continuum) {
