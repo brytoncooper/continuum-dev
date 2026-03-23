@@ -1,5 +1,5 @@
 import type { ViewDefinition } from '@continuum-dev/core';
-import { normalizeContinuumSemanticIdentity } from '../continuum-execution/index.mjs';
+import { normalizeContinuumSemanticIdentity } from '../../continuum-execution/index.mjs';
 import {
   buildRuntimeErrors,
   collectStructuralErrors,
@@ -7,7 +7,7 @@ import {
   isViewDefinition,
   normalizeViewDefinition,
   SUPPORTED_NODE_TYPE_VALUES,
-} from '../view-guardrails/index.js';
+} from '../../view-guardrails/index.js';
 
 export function collectCandidateViewErrors(
   currentView: ViewDefinition,

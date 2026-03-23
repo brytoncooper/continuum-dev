@@ -1,11 +1,11 @@
 import type { SessionStreamPart } from '@continuum-dev/core';
 import type { ViewDefinition } from '@continuum-dev/core';
-import type { ContinuumSessionAdapter } from '../session/index.js';
+import type { ContinuumSessionAdapter } from '../../session/index.js';
 import {
   applyPatchPlanToView,
   isViewPatchPlan,
-} from '../view-patching/index.js';
-import { normalizeGeneratedView } from './normalize.js';
+} from '../../view-patching/index.js';
+import { normalizeGeneratedView } from '../normalize/normalize.js';
 
 export function applyThroughStreamingFoundation(
   session: ContinuumSessionAdapter,

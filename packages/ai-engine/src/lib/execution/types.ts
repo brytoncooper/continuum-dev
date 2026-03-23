@@ -53,7 +53,15 @@ export interface ContinuumExecutionRequest {
   systemPrompt: string;
   userMessage: string;
   mode: ContinuumExecutionPhase;
+  /**
+   * Hint for hosts and traces about how the adapter should shape the model
+   * reply. **`outputContract` is the real structured-output knob**: when set,
+   * transports that support JSON schema (for example `@continuum-dev/ai-connect`)
+   * attach it to the provider request. `outputKind` does not enforce structure
+   * by itself.
+   */
   outputKind?: ContinuumExecutionOutputKind;
+  /** When set, structured-output transports forward this contract to the provider. */
   outputContract?: PromptOutputContract;
   temperature?: number;
   maxTokens?: number;
@@ -71,6 +79,12 @@ export interface ContinuumExecutionResponse {
   text: string;
   json?: unknown | null;
   raw?: unknown;
+  /**
+   * When true, a structured-output transport retried the call without
+   * `outputContract` after the provider rejected the schema (best-effort JSON
+   * parsed from `text`). Absent or false means no such fallback occurred.
+   */
+  outputContractFallbackUsed?: boolean;
 }
 
 export interface ContinuumExecutionAdapter {

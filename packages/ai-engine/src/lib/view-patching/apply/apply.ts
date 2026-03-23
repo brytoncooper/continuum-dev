@@ -1,8 +1,8 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
 import { deepEqual } from './deep-equal.js';
-import { normalizeViewPatchOperation } from './normalize.js';
-import type { ViewPatchPlan } from './types.js';
+import { normalizeViewPatchOperation } from '../normalize/normalize.js';
+import type { ViewPatchPlan } from '../types.js';
 
 function bumpVersion(version: string): string {
   const asInt = Number(version);

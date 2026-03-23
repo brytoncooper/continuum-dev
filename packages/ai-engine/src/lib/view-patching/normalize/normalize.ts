@@ -1,7 +1,7 @@
 import type { ViewNode } from '@continuum-dev/core';
 import type { ContinuumViewPatchPosition } from '@continuum-dev/protocol';
-import { normalizeViewDefinition } from '../view-guardrails/index.js';
-import type { ViewPatchOperation, ViewPatchPlan } from './types.js';
+import { normalizeViewDefinition } from '../../view-guardrails/index.js';
+import type { ViewPatchOperation, ViewPatchPlan } from '../types.js';
 
 export interface NormalizedViewPatchPlanResult {
   plan: ViewPatchPlan | null;

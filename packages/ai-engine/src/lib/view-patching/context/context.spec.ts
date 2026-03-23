@@ -1,6 +1,6 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 import { buildPatchContext } from './context.js';
-import { MAX_NODE_HINTS } from './truncate.js';
+import { MAX_NODE_HINTS } from '../truncate/truncate.js';
 
 const LONG_TEXT = 'L'.repeat(220);
 

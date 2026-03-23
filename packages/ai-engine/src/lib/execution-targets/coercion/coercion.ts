@@ -1,7 +1,7 @@
 import type {
   ContinuumExecutionTarget,
   ContinuumScalarValue,
-} from './types.js';
+} from '../types.js';
 
 function unwrapNodeValueLike(rawValue: unknown): unknown {
   if (

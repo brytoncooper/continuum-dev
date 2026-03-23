@@ -2,8 +2,8 @@ import type {
   DetachedFieldHint,
   PromptOutputContract,
 } from '@continuum-dev/prompts';
-import { SUPPORTED_NODE_TYPE_VALUES } from '../view-guardrails/index.js';
-import type { CompactPatchNode, PatchNodeHint } from './types.js';
+import { SUPPORTED_NODE_TYPE_VALUES } from '../../view-guardrails/index.js';
+import type { CompactPatchNode, PatchNodeHint } from '../types.js';
 
 export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
   name: 'continuum_view_patch',

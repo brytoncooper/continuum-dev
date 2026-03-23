@@ -4,8 +4,8 @@ import {
   toCompactPatchNode,
   truncateString,
   truncateUnknown,
-} from './truncate.js';
-import type { PatchContextPayload, PatchNodeHint } from './types.js';
+} from '../truncate/truncate.js';
+import type { PatchContextPayload, PatchNodeHint } from '../types.js';
 
 export function buildPatchContext(view: ViewDefinition): PatchContextPayload {
   const nodeHints: PatchNodeHint[] = [];

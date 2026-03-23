@@ -1,39 +1,13 @@
 import type { PromptAddon, PromptMode } from '@continuum-dev/prompts';
-import { uniqueAddons } from './shared.js';
-
-function buildLayoutGuidance(addons?: PromptAddon[]): string[] {
-  const lines = [
-    'Use layout structure intentionally.',
-    'Prefer group for major sections and semantic clustering.',
-    'Do not create empty groups that only wrap one child without adding meaning.',
-    'Use row for 2-3 short related fields that belong on one line, such as first/last name or city/state/zip.',
-    'Use grid when there are 4 or more compact peer fields or card-like items that benefit from scanability.',
-    'Do not put long text inputs or textarea nodes inside a row unless there is a clear reason.',
-    'Prefer vertical stacking on mobile-sensitive or dense workflows.',
-    'Use collection only for repeatable user-managed items.',
-    'Keep collection item templates compact and easy to scan.',
-    'Use select or radio-group when choices are constrained and known ahead of time.',
-    'Use toggle for simple boolean questions.',
-    'Use presentation sparingly for orientation, section help, or summaries.',
-    'Prefer one clear primary action near the end of the form.',
-    'Avoid overly deep nesting and avoid unnecessary containers.',
-  ];
-
-  for (const addon of uniqueAddons(addons)) {
-    if (addon === 'strict-continuity') {
-      lines.push(
-        'Preserve existing section structure, keys, and node types when semantics are unchanged.'
-      );
-    }
-    if (addon === 'attachments') {
-      lines.push(
-        'When source material provides real values, populate defaultValue and defaultValues without changing good existing layout.'
-      );
-    }
-  }
-
-  return lines;
-}
+import {
+  CONTINUUM_DETACHED_FIELD_GUIDANCE_LINES,
+  CONTINUUM_PREFILL_VS_LAYOUT_LINE,
+  CONTINUUM_PRODUCT_CONTEXT_HEADER,
+  CONTINUUM_PRODUCT_CONTEXT_TAIL_LINES,
+  buildYamlLayoutGuidanceLines,
+  continuumModeGuidanceLine,
+  continuumProductContextFirstBullet,
+} from '../shared/continuum-view-authoring-guidance.js';
 
 export function buildViewYamlSystemPrompt(args: {
   mode: PromptMode;
@@ -41,10 +15,9 @@ export function buildViewYamlSystemPrompt(args: {
 }): string {
   const sections = [
     '<instructions>',
-    'Continuum product context:',
-    '- The yaml you return becomes the UI a user sees in a live browser session.',
-    '- When evolving or correcting a current view, treat the existing UI as the thing the user is already working with.',
-    '- Your job is to help the user accomplish what they want on that current form while keeping the workflow stable unless broader change is clearly required.',
+    CONTINUUM_PRODUCT_CONTEXT_HEADER,
+    continuumProductContextFirstBullet('yaml'),
+    ...CONTINUUM_PRODUCT_CONTEXT_TAIL_LINES,
     'Return exactly one markdown code block with language yaml.',
     'Do not include prose before or after the code block.',
     'The yaml must represent one full Continuum ViewDefinition object.',
@@ -69,17 +42,10 @@ export function buildViewYamlSystemPrompt(args: {
     'Do not put defaultValue on template fields when your goal is to prefill collection items.',
     'Keep ids unique.',
     'Prefer simple, valid structures over complex ones.',
-    ...buildLayoutGuidance(args.addons),
-    'Detached fields are previously removed fields whose user data can still be restored by the runtime.',
-    'Do not use previousLabel or previousParentLabel to decide where preserved values should go.',
-    'If you reintroduce the same semantic field, reuse its detachedKey as the node key even if the label changes.',
-    'Do not reuse a detachedKey for a different concept just because the value looks similar.',
-    args.mode === 'create-view'
-      ? 'Create a brand-new view from the user request.'
-      : args.mode === 'correction-loop'
-      ? 'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
-      : 'Evolve the existing view instead of replacing it wholesale unless the instruction clearly requires a different workflow.',
-    'If the user asks to populate, prefill, or fill out the form, preserve the structure and add defaultValue/defaultValues instead of changing layout.',
+    ...buildYamlLayoutGuidanceLines(args.addons),
+    ...CONTINUUM_DETACHED_FIELD_GUIDANCE_LINES,
+    continuumModeGuidanceLine(args.mode),
+    CONTINUUM_PREFILL_VS_LAYOUT_LINE,
     '</instructions>',
     '<example>',
     '```yaml',

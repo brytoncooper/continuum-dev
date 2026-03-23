@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildContinuumStateTargetCatalog } from './catalog.js';
+import { buildContinuumStateTargetCatalog } from '../catalog/catalog.js';
 import {
   evaluateStateResponseQuality,
   parseContinuumStateResponse,

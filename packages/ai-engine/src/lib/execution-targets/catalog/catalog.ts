@@ -4,8 +4,8 @@ import {
   readNodeLabel,
   SCALAR_STATEFUL_NODE_TYPES,
   toCanonicalNodeId,
-} from './shared.js';
-import type { ContinuumExecutionTarget } from './types.js';
+} from '../shared.js';
+import type { ContinuumExecutionTarget } from '../types.js';
 
 function collectCollectionTemplateTargets(
   node: ViewNode,

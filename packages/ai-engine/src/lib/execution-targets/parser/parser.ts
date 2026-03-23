@@ -1,11 +1,11 @@
-import { parseJson } from '../view-guardrails/index.js';
-import { coerceScalarStateValue } from './coercion.js';
+import { parseJson } from '../../view-guardrails/index.js';
+import { coerceScalarStateValue } from '../coercion/coercion.js';
 import type {
   ContinuumCollectionItem,
   ContinuumExecutionTarget,
   ContinuumScalarValue,
   ContinuumStateUpdate,
-} from './types.js';
+} from '../types.js';
 
 function findTargetInCatalog(
   catalog: ContinuumExecutionTarget[],

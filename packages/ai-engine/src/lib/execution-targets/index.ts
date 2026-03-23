@@ -1,12 +1,12 @@
 export {
   buildContinuumPatchTargetCatalog,
   buildContinuumStateTargetCatalog,
-} from './catalog.js';
+} from './catalog/catalog.js';
 export {
   evaluateStateResponseQuality,
   parseContinuumStateResponse,
-} from './parser.js';
-export type { ContinuumStateResponseQuality } from './parser.js';
+} from './parser/parser.js';
+export type { ContinuumStateResponseQuality } from './parser/parser.js';
 export type {
   ContinuumCollectionItem,
   ContinuumExecutionTarget,

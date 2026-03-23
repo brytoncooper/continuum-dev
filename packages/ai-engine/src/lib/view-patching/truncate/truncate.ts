@@ -1,4 +1,4 @@
-import type { CompactPatchNode } from './types.js';
+import type { CompactPatchNode } from '../types.js';
 
 export const MAX_NODE_HINTS = 2000;
 const MAX_CHILDREN_PER_NODE = 40;

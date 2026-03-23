@@ -1,5 +1,5 @@
 import type { DetachedFieldHint } from '@continuum-dev/prompts';
-import { toValuePreview, truncateString } from './truncate.js';
+import { toValuePreview, truncateString } from '../truncate/truncate.js';
 
 export function buildDetachedFieldHints(
   detachedValues: Record<string, unknown>

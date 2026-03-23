@@ -1,16 +1,16 @@
-export { applyPatchPlanToView } from './apply.js';
-export { buildPatchContext } from './context.js';
-export { buildDetachedFieldHints } from './detached-fields.js';
+export { applyPatchPlanToView } from './apply/apply.js';
+export { buildPatchContext } from './context/context.js';
+export { buildDetachedFieldHints } from './detached-fields/detached-fields.js';
 export {
   buildPatchSystemPrompt,
   buildPatchUserMessage,
   VIEW_PATCH_OUTPUT_CONTRACT,
-} from './prompt.js';
+} from './prompts/prompt.js';
 export {
   isViewPatchPlan,
   normalizeViewPatchOperation,
   normalizeViewPatchPlan,
-} from './normalize.js';
+} from './normalize/normalize.js';
 export type {
   CompactPatchNode,
   PatchContextPayload,
