@@ -6,7 +6,8 @@
     "demo": "nx run demo:serve",
     "starter": "nx run starter:serve",
     "demo:api": "nx run demo-api:dev",
-    "build:release-packages": "node scripts/build-release-packages.mjs",
+    "build:release-packages": "node scripts/build-release-packages.mjs && node scripts/sync-workspace-entrypoints.mjs",
+    "sync:workspace-entrypoints": "node scripts/sync-workspace-entrypoints.mjs",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
     "verify:release-packages": "node scripts/verify-release-packages.mjs",
     "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages"

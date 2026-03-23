@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 
 import { loadAlignedReleasePackages } from './release-public-packages.mjs';
 
@@ -23,6 +23,10 @@ function run(command, cwd) {
     stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
   });
+}
+
+function loadJson(path) {
+  return JSON.parse(readFileSync(path, 'utf8'));
 }
 
 function assertDistOutputsExist() {
@@ -63,6 +67,74 @@ function assertPackContents() {
   return tarballs;
 }
 
+function hasCompiledImportTarget(exportValue) {
+  if (typeof exportValue === 'string') {
+    return (
+      exportValue.startsWith('./') &&
+      (exportValue.endsWith('.js') || exportValue.endsWith('.mjs'))
+    );
+  }
+  if (!exportValue || typeof exportValue !== 'object' || Array.isArray(exportValue)) {
+    return false;
+  }
+  const candidate = exportValue.import ?? exportValue.default;
+  return (
+    typeof candidate === 'string' &&
+    candidate.startsWith('./') &&
+    (candidate.endsWith('.js') || candidate.endsWith('.mjs'))
+  );
+}
+
+function exportKeyToSpecifierSuffix(exportKey) {
+  if (exportKey === '.') {
+    return '';
+  }
+  if (exportKey.startsWith('./')) {
+    return exportKey.slice(2);
+  }
+  return exportKey;
+}
+
+function collectPackageImportSpecifiers(packageName, exportsField) {
+  const specifiers = [];
+  if (!exportsField || typeof exportsField !== 'object' || Array.isArray(exportsField)) {
+    specifiers.push(packageName);
+    return specifiers;
+  }
+
+  for (const [exportKey, exportValue] of Object.entries(exportsField)) {
+    if (!hasCompiledImportTarget(exportValue)) {
+      continue;
+    }
+    const suffix = exportKeyToSpecifierSuffix(exportKey);
+    if (suffix === '') {
+      specifiers.push(packageName);
+    } else {
+      specifiers.push(`${packageName}/${suffix}`);
+    }
+  }
+
+  if (specifiers.length === 0) {
+    specifiers.push(packageName);
+  }
+  return specifiers;
+}
+
+function collectAllImportSpecifiers() {
+  const unique = new Set();
+  for (const pkg of releasePackages) {
+    const prepared = loadJson(resolve(pkg.distRoot, 'package.json'));
+    const specs = collectPackageImportSpecifiers(
+      pkg.packageName,
+      prepared.exports
+    );
+    for (const spec of specs) {
+      unique.add(spec);
+    }
+  }
+  return [...unique].sort();
+}
+
 function assertNodeImportSmoke(tarballs) {
   const tempRoot = mkdtempSync(resolve(tmpdir(), 'continuum-release-smoke-'));
   try {
@@ -79,8 +151,9 @@ function assertNodeImportSmoke(tarballs) {
       'react-dom@18',
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
-    const importStatements = releasePackages
-      .map((pkg) => `await import(${JSON.stringify(pkg.packageName)});`)
+    const specifiers = collectAllImportSpecifiers();
+    const importStatements = specifiers
+      .map((spec) => `await import(${JSON.stringify(spec)});`)
       .join(' ');
     run(
       `node --input-type=module -e "${importStatements.replaceAll(

@@ -1,1 +1,1 @@
-export * from './src/index.ts';
+export * from '../../dist/packages/ai-engine/index.js';

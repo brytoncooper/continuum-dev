@@ -1,1 +1,1 @@
-export * from './src/lib/continuum-execution/index.mjs';
+export * from '../../dist/packages/ai-engine/continuum-execution.mjs';

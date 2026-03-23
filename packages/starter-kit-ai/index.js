@@ -1,1 +1,1 @@
-export * from './src/index.ts';
+export * from '../../dist/packages/starter-kit-ai/index.js';
