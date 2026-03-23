@@ -499,10 +499,16 @@ export function DateInput({
   const description = nodeDescription(definition);
   const placeholder = nodePlaceholder(definition) ?? 'Select date';
   const readOnly = Boolean(readNodeProp<boolean>(definition, 'readOnly'));
-  const dateValue =
+  const rawDate =
     nodeValue?.value ??
-    readNodeProp<string>(definition, 'defaultValue') ??
+    readNodeProp<string | number>(definition, 'defaultValue') ??
     '';
+  const dateValue =
+    rawDate === '' || rawDate === undefined || rawDate === null
+      ? ''
+      : typeof rawDate === 'string'
+        ? rawDate
+        : String(rawDate);
   const selectedDate = parseIsoDate(dateValue);
   const [today] = useState(() => normalizeDate(new Date()));
   const buttonRef = useRef<HTMLButtonElement | null>(null);

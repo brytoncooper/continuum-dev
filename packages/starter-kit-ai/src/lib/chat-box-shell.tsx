@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import {
   color,
   control,
@@ -22,6 +22,9 @@ export interface StarterKitChatBoxShellProps {
   copiedPrompt: string | null;
   enableSuggestedPrompts?: boolean;
   suggestedPrompts?: string[];
+  attachmentFiles: File[];
+  addAttachmentFiles(files: FileList | null): void;
+  removeAttachmentAt(index: number): void;
   setInstruction(instruction: string): void;
   submit(): Promise<void>;
   copyPrompt(prompt: string): void;
@@ -42,10 +45,17 @@ export function StarterKitChatBoxShell({
   copiedPrompt,
   enableSuggestedPrompts = false,
   suggestedPrompts,
+  attachmentFiles,
+  addAttachmentFiles,
+  removeAttachmentAt,
   setInstruction,
   submit,
   copyPrompt,
 }: StarterKitChatBoxShellProps) {
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const canSubmit =
+    Boolean(instruction.trim()) || attachmentFiles.length > 0;
+
   return (
     <section
       style={{
@@ -102,6 +112,93 @@ export function StarterKitChatBoxShell({
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: space.sm,
+        }}
+      >
+        <input
+          ref={attachmentInputRef}
+          type="file"
+          accept="image/*,.pdf,application/pdf"
+          multiple
+          style={{ display: 'none' }}
+          onChange={(event) => {
+            addAttachmentFiles(event.target.files);
+            event.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            attachmentInputRef.current?.click();
+          }}
+          disabled={isSubmitting}
+          style={{
+            boxSizing: 'border-box',
+            height: control.height,
+            padding: `0 ${space.md}px`,
+            borderRadius: radius.md,
+            border: `1px solid ${color.border}`,
+            background: color.surfaceMuted,
+            color: color.text,
+            cursor: isSubmitting ? 'wait' : 'pointer',
+            ...typography.small,
+            fontWeight: 600,
+          }}
+        >
+          Attach file
+        </button>
+        {attachmentFiles.map((file, index) => (
+          <span
+            key={`${file.name}-${String(index)}-${file.lastModified}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: space.xs,
+              padding: `${space.xs}px ${space.sm}px`,
+              borderRadius: radius.md,
+              border: `1px solid ${color.borderSoft}`,
+              ...typography.small,
+              color: color.text,
+              maxWidth: '100%',
+            }}
+          >
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {file.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                removeAttachmentAt(index);
+              }}
+              disabled={isSubmitting}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                padding: 0,
+                color: color.textMuted,
+                ...typography.small,
+                lineHeight: 1,
+              }}
+              aria-label={`Remove ${file.name}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
           flexWrap: 'wrap',
@@ -113,7 +210,7 @@ export function StarterKitChatBoxShell({
           onClick={() => {
             void submit();
           }}
-          disabled={isSubmitting || submitDisabled || !instruction.trim()}
+          disabled={isSubmitting || submitDisabled || !canSubmit}
           style={{
             boxSizing: 'border-box',
             height: control.height,

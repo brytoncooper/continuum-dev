@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useContinuumVercelAiSdkChat,
   type ContinuumVercelAiSdkMessage,
@@ -27,6 +27,9 @@ export interface VercelAiSdkChatControllerState {
   status: string | null;
   errorText: string | null;
   copiedPrompt: string | null;
+  attachmentFiles: File[];
+  addAttachmentFiles(files: FileList | null): void;
+  removeAttachmentAt(index: number): void;
   setInstruction(instruction: string): void;
   submit(): Promise<void>;
   copyPrompt(prompt: string): void;
@@ -42,6 +45,7 @@ export function useVercelAiSdkChatController(
     [session]
   );
   const [instruction, setInstruction] = useState('');
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const onSubmittingChangeRef = useRef(args.onSubmittingChange);
   const onErrorRef = useRef(args.onError);
@@ -83,8 +87,21 @@ export function useVercelAiSdkChatController(
     }
   }, [chat.error]);
 
+  const addAttachmentFiles = useCallback((files: FileList | null) => {
+    if (!files?.length) {
+      return;
+    }
+    setAttachmentFiles((previous) => [...previous, ...Array.from(files)]);
+  }, []);
+
+  const removeAttachmentAt = useCallback((index: number) => {
+    setAttachmentFiles((previous) => previous.filter((_, i) => i !== index));
+  }, []);
+
   async function submit(): Promise<void> {
-    if (isSubmitting || !instruction.trim()) {
+    const hasText = instruction.trim().length > 0;
+    const hasFiles = attachmentFiles.length > 0;
+    if (isSubmitting || (!hasText && !hasFiles)) {
       return;
     }
 
@@ -92,8 +109,27 @@ export function useVercelAiSdkChatController(
       chat.clearError();
     }
 
+    if (hasFiles) {
+      const dataTransfer = new DataTransfer();
+      for (const file of attachmentFiles) {
+        dataTransfer.items.add(file);
+      }
+      if (hasText) {
+        await chat.sendMessage({
+          text: instruction.trim(),
+          files: dataTransfer.files,
+        });
+      } else {
+        await chat.sendMessage({
+          files: dataTransfer.files,
+        });
+      }
+      setAttachmentFiles([]);
+      return;
+    }
+
     await chat.sendMessage({
-      text: instruction,
+      text: instruction.trim(),
     });
   }
 
@@ -110,6 +146,9 @@ export function useVercelAiSdkChatController(
     status,
     errorText,
     copiedPrompt,
+    attachmentFiles,
+    addAttachmentFiles,
+    removeAttachmentAt,
     setInstruction,
     submit,
     copyPrompt,

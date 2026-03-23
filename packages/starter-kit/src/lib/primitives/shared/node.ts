@@ -65,3 +65,35 @@ export function nodeDepth(nodeId?: string): number {
   }
   return nodeId.split('/').length - 1;
 }
+
+/**
+ * Formats a scalar field value for display in text-like controls. Number fields
+ * accept numeric strings from the view definition or snapshot so JSON/DSL outputs
+ * like `"123.45"` still render instead of appearing blank.
+ */
+export function scalarFieldDisplayString(
+  rawValue: unknown,
+  dataType: string
+): string {
+  if (dataType === 'number') {
+    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+      return String(rawValue);
+    }
+    if (typeof rawValue === 'string') {
+      const trimmed = rawValue.trim();
+      if (trimmed === '') {
+        return '';
+      }
+      const n = Number(trimmed);
+      return Number.isFinite(n) ? String(n) : '';
+    }
+    return '';
+  }
+  if (typeof rawValue === 'string') {
+    return rawValue;
+  }
+  if (rawValue === undefined || rawValue === null) {
+    return '';
+  }
+  return String(rawValue);
+}

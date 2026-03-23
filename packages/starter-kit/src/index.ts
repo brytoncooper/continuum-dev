@@ -33,6 +33,7 @@ export {
   nodeOptions,
   nodePlaceholder,
   readNodeProp,
+  scalarFieldDisplayString,
 } from './lib/primitives/shared/node.js';
 export * from './lib/proposals/conflict-banner.js';
 export * from './lib/proposals/field-proposal.js';

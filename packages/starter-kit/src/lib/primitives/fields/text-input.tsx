@@ -10,6 +10,7 @@ import {
   nodeLabel,
   nodePlaceholder,
   readNodeProp,
+  scalarFieldDisplayString,
 } from '../shared/node.js';
 
 export function TextInput({
@@ -27,14 +28,7 @@ export function TextInput({
   const defaultValue = readNodeProp<string | number>(definition, 'defaultValue');
   const rawValue =
     nodeValue?.value ?? defaultValue;
-  const displayValue =
-    dataType === 'number'
-      ? typeof rawValue === 'number'
-        ? String(rawValue)
-        : ''
-      : typeof rawValue === 'string'
-      ? rawValue
-      : '';
+  const displayValue = scalarFieldDisplayString(rawValue, dataType);
 
   return (
     <FieldFrame
