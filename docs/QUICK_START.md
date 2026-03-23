@@ -6,13 +6,13 @@ This guide uses `@continuum-dev/starter-kit`, which is now the slim preset layer
 
 ## Run the same flow in this repository
 
-The [`apps/starter`](../apps/starter) app follows this guide end to end.
+The [`apps/starter`](../apps/starter) app follows this guide and adds the Vercel AI SDK path: `useContinuumVercelAiSdkChat`, a `POST /api/chat` handler from `@continuum-dev/vercel-ai-sdk-adapter/server`, and OpenAI via `@ai-sdk/openai`. See [`apps/starter/README.md`](../apps/starter/README.md) for env vars.
 
 ```bash
 npm run starter
 ```
 
-That serves **http://localhost:4305/** (root path `/`). The same minimal UI is also available inside the full demo at **`/reference/starter`** when you run `npm run demo`.
+That serves **http://localhost:4305/** (root path `/`).
 
 ## What you will build
 

@@ -4,7 +4,7 @@ Checklist for shipping `@continuum-dev/*` libraries from this monorepo.
 
 ## Before you version
 
-1. Ensure `main` (or your release branch) is green, including CI release verification (`build:release-packages`, `prepare:dist-packages`, `verify:release-packages`).
+1. Ensure `main` (or your release branch) is green, including CI release verification (`build:release-packages`, `prepare:dist-packages`, `verify:release-packages`). `build:release-packages` also runs `sync-workspace-entrypoints` so `packages/*/root` entry shims match `dist`.
 2. Update [`CHANGELOG.md`](CHANGELOG.md): move items from **Unreleased** into a dated section for the new version.
 3. Run locally if you changed release scripts or package lists:
    ```bash

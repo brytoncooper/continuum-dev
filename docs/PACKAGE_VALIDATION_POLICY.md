@@ -15,6 +15,8 @@ When you add or remove a published library, update that file and keep it aligned
 
 CI runs the same release verification path as local publishing (see [`RELEASE.md`](../RELEASE.md)). Release verification also checks that this directory list still matches `nx.json` `release.groups.publicPackages.projects`.
 
+`npm run build:release-packages` runs `tsc --build` for those packages, then [`scripts/sync-workspace-entrypoints.mjs`](../scripts/sync-workspace-entrypoints.mjs), which regenerates root-level workspace `*.js` / `*.mjs` shims under `packages/<name>/` from `dist/packages/<name>/`. `npm run verify:release-packages` imports every declared `exports` entry (including secondary entrypoints such as `@continuum-dev/vercel-ai-sdk-adapter/server`) from packed tarballs.
+
 ## Validation by package role
 
 | Role             | Packages                                                                        | What “good” means                                                                                                                                                              |
@@ -42,6 +44,6 @@ When public entry guidance changes, also run the lightweight adoption checks in 
 
 Those checks keep the following reference files aligned with the docs:
 
-- [`apps/demo/src/reference-starter-app.tsx`](../apps/demo/src/reference-starter-app.tsx)
+- [`apps/starter`](../apps/starter)
 - [`apps/demo/src/reference-headless-ai-app.tsx`](../apps/demo/src/reference-headless-ai-app.tsx)
 - [`apps/demo-api/reference-headless-ai-route.mjs`](../apps/demo-api/reference-headless-ai-route.mjs)

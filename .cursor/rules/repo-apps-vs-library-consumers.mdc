@@ -1,0 +1,29 @@
+---
+description: Distinguish repo apps that consume source from published library-consumer surfaces
+alwaysApply: true
+---
+
+# Repo apps versus library consumers
+
+## Absolutes
+
+- Treat `apps/demo` and `apps/starter` as **repo apps**, not as the canonical proof of what npm consumers get.
+- Repo apps may consume workspace package **source** through TypeScript paths, custom export conditions, Vite aliases,
+  or other in-repo tooling.
+- Treat the packed contents under `dist/packages/*` after `build:release-packages`, `prepare:dist-packages`, and
+  `verify:release-packages` as the **only** consumer contract for downstream library users.
+- Do **not** change package-root entry files, package `exports`, or package architecture solely to satisfy one repo
+  app's local Node execution path.
+- If a repo app needs special Node behavior, keep that solution inside `apps/*` with app-local bundling, build, or
+  server wiring.
+- When validating library-consumer correctness, rely on release-package verification and packed tarball imports, not
+  on behavior observed through source-only repo app resolution.
+- Root-level `*.js` / `*.mjs` files under `packages/<name>/` that re-export `../../dist/packages/...` are **generated**
+  by `scripts/sync-workspace-entrypoints.mjs` (via `npm run build:release-packages` or `npm run sync:workspace-entrypoints`).
+  Do not hand-edit them.
+
+## Defaults
+
+- Use repo apps to validate composition, developer experience, and end-to-end integration while developing the
+  monorepo.
+- Use release verification and consumer-style smoke tests to validate the published package experience.

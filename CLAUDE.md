@@ -12,3 +12,23 @@
 - For Nx plugin best practices, check `node_modules/@nx/<plugin>/PLUGIN.md`. Not all plugins have this file - proceed without it if unavailable.
 
 <!-- nx configuration end-->
+
+# Repo Apps Versus Library Consumers
+
+Keep a hard boundary between repo apps and published library consumers.
+
+- `apps/demo` and `apps/starter` are repo apps. They may consume workspace package source during local development
+  and integration testing.
+- `apps/demo` is a brand/demo site and composition root, not the canonical proof of npm-consumer behavior.
+- `apps/starter` is an internal experiment and integration harness, not the canonical proof of npm-consumer behavior.
+- The canonical proof of what downstream users get is the packed output from `dist/packages/*` after
+  `build:release-packages`, `prepare:dist-packages`, and `verify:release-packages`.
+- Do not change package-root entry files, `exports`, or package architecture just to satisfy one repo app's local
+  Node execution path.
+- If a repo app needs special Node behavior, solve that inside `apps/*` with app-local bundling, server build, or
+  other app-specific wiring.
+- When reasoning about package-consumer correctness, prefer the packed `dist` artifact and release verification over
+  behavior observed through Vite aliases or source-only app resolution.
+- Root-level `*.js` / `*.mjs` entry files under `packages/<name>/` that re-export `../../dist/packages/...` are
+  **generated** by `scripts/sync-workspace-entrypoints.mjs` (run via `npm run build:release-packages` or
+  `npm run sync:workspace-entrypoints`). Do not hand-edit them.
