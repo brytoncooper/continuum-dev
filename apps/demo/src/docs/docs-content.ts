@@ -29,12 +29,12 @@ export type DocsDocument = {
   body: string;
 };
 
-export const docsProofChips = ['Starter Kit', 'Headless React', 'Core package'];
+export const docsProofChips = ['Gen UI runtime', 'Starter React', 'Vercel adapter'];
 
 export const primaryInstall: DocsPrimaryInstall = {
-  label: 'Recommended install',
+  label: 'Fastest install',
   title: 'Starter Kit',
-  body: 'Use Starter Kit for the fastest way to get Continuum running in a React app.',
+  body: 'Use Starter Kit for the fastest React on-ramp. If you already have a gen UI app, jump to the AI and headless integration guides first.',
   command: 'npm install @continuum-dev/starter-kit react',
   quickStartHref: '#docs-viewer',
   demoHref: '/playground',
@@ -63,8 +63,13 @@ export const secondaryInstalls: DocsSecondaryInstall[] = [
     command: 'npm install @continuum-dev/react @continuum-dev/core react',
   },
   {
-    label: 'Core',
-    command: 'npm install @continuum-dev/core',
+    label: 'Explicit AI stack',
+    command:
+      'npm install @continuum-dev/react @continuum-dev/session @continuum-dev/ai-engine react',
+  },
+  {
+    label: 'Runtime + Session',
+    command: 'npm install @continuum-dev/runtime @continuum-dev/session',
   },
 ];
 
@@ -76,6 +81,14 @@ export const secondaryLinks: DocsLinkItem[] = [
   {
     label: 'AI Integration',
     href: repositoryFileUrl('docs/AI_INTEGRATION.md'),
+  },
+  {
+    label: 'Headless AI reference app',
+    href: repositoryFileUrl('docs/REFERENCE_HEADLESS_AI_APP.md'),
+  },
+  {
+    label: 'Starter reference app',
+    href: repositoryFileUrl('docs/REFERENCE_STARTER_APP.md'),
   },
   {
     label: 'View Contract',
