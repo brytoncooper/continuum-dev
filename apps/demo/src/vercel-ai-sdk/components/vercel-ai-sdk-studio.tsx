@@ -8,6 +8,7 @@ import {
 import { useContinuumStreaming } from '@continuum-dev/react';
 import { useResponsiveState } from '../../ui/responsive';
 import { space } from '../../ui/tokens';
+import { financialPlanningIntegrationCatalog } from '../data/financial-planning-catalog';
 import { initialVercelAiSdkView } from '../data/initial-view';
 import { VercelAiSdkControlsPanel } from './vercel-ai-sdk-controls-panel';
 import { VercelAiSdkPreviewPanel } from './vercel-ai-sdk-preview-panel';
@@ -29,6 +30,7 @@ export function VercelAiSdkStudio() {
   const streaming = useContinuumStreaming();
   const settings = useVercelAiSdkDemoSettings();
   const { isMobile } = useResponsiveState();
+  const [debugEcho, setDebugEcho] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
   const loggedWarningRef = useRef<string | null>(null);
@@ -88,10 +90,18 @@ export function VercelAiSdkStudio() {
             },
             currentView: requestSnapshot?.view ?? initialVercelAiSdkView,
             currentData: requestSnapshot?.data.values ?? null,
+            integrationCatalog: financialPlanningIntegrationCatalog,
+            registeredActions: session.getRegisteredActions(),
+            continuum: debugEcho
+              ? { debugEcho: true }
+              : {
+                  viewPreviewThrottleMs: 800,
+                },
           });
         },
       }),
     [
+      debugEcho,
       session,
       settings.hasUsableBrowserKey,
       settings.providerId,
@@ -128,6 +138,8 @@ export function VercelAiSdkStudio() {
         settings={settings}
         chatRuntimeKey={chatRuntimeKey}
         transport={transport}
+        debugEcho={debugEcho}
+        onDebugEchoChange={setDebugEcho}
         onSubmittingChange={setIsGenerating}
         onError={() => {
           setIsGenerating(false);

@@ -102,6 +102,8 @@ export interface VercelAiSdkControlsPanelProps {
   settings: UseVercelAiSdkDemoSettingsResult;
   chatRuntimeKey: string;
   transport: DefaultChatTransport<ContinuumVercelAiSdkMessage>;
+  debugEcho: boolean;
+  onDebugEchoChange(value: boolean): void;
   onSubmittingChange(isSubmitting: boolean): void;
   onError(error: Error): void;
 }
@@ -112,13 +114,32 @@ export function VercelAiSdkControlsPanel({
   settings,
   chatRuntimeKey,
   transport,
+  debugEcho,
+  onDebugEchoChange,
   onSubmittingChange,
   onError,
 }: VercelAiSdkControlsPanelProps) {
   const [vercelAiSdkChatRemountSerial, setVercelAiSdkChatRemountSerial] =
     useState(0);
+  const [executionTrace, setExecutionTrace] =
+    useState<ContinuumVercelAiSdkExecutionTraceData | null>(null);
   const remountVercelAiSdkChatToClearTranscript = useCallback(() => {
     setVercelAiSdkChatRemountSerial((serial) => serial + 1);
+  }, []);
+
+  const handleChatData = useCallback((part: unknown) => {
+    if (!isContinuumVercelAiSdkDataPart(part)) {
+      return;
+    }
+    if (part.type !== 'data-continuum-execution-trace') {
+      return;
+    }
+    setExecutionTrace(part.data);
+    console.groupCollapsed('[vercel-ai-sdk-demo] Continuum execution trace');
+    console.log('instruction:', part.data.instruction);
+    console.log('result:', part.data.result);
+    console.log('trace (LLM phases):', part.data.trace);
+    console.groupEnd();
   }, []);
 
   return (
@@ -206,6 +227,39 @@ export function VercelAiSdkControlsPanel({
         </div>
       </div>
 
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: space.sm,
+          padding: space.md,
+          borderRadius: radius.md,
+          border: `1px solid ${color.borderSoft}`,
+          background: color.surfaceMuted,
+          cursor: 'pointer',
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={debugEcho}
+          onChange={(event) => {
+            onDebugEchoChange(event.target.checked);
+          }}
+          style={{ marginTop: 2 }}
+        />
+        <span style={{ display: 'grid', gap: space.xs }}>
+          <span style={{ ...type.body, color: color.text, fontWeight: 600 }}>
+            Debug: what the model sees
+          </span>
+          <span style={helperTextStyle}>
+            Stream a normal assistant reply that describes your text and attachments (no Continuum
+            view generation). Uses the same provider and model as above. Choose PDFs or images in the
+            file picker, then send in the same action as your message so the request includes file
+            parts; toggling this checkbox no longer resets the chat.
+          </span>
+        </span>
+      </label>
+
       <div style={chatLockWrapperStyle}>
         <StarterKitChatBox
           key={`${chatRuntimeKey}:${vercelAiSdkChatRemountSerial}`}
@@ -215,13 +269,15 @@ export function VercelAiSdkControlsPanel({
               chatOptions: {
                 transport,
               },
-              title: 'Try a UI change request',
-              description:
-                'Send one prompt through the Vercel AI SDK stream. Continuum keeps matching fields stable when the form changes.',
-              instructionLabel: 'Request',
-              instructionPlaceholder:
-                'Add company size, budget, and timeline without losing what I already typed.',
-              submitLabel: 'Apply change',
+              title: debugEcho ? 'Multimodal debug' : 'Try a UI change request',
+              description: debugEcho
+                ? 'Pick files below, then send with your question so the body includes file parts. The reply is plain streamed text only.'
+                : 'Send one prompt through the Vercel AI SDK stream. Continuum keeps matching fields stable when the form changes.',
+              instructionLabel: debugEcho ? 'Message' : 'Request',
+              instructionPlaceholder: debugEcho
+                ? 'What do you see in my last message and attachments?'
+                : 'Add company size, budget, and timeline without losing what I already typed.',
+              submitLabel: debugEcho ? 'Send debug' : 'Apply change',
               onError,
               onSubmittingChange,
             },

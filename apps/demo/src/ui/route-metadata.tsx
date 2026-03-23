@@ -51,6 +51,13 @@ const routeMetadata: Record<string, RouteMetadata> = {
       'See how the Continuum adapter plugs into the Vercel AI SDK stream model so generated forms and workflows can evolve without wiping in-progress user state.',
     path: '/vercel-ai-sdk',
   },
+  '/integration-schemas': {
+    title:
+      'Continuum Demo | Integration Endpoint Payload Schemas',
+    description:
+      'Reference for the Harborline Financial Workspace demo: HTTP methods, paths, and persisted field semantic keys per endpoint.',
+    path: '/integration-schemas',
+  },
 };
 
 function upsertMeta(

@@ -89,5 +89,5 @@ export const control = {
 } as const;
 
 export const page = {
-  width: 1240,
+  width: 1536,
 } as const;

@@ -6,6 +6,7 @@ import { PageShell } from '../ui/layout';
 import { repositoryUrl } from '../site-config';
 import { SiteNav } from '../ui/site-nav';
 import { color, radius, space, type } from '../ui/tokens';
+import { financialPlanningSessionActions } from './data/financial-planning-actions';
 import { VERCEL_AI_SDK_SESSION_STORAGE_KEY } from './data/initial-view';
 import { VercelAiSdkStudio } from './components/vercel-ai-sdk-studio';
 
@@ -59,6 +60,7 @@ export function VercelAiSdkPage() {
           storageKey={VERCEL_AI_SDK_SESSION_STORAGE_KEY}
           sessionOptions={{
             enableRestoreReviews: false,
+            actions: financialPlanningSessionActions,
           }}
         >
           <VercelAiSdkStudio />

@@ -143,6 +143,13 @@ export function SiteNav() {
               >
                 SDK
               </NavLink>
+              <NavLink
+                to="/integration-schemas"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
+                Schemas
+              </NavLink>
               <NavLink to="/starter-kit" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
                 Starter Kit
               </NavLink>
@@ -176,6 +183,9 @@ export function SiteNav() {
         </NavLink>
         <NavLink to="/vercel-ai-sdk" style={navLinkStyle}>
           SDK
+        </NavLink>
+        <NavLink to="/integration-schemas" style={navLinkStyle}>
+          Schemas
         </NavLink>
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit

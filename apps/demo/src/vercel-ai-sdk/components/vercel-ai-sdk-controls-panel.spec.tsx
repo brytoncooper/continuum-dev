@@ -65,6 +65,8 @@ describe('VercelAiSdkControlsPanel', () => {
         settings={settings}
         chatRuntimeKey="openai:gpt-5.4:"
         transport={{} as DefaultChatTransport<ContinuumVercelAiSdkMessage>}
+        debugEcho={false}
+        onDebugEchoChange={() => {}}
         onSubmittingChange={() => {}}
         onError={() => {}}
       />

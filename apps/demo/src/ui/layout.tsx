@@ -7,7 +7,7 @@ const shellStyle: CSSProperties = {
 };
 
 const innerStyle: CSSProperties = {
-  width: 'min(100%, 1240px)',
+  width: `min(100%, ${page.width}px)`,
   margin: '0 auto',
   display: 'grid',
   gap: space.xxxl,
@@ -130,7 +130,7 @@ export function PageShell({
         }px ${isMobile ? space.xxl : space.xxxl + space.xxl}px`,
       }}
     >
-      <div style={{ ...innerStyle, width: `min(100%, ${page.width}px)` }}>
+      <div style={innerStyle}>
         {nav ? (
           <div
             style={{

@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
-  isVercelAiSdkDemoPath,
   isVercelAiSdkLivePath,
   isVercelAiSdkProvidersPath,
 } from '../demo-api/vercel-ai-sdk-shared.mjs';
@@ -126,15 +125,6 @@ function localVercelAiSdkRoutes() {
     configureServer(server: DemoViteDevServer) {
       server.middlewares.use(async (request, response, next) => {
         const localVercelAiSdkRouteHandlers = [
-          {
-            matches: isVercelAiSdkDemoPath,
-            handle: async (fetchRequest: Request) =>
-              (
-                await importDemoApiModule<
-                  typeof import('../demo-api/vercel-ai-sdk-demo-route.mjs')
-                >(server, '../demo-api/vercel-ai-sdk-demo-route.mjs')
-              ).handleVercelAiSdkDemoRequest(fetchRequest),
-          },
           {
             matches: isVercelAiSdkLivePath,
             handle: async (fetchRequest: Request) =>
