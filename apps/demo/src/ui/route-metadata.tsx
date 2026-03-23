@@ -36,12 +36,6 @@ const routeMetadata: Record<string, RouteMetadata> = {
       'Explore the Continuum Starter Kit for React and see the fastest path from install to a polished dynamic UI with continuity-aware rendering and proposal flows.',
     path: '/starter-kit',
   },
-  '/reference/starter': {
-    title: 'Continuum | Minimal starter reference',
-    description:
-      'Minimal ContinuumProvider + StarterKitSessionWorkbench example matching the Quick Start and reference starter docs.',
-    path: '/reference/starter',
-  },
   '/live-ai': {
     title:
       'Continuum Live AI Demo | Generate Dynamic UI Without Losing User State',
