@@ -12,11 +12,14 @@
     "emitDeclarationOnly": false,
     "noEmit": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "vite.config.ts", "vite-dev-chat-plugin.ts"],
   "nx": {
     "addTypecheckTarget": false
   },
   "references": [
+    {
+      "path": "../../packages/vercel-ai-sdk-adapter"
+    },
     {
       "path": "../../packages/starter-kit"
     }

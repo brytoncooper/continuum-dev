@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { starterChatDevPlugin } from './vite-dev-chat-plugin';
 
 const continuumSourceAliases = {
   '@continuum-dev/adapters': resolve(
@@ -82,7 +83,7 @@ const continuumSourceAliases = {
 export default defineConfig({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/starter',
-  plugins: [react()],
+  plugins: [react(), starterChatDevPlugin()],
   resolve: {
     alias: continuumSourceAliases,
     conditions: ['@continuum-dev/source'],

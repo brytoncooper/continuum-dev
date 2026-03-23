@@ -1,68 +1,31 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import {
   ContinuumProvider,
-  ContinuumRenderer,
   StarterKitSessionWorkbench,
+  StarterKitStyleProvider,
   starterKitComponentMap,
-  useContinuumSession,
-  useContinuumSnapshot,
-  type ViewDefinition,
+  starterKitDefaultStyles,
 } from '@continuum-dev/starter-kit';
-
-const initialView: ViewDefinition = {
-  viewId: 'starter-app',
-  version: '1',
-  nodes: [
-    {
-      id: 'profile',
-      type: 'group',
-      key: 'profile',
-      label: 'Profile',
-      children: [
-        {
-          id: 'name',
-          type: 'field',
-          dataType: 'string',
-          key: 'name',
-          label: 'Name',
-        },
-        {
-          id: 'email',
-          type: 'field',
-          dataType: 'string',
-          key: 'email',
-          label: 'Email',
-        },
-      ],
-    },
-  ],
-};
-
-function StarterScreen() {
-  const session = useContinuumSession();
-  const snapshot = useContinuumSnapshot();
-
-  useEffect(() => {
-    if (!snapshot) {
-      session.pushView(initialView);
-    }
-  }, [session, snapshot]);
-
-  if (!snapshot?.view) {
-    return null;
-  }
-
-  return <ContinuumRenderer view={snapshot.view} />;
-}
+import { baselineView } from './baseline-view';
+import { MainShell } from './main-shell';
 
 export default function App() {
+  const [chatResetKey, setChatResetKey] = useState(0);
+
   return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <StarterKitSessionWorkbench initialView={initialView} />
-      <StarterScreen />
-    </ContinuumProvider>
+    <StarterKitStyleProvider styles={starterKitDefaultStyles}>
+      <ContinuumProvider
+        components={starterKitComponentMap}
+        persist="localStorage"
+      >
+        <StarterKitSessionWorkbench
+          initialView={baselineView}
+          onAfterSessionReset={() => {
+            setChatResetKey((key) => key + 1);
+          }}
+        />
+        <MainShell chatResetKey={chatResetKey} />
+      </ContinuumProvider>
+    </StarterKitStyleProvider>
   );
 }
