@@ -1,6 +1,8 @@
 export {
   buildContinuumExecutionPlannerSystemPrompt,
   buildContinuumExecutionPlannerUserPrompt,
+  buildIntegrationBindingParagraph,
+  buildRegisteredActionsParagraph,
   getAvailableContinuumExecutionModes,
   parseContinuumExecutionPlan,
   resolveContinuumExecutionPlan,

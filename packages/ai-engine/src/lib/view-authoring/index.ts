@@ -51,6 +51,7 @@ export function buildViewAuthoringUserMessage(args: {
   conversationSummary?: string;
   validationErrors?: string[];
   runtimeErrors?: string[];
+  integrationBinding?: string;
 }): string {
   if (args.format === 'yaml') {
     return buildViewYamlUserMessage(args);

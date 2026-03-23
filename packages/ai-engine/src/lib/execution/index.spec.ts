@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runContinuumExecution } from './index.js';
+import { runContinuumExecution, streamContinuumExecution } from './index.js';
 
 describe('continuum execution fallback behavior', () => {
   it('keeps localized add-field requests on the patch path when planner targets are missing', async () => {
@@ -625,6 +625,51 @@ group id="tax_form" label="Tax form"
     });
   });
 
+  it('runs the planner when there is no current view (only view mode available)', async () => {
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'planner') {
+        return {
+          text: JSON.stringify({
+            mode: 'view',
+            fallback: 'view',
+            authoringMode: 'create-view',
+            reason: 'greenfield',
+          }),
+        };
+      }
+
+      if (request.mode === 'view') {
+        return {
+          text: `view viewId="solo" version="1"
+group id="root" label="Hello"`,
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Create a simple form',
+      context: {},
+    });
+
+    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
+      'planner',
+      'view',
+    ]);
+    expect(result).toMatchObject({
+      mode: 'view',
+      view: {
+        viewId: 'solo',
+        version: '1',
+      },
+    });
+  });
+
   it('returns a warning noop when a patch plan contains unsupported operations', async () => {
     const currentView = {
       viewId: 'tax-form',
@@ -723,5 +768,58 @@ group id="tax_form" label="Tax form"
         reason: 'Patch operation 2 was invalid or unsupported.',
       })
     );
+  });
+
+  it('does not emit view-preview events when emitViewPreviews is false', async () => {
+    const kinds: string[] = [];
+    const adapter = {
+      label: 'test',
+      async *streamText(request: { mode?: string }) {
+        expect(request.mode).toBe('view');
+        yield 'view viewId="t" version="1"\n';
+        yield 'group id="g" label="G"\n';
+        yield '  field id="f" key="f" semanticKey="a.b" label="F" dataType="string"\n';
+      },
+    };
+
+    for await (const event of streamContinuumExecution({
+      adapter,
+      instruction: 'make a form',
+      autoApplyView: false,
+      emitViewPreviews: false,
+    })) {
+      kinds.push(event.kind);
+    }
+
+    expect(kinds.filter((k) => k === 'view-preview')).toHaveLength(0);
+    expect(kinds.some((k) => k === 'view-final')).toBe(true);
+  });
+
+  it('throttles view-preview events when viewPreviewThrottleMs is high', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(0);
+    let previewCount = 0;
+    const adapter = {
+      label: 'test',
+      async *streamText(request: { mode?: string }) {
+        expect(request.mode).toBe('view');
+        yield 'view viewId="t" version="1"\n';
+        yield 'group id="g" label="G"\n';
+        yield '  field id="f" key="f" semanticKey="a.b" label="F" dataType="string"\n';
+      },
+    };
+
+    for await (const event of streamContinuumExecution({
+      adapter,
+      instruction: 'make a form',
+      autoApplyView: false,
+      viewPreviewThrottleMs: 9999,
+    })) {
+      if (event.kind === 'view-preview') {
+        previewCount += 1;
+      }
+    }
+
+    vi.restoreAllMocks();
+    expect(previewCount).toBe(2);
   });
 });

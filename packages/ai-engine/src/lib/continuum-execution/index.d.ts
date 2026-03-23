@@ -1,6 +1,10 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 
-export type ContinuumExecutionMode = 'state' | 'patch' | 'view';
+export type ContinuumExecutionMode =
+  | 'state'
+  | 'patch'
+  | 'transform'
+  | 'view';
 
 export interface ContinuumExecutionTarget {
   nodeId: string;
@@ -12,22 +16,32 @@ export interface ContinuumExecutionTarget {
 
 export interface ContinuumExecutionPlan {
   mode: ContinuumExecutionMode;
-  fallback: 'patch' | 'view';
+  fallback: 'patch' | 'transform' | 'view';
   reason?: string;
   targetNodeIds: string[];
   targetSemanticKeys: string[];
+  authoringMode?: 'create-view' | 'evolve-view';
+  endpointId?: string;
+  payloadSemanticKeys?: string[];
 }
 
-export interface ContinuumResolvedExecutionPlan
-  extends ContinuumExecutionPlan {
+export interface ContinuumResolvedExecutionPlan extends ContinuumExecutionPlan {
   validation:
     | 'accepted'
     | 'invalid-plan'
     | 'state-unavailable'
     | 'patch-unavailable'
-    | 'unknown-target-node'
-    | 'unknown-target-semantic-key'
-    | 'missing-targets';
+    | 'transform-unavailable'
+    | 'unknown-targets'
+    | 'missing-targets'
+    | 'partial-targets';
+  integrationValidation?:
+    | 'accepted'
+    | 'missing-endpoint'
+    | 'invalid-endpoint'
+    | 'missing-payload-keys'
+    | 'partial-payload-keys'
+    | 'not-applicable';
 }
 
 export function getAvailableContinuumExecutionModes(args?: {
@@ -37,6 +51,8 @@ export function getAvailableContinuumExecutionModes(args?: {
 
 export function buildContinuumExecutionPlannerSystemPrompt(args?: {
   hasRestoreContinuity?: boolean;
+  integrationCatalog?: unknown;
+  registeredActions?: Record<string, unknown>;
 }): string;
 
 export function buildContinuumExecutionPlannerUserPrompt(args?: {
@@ -48,6 +64,18 @@ export function buildContinuumExecutionPlannerUserPrompt(args?: {
   instruction?: string;
   conversationSummary?: string;
   detachedFields?: unknown[];
+  integrationCatalog?: unknown;
+  registeredActions?: Record<string, unknown>;
+}): string;
+
+export function buildIntegrationBindingParagraph(args?: {
+  integrationCatalog?: unknown;
+  endpointId?: string;
+  payloadSemanticKeys?: string[];
+}): string;
+
+export function buildRegisteredActionsParagraph(args?: {
+  registeredActions?: Record<string, unknown>;
 }): string;
 
 export function parseContinuumExecutionPlan(args?: {
@@ -60,6 +88,7 @@ export function resolveContinuumExecutionPlan(args?: {
   availableModes?: ContinuumExecutionMode[];
   patchTargets?: ContinuumExecutionTarget[];
   stateTargets?: ContinuumExecutionTarget[];
+  integrationCatalog?: unknown;
 }): ContinuumResolvedExecutionPlan;
 
 export function normalizeContinuumSemanticIdentity(args?: {

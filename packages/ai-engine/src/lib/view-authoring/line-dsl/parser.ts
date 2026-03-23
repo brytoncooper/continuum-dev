@@ -1,5 +1,5 @@
 import type { ViewDefinition } from '@continuum-dev/core';
-import { parseJson } from '../../view-guardrails/index.js';
+import { parseJson, sanitizeJsonViewDefinition } from '../../view-guardrails/index.js';
 import {
   buildViewDefinitionNodeFromDsl,
   bumpVersion,
@@ -23,7 +23,7 @@ export function parseViewLineDslToViewDefinition(args: {
       typeof candidate.version === 'string' &&
       Array.isArray(candidate.nodes)
     ) {
-      return candidate as unknown as ViewDefinition;
+      return sanitizeJsonViewDefinition(candidate as unknown as ViewDefinition);
     }
   }
 

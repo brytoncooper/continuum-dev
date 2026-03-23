@@ -1,5 +1,6 @@
 export { isViewDefinition } from './definition.js';
 export { parseJson } from './json.js';
+export { sanitizeJsonViewDefinition } from './json-artifacts.js';
 export { normalizeViewDefinition } from './normalize.js';
 export { buildRuntimeErrors } from './runtime-errors.js';
 export {

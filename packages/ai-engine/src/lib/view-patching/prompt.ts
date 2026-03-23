@@ -80,7 +80,7 @@ export function buildPatchSystemPrompt(): string {
     '- insert-node adds one full node subtree at a parent or the top level. Include position to control placement: {beforeId, afterId, or index}.',
     '- move-node repositions one existing node within or across parents. Always include position to specify the target ordering: {beforeId, afterId, or index}. For "move to the top" use position:{index:0}. For "move after X" use position:{afterId:"x_id"}.',
     '- wrap-nodes wraps existing sibling nodes in a new group/row/grid container.',
-    '- replace-node replaces one existing node with a complete valid replacement subtree.',
+    '- replace-node replaces one existing node with a complete valid replacement subtree. Identify the existing node with nodeId (aliases: id, targetId).',
     '- remove-node removes one existing node.',
     '- append-content is only for appending text to an existing presentation node. If content is being rewritten, use replace-node instead.',
     '- For property tweaks on an existing node, use replace-node with the complete updated node object. Do not invent a separate prop-level patch language.',

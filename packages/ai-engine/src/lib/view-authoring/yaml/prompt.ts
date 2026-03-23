@@ -142,14 +142,23 @@ export function buildViewYamlUserMessage(args: {
   conversationSummary?: string;
   validationErrors?: string[];
   runtimeErrors?: string[];
+  integrationBinding?: string;
 }): string {
   const sections = ['<input>'];
+
+  const integrationBindingText =
+    typeof args.integrationBinding === 'string'
+      ? args.integrationBinding.trim()
+      : '';
 
   sections.push(
     'Continuum context:\n' +
       '- The current view represents the live browser UI the user is working on.\n' +
       '- Your response becomes the next version of that UI.\n' +
-      '- Keep the current workflow stable unless the instruction clearly asks for broader change.'
+      '- Keep the current workflow stable unless the instruction clearly asks for broader change.' +
+      (integrationBindingText.length > 0
+        ? '\n- A backend integration contract is included below: every persisted field semantic key must stay within that single endpoint schema.'
+        : '')
   );
 
   if (typeof args.currentView !== 'undefined') {
@@ -193,6 +202,10 @@ export function buildViewYamlUserMessage(args: {
         args.runtimeErrors.length > 0 ? args.runtimeErrors.join('\n') : 'none'
       }`
     );
+  }
+
+  if (integrationBindingText.length > 0) {
+    sections.push(integrationBindingText);
   }
 
   sections.push(`Instruction:\n${args.instruction.trim()}`);

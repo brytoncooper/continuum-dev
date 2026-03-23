@@ -5,6 +5,259 @@ import {
   uniqueNonEmptyStrings,
 } from './shared.mjs';
 
+function catalogEndpointIds(catalog) {
+  if (!catalog || !Array.isArray(catalog.endpoints)) {
+    return [];
+  }
+  return catalog.endpoints
+    .map((entry) =>
+      entry && typeof entry.id === 'string' ? entry.id.trim() : ''
+    )
+    .filter(Boolean);
+}
+
+function findCatalogEndpoint(catalog, endpointId) {
+  if (!catalog || !Array.isArray(catalog.endpoints) || !endpointId) {
+    return null;
+  }
+
+  return catalog.endpoints.find((entry) => entry && entry.id === endpointId) ?? null;
+}
+
+function normalizeIntegrationFieldShape(field) {
+  if (!field || typeof field !== 'object') {
+    return 'scalar';
+  }
+  if (field.shape === 'collection') {
+    return 'collection';
+  }
+  if (field.shape === 'object') {
+    return 'object';
+  }
+  return 'scalar';
+}
+
+function collectPersistedSemanticKeysFromFields(fields) {
+  const keys = [];
+  for (const field of Array.isArray(fields) ? fields : []) {
+    if (!field || typeof field !== 'object') {
+      continue;
+    }
+
+    const shape = normalizeIntegrationFieldShape(field);
+
+    if (shape === 'object' && Array.isArray(field.fields)) {
+      keys.push(...collectPersistedSemanticKeysFromFields(field.fields));
+      continue;
+    }
+
+    if (shape === 'collection') {
+      if (typeof field.semanticKey === 'string' && field.semanticKey.trim().length > 0) {
+        keys.push(field.semanticKey.trim());
+      }
+      if (Array.isArray(field.itemFields)) {
+        keys.push(...collectPersistedSemanticKeysFromFields(field.itemFields));
+      }
+      continue;
+    }
+
+    if (typeof field.semanticKey === 'string' && field.semanticKey.trim().length > 0) {
+      keys.push(field.semanticKey.trim());
+    }
+  }
+
+  return uniqueNonEmptyStrings(keys);
+}
+
+function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optionalLines) {
+  if (!field || typeof field !== 'object') {
+    return;
+  }
+
+  const shape = normalizeIntegrationFieldShape(field);
+  const pad = '  '.repeat(depth);
+  const label =
+    typeof field.label === 'string' && field.label.trim().length > 0
+      ? field.label.trim()
+      : typeof field.semanticKey === 'string'
+        ? field.semanticKey.trim()
+        : '';
+
+  if (shape === 'object' && Array.isArray(field.fields)) {
+    const key =
+      typeof field.semanticKey === 'string' ? field.semanticKey.trim() : '';
+    const header = `${pad}- [${label}]${key ? ` (${key})` : ''} — nested object${field.required ? ' [required]' : ' [optional]'}`;
+    if (field.required) {
+      requiredLines.push(header);
+    } else {
+      optionalLines.push(header);
+    }
+    for (const child of field.fields) {
+      appendIntegrationFieldCatalogLines(child, depth + 1, requiredLines, optionalLines);
+    }
+    return;
+  }
+
+  if (shape === 'collection') {
+    const key =
+      typeof field.semanticKey === 'string' ? field.semanticKey.trim() : '';
+    if (!key) {
+      return;
+    }
+    const min =
+      typeof field.minItems === 'number' ? ` minItems=${field.minItems}` : '';
+    const max =
+      typeof field.maxItems === 'number' ? ` maxItems=${field.maxItems}` : '';
+    const header = `${pad}- ${key} (${label}) [collection]${min}${max}${field.required ? ' [required]' : ' [optional]'}`;
+    if (field.required) {
+      requiredLines.push(header);
+    } else {
+      optionalLines.push(header);
+    }
+    const subNote = `${pad}  Each row:`;
+    if (field.required) {
+      requiredLines.push(subNote);
+    } else {
+      optionalLines.push(subNote);
+    }
+    for (const child of Array.isArray(field.itemFields) ? field.itemFields : []) {
+      appendIntegrationFieldCatalogLines(child, depth + 2, requiredLines, optionalLines);
+    }
+    return;
+  }
+
+  const key =
+    typeof field.semanticKey === 'string' ? field.semanticKey.trim() : '';
+  if (!key) {
+    return;
+  }
+  const dt =
+    typeof field.dataType === 'string' && field.dataType.trim().length > 0
+      ? ` ${field.dataType.trim()}`
+      : '';
+  const enumNote =
+    Array.isArray(field.enumValues) && field.enumValues.length > 0
+      ? ` enum=${field.enumValues.join('|')}`
+      : '';
+  const desc =
+    typeof field.description === 'string' && field.description.trim().length > 0
+      ? ` — ${field.description.trim()}`
+      : '';
+  const line = `${pad}- ${key} (${label})${dt}${enumNote}${field.required ? ' [required]' : ' [optional]'}${desc}`;
+  if (field.required) {
+    requiredLines.push(line);
+  } else {
+    optionalLines.push(line);
+  }
+}
+
+function registeredActionsEntries(registeredActions) {
+  if (!registeredActions || typeof registeredActions !== 'object') {
+    return [];
+  }
+
+  return Object.entries(registeredActions).filter(
+    ([intentId]) => typeof intentId === 'string' && intentId.trim().length > 0
+  );
+}
+
+/**
+ * Paragraph listing `Session.getRegisteredActions()` for view authoring: valid
+ * `intentId` values on `action` nodes.
+ */
+export function buildRegisteredActionsParagraph(args = {}) {
+  const entries = registeredActionsEntries(args.registeredActions);
+  if (entries.length === 0) {
+    return '';
+  }
+
+  const lines = [
+    'Runtime-registered action intents (use these intentId values on action nodes; the host app dispatches handlers for these ids):',
+  ];
+
+  for (const [intentId, reg] of entries) {
+    const label =
+      reg && typeof reg === 'object' && typeof reg.label === 'string' && reg.label.trim().length > 0
+        ? reg.label.trim()
+        : intentId;
+    const description =
+      reg &&
+      typeof reg === 'object' &&
+      typeof reg.description === 'string' &&
+      reg.description.trim().length > 0
+        ? ` — ${reg.description.trim()}`
+        : '';
+    lines.push(`- ${intentId}: ${label}${description}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Human-readable paragraph for view/state/patch prompts when an integration catalog is in play.
+ */
+export function buildIntegrationBindingParagraph(args = {}) {
+  const catalog = args.integrationCatalog;
+  const endpointId = typeof args.endpointId === 'string' ? args.endpointId.trim() : '';
+  const endpoint = findCatalogEndpoint(catalog, endpointId);
+  if (!catalog || !endpoint) {
+    return '';
+  }
+
+  const productSummary =
+    typeof catalog.productSummary === 'string' ? catalog.productSummary.trim() : '';
+
+  const keys = Array.isArray(args.payloadSemanticKeys)
+    ? uniqueNonEmptyStrings(args.payloadSemanticKeys)
+    : [];
+  const allowed = new Set(
+    collectPersistedSemanticKeysFromFields(endpoint.persistedFields)
+  );
+
+  const focusKeys = keys.filter((key) => allowed.has(key));
+  const requiredLines = [];
+  const optionalLines = [];
+
+  for (const field of Array.isArray(endpoint.persistedFields)
+    ? endpoint.persistedFields
+    : []) {
+    appendIntegrationFieldCatalogLines(field, 0, requiredLines, optionalLines);
+  }
+
+  const method =
+    typeof endpoint.method === 'string' ? endpoint.method.trim().toUpperCase() : '';
+  const path =
+    typeof endpoint.path === 'string' ? endpoint.path.trim() : '';
+
+  const lines = [
+    productSummary.length > 0 ? `Product context:\n${productSummary}` : '',
+    'Execution planner binding: this endpoint and persisted key scope were chosen in the planner JSON plan for this run. Downstream steps do not re-select a different endpoint or schema.',
+    'Hard constraint: Persisted values on field nodes must use only the semantic keys listed below for this endpoint. Do not introduce other persisted keys, alternate spellings, or fields that would not serialize to this HTTP contract.',
+    'Accepted payload schema for this endpoint (persisted columns / request body shape). This is not a form template—design layout, grouping, and controls to match the user instruction.',
+    `Endpoint id: ${endpoint.id}`,
+    `HTTP: ${method} ${path}`,
+    typeof endpoint.userAction === 'string' && endpoint.userAction.trim().length > 0
+      ? `Representative user action: ${endpoint.userAction.trim()}`
+      : '',
+    'Persisted fields (semantic keys must match these for saved data):',
+    ...requiredLines,
+    ...optionalLines,
+  ];
+
+  if (focusKeys.length > 0) {
+    lines.push(
+      'Planner focus — prioritize these semantic keys for stateful fields:',
+      focusKeys.join(', ')
+    );
+  }
+
+  lines.push(
+    'Map user input only to the semantic keys listed above for persisted values. You may add presentation-only nodes; do not introduce additional persisted keys beyond this schema.'
+  );
+
+  return lines.filter((line) => line !== '').join('\n\n');
+}
+
 export function getAvailableContinuumExecutionModes(args = {}) {
   const availableModes = [];
 
@@ -82,6 +335,31 @@ export function buildContinuumExecutionPlannerSystemPrompt(args = {}) {
     );
   }
 
+  if (args.integrationCatalog && catalogEndpointIds(args.integrationCatalog).length > 0) {
+    lines.push(
+      'Integration catalog context (mandatory for this deployment):',
+      '- The integrationCatalog JSON is the only allowed HTTP surface and persisted-field vocabulary. Generated UI and state updates must stay compatible with exactly one catalog endpoint per plan.',
+      '- On this turn, the execution planner is the only authority that selects endpointId and payloadSemanticKeys. Downstream view, state, and patch prompts receive only the binding paragraph for that one endpoint; no later step re-chooses the endpoint or persisted schema.',
+      '- You MUST include endpointId (exactly one id from integrationCatalog.endpoints[].id) and payloadSemanticKeys (non-empty; every entry must be an allowed semantic key for that endpoint: scalars, nested object leaf keys, collection keys, and collection item-template keys as defined in persistedFields, including shape=object, shape=collection, fields, and itemFields). Omitting either fails integration binding.',
+      '- targetSemanticKeys (when you use them) must only reference semantic keys from that same endpoint schema. Do not invent keys outside that endpoint.',
+      '- Do not plan workflows that require HTTP methods, paths, or persisted keys that are not listed for the chosen endpoint.',
+      '- If the user mixes concerns, pick the single endpoint that best matches the primary request and keep payloadSemanticKeys within its schema; do not add imaginary backend operations or extra endpoints.',
+      '- The integrationCatalog JSON block is not a prescribed form layout.',
+      '- The normal Continuum plan fields (mode, targets, etc.) still apply; integration fields are additive.',
+      '- Example with integration catalog:',
+      '- {"mode":"view","fallback":"view","authoringMode":"create-view","endpointId":"client.profile.save","payloadSemanticKeys":["household.displayName","client.primaryEmail"],"reason":"update profile"}'
+    );
+  }
+
+  if (registeredActionsEntries(args.registeredActions).length > 0) {
+    lines.push(
+      'Runtime actions context:',
+      '- registeredActions lists intent ids registered on the host session (labels are for display).',
+      '- When the user needs a submit or primary action, prefer an action node whose intentId appears in registeredActions.',
+      '- Do not invent intentId strings that are not registered.'
+    );
+  }
+
   return lines.join('\n');
 }
 
@@ -94,6 +372,28 @@ export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
     'Assume the user is reacting to what they see on the current form unless the instruction clearly asks for a brand-new workflow.',
     'Do not treat the instruction as a literal field value unless it is clearly a fill/prefill request or a direct payload of values.',
     '',
+  ];
+
+  if (
+    typeof args.conversationSummary === 'string' &&
+    args.conversationSummary.trim().length > 0
+  ) {
+    sections.push(
+      'Recent conversation summary (bounded):',
+      args.conversationSummary.trim(),
+      ''
+    );
+  }
+
+  if (Array.isArray(args.detachedFields) && args.detachedFields.length > 0) {
+    sections.push(
+      'Detached fields (restore continuity):',
+      JSON.stringify(args.detachedFields, null, 2),
+      ''
+    );
+  }
+
+  sections.push(
     'availableModes:',
     JSON.stringify(Array.isArray(args.availableModes) ? args.availableModes : []),
     '',
@@ -116,24 +416,26 @@ export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
     '',
     'Current populated values:',
     JSON.stringify(summarizeCurrentData(args.currentData), null, 2),
-    '',
-  ];
+    ''
+  );
 
-  if (
-    typeof args.conversationSummary === 'string' &&
-    args.conversationSummary.trim().length > 0
-  ) {
+  if (args.integrationCatalog && catalogEndpointIds(args.integrationCatalog).length > 0) {
     sections.push(
-      'Recent conversation summary (bounded):',
-      args.conversationSummary.trim(),
+      'integrationCatalog (mandatory backend contract; follow integration rules in the system prompt):',
+      JSON.stringify(args.integrationCatalog, null, 2),
+      '',
+      'Integration routing (output these fields in your JSON plan; downstream view and state authoring use only this binding):',
+      '- endpointId: exactly one id from endpoints[].id above.',
+      '- payloadSemanticKeys: non-empty array of persistedFields.semanticKey values for that endpoint; include keys you intend the form to persist (at least every required field).',
+      '- Later steps do not re-select the endpoint or invent a different persisted schema; your choice here is the shared contract for this run.',
       ''
     );
   }
 
-  if (Array.isArray(args.detachedFields) && args.detachedFields.length > 0) {
+  if (registeredActionsEntries(args.registeredActions).length > 0) {
     sections.push(
-      'Detached fields (restore continuity):',
-      JSON.stringify(args.detachedFields, null, 2),
+      'registeredActions:',
+      JSON.stringify(args.registeredActions, null, 2),
       ''
     );
   }
@@ -168,7 +470,11 @@ export function parseContinuumExecutionPlan(args = {}) {
       ? parsed.fallback
       : 'view';
 
-  return {
+  const endpointIdRaw =
+    typeof parsed.endpointId === 'string' ? parsed.endpointId.trim() : '';
+  const payloadSemanticKeys = uniqueNonEmptyStrings(parsed.payloadSemanticKeys);
+
+  const base = {
     mode,
     fallback,
     authoringMode:
@@ -184,12 +490,110 @@ export function parseContinuumExecutionPlan(args = {}) {
     targetNodeIds: uniqueNonEmptyStrings(parsed.targetNodeIds),
     targetSemanticKeys: uniqueNonEmptyStrings(parsed.targetSemanticKeys),
   };
+
+  if (endpointIdRaw.length > 0) {
+    base.endpointId = endpointIdRaw;
+  }
+
+  if (payloadSemanticKeys.length > 0) {
+    base.payloadSemanticKeys = payloadSemanticKeys;
+  }
+
+  return base;
+}
+
+function resolveIntegrationPlanFields(integrationCatalog, rawParsed) {
+  if (!integrationCatalog || catalogEndpointIds(integrationCatalog).length === 0) {
+    return {
+      endpointId: undefined,
+      payloadSemanticKeys: undefined,
+      integrationValidation: 'not-applicable',
+    };
+  }
+
+  if (!rawParsed || !rawParsed.endpointId) {
+    return {
+      endpointId: undefined,
+      payloadSemanticKeys: undefined,
+      integrationValidation: 'missing-endpoint',
+    };
+  }
+
+  const endpoint = findCatalogEndpoint(integrationCatalog, rawParsed.endpointId);
+
+  if (!endpoint) {
+    return {
+      endpointId: undefined,
+      payloadSemanticKeys: undefined,
+      integrationValidation: 'invalid-endpoint',
+    };
+  }
+
+  const allowed = new Set(collectPersistedSemanticKeysFromFields(endpoint.persistedFields));
+
+  const requested = Array.isArray(rawParsed.payloadSemanticKeys)
+    ? rawParsed.payloadSemanticKeys
+    : [];
+  const filtered = requested.filter((key) => allowed.has(key));
+  const hadRequested = requested.length > 0;
+  const partial = hadRequested && filtered.length < requested.length;
+
+  let integrationValidation;
+  if (partial) {
+    integrationValidation = 'partial-payload-keys';
+  } else if (allowed.size > 0 && filtered.length === 0) {
+    integrationValidation = 'missing-payload-keys';
+  } else {
+    integrationValidation = 'accepted';
+  }
+
+  return {
+    endpointId: rawParsed.endpointId,
+    payloadSemanticKeys: filtered.length > 0 ? filtered : undefined,
+    integrationValidation,
+  };
+}
+
+function endpointAllowedSemanticKeys(catalog, endpointId) {
+  const endpoint = findCatalogEndpoint(catalog, endpointId);
+  if (!endpoint || !Array.isArray(endpoint.persistedFields)) {
+    return new Set();
+  }
+
+  return new Set(collectPersistedSemanticKeysFromFields(endpoint.persistedFields));
+}
+
+function mergeIntegrationIntoPlan(result, integrationCatalog, rawParsed) {
+  const resolved = resolveIntegrationPlanFields(integrationCatalog, rawParsed);
+  let targetSemanticKeys = Array.isArray(result.targetSemanticKeys)
+    ? result.targetSemanticKeys
+    : [];
+
+  if (resolved.endpointId && integrationCatalog) {
+    const allowed = endpointAllowedSemanticKeys(
+      integrationCatalog,
+      resolved.endpointId
+    );
+
+    if (allowed.size > 0) {
+      targetSemanticKeys = targetSemanticKeys.filter((key) => allowed.has(key));
+    }
+  }
+
+  return {
+    ...result,
+    endpointId: resolved.endpointId,
+    payloadSemanticKeys: resolved.payloadSemanticKeys,
+    integrationValidation: resolved.integrationValidation,
+    targetSemanticKeys,
+  };
 }
 
 export function resolveContinuumExecutionPlan(args = {}) {
   const availableModes = Array.isArray(args.availableModes)
     ? args.availableModes
     : [];
+  const integrationCatalog = args.integrationCatalog;
   const fallback = {
     mode: 'view',
     fallback: 'view',
@@ -205,7 +609,7 @@ export function resolveContinuumExecutionPlan(args = {}) {
   });
 
   if (!parsed) {
-    return fallback;
+    return mergeIntegrationIntoPlan(fallback, integrationCatalog, null);
   }
 
   const stateIndexes = indexTargets(args.stateTargets);
@@ -213,37 +617,53 @@ export function resolveContinuumExecutionPlan(args = {}) {
   const catalog = parsed.mode === 'state' ? stateIndexes : patchIndexes;
 
   if (parsed.mode === 'view') {
-    return {
-      ...parsed,
-      targetNodeIds: [],
-      targetSemanticKeys: [],
-      authoringMode: parsed.authoringMode ?? 'evolve-view',
-      validation: 'accepted',
-    };
+    return mergeIntegrationIntoPlan(
+      {
+        ...parsed,
+        targetNodeIds: [],
+        targetSemanticKeys: [],
+        authoringMode: parsed.authoringMode ?? 'evolve-view',
+        validation: 'accepted',
+      },
+      integrationCatalog,
+      parsed
+    );
   }
 
   if (parsed.mode === 'state' && !availableModes.includes('state')) {
-    return {
-      ...fallback,
-      reason: 'state unavailable',
-      validation: 'state-unavailable',
-    };
+    return mergeIntegrationIntoPlan(
+      {
+        ...fallback,
+        reason: 'state unavailable',
+        validation: 'state-unavailable',
+      },
+      integrationCatalog,
+      parsed
+    );
   }
 
   if (parsed.mode === 'patch' && !availableModes.includes('patch')) {
-    return {
-      ...fallback,
-      reason: 'patch unavailable',
-      validation: 'patch-unavailable',
-    };
+    return mergeIntegrationIntoPlan(
+      {
+        ...fallback,
+        reason: 'patch unavailable',
+        validation: 'patch-unavailable',
+      },
+      integrationCatalog,
+      parsed
+    );
   }
 
   if (parsed.mode === 'transform' && !availableModes.includes('transform')) {
-    return {
-      ...fallback,
-      reason: 'transform unavailable',
-      validation: 'transform-unavailable',
-    };
+    return mergeIntegrationIntoPlan(
+      {
+        ...fallback,
+        reason: 'transform unavailable',
+        validation: 'transform-unavailable',
+      },
+      integrationCatalog,
+      parsed
+    );
   }
 
   const matchedNodeIds = [];
@@ -270,21 +690,29 @@ export function resolveContinuumExecutionPlan(args = {}) {
     matchedNodeIds.length === 0 &&
     matchedSemanticKeys.length === 0
   ) {
-    return {
-      ...parsed,
-      targetNodeIds: [],
-      targetSemanticKeys: [],
-      reason: hadUnknownTargets
-        ? 'no resolvable targets'
-        : `${parsed.mode} requires explicit targets`,
-      validation: hadUnknownTargets ? 'unknown-targets' : 'missing-targets',
-    };
+    return mergeIntegrationIntoPlan(
+      {
+        ...parsed,
+        targetNodeIds: [],
+        targetSemanticKeys: [],
+        reason: hadUnknownTargets
+          ? 'no resolvable targets'
+          : `${parsed.mode} requires explicit targets`,
+        validation: hadUnknownTargets ? 'unknown-targets' : 'missing-targets',
+      },
+      integrationCatalog,
+      parsed
+    );
   }
 
-  return {
-    ...parsed,
-    targetNodeIds: matchedNodeIds,
-    targetSemanticKeys: matchedSemanticKeys,
-    validation: hadUnknownTargets ? 'partial-targets' : 'accepted',
-  };
+  return mergeIntegrationIntoPlan(
+    {
+      ...parsed,
+      targetNodeIds: matchedNodeIds,
+      targetSemanticKeys: matchedSemanticKeys,
+      validation: hadUnknownTargets ? 'partial-targets' : 'accepted',
+    },
+    integrationCatalog,
+    parsed
+  );
 }

@@ -61,6 +61,46 @@ describe('view-patching normalization', () => {
     });
   });
 
+  it('accepts targetId as an alias for nodeId on operations that target an existing node', () => {
+    expect(
+      normalizeViewPatchOperation({
+        kind: 'replace-node',
+        targetId: 'welcome_text',
+        node: {
+          id: 'welcome_text',
+          type: 'presentation',
+          contentType: 'text',
+          content: 'Hi',
+        },
+      })
+    ).toMatchObject({
+      kind: 'replace-node',
+      nodeId: 'welcome_text',
+    });
+
+    expect(
+      normalizeViewPatchOperation({
+        kind: 'remove-node',
+        targetId: 'old_node',
+      })
+    ).toEqual({
+      kind: 'remove-node',
+      nodeId: 'old_node',
+    });
+
+    expect(
+      normalizeViewPatchOperation({
+        kind: 'move-node',
+        targetId: 'body',
+        position: { index: 0 },
+      })
+    ).toMatchObject({
+      kind: 'move-node',
+      nodeId: 'body',
+      position: { index: 0 },
+    });
+  });
+
   it('rejects invalid wrap operations before they reach the runtime patcher', () => {
     expect(
       normalizeViewPatchOperation({

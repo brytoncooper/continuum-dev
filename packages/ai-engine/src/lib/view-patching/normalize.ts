@@ -83,13 +83,7 @@ export function normalizeViewPatchOperation(
     return null;
   }
 
-  // LLMs may use "id" instead of "nodeId"
-  const nodeId =
-    typeof input.nodeId === 'string' && input.nodeId.trim().length > 0
-      ? input.nodeId
-      : typeof input.id === 'string' && input.id.trim().length > 0
-        ? input.id
-        : null;
+  const nodeId = resolvePatchTargetNodeId(input);
 
   if (kind === 'insert-node') {
     const node = normalizePlanNode(input.node);
@@ -201,6 +195,19 @@ export function normalizeViewPatchOperation(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function resolvePatchTargetNodeId(input: Record<string, unknown>): string | null {
+  if (typeof input.nodeId === 'string' && input.nodeId.trim().length > 0) {
+    return input.nodeId.trim();
+  }
+  if (typeof input.id === 'string' && input.id.trim().length > 0) {
+    return input.id.trim();
+  }
+  if (typeof input.targetId === 'string' && input.targetId.trim().length > 0) {
+    return input.targetId.trim();
+  }
+  return null;
 }
 
 function normalizePlanNode(node: unknown): ViewNode | null {

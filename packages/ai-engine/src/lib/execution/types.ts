@@ -3,6 +3,7 @@ import type {
   NodeValue,
   ViewDefinition,
 } from '@continuum-dev/core';
+import type { ActionRegistration } from '@continuum-dev/protocol';
 import type {
   DetachedFieldHint,
   PromptAddon,
@@ -29,6 +30,25 @@ export type ContinuumExecutionStatusLevel =
   | 'warning'
   | 'error';
 
+/**
+ * Binary payload for a single user-attached image or document, aligned with
+ * AI SDK user message parts (`image` / `file`). `base64` is raw base64 (no
+ * `data:` prefix). Used when forwarding chat attachments into model calls.
+ */
+export type ContinuumChatAttachment =
+  | {
+      kind: 'image';
+      mediaType: string;
+      base64: string;
+      filename?: string;
+    }
+  | {
+      kind: 'file';
+      mediaType: string;
+      base64: string;
+      filename?: string;
+    };
+
 export interface ContinuumExecutionRequest {
   systemPrompt: string;
   userMessage: string;
@@ -40,6 +60,11 @@ export interface ContinuumExecutionRequest {
   model?: string;
   providerOptions?: Record<string, unknown>;
   abortSignal?: AbortSignal;
+  /**
+   * Optional multimodal parts (same turn as `userMessage`), forwarded to the
+   * execution adapter when supported.
+   */
+  attachments?: ContinuumChatAttachment[];
 }
 
 export interface ContinuumExecutionResponse {
@@ -57,6 +82,63 @@ export interface ContinuumExecutionAdapter {
   streamObject?(request: ContinuumExecutionRequest): AsyncIterable<unknown>;
 }
 
+/**
+ * One pretend REST endpoint and the fields the product persists for it.
+ * `semanticKey` values align with Continuum view `semanticKey` / field keys.
+ *
+ * Use `shape` to describe structured payloads:
+ * - **`scalar`** (default): one column / scalar body property.
+ * - **`object`**: nested group; only `fields` contribute allowed semantic keys (not the parent key).
+ * - **`collection`**: repeating rows; the collection key plus every `itemFields` key are allowed.
+ */
+export interface ContinuumIntegrationPersistedField {
+  semanticKey: string;
+  label: string;
+  required: boolean;
+  dataType?: string;
+  shape?: 'scalar' | 'object' | 'collection';
+  /** When `shape` is `object`, nested persisted columns (leaf keys only). */
+  fields?: ContinuumIntegrationPersistedField[];
+  /** When `shape` is `collection`, schema for one row (Continuum collection template). */
+  itemFields?: ContinuumIntegrationPersistedField[];
+  minItems?: number;
+  maxItems?: number;
+  description?: string;
+  /** Constrained string domain for planner and UI (e.g. risk band). */
+  enumValues?: string[];
+}
+
+/**
+ * One logical write: HTTP surface plus the **persisted payload shape** for
+ * that call. `persistedFields` are database/request columns, not a form layout.
+ */
+export interface ContinuumIntegrationEndpoint {
+  id: string;
+  method: string;
+  path: string;
+  description: string;
+  userAction: string;
+  persistedFields: ContinuumIntegrationPersistedField[];
+}
+
+/**
+ * Optional integration catalog: product blurb plus per-endpoint **payload
+ * schemas** (persisted fields). This documents what the backend accepts; it
+ * does not prescribe a default form. When present, the planner may emit
+ * `endpointId` and `payloadSemanticKeys`, and view generation is constrained
+ * to those semantic keys for persisted data.
+ */
+export interface ContinuumIntegrationCatalog {
+  productSummary: string;
+  endpoints: ContinuumIntegrationEndpoint[];
+}
+
+/**
+ * Snapshot of `Session.getRegisteredActions()` for prompts: intent id → display
+ * metadata. Not a runtime handler map.
+ */
+export type ContinuumRegisteredActions = Record<string, ActionRegistration>;
+
 export interface ContinuumExecutionContext {
   currentView?: ViewDefinition;
   currentData?: Record<string, NodeValue | undefined>;
@@ -67,6 +149,22 @@ export interface ContinuumExecutionContext {
    */
   conversationSummary?: string;
   issues?: unknown[];
+  /**
+   * Optional simulated backend/endpoints catalog for demos; forwarded from the
+   * host app when the session should stay within declared persisted fields.
+   */
+  integrationCatalog?: ContinuumIntegrationCatalog;
+  /**
+   * Action intents registered on the Continuum session (`getRegisteredActions`).
+   * The model should use these `intentId` values on `action` nodes when wiring
+   * buttons to real client handlers.
+   */
+  registeredActions?: ContinuumRegisteredActions;
+  /**
+   * Files from the current chat turn (images, PDFs), merged into each
+   * `ContinuumExecutionRequest` for that run when the adapter supports multimodal input.
+   */
+  chatAttachments?: ContinuumChatAttachment[];
 }
 
 /**
@@ -83,6 +181,17 @@ export interface StreamContinuumExecutionArgs {
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
   autoApplyView?: boolean;
+  /**
+   * When false, view authoring does not emit `view-preview` events; only
+   * `view-final` is emitted after generation completes.
+   */
+  emitViewPreviews?: boolean;
+  /**
+   * Minimum time between `view-preview` events after the first preview. The
+   * first distinct preview still emits immediately. Defaults to `600` ms. Use
+   * `0` to emit on every distinct parsed snapshot (maximum SSE volume).
+   */
+  viewPreviewThrottleMs?: number;
 }
 
 export interface ContinuumExecutionTraceEntry {

@@ -380,6 +380,247 @@ describe('continuum execution plan resolution', () => {
       targetNodeIds: [],
       targetSemanticKeys: [],
       validation: 'invalid-plan',
+      integrationValidation: 'not-applicable',
+    });
+  });
+});
+
+describe('integration catalog planner binding', () => {
+  const integrationCatalog = {
+    productSummary: 'Demo product.',
+    endpoints: [
+      {
+        id: 'alpha.save',
+        method: 'POST',
+        path: '/api/alpha',
+        description: 'Alpha',
+        userAction: 'Save alpha',
+        persistedFields: [
+          { semanticKey: 'a.one', label: 'One', required: true },
+          { semanticKey: 'a.two', label: 'Two', required: false },
+        ],
+      },
+    ],
+  };
+
+  it('mentions integration rules in the system prompt when a catalog is present', () => {
+    const prompt = buildContinuumExecutionPlannerSystemPrompt({
+      integrationCatalog,
+    });
+    expect(prompt).toContain('Integration catalog context');
+    expect(prompt).toContain('endpointId');
+  });
+
+  it('mentions runtime actions in the system prompt when registeredActions is present', () => {
+    const prompt = buildContinuumExecutionPlannerSystemPrompt({
+      registeredActions: {
+        'save.profile': { label: 'Save' },
+      },
+    });
+    expect(prompt).toContain('Runtime actions context');
+    expect(prompt).toContain('registeredActions');
+  });
+
+  it('embeds the catalog JSON in the user prompt', () => {
+    const prompt = buildContinuumExecutionPlannerUserPrompt({
+      availableModes: ['view'],
+      patchTargets: [],
+      stateTargets: [],
+      compactTree: [],
+      currentData: {},
+      instruction: 'Hello',
+      integrationCatalog,
+    });
+    expect(prompt).toContain(
+      'integrationCatalog (mandatory backend contract; follow integration rules in the system prompt):'
+    );
+    expect(prompt).toContain('"productSummary": "Demo product."');
+    expect(prompt).toContain(
+      'Integration routing (output these fields in your JSON plan; downstream view and state authoring use only this binding):'
+    );
+  });
+
+  it('places conversation summary before availableModes in the user prompt', () => {
+    const prompt = buildContinuumExecutionPlannerUserPrompt({
+      availableModes: ['view'],
+      patchTargets: [],
+      stateTargets: [],
+      compactTree: [],
+      currentData: {},
+      instruction: 'Hello',
+      integrationCatalog,
+      conversationSummary: 'User asked about Harborline earlier.',
+    });
+    const idxSummary = prompt.indexOf('Recent conversation summary');
+    const idxModes = prompt.indexOf('availableModes:');
+    expect(idxSummary).toBeGreaterThan(-1);
+    expect(idxModes).toBeGreaterThan(-1);
+    expect(idxSummary).toBeLessThan(idxModes);
+  });
+
+  it('resolves endpointId and payload keys against the catalog', () => {
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'view',
+        fallback: 'view',
+        endpointId: 'alpha.save',
+        payloadSemanticKeys: ['a.one', 'a.bad'],
+      }),
+      availableModes: ['view'],
+      patchTargets,
+      stateTargets,
+      integrationCatalog,
+    });
+
+    expect(resolved).toMatchObject({
+      mode: 'view',
+      endpointId: 'alpha.save',
+      payloadSemanticKeys: ['a.one'],
+      integrationValidation: 'partial-payload-keys',
+    });
+  });
+
+  it('marks missing endpoint when the catalog is present but the planner omits endpointId', () => {
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'view',
+        fallback: 'view',
+      }),
+      availableModes: ['view'],
+      patchTargets,
+      stateTargets,
+      integrationCatalog,
+    });
+
+    expect(resolved).toMatchObject({
+      integrationValidation: 'missing-endpoint',
+    });
+  });
+
+  it('marks missing payload keys when the endpoint is valid but no valid keys were provided', () => {
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'view',
+        fallback: 'view',
+        endpointId: 'alpha.save',
+      }),
+      availableModes: ['view'],
+      patchTargets,
+      stateTargets,
+      integrationCatalog,
+    });
+
+    expect(resolved).toMatchObject({
+      endpointId: 'alpha.save',
+      integrationValidation: 'missing-payload-keys',
+    });
+  });
+
+  it('filters targetSemanticKeys to the resolved endpoint persisted keys', () => {
+    const integrationStateTargets = [
+      {
+        nodeId: 'a1',
+        semanticKey: 'a.one',
+        key: 'a.one',
+        nodeType: 'field',
+      },
+      {
+        nodeId: 'a2',
+        semanticKey: 'a.two',
+        key: 'a.two',
+        nodeType: 'field',
+      },
+      {
+        nodeId: 'legacy',
+        semanticKey: 'person.email',
+        key: 'person.email',
+        nodeType: 'field',
+      },
+    ];
+
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'state',
+        fallback: 'view',
+        endpointId: 'alpha.save',
+        payloadSemanticKeys: ['a.one'],
+        targetSemanticKeys: ['a.one', 'person.email', 'a.two'],
+      }),
+      availableModes: ['state', 'view'],
+      patchTargets,
+      stateTargets: integrationStateTargets,
+      integrationCatalog,
+    });
+
+    expect(resolved).toMatchObject({
+      mode: 'state',
+      endpointId: 'alpha.save',
+      targetSemanticKeys: ['a.one', 'a.two'],
+      integrationValidation: 'accepted',
+    });
+  });
+
+  it('accepts payload keys nested in object and collection item fields', () => {
+    const integrationCatalog = {
+      productSummary: 'Nested.',
+      endpoints: [
+        {
+          id: 'nested.save',
+          method: 'POST',
+          path: '/nested',
+          description: 'Nested payload.',
+          userAction: 'Save nested',
+          persistedFields: [
+            {
+              shape: 'object',
+              semanticKey: 'addr',
+              label: 'Address',
+              required: false,
+              fields: [
+                {
+                  semanticKey: 'addr.line1',
+                  label: 'Line 1',
+                  required: true,
+                  dataType: 'string',
+                },
+              ],
+            },
+            {
+              shape: 'collection',
+              semanticKey: 'lines',
+              label: 'Lines',
+              required: true,
+              itemFields: [
+                {
+                  semanticKey: 'line.amount',
+                  label: 'Amount',
+                  required: true,
+                  dataType: 'number',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const resolved = resolveContinuumExecutionPlan({
+      text: JSON.stringify({
+        mode: 'view',
+        fallback: 'view',
+        endpointId: 'nested.save',
+        payloadSemanticKeys: ['addr.line1', 'lines', 'line.amount', 'unknown'],
+      }),
+      availableModes: ['view'],
+      patchTargets,
+      stateTargets,
+      integrationCatalog,
+    });
+
+    expect(resolved).toMatchObject({
+      endpointId: 'nested.save',
+      payloadSemanticKeys: ['addr.line1', 'lines', 'line.amount'],
+      integrationValidation: 'partial-payload-keys',
     });
   });
 });

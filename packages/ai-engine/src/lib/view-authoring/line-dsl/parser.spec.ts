@@ -22,6 +22,32 @@ describe('parseViewLineDslToViewDefinition', () => {
     ).toEqual(view);
   });
 
+  it('sanitizes streamed-json quote artifacts in json view definitions', () => {
+    const text = JSON.stringify({
+      viewId: '"invoice_entry_form',
+      version: '1',
+      nodes: [
+        {
+          id: 'root',
+          type: 'group',
+          children: [],
+        },
+      ],
+    });
+
+    expect(parseViewLineDslToViewDefinition({ text })).toEqual({
+      viewId: 'invoice_entry_form',
+      version: '1',
+      nodes: [
+        {
+          id: 'root',
+          type: 'group',
+          children: [],
+        },
+      ],
+    });
+  });
+
   it('parses nested dsl into a view definition and bumps fallback metadata when omitted', () => {
     const fallbackView: ViewDefinition = {
       viewId: 'profile',
