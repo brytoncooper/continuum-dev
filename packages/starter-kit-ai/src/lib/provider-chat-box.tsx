@@ -127,8 +127,8 @@ export function StarterKitProviderChatBox({
       enableSuggestedPrompts={enableSuggestedPrompts}
       suggestedPrompts={suggestedPrompts}
       attachmentFiles={[]}
-      addAttachmentFiles={() => {}}
-      removeAttachmentAt={() => {}}
+      addAttachmentFiles={() => undefined}
+      removeAttachmentAt={() => undefined}
       setInstruction={setInstruction}
       submit={submit}
       copyPrompt={copyPrompt}

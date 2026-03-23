@@ -10,7 +10,7 @@ describe('ScenarioSelector', () => {
         coreScenario={coreScenario}
         advancedScenarios={advancedScenarios}
         activeScenarioId={coreScenario.id}
-        onSelect={() => {}}
+        onSelect={() => undefined}
       />
     );
 

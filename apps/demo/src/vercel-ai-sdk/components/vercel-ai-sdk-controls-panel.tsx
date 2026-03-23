@@ -3,7 +3,8 @@ import {
   StarterKitSessionWorkbench,
   type ContinuumVercelAiSdkMessage,
 } from '@continuum-dev/starter-kit-ai';
-import type { DefaultChatTransport } from 'ai';
+import { isContinuumVercelAiSdkDataPart } from '@continuum-dev/vercel-ai-sdk-adapter';
+import type { ChatOnDataCallback, DefaultChatTransport } from 'ai';
 import type { ViewDefinition } from '@continuum-dev/core';
 import { useCallback, useState } from 'react';
 import { color, control, radius, space, type } from '../../ui/tokens';
@@ -121,20 +122,19 @@ export function VercelAiSdkControlsPanel({
 }: VercelAiSdkControlsPanelProps) {
   const [vercelAiSdkChatRemountSerial, setVercelAiSdkChatRemountSerial] =
     useState(0);
-  const [executionTrace, setExecutionTrace] =
-    useState<ContinuumVercelAiSdkExecutionTraceData | null>(null);
   const remountVercelAiSdkChatToClearTranscript = useCallback(() => {
     setVercelAiSdkChatRemountSerial((serial) => serial + 1);
   }, []);
 
-  const handleChatData = useCallback((part: unknown) => {
+  const handleChatData = useCallback<
+    ChatOnDataCallback<ContinuumVercelAiSdkMessage>
+  >((part) => {
     if (!isContinuumVercelAiSdkDataPart(part)) {
       return;
     }
     if (part.type !== 'data-continuum-execution-trace') {
       return;
     }
-    setExecutionTrace(part.data);
     console.groupCollapsed('[vercel-ai-sdk-demo] Continuum execution trace');
     console.log('instruction:', part.data.instruction);
     console.log('result:', part.data.result);
@@ -270,6 +270,7 @@ export function VercelAiSdkControlsPanel({
             props: {
               chatOptions: {
                 transport,
+                onData: handleChatData,
               },
               title: debugEcho ? 'Multimodal debug' : 'Try a UI change request',
               description: debugEcho

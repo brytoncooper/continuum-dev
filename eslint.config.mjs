@@ -31,13 +31,22 @@ export default [
               onlyDependOnLibsWithTags: ['scope:contract'],
             },
             {
+              sourceTag: 'scope:protocol',
+              onlyDependOnLibsWithTags: ['scope:contract', 'scope:protocol'],
+            },
+            {
               sourceTag: 'scope:runtime',
-              onlyDependOnLibsWithTags: ['scope:contract', 'scope:runtime'],
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:protocol',
+                'scope:runtime',
+              ],
             },
             {
               sourceTag: 'scope:session',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
+                'scope:protocol',
                 'scope:runtime',
                 'scope:session',
               ],
@@ -79,12 +88,17 @@ export default [
             },
             {
               sourceTag: 'scope:ai-connect',
-              onlyDependOnLibsWithTags: ['scope:prompts', 'scope:ai-connect'],
+              onlyDependOnLibsWithTags: [
+                'scope:prompts',
+                'scope:ai-connect',
+                'scope:ai-engine',
+              ],
             },
             {
               sourceTag: 'scope:ai-engine',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
+                'scope:protocol',
                 'scope:runtime',
                 'scope:core',
                 'scope:prompts',
@@ -107,6 +121,7 @@ export default [
                 'scope:contract',
                 'scope:core',
                 'scope:react',
+                'scope:prompts',
                 'scope:ai-connect',
                 'scope:ai-engine',
                 'scope:vercel-ai-sdk-adapter',
@@ -118,7 +133,24 @@ export default [
               sourceTag: 'scope:vercel-ai-sdk-adapter',
               onlyDependOnLibsWithTags: [
                 'scope:core',
+                'scope:protocol',
+                'scope:runtime',
+                'scope:prompts',
+                'scope:ai-engine',
                 'scope:vercel-ai-sdk-adapter',
+              ],
+            },
+            {
+              sourceTag: 'scope:ai-core',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:core',
+                'scope:react',
+                'scope:session',
+                'scope:ai-connect',
+                'scope:ai-engine',
+                'scope:vercel-ai-sdk-adapter',
+                'scope:ai-core',
               ],
             },
             {
@@ -139,10 +171,14 @@ export default [
               sourceTag: 'scope:demo',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
+                'scope:protocol',
                 'scope:session',
                 'scope:core',
                 'scope:react',
+                'scope:ai-engine',
                 'scope:starter-kit',
+                'scope:starter-kit-ai',
+                'scope:vercel-ai-sdk-adapter',
               ],
             },
             {
@@ -277,6 +313,12 @@ export default [
     ],
     rules: {
       'max-params': ['warn', { max: 4 }],
+    },
+  },
+  {
+    files: ['apps/demo/vite.config.ts', 'apps/demo/src/docs/docs-content.ts'],
+    rules: {
+      '@nx/enforce-module-boundaries': 'off',
     },
   },
 ];

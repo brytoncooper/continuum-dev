@@ -286,7 +286,7 @@ function shouldAttemptPreview(
   return signature !== lastPreviewSignature;
 }
 
-const PREVIEW_VIEW_OR_NODE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_\-]*$/;
+const PREVIEW_VIEW_OR_NODE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 const PREVIEW_SEMANTIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_.]*$/;
 const PREVIEW_INTENT_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_.-]*$/;
 
