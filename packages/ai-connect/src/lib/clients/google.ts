@@ -130,6 +130,15 @@ export function createGoogleClient(
           },
           body: buildBody(fallbackConfig),
         });
+        const text = readGoogleContent(raw);
+        return {
+          providerId: options.id ?? 'google',
+          model,
+          text,
+          json: parseJsonText<TJson>(text),
+          raw,
+          outputContractFallbackUsed: true,
+        };
       }
 
       const text = readGoogleContent(raw);

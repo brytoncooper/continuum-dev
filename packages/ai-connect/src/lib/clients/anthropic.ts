@@ -106,6 +106,15 @@ export function createAnthropicClient(
           ...requestConfig,
           body: JSON.stringify(fallbackBody),
         });
+        const text = readAnthropicContent(raw);
+        return {
+          providerId: options.id ?? 'anthropic',
+          model,
+          text,
+          json: parseJsonText<TJson>(text),
+          raw,
+          outputContractFallbackUsed: true,
+        };
       }
 
       const text = readAnthropicContent(raw);

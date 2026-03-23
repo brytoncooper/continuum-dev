@@ -97,6 +97,15 @@ export function createOpenAiClient(
           ...requestConfig,
           body: JSON.stringify(fallbackBody),
         });
+        const text = readOpenAiContent(raw);
+        return {
+          providerId: options.id ?? 'openai',
+          model,
+          text,
+          json: parseJsonText<TJson>(text),
+          raw,
+          outputContractFallbackUsed: true,
+        };
       }
 
       const text = readOpenAiContent(raw);

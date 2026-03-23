@@ -12,6 +12,7 @@ function toExecutionResponse(
     text: result.text,
     json: result.json,
     raw: result,
+    outputContractFallbackUsed: result.outputContractFallbackUsed,
   };
 }
 

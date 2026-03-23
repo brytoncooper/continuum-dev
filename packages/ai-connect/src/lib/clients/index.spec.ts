@@ -112,6 +112,7 @@ describe('ai-connect clients', () => {
     expect(secondBody).not.toHaveProperty('response_format');
     expect(result.text).toBe('{"ok":true}');
     expect(result.json).toEqual({ ok: true });
+    expect(result.outputContractFallbackUsed).toBe(true);
   });
 
   it('falls back when Anthropic rejects output_config', async () => {
@@ -262,5 +263,6 @@ describe('ai-connect clients', () => {
     expect(secondBody.generationConfig).not.toHaveProperty('responseSchema');
     expect(secondBody.generationConfig).not.toHaveProperty('responseMimeType');
     expect(result.json).toEqual({ done: true });
+    expect(result.outputContractFallbackUsed).toBe(true);
   });
 });

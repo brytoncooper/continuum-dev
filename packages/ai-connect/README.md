@@ -21,7 +21,7 @@ npm install @continuum-dev/ai-connect
 ## What this package provides
 
 - Typed provider clients for OpenAI and Google Gemini (Anthropic is optional when explicitly enabled)
-- Optional JSON-schema response enforcement for providers that support it
+- Optional JSON-schema response enforcement for providers that support it; on schema-format rejection, OpenAI, Anthropic, and Google clients retry once **without** the contract and parse JSON from the text body when possible (`outputContractFallbackUsed: true` on the result)
 - A provider registry utility for multi-provider selection and dispatch
 
 ## Quick usage
