@@ -166,7 +166,7 @@ The **Reset** control clears Continuum session state and reapplies `initialView`
 import { StarterKitSessionWorkbench } from '@continuum-dev/starter-kit';
 
 export function DebugPanel() {
-  return <StarterKitSessionWorkbench />;
+  return <StarterKitSessionWorkbench initialView={view} />;
 }
 ```
 
@@ -215,7 +215,7 @@ export function App() {
         models={models}
         mode="evolve-view"
       />
-      <StarterKitSessionWorkbench />
+      <StarterKitSessionWorkbench initialView={view} />
       <ContinuumRenderer view={view} />
     </ContinuumProvider>
   );
@@ -231,13 +231,16 @@ Do not start with the starter kit if:
 - you are integrating at the session or transport level rather than the React preset layer
 
 In those cases, start with `@continuum-dev/ai-core` for the headless AI lane, or drop to the lower-level packages directly if you want fully explicit dependencies.
+In those cases, start with `@continuum-dev/react` for headless React rendering, then add `@continuum-dev/ai-engine` plus the transport layer you need. Reach for `@continuum-dev/ai-core` only if you explicitly want a convenience facade.
 
 ## Related docs
 
 - [Root README](../../README.md)
 - [Quick Start](../../docs/QUICK_START.md)
+- [Starter reference app](../../docs/REFERENCE_STARTER_APP.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
+- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
 - [Starter Kit AI README](../starter-kit-ai/README.md)
 - [AI Engine README](../ai-engine/README.md)
 - [Starter Kit AI Migration Guide](../../docs/STARTER_KIT_AI_MIGRATION.md)

@@ -1,10 +1,11 @@
 # Integration Guide
 
-Production-oriented patterns for integrating Continuum in three lanes:
+Production-oriented patterns for integrating Continuum by layer:
 
-- rendering only
-- starter-kit preset plus optional AI UI
-- headless AI facade plus custom orchestration or Vercel transport
+- `starter-kit` for the fastest React on-ramp
+- `react` plus `session` for headless React apps
+- `ai-engine` plus transport adapters for gen-UI and AI systems
+- `runtime` plus `session` when you want the lower-level continuity boundary
 
 This guide assumes you already understand the basics from [Quick Start](./QUICK_START.md).
 
@@ -32,7 +33,6 @@ Use this when you want a polished React surface quickly and you do not need buil
 import {
   ContinuumProvider,
   ContinuumRenderer,
-  StarterKitSessionWorkbench,
   starterKitComponentMap,
   useContinuumSnapshot,
 } from '@continuum-dev/starter-kit';
@@ -51,23 +51,104 @@ export function App() {
       components={starterKitComponentMap}
       persist="localStorage"
     >
-      <StarterKitSessionWorkbench />
       <Page />
     </ContinuumProvider>
   );
 }
 ```
 
-### Starter AI facade
+### Headless React lane: `@continuum-dev/react`
 
-Use this when you want the wrapper experience, but you also want provider-backed chat or a starter Vercel AI SDK path.
+Use this when you want Continuum's session model but your own components.
+
+```tsx
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSnapshot,
+} from '@continuum-dev/react';
+import type { ContinuumNodeMap } from '@continuum-dev/react';
+
+const nodeMap: ContinuumNodeMap = {
+  field: FieldComponent,
+  group: GroupComponent,
+  action: ActionComponent,
+  presentation: PresentationComponent,
+};
+
+function Page() {
+  const snapshot = useContinuumSnapshot();
+  if (!snapshot?.view) {
+    return null;
+  }
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
+  return (
+    <ContinuumProvider components={nodeMap} persist="localStorage">
+      <Page />
+    </ContinuumProvider>
+  );
+}
+```
+
+### AI runtime stack: `@continuum-dev/ai-engine` plus the transport layer
+
+Use this when you already have a gen-UI or AI app and want the clearest path to Continuum as the runtime that stabilizes it.
+
+```tsx
+import { DefaultChatTransport } from 'ai';
+import { useContinuumSession } from '@continuum-dev/react';
+import {
+  buildContinuumVercelAiSdkRequestBody,
+  useContinuumVercelAiSdkChat,
+} from '@continuum-dev/vercel-ai-sdk-adapter';
+
+export function CustomChat() {
+  const session = useContinuumSession();
+  const chat = useContinuumVercelAiSdkChat({
+    session,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: () =>
+        buildContinuumVercelAiSdkRequestBody({
+          currentView: session.getSnapshot()?.view ?? null,
+          currentData: session.getSnapshot()?.data.values ?? null,
+        }),
+    }),
+  });
+
+  return (
+    <button
+      onClick={() =>
+        chat.sendMessage({ text: 'Refine the current form for mobile' })
+      }
+    >
+      Send prompt
+    </button>
+  );
+}
+```
+
+This explicit stack keeps the responsibilities clear:
+
+- `@continuum-dev/react` and `@continuum-dev/session` own the live app state
+- `@continuum-dev/ai-engine` owns planning, parsing, normalization, and apply behavior
+- `@continuum-dev/vercel-ai-sdk-adapter` owns the Vercel AI SDK request and stream bridge
+- `@continuum-dev/ai-connect` is optional when you want built-in provider clients
+
+For server routes, keep your existing AI SDK handler and compose Continuum into the UI stream with `writeContinuumExecutionToUiMessageWriter(...)` from `@continuum-dev/vercel-ai-sdk-adapter/server`.
+
+### Optional thin wrappers: `@continuum-dev/starter-kit-ai`
+
+Use this when you already want `starter-kit` and you want prebuilt chat controls instead of building your own AI UI.
 
 ```tsx
 import {
   createAiConnectProviders,
   ContinuumProvider,
   ContinuumRenderer,
-  StarterKitSessionWorkbench,
   StarterKitProviderChatBox,
   type ContinuumViewAuthoringFormat,
   starterKitComponentMap,
@@ -106,100 +187,22 @@ export function App() {
         mode="evolve-view"
         authoringFormat={authoringFormat}
       />
-      <StarterKitSessionWorkbench />
       <Page />
     </ContinuumProvider>
   );
 }
 ```
 
-This facade keeps the install and import surface small, while the lower-level packages stay swappable underneath.
+These wrappers stay intentionally thin. The runtime behavior still lives in `@continuum-dev/ai-engine`, `@continuum-dev/react`, `@continuum-dev/session`, and the transport layer underneath.
 
-### Headless React lane: `@continuum-dev/react`
+### Convenience facades: `@continuum-dev/core` and `@continuum-dev/ai-core`
 
-Use this when you want Continuum's session model but your own components.
+Use these only when one dependency edge matters more than learning the leaf packages directly.
 
-```tsx
-import {
-  ContinuumProvider,
-  ContinuumRenderer,
-  useContinuumSnapshot,
-} from '@continuum-dev/react';
-import type { ContinuumNodeMap } from '@continuum-dev/react';
+- `@continuum-dev/core` re-exports the lower-level continuity spine
+- `@continuum-dev/ai-core` re-exports the headless AI stack
 
-const nodeMap: ContinuumNodeMap = {
-  field: FieldComponent,
-  group: GroupComponent,
-  action: ActionComponent,
-  presentation: PresentationComponent,
-};
-
-function Page() {
-  const snapshot = useContinuumSnapshot();
-  if (!snapshot?.view) {
-    return null;
-  }
-  return <ContinuumRenderer view={snapshot.view} />;
-}
-
-export function App() {
-  return (
-    <ContinuumProvider components={nodeMap} persist="localStorage">
-      <Page />
-    </ContinuumProvider>
-  );
-}
-```
-
-### Headless AI facade: `@continuum-dev/ai-core`
-
-Use this when you want to keep your own AI UI or server orchestration without carrying a long install line.
-
-```tsx
-import { DefaultChatTransport } from 'ai';
-import {
-  buildContinuumVercelAiSdkRequestBody,
-  useContinuumSession,
-  useContinuumVercelAiSdkChat,
-} from '@continuum-dev/ai-core';
-
-export function CustomChat() {
-  const session = useContinuumSession();
-  const chat = useContinuumVercelAiSdkChat({
-    session,
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      body: () =>
-        buildContinuumVercelAiSdkRequestBody({
-          currentView: session.getSnapshot()?.view ?? null,
-          currentData: session.getSnapshot()?.data.values ?? null,
-        }),
-    }),
-  });
-
-  return (
-    <button
-      onClick={() =>
-        chat.sendMessage({ text: 'Refine the current form for mobile' })
-      }
-    >
-      Send prompt
-    </button>
-  );
-}
-```
-
-This facade keeps the raw lane on one package name, while the lower-level packages stay swappable underneath.
-
-For server routes, keep your existing AI SDK handler and compose Continuum into the UI stream with `writeContinuumExecutionToUiMessageWriter(...)` from `@continuum-dev/vercel-ai-sdk-adapter/server`.
-
-If you want explicit package-by-package control, this lane still maps to:
-
-- `@continuum-dev/react`, `@continuum-dev/core`, or `@continuum-dev/session`
-- `@continuum-dev/ai-engine`
-- `@continuum-dev/vercel-ai-sdk-adapter`
-- `@continuum-dev/vercel-ai-sdk-adapter/server`
-- optionally `@continuum-dev/ai-connect`
+They are useful for package ergonomics, but they are not the clearest place to learn the architecture.
 
 ## 2. Accepting views from a server or model
 
@@ -428,5 +431,7 @@ export function DiagnosticsPanel() {
 
 - [Quick Start](./QUICK_START.md)
 - [AI Integration Guide](./AI_INTEGRATION.md)
+- [Starter reference app](./REFERENCE_STARTER_APP.md)
+- [Headless AI reference app](./REFERENCE_HEADLESS_AI_APP.md)
 - [Starter Kit AI Migration Guide](./STARTER_KIT_AI_MIGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)

@@ -15,7 +15,7 @@ alwaysApply: true
 - **Entities / enterprise rules:** `scope:contract`, `scope:protocol`, `scope:prompts`, `scope:shared`, `scope:async`, `scope:colors`, `scope:strings`
 - **Use cases / application:** `scope:runtime`, `scope:session`
 - **Interface adapters:** `scope:core`, `scope:adapters`, `scope:vercel-ai-sdk-adapter`
-- **Frameworks & drivers:** `scope:react`, `scope:angular`, `scope:ai-connect`, `scope:ai-engine`, `scope:starter-kit`, `scope:starter-kit-ai`, `scope:playground`, `scope:demo`
+- **Frameworks & drivers:** `scope:react`, `scope:angular`, `scope:ai-connect`, `scope:ai-engine`, `scope:starter-kit`, `scope:starter-kit-ai`, `scope:playground`, `scope:demo`, `scope:starter-app`
 
 ## Dependency direction (conceptual)
 

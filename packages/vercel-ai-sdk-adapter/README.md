@@ -18,6 +18,12 @@ It gives you:
 npm install @continuum-dev/vercel-ai-sdk-adapter react
 ```
 
+Most apps pair this package with:
+
+- `@continuum-dev/react` or `@continuum-dev/starter-kit` for rendering and session state
+- `@continuum-dev/ai-engine` for planning, parsing, normalization, and apply behavior
+- `@continuum-dev/starter-kit-ai` only when you want thin starter-oriented chat wrappers
+
 ## Client usage
 
 Keep your normal AI SDK transport and add Continuum request data to it:
@@ -137,6 +143,12 @@ These normalize into Continuum stream/session behavior, including draft previews
 - `@continuum-dev/ai-engine` owns planning, repair, and state/patch/view execution
 - `@continuum-dev/vercel-ai-sdk-adapter` owns AI SDK request shaping, message typing, writer helpers, and client-side Continuum application
 - this package does not own auth, storage, tool execution, or your main assistant text stream
+
+## Related docs
+
+- [AI Integration Guide](../../docs/AI_INTEGRATION.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
+- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
 
 ## License
 

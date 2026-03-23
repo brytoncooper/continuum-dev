@@ -20,6 +20,8 @@ The runtime package keeps a small **root** API (`reconcile`, structural and valu
 
 Use core when you want one dependency edge for the lower-level Continuum model, or when other framework bindings should depend on the runtime spine without naming each package separately.
 
+Do not start here just because the package list is shorter. `@continuum-dev/runtime` and `@continuum-dev/session` are the clearer place to learn the lower-level continuity model.
+
 ## Install
 
 ```bash
@@ -47,3 +49,10 @@ const view: ViewDefinition = {
 
 session.pushView(view);
 ```
+
+## Related docs
+
+- [Root README](../../README.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
+- [Runtime README](../runtime/README.md)
+- [Session README](../session/README.md)

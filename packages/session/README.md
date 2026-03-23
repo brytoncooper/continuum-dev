@@ -40,6 +40,10 @@ Upgrade references:
 npm install @continuum-dev/session
 ```
 
+Use this package directly when you want explicit control of the stateful continuity spine.
+
+For most React apps, start with `@continuum-dev/react` or `@continuum-dev/starter-kit` and drop to `@continuum-dev/session` when you need to own persistence, actions, streams, or serialization boundaries yourself.
+
 ## Core Capabilities
 
 - ⏱️ **Time-Travel (Undo/Rewind):** Auto-checkpoints on `pushView()`, plus manual checkpoints and rewind support.
@@ -73,10 +77,17 @@ console.log(snapshot?.data.values['field_1'].value); // 'Alice'
 
 ## Public API Reference
 
-The package exports:
+Import from the package root:
 
-- `./lib/session.js`
-- `./lib/types.js`
+```typescript
+import {
+  createSession,
+  deserialize,
+  hydrateOrCreate,
+  type Session,
+  type SessionOptions,
+} from '@continuum-dev/session';
+```
 
 ### 1) Initialization and Lifecycle
 

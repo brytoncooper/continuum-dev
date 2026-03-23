@@ -35,3 +35,13 @@ CI runs the same release verification path as local publishing (see [`RELEASE.md
 - Facades are validated by the release pipeline (tarball contents, `npm pack` checks, and ESM import smoke) plus normal monorepo lint/test/build; they do not require duplicate unit suites for re-export-only code.
 
 This policy is descriptive for v0; tighten per-package bars as the ecosystem stabilizes.
+
+## Adoption surface checks
+
+When public entry guidance changes, also run the lightweight adoption checks in [ADOPTION_RELEASE_CHECKLIST.md](./ADOPTION_RELEASE_CHECKLIST.md).
+
+Those checks keep the following reference files aligned with the docs:
+
+- [`apps/demo/src/reference-starter-app.tsx`](../apps/demo/src/reference-starter-app.tsx)
+- [`apps/demo/src/reference-headless-ai-app.tsx`](../apps/demo/src/reference-headless-ai-app.tsx)
+- [`apps/demo-api/reference-headless-ai-route.mjs`](../apps/demo-api/reference-headless-ai-route.mjs)

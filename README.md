@@ -45,7 +45,20 @@ Continuum solves that with a few core ideas:
 
 ## Start here
 
-If you want the fastest path to a rendered app, start with the slim starter kit:
+Choose by job, not by convenience facade.
+
+| If you need | Start with | Why |
+| --- | --- | --- |
+| Stabilize an existing gen UI or AI-authored app | `@continuum-dev/react`, `@continuum-dev/session`, and `@continuum-dev/ai-engine` | clearest headless stack for serious custom systems |
+| Keep Vercel AI SDK and add Continuum runtime semantics | add `@continuum-dev/vercel-ai-sdk-adapter` | keep your transport and stream Continuum `data-*` parts |
+| Get a React app on screen quickly | `@continuum-dev/starter-kit` | fastest first success path |
+| Add thin chat UI to the starter lane | `@continuum-dev/starter-kit-ai` | optional wrappers only |
+| Work at the merge boundary directly | `@continuum-dev/runtime` and `@continuum-dev/session` | lowest-level continuity stack |
+| Prefer one dependency edge after you understand the layers | `@continuum-dev/core` or `@continuum-dev/ai-core` | convenience facades, not the best place to learn |
+
+## Fastest first render
+
+If you want the quickest path to a rendered app, start with the slim starter kit:
 
 ```bash
 npm install @continuum-dev/starter-kit react
@@ -128,38 +141,15 @@ session.pushView(nextViewFromServerOrAgent);
 
 Continuum will preserve matching data automatically and record what changed.
 
-## Choose your lane
+## Think in layers
 
-### 1. Rendering only
-
-Use this when you want the smallest public surface for a React app.
-
-- `@continuum-dev/starter-kit` for the preset component map, styles, primitives, hooks, and `StarterKitSessionWorkbench`
-- `@continuum-dev/react` if you want Continuum's React state model but your own rendering layer
-
-### 2. Starter AI facade
-
-Use this when you want the easiest path for teams already using hosted AI providers or Vercel transports.
-
-```bash
-npm install @continuum-dev/starter-kit-ai react
-```
-
-- `@continuum-dev/starter-kit-ai` is the stable facade package for the starter AI lane
-- underneath it composes `starter-kit`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk-adapter`
-- if you outgrow the facade, those lower-level packages stay available directly
-
-### 3. Headless AI facade
-
-Use this when you want to keep full control over UI and orchestration.
-
-```bash
-npm install @continuum-dev/ai-core react
-```
-
-- `@continuum-dev/ai-core` is the stable facade package for the raw continuity plus transport lane
-- underneath it re-exports `react`, `core`, `session`, `ai-connect`, `ai-engine`, and `vercel-ai-sdk-adapter`
-- if you want explicit package-by-package control, those lower-level packages still stay available directly
+- `@continuum-dev/starter-kit` is the fastest React on-ramp.
+- `@continuum-dev/react` is the headless React layer for custom rendering and serious app integrations.
+- `@continuum-dev/session` and `@continuum-dev/runtime` are the explicit continuity spine.
+- `@continuum-dev/ai-engine` is the headless AI execution layer.
+- `@continuum-dev/vercel-ai-sdk-adapter` and `@continuum-dev/ai-connect` are outer integration layers.
+- `@continuum-dev/starter-kit-ai` adds optional thin chat wrappers on top of `starter-kit`.
+- `@continuum-dev/core` and `@continuum-dev/ai-core` are convenience facades, not the best place to learn the system.
 
 ## What Continuum gives you
 
@@ -196,38 +186,48 @@ That gives you an audit trail for what happened to user state during each view c
 
 Action nodes trigger registered handlers by `intentId`. Handlers receive the current snapshot plus a session reference, so they can read or mutate state as part of the action lifecycle.
 
-## Package map
+## Package roles
 
-| Package                                | What it is                                                                                               | Status    |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- |
-| `@continuum-dev/contract`              | Core types and constants such as `ViewDefinition`, `DataSnapshot`, and checkpoints                       | Published |
-| `@continuum-dev/runtime`               | Stateless reconciliation engine                                                                          | Published |
-| `@continuum-dev/session`               | Stateful session lifecycle, persistence, checkpoints, rewind, proposals, restore review, and streaming   | Published |
-| `@continuum-dev/core`                  | Thin facade over contract, runtime, and session                                                          | Published |
-| `@continuum-dev/react`                 | Headless React bindings                                                                                  | Published |
-| `@continuum-dev/starter-kit`           | Slim preset layer: default component map, primitives, styles, React hook re-exports, and session tooling | Published |
-| `@continuum-dev/starter-kit-ai`        | Default starter AI facade over starter-kit, ai-engine, ai-connect, and vercel-ai-sdk-adapter             | New       |
-| `@continuum-dev/ai-core`               | Headless AI facade over react, core, session, ai-connect, ai-engine, and vercel-ai-sdk-adapter           | New       |
-| `@continuum-dev/ai-engine`             | Shared headless AI planning, authoring, parsing, normalization, and apply helpers                        | New       |
-| `@continuum-dev/ai-connect`            | Provider factories, registry helpers, and model catalog utilities                                        | Published |
-| `@continuum-dev/vercel-ai-sdk-adapter` | Continuum adapter for Vercel AI SDK request and stream integration                                       | Published |
-| `@continuum-dev/prompts`               | Shared prompt building primitives used by higher-level AI packages                                       | Published |
+| Package | Role in adoption |
+| --- | --- |
+| `@continuum-dev/starter-kit` | Fastest React on-ramp with preset UI, hooks, styles, and session tooling |
+| `@continuum-dev/react` | Headless React rendering and session layer for custom apps |
+| `@continuum-dev/session` | Explicit stateful continuity spine for advanced integrations |
+| `@continuum-dev/runtime` | Deterministic reconciliation engine and low-level merge boundary |
+| `@continuum-dev/ai-engine` | Headless AI execution, authoring, parsing, normalization, and apply helpers |
+| `@continuum-dev/vercel-ai-sdk-adapter` | Vercel AI SDK transport bridge for Continuum request shaping and streamed parts |
+| `@continuum-dev/ai-connect` | Optional provider clients, registries, and model catalog helpers |
+| `@continuum-dev/starter-kit-ai` | Optional thin chat wrappers for `starter-kit` apps |
+| `@continuum-dev/core` | Convenience facade over `contract`, `runtime`, and `session` |
+| `@continuum-dev/ai-core` | Convenience facade over the headless AI stack; useful when you want one dependency edge |
+| `@continuum-dev/contract` | Durable model types such as `ViewDefinition`, `DataSnapshot`, and `ContinuitySnapshot` |
+| `@continuum-dev/protocol` | Shared workflow and wire-level contracts above the model layer |
+| `@continuum-dev/prompts` | Shared prompt-building primitives used by higher-level AI packages |
 
 ## Recommended reading path
 
-If you are new:
-
-1. [Quick Start](docs/QUICK_START.md)
-2. [Starter Kit README](packages/starter-kit/README.md)
-3. [Integration Guide](docs/INTEGRATION_GUIDE.md)
-
-If you are wiring AI:
+If you are building gen UI already:
 
 1. [AI Integration Guide](docs/AI_INTEGRATION.md)
-2. [Starter Kit AI README](packages/starter-kit-ai/README.md)
-3. [AI Core README](packages/ai-core/README.md)
-4. [AI Engine README](packages/ai-engine/README.md)
-5. [Vercel AI SDK Adapter README](packages/vercel-ai-sdk-adapter/README.md)
+2. [Integration Guide](docs/INTEGRATION_GUIDE.md)
+3. [Headless AI reference app](docs/REFERENCE_HEADLESS_AI_APP.md)
+4. [React README](packages/react/README.md)
+5. [AI Engine README](packages/ai-engine/README.md)
+6. [Vercel AI SDK Adapter README](packages/vercel-ai-sdk-adapter/README.md)
+
+If you want a fast first success:
+
+1. [Quick Start](docs/QUICK_START.md)
+2. [Starter reference app](docs/REFERENCE_STARTER_APP.md)
+3. [Starter Kit README](packages/starter-kit/README.md)
+4. [Integration Guide](docs/INTEGRATION_GUIDE.md)
+
+If you need the lower-level continuity boundary:
+
+1. [Runtime package README](packages/runtime/README.md)
+2. [Session package README](packages/session/README.md)
+3. [View Contract](docs/VIEW_CONTRACT.md)
+4. [Protocol README](packages/protocol/README.md)
 
 If you are upgrading:
 
@@ -238,38 +238,25 @@ If you are upgrading:
 ## Architecture
 
 ```text
-@continuum-dev/contract
-        |
-@continuum-dev/runtime
-        |
-@continuum-dev/session
-        |
-@continuum-dev/core
-        |
-@continuum-dev/react
-        |
-@continuum-dev/starter-kit
+contracts: contract + protocol + prompts
+reconciliation: runtime
+stateful spine: session
+React rendering: react
+preset UI: starter-kit
+AI execution: ai-engine
+outer AI integrations: vercel-ai-sdk-adapter + ai-connect
+optional thin wrappers: starter-kit-ai
+convenience facades: core + ai-core
 
-@continuum-dev/ai-engine
-        |
-@continuum-dev/starter-kit-ai
-
-@continuum-dev/ai-core
-
-@continuum-dev/ai-connect
-@continuum-dev/vercel-ai-sdk-adapter
-
-apps/demo
-apps/demo-api
+reference apps: apps/demo + apps/demo-api
 ```
 
 The public package stack is layered on purpose:
 
-- `starter-kit` is the slim preset layer
-- `starter-kit-ai` is optional
-- `ai-core` is the headless facade
-- `ai-engine` is headless and reusable
-- `vercel-ai-sdk-adapter` is the Vercel AI SDK adapter layer
+- learn the system from `runtime`, `session`, `react`, `ai-engine`, and the relevant adapter layer
+- use `starter-kit` when you want the fastest preset React path
+- add `starter-kit-ai` only when you want thin starter-oriented chat wrappers
+- reach for `core` or `ai-core` only when a convenience facade is genuinely helpful
 
 ## Development
 

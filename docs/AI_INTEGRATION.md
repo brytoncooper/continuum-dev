@@ -1,14 +1,19 @@
 # AI Integration Guide
 
-How to wire AI into Continuum with the new split architecture:
+How to wire AI into Continuum without losing the layering:
 
-- `@continuum-dev/ai-core` for the default headless AI facade
+- `@continuum-dev/react` and `@continuum-dev/session` for the renderable runtime state
 - `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
-- `@continuum-dev/ai-connect` for provider factories and model catalogs
-- `@continuum-dev/starter-kit-ai` for optional thin chat wrappers
-- `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK adapter
+- `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK transport path
+- `@continuum-dev/ai-connect` for built-in provider factories and model catalogs
+- `@continuum-dev/starter-kit-ai` for optional thin starter-oriented chat wrappers
+- `@continuum-dev/ai-core` only when you explicitly want a convenience facade after you understand the stack
 
-The goal of this split is simple: keep the starter preset easy to adopt, keep the engine reusable outside the starter kit, and make the Vercel lane feel drop-in for existing `useChat` apps.
+The public story should stay simple:
+
+- learn the system from the explicit layers
+- use thin wrappers only when they genuinely reduce work
+- treat convenience facades as package ergonomics, not as the architecture itself
 
 ## The core principle
 
@@ -29,6 +34,10 @@ instruction
 
 ## Responsibilities by package
 
+### `@continuum-dev/react` and `@continuum-dev/session`
+
+Use these packages when you need the live Continuum session that views, diagnostics, streams, and user edits flow through. For serious custom integrations, this is the clearest runtime surface to pair with AI execution.
+
 ### `@continuum-dev/ai-engine`
 
 Use this package when you want the shared headless contract:
@@ -39,18 +48,6 @@ Use this package when you want the shared headless contract:
 - patch and state target catalogs
 - normalization, guardrails, and apply helpers
 
-### `@continuum-dev/ai-connect`
-
-Use this package when you want provider factories, registry helpers, or model catalogs without tying them to a specific UI.
-
-### `@continuum-dev/starter-kit-ai`
-
-Use this package when you want the default starter AI facade. It re-exports the common starter-kit, provider, engine, and transport pieces under one stable package name, while still delegating into `ai-engine` underneath.
-
-### `@continuum-dev/ai-core`
-
-Use this package when you want the default headless AI facade. It re-exports the common React, session, provider, engine, and transport pieces for custom UI and orchestration paths.
-
 ### `@continuum-dev/vercel-ai-sdk-adapter`
 
 Use this package when Vercel AI SDK is your transport layer. It owns:
@@ -60,6 +57,18 @@ Use this package when Vercel AI SDK is your transport layer. It owns:
 - server-side writer helpers that emit Continuum `data-*` parts into AI SDK UI streams
 
 It should not own prompt policy, repair policy, auth, storage, tools, or your main AI SDK route architecture.
+
+### `@continuum-dev/ai-connect`
+
+Use this package when you want provider factories, registry helpers, or model catalogs without tying them to a specific UI.
+
+### `@continuum-dev/starter-kit-ai`
+
+Use this package only when you already want `starter-kit` and you want thin chat wrappers such as `StarterKitProviderChatBox` or `StarterKitVercelAiSdkChatBox`.
+
+### `@continuum-dev/ai-core`
+
+Use this package when a single dependency edge is more valuable to you than learning the leaf packages directly. It is a convenience facade, not the recommended place to learn the architecture.
 
 ## The preferred authoring formats
 
@@ -147,7 +156,6 @@ import {
   createAiConnectProviders,
   getAiConnectModelCatalog,
   StarterKitProviderChatBox,
-  StarterKitSessionWorkbench,
 } from '@continuum-dev/starter-kit-ai';
 
 const providers = createAiConnectProviders({
@@ -172,7 +180,6 @@ export function AiControls() {
         mode="evolve-view"
         authoringFormat="line-dsl"
       />
-      <StarterKitSessionWorkbench />
     </>
   );
 }
@@ -199,15 +206,15 @@ export function VercelLane() {
 }
 ```
 
-Or drop lower and use the raw hook:
+Or drop lower and use the raw hook with the explicit packages:
 
 ```tsx
 import { DefaultChatTransport } from 'ai';
+import { useContinuumSession } from '@continuum-dev/react';
 import {
   buildContinuumVercelAiSdkRequestBody,
-  useContinuumSession,
   useContinuumVercelAiSdkChat,
-} from '@continuum-dev/ai-core';
+} from '@continuum-dev/vercel-ai-sdk-adapter';
 
 export function CustomChat() {
   const session = useContinuumSession();
@@ -232,6 +239,8 @@ export function CustomChat() {
   );
 }
 ```
+
+If you prefer one dependency edge after you understand the stack, `@continuum-dev/ai-core` re-exports the same headless path.
 
 Composable server route:
 
@@ -339,5 +348,7 @@ Recommended policy:
 
 - [Quick Start](./QUICK_START.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
+- [Starter reference app](./REFERENCE_STARTER_APP.md)
+- [Headless AI reference app](./REFERENCE_HEADLESS_AI_APP.md)
 - [Starter Kit AI Migration Guide](./STARTER_KIT_AI_MIGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)

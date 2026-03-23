@@ -4,6 +4,16 @@ Get a working Continuum app on screen fast, then learn how view updates preserve
 
 This guide uses `@continuum-dev/starter-kit`, which is now the slim preset layer for rendering, hooks, styles, and session tooling.
 
+## Run the same flow in this repository
+
+The [`apps/starter`](../apps/starter) app follows this guide end to end.
+
+```bash
+npm run starter
+```
+
+That serves **http://localhost:4305/** (root path `/`). The same minimal UI is also available inside the full demo at **`/reference/starter`** when you run `npm run demo`.
+
 ## What you will build
 
 By the end of this guide you will have:
@@ -33,11 +43,13 @@ If you want a fully headless React setup instead, install:
 npm install @continuum-dev/react @continuum-dev/core react
 ```
 
-If you want the headless AI lane under one package name instead, install:
+If you expect to add AI to a custom system later, start by learning the explicit stack instead of a convenience facade:
 
 ```bash
-npm install @continuum-dev/ai-core react
+npm install @continuum-dev/react @continuum-dev/session @continuum-dev/ai-engine react
 ```
+
+Then add `@continuum-dev/vercel-ai-sdk-adapter` or `@continuum-dev/ai-connect` for your transport or provider path. If you already know you want one dependency edge, `@continuum-dev/ai-core` re-exports that stack as a convenience facade.
 
 ## 2. Wrap your app
 
@@ -315,22 +327,26 @@ export function AiControls() {
         models={models}
         mode="evolve-view"
       />
-      <StarterKitSessionWorkbench />
+      <StarterKitSessionWorkbench initialView={initialView} />
     </>
   );
 }
 ```
 
-If you want custom AI UI instead of starter wrappers, install the headless AI facade:
+If you want custom AI UI instead of starter wrappers, move to the explicit AI runtime stack:
 
 ```bash
-npm install @continuum-dev/ai-core react
+npm install @continuum-dev/react @continuum-dev/session @continuum-dev/ai-engine react
 ```
+
+Add `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK path or `@continuum-dev/ai-connect` for built-in provider clients. If you prefer one convenience package after you understand the layers, `@continuum-dev/ai-core` is still available.
 
 ## 9. What to read next
 
 - [Starter Kit README](../packages/starter-kit/README.md)
+- [Starter reference app](REFERENCE_STARTER_APP.md)
 - [Starter Kit AI README](../packages/starter-kit-ai/README.md)
+- [Headless AI reference app](REFERENCE_HEADLESS_AI_APP.md)
 - [Integration Guide](INTEGRATION_GUIDE.md)
 - [AI Integration Guide](AI_INTEGRATION.md)
 - [View Contract Reference](VIEW_CONTRACT.md)

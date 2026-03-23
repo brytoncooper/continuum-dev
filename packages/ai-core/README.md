@@ -1,10 +1,10 @@
 # @continuum-dev/ai-core
 
-Headless AI facade for Continuum.
+Convenience facade for the headless Continuum AI stack.
 
-Use this package when you want the raw continuity and transport lane under one stable package name.
+Use this package when one dependency edge is more valuable to you than learning the leaf packages directly.
 
-It re-exports the common headless AI surface from:
+This package is intentionally a facade. It does not define the architecture. It re-exports:
 
 - `@continuum-dev/core`
 - `@continuum-dev/react`
@@ -19,7 +19,7 @@ It re-exports the common headless AI surface from:
 npm install @continuum-dev/ai-core react
 ```
 
-## Exports
+## What you get
 
 - headless React bindings and session hooks
 - session lifecycle, persistence, checkpoints, and proposals
@@ -28,4 +28,28 @@ npm install @continuum-dev/ai-core react
 - headless authoring, planning, parsing, normalization, and apply helpers
 - Vercel AI SDK adapter and typed stream-part exports
 
-This facade keeps the install and import surface small for custom UI and orchestration paths. If you want full package-by-package control, the lower-level packages remain available directly.
+## When to use this package
+
+- you already understand the `react` + `session` + `ai-engine` + adapter split
+- you want one public import surface in an app or integration package
+- you are optimizing package ergonomics, not learning the system for the first time
+
+## When not to use this package
+
+- you are trying to understand where rendering, state, execution, and transport responsibilities live
+- you want the clearest semver and dependency boundaries
+- you are following the main adoption docs for the first time
+
+In those cases, start with:
+
+- `@continuum-dev/react` for headless React rendering
+- `@continuum-dev/session` for the explicit stateful spine
+- `@continuum-dev/ai-engine` for execution behavior
+- `@continuum-dev/vercel-ai-sdk-adapter` or `@continuum-dev/ai-connect` for the outer AI edge
+
+## Related docs
+
+- [Root README](../../README.md)
+- [AI Integration Guide](../../docs/AI_INTEGRATION.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
+- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
