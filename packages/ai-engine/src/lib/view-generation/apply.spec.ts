@@ -40,12 +40,7 @@ describe('view generation apply helpers', () => {
     };
 
     expect(
-      applyThroughStreamingFoundation(
-        session as never,
-        'OpenAI',
-        'profile',
-        []
-      )
+      applyThroughStreamingFoundation(session as never, 'OpenAI', 'profile', [])
     ).toBe(false);
   });
 
@@ -74,7 +69,14 @@ describe('view generation apply helpers', () => {
       session as never,
       'OpenAI',
       'profile',
-      [{ kind: 'state', nodeId: 'profile_group/email', value: { value: 'jordan@example.com' }, source: 'OpenAI' }] as never[],
+      [
+        {
+          kind: 'state',
+          nodeId: 'profile_group/email',
+          value: { value: 'jordan@example.com' },
+          source: 'OpenAI',
+        },
+      ] as never[],
       'draft'
     );
 
@@ -111,13 +113,10 @@ describe('view generation apply helpers', () => {
     };
 
     expect(() =>
-      applyThroughStreamingFoundation(
-        session as never,
-        'OpenAI',
-        'profile',
-        []
-      )
-    ).toThrow('Continuum stream commit failed with status "aborted": conflict.');
+      applyThroughStreamingFoundation(session as never, 'OpenAI', 'profile', [])
+    ).toThrow(
+      'Continuum stream commit failed with status "aborted": conflict.'
+    );
   });
 
   it('converts state updates into streaming state parts', () => {
@@ -217,10 +216,7 @@ describe('view generation apply helpers', () => {
       nodes: [
         {
           id: 'profile_group',
-          children: [
-            { id: 'email' },
-            { id: 'phone', key: 'person.phone' },
-          ],
+          children: [{ id: 'email' }, { id: 'phone', key: 'person.phone' }],
         },
       ],
     });

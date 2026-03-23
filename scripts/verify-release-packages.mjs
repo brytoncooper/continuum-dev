@@ -3,24 +3,10 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-const packageNames = [
-  'contract',
-  'protocol',
-  'runtime',
-  'session',
-  'core',
-  'react',
-  'prompts',
-  'ai-connect',
-  'ai-engine',
-  'vercel-ai-sdk',
-  'starter-kit',
-  'starter-kit-ai',
-  'ai-core',
-];
-const distRoots = packageNames.map((name) =>
-  resolve(process.cwd(), 'dist', 'packages', name)
-);
+import { loadAlignedReleasePackages } from './release-public-packages.mjs';
+
+const releasePackages = loadAlignedReleasePackages();
+const distRoots = releasePackages.map((pkg) => pkg.distRoot);
 
 const forbiddenFilePatterns = [
   /\.spec\.[cm]?[jt]sx?$/i,
@@ -82,24 +68,25 @@ function assertNodeImportSmoke(tarballs) {
   try {
     run('npm init -y', tempRoot);
     const installArgs = [
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'contract')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'protocol')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'runtime')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'session')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'core')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'react')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'prompts')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'ai-connect')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'ai-engine')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'vercel-ai-sdk')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'starter-kit')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'starter-kit-ai')]}"`,
-      `"${tarballs[resolve(process.cwd(), 'dist', 'packages', 'ai-core')]}"`,
+      ...releasePackages.map((pkg) => {
+        const path = tarballs[pkg.distRoot];
+        if (!path) {
+          throw new Error(`Missing tarball for dist root: ${pkg.distRoot}`);
+        }
+        return `"${path}"`;
+      }),
       'react@18',
+      'react-dom@18',
     ].join(' ');
     run(`npm install ${installArgs}`, tempRoot);
+    const importStatements = releasePackages
+      .map((pkg) => `await import(${JSON.stringify(pkg.packageName)});`)
+      .join(' ');
     run(
-      'node --input-type=module -e "await import(\'@continuum-dev/contract\'); await import(\'@continuum-dev/protocol\'); await import(\'@continuum-dev/core\'); await import(\'@continuum-dev/react\'); await import(\'@continuum-dev/prompts\'); await import(\'@continuum-dev/ai-connect\'); await import(\'@continuum-dev/ai-engine\'); await import(\'@continuum-dev/vercel-ai-sdk-adapter\'); await import(\'@continuum-dev/starter-kit\'); await import(\'@continuum-dev/starter-kit-ai\'); await import(\'@continuum-dev/ai-core\');"',
+      `node --input-type=module -e "${importStatements.replaceAll(
+        '"',
+        '\\"'
+      )}"`,
       tempRoot
     );
   } finally {

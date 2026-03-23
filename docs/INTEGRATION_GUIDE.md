@@ -47,7 +47,10 @@ function Page() {
 
 export function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
       <StarterKitSessionWorkbench />
       <Page />
     </ContinuumProvider>
@@ -94,7 +97,10 @@ function Page() {
 
 export function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
       <StarterKitProviderChatBox
         providers={providers}
         mode="evolve-view"
@@ -172,7 +178,11 @@ export function CustomChat() {
   });
 
   return (
-    <button onClick={() => chat.sendMessage({ text: 'Refine the current form for mobile' })}>
+    <button
+      onClick={() =>
+        chat.sendMessage({ text: 'Refine the current form for mobile' })
+      }
+    >
       Send prompt
     </button>
   );
@@ -204,7 +214,10 @@ Before calling `pushView`, validate the basics:
 ```tsx
 import { useEffect } from 'react';
 import { useContinuumSession } from '@continuum-dev/react';
-import { collectDuplicateIssues, type ViewDefinition } from '@continuum-dev/core';
+import {
+  collectDuplicateIssues,
+  type ViewDefinition,
+} from '@continuum-dev/core';
 
 export function AgentListener({ agentUrl }: { agentUrl: string }) {
   const session = useContinuumSession();
@@ -224,7 +237,9 @@ export function AgentListener({ agentUrl }: { agentUrl: string }) {
       }
 
       const issues = collectDuplicateIssues(view.nodes);
-      const hasBlockingIssue = issues.some((issue) => issue.severity === 'error');
+      const hasBlockingIssue = issues.some(
+        (issue) => issue.severity === 'error'
+      );
       if (hasBlockingIssue) {
         return;
       }
@@ -337,14 +352,21 @@ const session = createSession({
 When AI or remote systems suggest values while the user is editing, prefer proposals over direct overwrite.
 
 ```tsx
-import { useContinuumConflict, useContinuumSession } from '@continuum-dev/react';
+import {
+  useContinuumConflict,
+  useContinuumSession,
+} from '@continuum-dev/react';
 
 export function EmailConflictBanner() {
   const session = useContinuumSession();
   const conflict = useContinuumConflict('email');
 
   function propose() {
-    session.proposeValue('email', { value: 'ai_guess@example.com' }, 'ai-agent');
+    session.proposeValue(
+      'email',
+      { value: 'ai_guess@example.com' },
+      'ai-agent'
+    );
   }
 
   return (
@@ -376,7 +398,9 @@ export function DiagnosticsPanel() {
       {JSON.stringify(
         {
           issueCount: issues.length,
-          detachedCount: resolutions.filter((item) => item.resolution === 'detached').length,
+          detachedCount: resolutions.filter(
+            (item) => item.resolution === 'detached'
+          ).length,
           diffCount: diffs.length,
           checkpointCount: checkpoints.length,
         },

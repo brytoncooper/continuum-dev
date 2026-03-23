@@ -50,12 +50,36 @@ export function createSession(options?: SessionOptions): Session {
     : undefined;
 
   const session = {} as Session;
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createStateFacade(internal, cleanupPersistence)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createInteractionsFacade(internal, session)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createStreamsFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createListenersFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createUpdatesFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createRestoreReviewsFacade(internal, session)));
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createStateFacade(internal, cleanupPersistence)
+    )
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createInteractionsFacade(internal, session)
+    )
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createStreamsFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createListenersFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createUpdatesFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createRestoreReviewsFacade(internal, session)
+    )
+  );
   return session;
 }
 
@@ -89,12 +113,36 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
     : undefined;
 
   const session = {} as Session;
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createStateFacade(internal, cleanupPersistence)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createInteractionsFacade(internal, session)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createStreamsFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createListenersFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createUpdatesFacade(internal)));
-  Object.defineProperties(session, Object.getOwnPropertyDescriptors(createRestoreReviewsFacade(internal, session)));
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createStateFacade(internal, cleanupPersistence)
+    )
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createInteractionsFacade(internal, session)
+    )
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createStreamsFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createListenersFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(createUpdatesFacade(internal))
+  );
+  Object.defineProperties(
+    session,
+    Object.getOwnPropertyDescriptors(
+      createRestoreReviewsFacade(internal, session)
+    )
+  );
   return session;
 }
 

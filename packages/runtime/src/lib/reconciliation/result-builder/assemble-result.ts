@@ -1,7 +1,4 @@
-import type {
-  DataSnapshot,
-  DetachedValue,
-} from '@continuum-dev/contract';
+import type { DataSnapshot, DetachedValue } from '@continuum-dev/contract';
 import type {
   NodeResolutionAccumulator,
   ReconciliationResult,

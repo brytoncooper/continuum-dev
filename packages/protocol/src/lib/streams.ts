@@ -4,7 +4,11 @@ import type {
   ViewDefinition,
   ViewNode,
 } from '@continuum-dev/contract';
-import type { ReconciliationIssue, ReconciliationResolution, StateDiff } from './reconciliation.js';
+import type {
+  ReconciliationIssue,
+  ReconciliationResolution,
+  StateDiff,
+} from './reconciliation.js';
 import type {
   ContinuumViewPatch,
   ContinuumViewPatchPosition,
@@ -68,11 +72,7 @@ export type SessionStreamStatus =
   | 'stale'
   | 'superseded';
 
-export type SessionStreamStatusLevel =
-  | 'info'
-  | 'success'
-  | 'warning'
-  | 'error';
+export type SessionStreamStatusLevel = 'info' | 'success' | 'warning' | 'error';
 
 export interface SessionStreamStartOptions {
   streamId?: string;

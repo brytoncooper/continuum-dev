@@ -4,8 +4,18 @@ import {
   buildCommittedSnapshotFromCurrentState,
   buildRenderSnapshotFromCurrentState,
 } from '../listeners/index.js';
-import { createManualCheckpoint, restoreFromCheckpoint, rewind, resetSessionState, teardownSessionAndClearState, serializeSession } from './index.js';
-import { notifySnapshotAndIssueListeners, notifyStreamListeners } from '../listeners/index.js';
+import {
+  createManualCheckpoint,
+  restoreFromCheckpoint,
+  rewind,
+  resetSessionState,
+  teardownSessionAndClearState,
+  serializeSession,
+} from './index.js';
+import {
+  notifySnapshotAndIssueListeners,
+  notifyStreamListeners,
+} from '../listeners/index.js';
 
 function assertNotDestroyed(internal: SessionState): void {
   if (internal.destroyed) {
@@ -13,7 +23,24 @@ function assertNotDestroyed(internal: SessionState): void {
   }
 }
 
-export function createStateFacade(internal: SessionState, cleanupPersistence?: () => void): Pick<Session, 'sessionId' | 'isDestroyed' | 'getSnapshot' | 'getCommittedSnapshot' | 'getEventLog' | 'getCheckpoints' | 'checkpoint' | 'restoreFromCheckpoint' | 'rewind' | 'reset' | 'serialize' | 'destroy'> {
+export function createStateFacade(
+  internal: SessionState,
+  cleanupPersistence?: () => void
+): Pick<
+  Session,
+  | 'sessionId'
+  | 'isDestroyed'
+  | 'getSnapshot'
+  | 'getCommittedSnapshot'
+  | 'getEventLog'
+  | 'getCheckpoints'
+  | 'checkpoint'
+  | 'restoreFromCheckpoint'
+  | 'rewind'
+  | 'reset'
+  | 'serialize'
+  | 'destroy'
+> {
   return {
     get sessionId() {
       return internal.sessionId;
@@ -42,8 +69,8 @@ export function createStateFacade(internal: SessionState, cleanupPersistence?: (
       return createManualCheckpoint(internal);
     },
     restoreFromCheckpoint(cp: Parameters<Session['restoreFromCheckpoint']>[0]) {
-        assertNotDestroyed(internal);
-        restoreFromCheckpoint(internal, cp);
+      assertNotDestroyed(internal);
+      restoreFromCheckpoint(internal, cp);
     },
     rewind(checkpointId: string) {
       assertNotDestroyed(internal);
@@ -63,6 +90,6 @@ export function createStateFacade(internal: SessionState, cleanupPersistence?: (
       assertNotDestroyed(internal);
       cleanupPersistence?.();
       return teardownSessionAndClearState(internal);
-    }
+    },
   };
 }

@@ -80,7 +80,9 @@ describe('createAiConnectRegistry', () => {
     const { provider } = createProvider('openai');
     const registry = createAiConnectRegistry([provider]);
 
-    expect(() => registry.get('missing')).toThrow('Unknown provider id "missing"');
+    expect(() => registry.get('missing')).toThrow(
+      'Unknown provider id "missing"'
+    );
     await expect(
       registry.generate({
         providerId: 'missing',

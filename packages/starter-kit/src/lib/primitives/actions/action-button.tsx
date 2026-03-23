@@ -1,7 +1,10 @@
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { useContinuumAction } from '@continuum-dev/react';
 import { color, space, type } from '../../tokens.js';
-import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
+import {
+  starterKitDefaultStyles,
+  useStarterKitStyle,
+} from '../../style-config.js';
 import { streamedNodeMotionStyle } from '../shared/motion.js';
 import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
 
@@ -10,7 +13,10 @@ export function ActionButton({ definition }: ContinuumNodeProps) {
   const label = nodeLabel(definition) ?? 'Run action';
   const { dispatch, isDispatching, lastResult } = useContinuumAction(intentId);
 
-  const buttonStyle = useStarterKitStyle('actionButton', starterKitDefaultStyles.actionButton);
+  const buttonStyle = useStarterKitStyle(
+    'actionButton',
+    starterKitDefaultStyles.actionButton
+  );
 
   return (
     <div

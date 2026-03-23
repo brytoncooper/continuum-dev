@@ -20,7 +20,9 @@ describe('collection path lens', () => {
         makeNode({
           id: 'meta',
           type: 'group',
-          children: [makeNode({ id: 'owner', type: 'field', dataType: 'string' })],
+          children: [
+            makeNode({ id: 'owner', type: 'field', dataType: 'string' }),
+          ],
         }),
       ],
     });
@@ -60,11 +62,10 @@ describe('collection path lens', () => {
       cloneNodeValue
     );
 
-    const read = readPathFromFirstItem(
-      written,
-      outerTemplate,
-      ['row/children', 'child/name']
-    );
+    const read = readPathFromFirstItem(written, outerTemplate, [
+      'row/children',
+      'child/name',
+    ]);
 
     expect(read).toEqual(sourceValue);
   });

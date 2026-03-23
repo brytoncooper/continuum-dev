@@ -15,8 +15,8 @@ export function applyContinuumViewPatch(
       operation.op === 'move-node'
         ? applyMoveNode(nextNodes, operation)
         : operation.op === 'wrap-nodes'
-          ? wrapNodesInList(nextNodes, operation, null)
-          : applyOperationToNodeList(nextNodes, operation);
+        ? wrapNodesInList(nextNodes, operation, null)
+        : applyOperationToNodeList(nextNodes, operation);
     if (result.applied) {
       nextNodes = result.nodes;
     }

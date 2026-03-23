@@ -397,8 +397,8 @@ describe('migration chains', () => {
   it('provides per-step priorNode/newNode hashes to each strategy call', () => {
     const first = vi.fn(
       ({ priorNode, newNode, priorValue }: MigrationStrategyContext) => {
-      expect(priorNode.hash).toBe('v1');
-      expect(newNode.hash).toBe('v2');
+        expect(priorNode.hash).toBe('v1');
+        expect(newNode.hash).toBe('v2');
         return priorValue;
       }
     );
@@ -468,7 +468,10 @@ describe('migration chains', () => {
       },
     });
 
-    expect(result).toEqual({ kind: 'migrated', value: { value: 'base-v2-v3' } });
+    expect(result).toEqual({
+      kind: 'migrated',
+      value: { value: 'base-v2-v3' },
+    });
     expect(v1ToV2).toHaveBeenCalledOnce();
     expect(v2ToV3).toHaveBeenCalledOnce();
     expect(v1ToVX).not.toHaveBeenCalled();

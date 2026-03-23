@@ -77,8 +77,8 @@ export function buildViewYamlSystemPrompt(args: {
     args.mode === 'create-view'
       ? 'Create a brand-new view from the user request.'
       : args.mode === 'correction-loop'
-        ? 'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
-        : 'Evolve the existing view instead of replacing it wholesale unless the instruction clearly requires a different workflow.',
+      ? 'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
+      : 'Evolve the existing view instead of replacing it wholesale unless the instruction clearly requires a different workflow.',
     'If the user asks to populate, prefill, or fill out the form, preserve the structure and add defaultValue/defaultValues instead of changing layout.',
     '</instructions>',
     '<example>',
@@ -162,7 +162,9 @@ export function buildViewYamlUserMessage(args: {
   );
 
   if (typeof args.currentView !== 'undefined') {
-    sections.push(`Current view:\n${JSON.stringify(args.currentView, null, 2)}`);
+    sections.push(
+      `Current view:\n${JSON.stringify(args.currentView, null, 2)}`
+    );
   }
 
   if (
@@ -170,7 +172,8 @@ export function buildViewYamlUserMessage(args: {
     args.conversationSummary.trim().length > 0
   ) {
     sections.push(
-      'Recent conversation summary (bounded):\n' + args.conversationSummary.trim()
+      'Recent conversation summary (bounded):\n' +
+        args.conversationSummary.trim()
     );
   }
 

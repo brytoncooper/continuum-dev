@@ -7,10 +7,7 @@ import { collectCanonicalNodeIds } from '@continuum-dev/runtime/node-lookup';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
 import type { SessionState } from '../state/index.js';
 import { reconcileViewUpdate } from '../updates/index.js';
-import {
-  appendUnknownNodeStreamIssue,
-  resolveStreamNode,
-} from './helpers.js';
+import { appendUnknownNodeStreamIssue, resolveStreamNode } from './helpers.js';
 import { syncFocusedNodeIdToRenderView } from '../focus.js';
 import {
   syncCommittedValueToStreams,
@@ -23,10 +20,7 @@ function replaceIssuesForNode(
   nodeId: string,
   nextIssues: SessionState['issues']
 ): SessionState['issues'] {
-  return [
-    ...issues.filter((issue) => issue.nodeId !== nodeId),
-    ...nextIssues,
-  ];
+  return [...issues.filter((issue) => issue.nodeId !== nodeId), ...nextIssues];
 }
 
 function applyStatePartToStream(

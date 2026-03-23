@@ -14,7 +14,10 @@ export function responsiveGridColumns(columns: number, minWidth = 240) {
 
 export function useCompactViewport(query = compactViewportQuery): boolean {
   const [matches, setMatches] = useState(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return false;
     }
 
@@ -22,7 +25,10 @@ export function useCompactViewport(query = compactViewportQuery): boolean {
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 

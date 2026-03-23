@@ -24,7 +24,5 @@ export {
   buildViewAuthoringUserMessage as buildContinuumViewAuthoringUserMessage,
   parseViewAuthoringToViewDefinition as parseContinuumViewAuthoringToViewDefinition,
 } from './lib/view-authoring/index.js';
-export {
-  buildContinuumPatchTargetCatalog as buildContinuumPatchTargetCatalogForView,
-} from './lib/execution-targets/index.js';
+export { buildContinuumPatchTargetCatalog as buildContinuumPatchTargetCatalogForView } from './lib/execution-targets/index.js';
 export * from './lib/continuum-execution/index.mjs';

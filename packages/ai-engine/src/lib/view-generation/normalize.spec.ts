@@ -72,10 +72,7 @@ describe('view generation normalization', () => {
       nodes: [
         {
           id: 'profile_group',
-          children: [
-            { id: 'email' },
-            { id: 'phone' },
-          ],
+          children: [{ id: 'email' }, { id: 'phone' }],
         },
       ],
     });

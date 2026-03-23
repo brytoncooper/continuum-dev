@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { GroupNode, ViewDefinition, ViewNode } from '@continuum-dev/contract';
+import type {
+  GroupNode,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
 
@@ -1291,7 +1295,6 @@ describe('Session Ledger', () => {
         value: 'legacy',
       });
     });
-
   });
 
   describe('checkpoint stack and rewind', () => {
@@ -1582,7 +1585,9 @@ describe('Session Ledger', () => {
   describe('focus state', () => {
     it('notifies onFocusChange when focus moves', () => {
       const session = createSession();
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })]));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })])
+      );
 
       const received: (string | null)[] = [];
       session.onFocusChange((id) => received.push(id));
@@ -1633,7 +1638,9 @@ describe('Session Ledger', () => {
                 {
                   id: 'contact_row',
                   type: 'row',
-                  children: [{ id: 'email', type: 'field', dataType: 'string' }],
+                  children: [
+                    { id: 'email', type: 'field', dataType: 'string' },
+                  ],
                 },
               ],
             } as ViewNode,
@@ -1649,7 +1656,9 @@ describe('Session Ledger', () => {
     it('clears focus across structural view changes when the node disappears', () => {
       const session = createSession();
       const received: (string | null)[] = [];
-      session.pushView(makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })]));
+      session.pushView(
+        makeView([makeNode({ id: 'a' }), makeNode({ id: 'b' })])
+      );
       session.onFocusChange((id) => received.push(id));
       session.setFocusedNodeId('a');
 
@@ -1676,7 +1685,6 @@ describe('Session Ledger', () => {
       expect(session.getCheckpoints()).toHaveLength(0);
       expect(listener).toHaveBeenCalledWith(null);
     });
-
   });
 
   describe('event log capping', () => {

@@ -101,7 +101,11 @@ export function SiteNav() {
   const { isMobile } = useResponsiveState();
   const [menuOpen, setMenuOpen] = useState(false);
   const brandContent = (
-    <img src="/continuum-logo.svg" alt="Continuum" style={brandLogoStyle(isMobile)} />
+    <img
+      src="/continuum-logo.svg"
+      alt="Continuum"
+      style={brandLogoStyle(isMobile)}
+    />
   );
 
   if (isMobile) {
@@ -127,13 +131,25 @@ export function SiteNav() {
         {menuOpen ? (
           <nav style={mobileMenuStyle} aria-label="Primary">
             <div style={mobileNavListStyle}>
-              <NavLink to="/docs" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
+              <NavLink
+                to="/docs"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
                 Docs
               </NavLink>
-              <NavLink to="/playground" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
+              <NavLink
+                to="/playground"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
                 Demo
               </NavLink>
-              <NavLink to="/live-ai" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
+              <NavLink
+                to="/live-ai"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
                 Live AI
               </NavLink>
               <NavLink
@@ -150,10 +166,19 @@ export function SiteNav() {
               >
                 Schemas
               </NavLink>
-              <NavLink to="/starter-kit" style={navLinkStyle} onClick={() => setMenuOpen(false)}>
+              <NavLink
+                to="/starter-kit"
+                style={navLinkStyle}
+                onClick={() => setMenuOpen(false)}
+              >
                 Starter Kit
               </NavLink>
-              <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
+              <a
+                href={repositoryUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={githubLinkStyle}
+              >
                 GitHub
               </a>
             </div>
@@ -190,7 +215,12 @@ export function SiteNav() {
         <NavLink to="/starter-kit" style={navLinkStyle}>
           Starter Kit
         </NavLink>
-        <a href={repositoryUrl} target="_blank" rel="noreferrer" style={githubLinkStyle}>
+        <a
+          href={repositoryUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={githubLinkStyle}
+        >
           GitHub
         </a>
       </nav>

@@ -1,9 +1,15 @@
 import { findRestoreCandidates } from '@continuum-dev/runtime/restore-candidates';
 import type { DetachedValue } from '@continuum-dev/contract';
-import type { DetachedRestoreReviewCandidate, DetachedRestoreScope } from '../../types.js';
+import type {
+  DetachedRestoreReviewCandidate,
+  DetachedRestoreScope,
+} from '../../types.js';
 import { scopeKey, type ScopeSnapshot } from './scopes.js';
 
-export function reviewIdFor(detachedKey: string, scope: DetachedRestoreScope): string {
+export function reviewIdFor(
+  detachedKey: string,
+  scope: DetachedRestoreScope
+): string {
   return `${scopeKey(scope)}:${detachedKey}`;
 }
 
@@ -23,7 +29,7 @@ export function buildCandidateList(
 ): DetachedRestoreReviewCandidate[] {
   const reviewId = reviewIdFor(detachedKey, scope);
   if (!scopeSnapshot.data) return [];
-  
+
   const matches = findRestoreCandidates(
     scopeSnapshot.view.nodes,
     scopeSnapshot.data,

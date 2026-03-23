@@ -217,11 +217,7 @@ export function buildViewDefinitionNodeFromDsl(
 
   if (node.type === 'group') {
     const layout = attrs.layout;
-    if (
-      layout === 'vertical' ||
-      layout === 'horizontal' ||
-      layout === 'grid'
-    ) {
+    if (layout === 'vertical' || layout === 'horizontal' || layout === 'grid') {
       base.layout = layout;
     }
 

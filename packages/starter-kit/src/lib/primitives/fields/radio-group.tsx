@@ -47,9 +47,7 @@ export function RadioGroupInput({
   const nodeValue = value as NodeValue<string> | undefined;
   const isCompact = useCompactViewport();
   const selected =
-    nodeValue?.value ??
-    readNodeProp<string>(definition, 'defaultValue') ??
-    '';
+    nodeValue?.value ?? readNodeProp<string>(definition, 'defaultValue') ?? '';
   const options = nodeOptions(definition);
 
   return (
@@ -87,7 +85,10 @@ export function RadioGroupInput({
             key={nodeOptionKey(option, index)}
             style={optionStyle(selected === option.value, isCompact)}
           >
-            <span aria-hidden="true" style={selectionMarkerStyle(selected === option.value)} />
+            <span
+              aria-hidden="true"
+              style={selectionMarkerStyle(selected === option.value)}
+            />
             <input
               type="radio"
               name={nodeId}

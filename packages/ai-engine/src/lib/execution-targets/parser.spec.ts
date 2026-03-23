@@ -382,11 +382,7 @@ describe('evaluateStateResponseQuality', () => {
     });
     expect(parsed).not.toBeNull();
     expect(
-      evaluateStateResponseQuality(
-        parsed!,
-        'populate the email',
-        targetCatalog
-      )
+      evaluateStateResponseQuality(parsed!, 'populate the email', targetCatalog)
     ).toBe('weak_noop');
   });
 
@@ -416,11 +412,7 @@ describe('evaluateStateResponseQuality', () => {
     });
     expect(parsed).not.toBeNull();
     expect(
-      evaluateStateResponseQuality(
-        parsed!,
-        'populate the email',
-        targetCatalog
-      )
+      evaluateStateResponseQuality(parsed!, 'populate the email', targetCatalog)
     ).toBe('valid');
   });
 });

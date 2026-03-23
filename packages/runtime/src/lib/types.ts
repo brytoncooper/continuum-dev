@@ -90,9 +90,7 @@ export interface MigrationStrategyContext {
 /**
  * Custom per-node migration function used during reconciliation.
  */
-export type MigrationStrategy = (
-  context: MigrationStrategyContext
-) => unknown;
+export type MigrationStrategy = (context: MigrationStrategyContext) => unknown;
 
 export interface NodeResolutionAccumulator {
   values: Record<string, NodeValue>;

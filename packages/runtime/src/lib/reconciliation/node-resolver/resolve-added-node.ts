@@ -1,5 +1,10 @@
 import type { NodeValue, ViewNode } from '@continuum-dev/contract';
-import { addedDiff, addedResolution, restoredDiff, restoredResolution } from '../differ/index.js';
+import {
+  addedDiff,
+  addedResolution,
+  restoredDiff,
+  restoredResolution,
+} from '../differ/index.js';
 import { createInitialCollectionValue } from '../collection-resolver/index.js';
 import { findDetachedValueForNode } from './detached-values.js';
 import type { ResolveNewNodeInput } from './types.js';

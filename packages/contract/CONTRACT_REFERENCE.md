@@ -5,6 +5,7 @@
 ## Public Surface
 
 The package exports only three model modules:
+
 - `./lib/view-definition.js`
 - `./lib/data-snapshot.js`
 - `./lib/continuity-snapshot.js`
@@ -12,6 +13,7 @@ The package exports only three model modules:
 ## What Belongs Here
 
 `contract` defines the durable, declarative Continuum vocabulary:
+
 - view AST types like `ViewDefinition`, `ViewNode`, `FieldNode`, `GroupNode`, `CollectionNode`, `RowNode`, and `GridNode`
 - user-owned state types like `DataSnapshot`, `NodeValue`, `ValueLineage`, and `SnapshotLineage`
 - detached preservation types like `DetachedValue`
@@ -22,6 +24,7 @@ The package exports only three model modules:
 Operational and workflow types are intentionally excluded from `contract`.
 
 Those live in `@continuum-dev/protocol`, including:
+
 - issue and diff taxonomies
 - reconciliation report DTOs
 - interactions, intents, and checkpoints

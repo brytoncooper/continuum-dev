@@ -1,8 +1,15 @@
-import type { DataSnapshot, DetachedValue, NodeValue } from '@continuum-dev/contract';
+import type {
+  DataSnapshot,
+  DetachedValue,
+  NodeValue,
+} from '@continuum-dev/contract';
 import { collectDuplicateIssues } from '../context/index.js';
 import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { reconcile } from '../reconcile/index.js';
-import type { ApplyContinuumViewUpdateInput, AppliedContinuumViewState } from './types.js';
+import type {
+  ApplyContinuumViewUpdateInput,
+  AppliedContinuumViewState,
+} from './types.js';
 import { patchViewDefinition } from '../view-patch/index.js';
 import { sanitizeContinuumDataSnapshot } from './canonical-data.js';
 import { resolveNodeLookupEntry } from './node-lookup.js';
@@ -161,8 +168,14 @@ function tryApplyPresentationIncrementalUpdate(
   }
 
   for (const affectedNodeId of input.affectedNodeIds) {
-    const priorLookup = resolveNodeLookupEntry(input.baseView.nodes, affectedNodeId);
-    const nextLookup = resolveNodeLookupEntry(patchedView.nodes, affectedNodeId);
+    const priorLookup = resolveNodeLookupEntry(
+      input.baseView.nodes,
+      affectedNodeId
+    );
+    const nextLookup = resolveNodeLookupEntry(
+      patchedView.nodes,
+      affectedNodeId
+    );
     if (!priorLookup || !nextLookup) {
       return null;
     }

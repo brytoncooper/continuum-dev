@@ -22,7 +22,8 @@ export function applyThroughStreamingFoundation(
     return false;
   }
 
-  const baseSnapshot = session.getCommittedSnapshot?.() ?? session.getSnapshot();
+  const baseSnapshot =
+    session.getCommittedSnapshot?.() ?? session.getSnapshot();
   const stream = session.beginStream({
     targetViewId,
     source,
@@ -84,12 +85,7 @@ export function applyPatchPlanThroughUpdateParts(
     ...operation,
   })) as SessionStreamPart[];
   if (
-    applyThroughStreamingFoundation(
-      session,
-      source,
-      currentView.viewId,
-      parts
-    )
+    applyThroughStreamingFoundation(session, source, currentView.viewId, parts)
   ) {
     return true;
   }

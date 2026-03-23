@@ -72,7 +72,11 @@ export function useStreamingMappedProps(
 ): Record<string, unknown> {
   const { activeStream, isStreaming } = useContinuumStreaming();
   const streamStatus = resolveStreamStatus(activeStream, canonicalId);
-  const buildState = deriveNodeBuildState(activeStream, canonicalId, streamStatus);
+  const buildState = deriveNodeBuildState(
+    activeStream,
+    canonicalId,
+    streamStatus
+  );
 
   return useMemo(
     () => ({

@@ -1,9 +1,6 @@
 import type { ViewNode } from '@continuum-dev/contract';
 import { traverseViewNodesCore } from './traversal-core.js';
-import type {
-  TraverseViewInput,
-  TraverseViewResult,
-} from './types.js';
+import type { TraverseViewInput, TraverseViewResult } from './types.js';
 
 export type {
   TraverseViewInput,

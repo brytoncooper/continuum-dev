@@ -21,7 +21,9 @@ function findCatalogEndpoint(catalog, endpointId) {
     return null;
   }
 
-  return catalog.endpoints.find((entry) => entry && entry.id === endpointId) ?? null;
+  return (
+    catalog.endpoints.find((entry) => entry && entry.id === endpointId) ?? null
+  );
 }
 
 function normalizeIntegrationFieldShape(field) {
@@ -52,7 +54,10 @@ function collectPersistedSemanticKeysFromFields(fields) {
     }
 
     if (shape === 'collection') {
-      if (typeof field.semanticKey === 'string' && field.semanticKey.trim().length > 0) {
+      if (
+        typeof field.semanticKey === 'string' &&
+        field.semanticKey.trim().length > 0
+      ) {
         keys.push(field.semanticKey.trim());
       }
       if (Array.isArray(field.itemFields)) {
@@ -61,7 +66,10 @@ function collectPersistedSemanticKeysFromFields(fields) {
       continue;
     }
 
-    if (typeof field.semanticKey === 'string' && field.semanticKey.trim().length > 0) {
+    if (
+      typeof field.semanticKey === 'string' &&
+      field.semanticKey.trim().length > 0
+    ) {
       keys.push(field.semanticKey.trim());
     }
   }
@@ -69,7 +77,12 @@ function collectPersistedSemanticKeysFromFields(fields) {
   return uniqueNonEmptyStrings(keys);
 }
 
-function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optionalLines) {
+function appendIntegrationFieldCatalogLines(
+  field,
+  depth,
+  requiredLines,
+  optionalLines
+) {
   if (!field || typeof field !== 'object') {
     return;
   }
@@ -80,20 +93,27 @@ function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optiona
     typeof field.label === 'string' && field.label.trim().length > 0
       ? field.label.trim()
       : typeof field.semanticKey === 'string'
-        ? field.semanticKey.trim()
-        : '';
+      ? field.semanticKey.trim()
+      : '';
 
   if (shape === 'object' && Array.isArray(field.fields)) {
     const key =
       typeof field.semanticKey === 'string' ? field.semanticKey.trim() : '';
-    const header = `${pad}- [${label}]${key ? ` (${key})` : ''} — nested object${field.required ? ' [required]' : ' [optional]'}`;
+    const header = `${pad}- [${label}]${
+      key ? ` (${key})` : ''
+    } — nested object${field.required ? ' [required]' : ' [optional]'}`;
     if (field.required) {
       requiredLines.push(header);
     } else {
       optionalLines.push(header);
     }
     for (const child of field.fields) {
-      appendIntegrationFieldCatalogLines(child, depth + 1, requiredLines, optionalLines);
+      appendIntegrationFieldCatalogLines(
+        child,
+        depth + 1,
+        requiredLines,
+        optionalLines
+      );
     }
     return;
   }
@@ -108,7 +128,9 @@ function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optiona
       typeof field.minItems === 'number' ? ` minItems=${field.minItems}` : '';
     const max =
       typeof field.maxItems === 'number' ? ` maxItems=${field.maxItems}` : '';
-    const header = `${pad}- ${key} (${label}) [collection]${min}${max}${field.required ? ' [required]' : ' [optional]'}`;
+    const header = `${pad}- ${key} (${label}) [collection]${min}${max}${
+      field.required ? ' [required]' : ' [optional]'
+    }`;
     if (field.required) {
       requiredLines.push(header);
     } else {
@@ -120,8 +142,15 @@ function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optiona
     } else {
       optionalLines.push(subNote);
     }
-    for (const child of Array.isArray(field.itemFields) ? field.itemFields : []) {
-      appendIntegrationFieldCatalogLines(child, depth + 2, requiredLines, optionalLines);
+    for (const child of Array.isArray(field.itemFields)
+      ? field.itemFields
+      : []) {
+      appendIntegrationFieldCatalogLines(
+        child,
+        depth + 2,
+        requiredLines,
+        optionalLines
+      );
     }
     return;
   }
@@ -143,7 +172,9 @@ function appendIntegrationFieldCatalogLines(field, depth, requiredLines, optiona
     typeof field.description === 'string' && field.description.trim().length > 0
       ? ` — ${field.description.trim()}`
       : '';
-  const line = `${pad}- ${key} (${label})${dt}${enumNote}${field.required ? ' [required]' : ' [optional]'}${desc}`;
+  const line = `${pad}- ${key} (${label})${dt}${enumNote}${
+    field.required ? ' [required]' : ' [optional]'
+  }${desc}`;
   if (field.required) {
     requiredLines.push(line);
   } else {
@@ -177,7 +208,10 @@ export function buildRegisteredActionsParagraph(args = {}) {
 
   for (const [intentId, reg] of entries) {
     const label =
-      reg && typeof reg === 'object' && typeof reg.label === 'string' && reg.label.trim().length > 0
+      reg &&
+      typeof reg === 'object' &&
+      typeof reg.label === 'string' &&
+      reg.label.trim().length > 0
         ? reg.label.trim()
         : intentId;
     const description =
@@ -198,14 +232,17 @@ export function buildRegisteredActionsParagraph(args = {}) {
  */
 export function buildIntegrationBindingParagraph(args = {}) {
   const catalog = args.integrationCatalog;
-  const endpointId = typeof args.endpointId === 'string' ? args.endpointId.trim() : '';
+  const endpointId =
+    typeof args.endpointId === 'string' ? args.endpointId.trim() : '';
   const endpoint = findCatalogEndpoint(catalog, endpointId);
   if (!catalog || !endpoint) {
     return '';
   }
 
   const productSummary =
-    typeof catalog.productSummary === 'string' ? catalog.productSummary.trim() : '';
+    typeof catalog.productSummary === 'string'
+      ? catalog.productSummary.trim()
+      : '';
 
   const keys = Array.isArray(args.payloadSemanticKeys)
     ? uniqueNonEmptyStrings(args.payloadSemanticKeys)
@@ -225,9 +262,10 @@ export function buildIntegrationBindingParagraph(args = {}) {
   }
 
   const method =
-    typeof endpoint.method === 'string' ? endpoint.method.trim().toUpperCase() : '';
-  const path =
-    typeof endpoint.path === 'string' ? endpoint.path.trim() : '';
+    typeof endpoint.method === 'string'
+      ? endpoint.method.trim().toUpperCase()
+      : '';
+  const path = typeof endpoint.path === 'string' ? endpoint.path.trim() : '';
 
   const lines = [
     productSummary.length > 0 ? `Product context:\n${productSummary}` : '',
@@ -236,7 +274,8 @@ export function buildIntegrationBindingParagraph(args = {}) {
     'Accepted payload schema for this endpoint (persisted columns / request body shape). This is not a form template—design layout, grouping, and controls to match the user instruction.',
     `Endpoint id: ${endpoint.id}`,
     `HTTP: ${method} ${path}`,
-    typeof endpoint.userAction === 'string' && endpoint.userAction.trim().length > 0
+    typeof endpoint.userAction === 'string' &&
+    endpoint.userAction.trim().length > 0
       ? `Representative user action: ${endpoint.userAction.trim()}`
       : '',
     'Persisted fields (semantic keys must match these for saved data):',
@@ -335,7 +374,10 @@ export function buildContinuumExecutionPlannerSystemPrompt(args = {}) {
     );
   }
 
-  if (args.integrationCatalog && catalogEndpointIds(args.integrationCatalog).length > 0) {
+  if (
+    args.integrationCatalog &&
+    catalogEndpointIds(args.integrationCatalog).length > 0
+  ) {
     lines.push(
       'Integration catalog context (mandatory for this deployment):',
       '- The integrationCatalog JSON is the only allowed HTTP surface and persisted-field vocabulary. Generated UI and state updates must stay compatible with exactly one catalog endpoint per plan.',
@@ -395,7 +437,9 @@ export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
 
   sections.push(
     'availableModes:',
-    JSON.stringify(Array.isArray(args.availableModes) ? args.availableModes : []),
+    JSON.stringify(
+      Array.isArray(args.availableModes) ? args.availableModes : []
+    ),
     '',
     'Patch targets:',
     JSON.stringify(
@@ -412,14 +456,21 @@ export function buildContinuumExecutionPlannerUserPrompt(args = {}) {
     ),
     '',
     'Current view compact tree:',
-    JSON.stringify(Array.isArray(args.compactTree) ? args.compactTree : [], null, 2),
+    JSON.stringify(
+      Array.isArray(args.compactTree) ? args.compactTree : [],
+      null,
+      2
+    ),
     '',
     'Current populated values:',
     JSON.stringify(summarizeCurrentData(args.currentData), null, 2),
     ''
   );
 
-  if (args.integrationCatalog && catalogEndpointIds(args.integrationCatalog).length > 0) {
+  if (
+    args.integrationCatalog &&
+    catalogEndpointIds(args.integrationCatalog).length > 0
+  ) {
     sections.push(
       'integrationCatalog (mandatory backend contract; follow integration rules in the system prompt):',
       JSON.stringify(args.integrationCatalog, null, 2),
@@ -503,7 +554,10 @@ export function parseContinuumExecutionPlan(args = {}) {
 }
 
 function resolveIntegrationPlanFields(integrationCatalog, rawParsed) {
-  if (!integrationCatalog || catalogEndpointIds(integrationCatalog).length === 0) {
+  if (
+    !integrationCatalog ||
+    catalogEndpointIds(integrationCatalog).length === 0
+  ) {
     return {
       endpointId: undefined,
       payloadSemanticKeys: undefined,
@@ -519,7 +573,10 @@ function resolveIntegrationPlanFields(integrationCatalog, rawParsed) {
     };
   }
 
-  const endpoint = findCatalogEndpoint(integrationCatalog, rawParsed.endpointId);
+  const endpoint = findCatalogEndpoint(
+    integrationCatalog,
+    rawParsed.endpointId
+  );
 
   if (!endpoint) {
     return {
@@ -529,7 +586,9 @@ function resolveIntegrationPlanFields(integrationCatalog, rawParsed) {
     };
   }
 
-  const allowed = new Set(collectPersistedSemanticKeysFromFields(endpoint.persistedFields));
+  const allowed = new Set(
+    collectPersistedSemanticKeysFromFields(endpoint.persistedFields)
+  );
 
   const requested = Array.isArray(rawParsed.payloadSemanticKeys)
     ? rawParsed.payloadSemanticKeys
@@ -560,7 +619,9 @@ function endpointAllowedSemanticKeys(catalog, endpointId) {
     return new Set();
   }
 
-  return new Set(collectPersistedSemanticKeysFromFields(endpoint.persistedFields));
+  return new Set(
+    collectPersistedSemanticKeysFromFields(endpoint.persistedFields)
+  );
 }
 
 function mergeIntegrationIntoPlan(result, integrationCatalog, rawParsed) {

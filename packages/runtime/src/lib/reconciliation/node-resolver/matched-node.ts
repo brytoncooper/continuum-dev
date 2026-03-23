@@ -17,7 +17,8 @@ type ResolutionKind =
   | 'unchanged';
 
 export function resolveNode({ match, runtime }: ResolveNodeInput): void {
-  const { newId, newNode, priorNode, priorNodeId, matchedBy, priorValue } = match;
+  const { newId, newNode, priorNode, priorNodeId, matchedBy, priorValue } =
+    match;
   const { acc, ctx, priorData, now, options } = runtime;
   const concreteMatch = toConcreteMatchStrategy(matchedBy);
   const concretePriorId = priorNodeId ?? priorNode?.id ?? null;

@@ -104,7 +104,8 @@ function buildNodeMatchEnvelope(
   const carriedPriorValue = priorValues.get(newId);
   const priorValue =
     matchedBy === 'id'
-      ? carriedPriorValue ?? (priorNodeId ? priorData.values[priorNodeId] : undefined)
+      ? carriedPriorValue ??
+        (priorNodeId ? priorData.values[priorNodeId] : undefined)
       : carriedPriorValue;
 
   return {

@@ -1,6 +1,10 @@
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { getChildNodes } from '@continuum-dev/contract';
-import { readNodeLabel, SCALAR_STATEFUL_NODE_TYPES, toCanonicalNodeId } from './shared.js';
+import {
+  readNodeLabel,
+  SCALAR_STATEFUL_NODE_TYPES,
+  toCanonicalNodeId,
+} from './shared.js';
 import type { ContinuumExecutionTarget } from './types.js';
 
 function collectCollectionTemplateTargets(
@@ -69,7 +73,9 @@ export function buildContinuumStateTargetCatalog(
       ];
     }
 
-    return getChildNodes(node).flatMap((child) => visit(child, canonicalNodeId));
+    return getChildNodes(node).flatMap((child) =>
+      visit(child, canonicalNodeId)
+    );
   };
 
   return view.nodes.flatMap((node) => visit(node));

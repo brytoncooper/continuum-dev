@@ -119,8 +119,7 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
     'Updates can change structure and content at once. Both need to be handled safely.',
   controls: {
     inputLabel: 'Your draft',
-    inputDescription:
-      'Enter values, go to step 2 to see the change.',
+    inputDescription: 'Enter values, go to step 2 to see the change.',
     helperText: 'Step 2 changes layout and shows AI suggestions.',
   },
   trackedFields: [
@@ -161,8 +160,7 @@ export const compoundStructureConflictScenario: PlaygroundConflictScenario = {
     {
       id: 'layout-and-suggestions',
       title: 'Step 2: New layout and suggestions',
-      description:
-        'Layout changes. AI suggests new values. See what happens.',
+      description: 'Layout changes. AI suggests new values. See what happens.',
       view: evolvedView,
     },
   ],

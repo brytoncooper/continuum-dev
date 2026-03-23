@@ -1,7 +1,4 @@
-import type {
-  ViewDefinition,
-  DataSnapshot,
-} from '@continuum-dev/contract';
+import type { ViewDefinition, DataSnapshot } from '@continuum-dev/contract';
 import {
   isInteractionType,
   type Checkpoint,

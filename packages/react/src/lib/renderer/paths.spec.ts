@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isNodeWithinScope,
-  toCanonicalId,
-  toRelativeNodeId,
-} from './paths.js';
+import { isNodeWithinScope, toCanonicalId, toRelativeNodeId } from './paths.js';
 
 describe('renderer paths', () => {
   it('builds canonical ids from parent scope', () => {

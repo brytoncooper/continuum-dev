@@ -57,7 +57,8 @@ export const StatefulNodeRenderer = memo(function StatefulNodeRenderer({
   const streamingProps = useStreamingMappedProps(canonicalId, mappedProps);
 
   const [value, setValue] = useContinuumState(canonicalId);
-  const hasSuggestion = (value as NodeValue | undefined)?.suggestion !== undefined;
+  const hasSuggestion =
+    (value as NodeValue | undefined)?.suggestion !== undefined;
   const suggestionValue = (value as NodeValue | undefined)?.suggestion;
 
   if (definition.hidden) {
@@ -180,8 +181,9 @@ export const CollectionItemRenderer = memo(function CollectionItemRenderer({
         const itemValue =
           collectionValue.value.items[itemIndex]?.values?.[relativeId] ??
           templateDefaults[relativeId];
-        const collectionSuggestion =
-          collectionValue.suggestion as CollectionNodeState | undefined;
+        const collectionSuggestion = collectionValue.suggestion as
+          | CollectionNodeState
+          | undefined;
 
         return mergeCollectionItemSuggestion(
           itemValue,

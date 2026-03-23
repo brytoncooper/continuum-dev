@@ -116,7 +116,9 @@ export function normalizeMinItems(value: number | undefined): number {
   return Math.floor(value);
 }
 
-export function normalizeMaxItems(value: number | undefined): number | undefined {
+export function normalizeMaxItems(
+  value: number | undefined
+): number | undefined {
   if (value === undefined || value < 0) {
     return undefined;
   }

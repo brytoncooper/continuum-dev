@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  NodeValue,
-  ViewNode,
-} from '@continuum-dev/contract';
+import type { NodeValue, ViewNode } from '@continuum-dev/contract';
 import {
   makeData,
   makeNode,
@@ -526,7 +523,13 @@ describe('cross-level reconciliation', () => {
           source,
           makeTargetCollection('tasks', 'target'),
         ]);
-        const target = makeTargetCollection('tasks', 'target', 'gate.key', undefined, 1);
+        const target = makeTargetCollection(
+          'tasks',
+          'target',
+          'gate.key',
+          undefined,
+          1
+        );
         const newNodes: ViewNode[] = [];
         if (t.sourceStays) {
           newNodes.push(source);

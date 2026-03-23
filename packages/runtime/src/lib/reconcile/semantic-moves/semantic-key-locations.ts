@@ -44,7 +44,11 @@ export function collectSemanticKeyLocations(
       locations.push(buildLocation(frame, frame.node.semanticKey));
     }
 
-    for (let index = getChildNodes(frame.node).length - 1; index >= 0; index -= 1) {
+    for (
+      let index = getChildNodes(frame.node).length - 1;
+      index >= 0;
+      index -= 1
+    ) {
       const child = getChildNodes(frame.node)[index];
       const childNodeId = `${frame.nodeId}/${child.id}`;
       if (frame.node.type === 'collection') {
@@ -52,9 +56,15 @@ export function collectSemanticKeyLocations(
           node: child,
           nodeId: childNodeId,
           inCollection: true,
-          outerCollectionId: frame.inCollection ? frame.outerCollectionId : frame.nodeId,
-          relativePath: frame.inCollection ? `${frame.relativePath}/${child.id}` : child.id,
-          collectionPathStack: frame.inCollection ? frame.collectionPathStack : [''],
+          outerCollectionId: frame.inCollection
+            ? frame.outerCollectionId
+            : frame.nodeId,
+          relativePath: frame.inCollection
+            ? `${frame.relativePath}/${child.id}`
+            : child.id,
+          collectionPathStack: frame.inCollection
+            ? frame.collectionPathStack
+            : [''],
         });
         continue;
       }

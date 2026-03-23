@@ -25,9 +25,11 @@ export function TextInput({
   const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const dataType = readNodeProp<string>(definition, 'dataType') ?? 'string';
-  const defaultValue = readNodeProp<string | number>(definition, 'defaultValue');
-  const rawValue =
-    nodeValue?.value ?? defaultValue;
+  const defaultValue = readNodeProp<string | number>(
+    definition,
+    'defaultValue'
+  );
+  const rawValue = nodeValue?.value ?? defaultValue;
   const displayValue = scalarFieldDisplayString(rawValue, dataType);
 
   return (
@@ -64,9 +66,7 @@ export function TextInput({
         value={displayValue}
         data-continuum-control="true"
         data-continuum-node-id={nodeId}
-        placeholder={
-          nodePlaceholder(definition) ?? 'Enter value'
-        }
+        placeholder={nodePlaceholder(definition) ?? 'Enter value'}
         readOnly={Boolean(readNodeProp<boolean>(definition, 'readOnly'))}
         style={{
           ...useInputLikeStyle(),

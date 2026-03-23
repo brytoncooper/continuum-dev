@@ -24,7 +24,9 @@ export function normalizeContinuumSemanticIdentity(args = {}) {
   const priorBySemanticKey = new Map();
   const nextBySemanticKey = new Map();
   const priorByKey = new Map();
-  const usedIds = new Set(collectNodeEntries(clone.nodes).map((entry) => entry.id));
+  const usedIds = new Set(
+    collectNodeEntries(clone.nodes).map((entry) => entry.id)
+  );
 
   for (const entry of priorEntries) {
     if (entry.semanticKey && !priorBySemanticKey.has(entry.semanticKey)) {
@@ -41,7 +43,9 @@ export function normalizeContinuumSemanticIdentity(args = {}) {
     }
 
     if (nextBySemanticKey.has(entry.semanticKey)) {
-      errors.push(`Duplicate semanticKey "${entry.semanticKey}" in generated view.`);
+      errors.push(
+        `Duplicate semanticKey "${entry.semanticKey}" in generated view.`
+      );
       continue;
     }
     nextBySemanticKey.set(entry.semanticKey, entry);

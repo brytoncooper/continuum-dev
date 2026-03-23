@@ -44,9 +44,9 @@ describe('runtime hardening', () => {
     });
 
     expect(result.reconciledState.lineage.timestamp).toBe(TEST_NOW);
-    expect(result.issues.some((issue) => issue.code === ISSUE_CODES.NO_PRIOR_DATA)).toBe(
-      true
-    );
+    expect(
+      result.issues.some((issue) => issue.code === ISSUE_CODES.NO_PRIOR_DATA)
+    ).toBe(true);
   });
 
   it('treats null as a valid migrated value', () => {

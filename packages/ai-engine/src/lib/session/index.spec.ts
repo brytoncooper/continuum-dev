@@ -64,7 +64,11 @@ describe('continuum session adapter', () => {
           mode: options.mode,
         };
       },
-      applyStreamPart(this: { sessionId: string }, streamId: string, part: unknown) {
+      applyStreamPart(
+        this: { sessionId: string },
+        streamId: string,
+        part: unknown
+      ) {
         return `${this.sessionId}:${streamId}:${JSON.stringify(part)}`;
       },
       commitStream(this: { sessionId: string }, streamId: string) {
@@ -73,7 +77,11 @@ describe('continuum session adapter', () => {
           committedBy: this.sessionId,
         };
       },
-      abortStream(this: { sessionId: string }, streamId: string, reason?: string) {
+      abortStream(
+        this: { sessionId: string },
+        streamId: string,
+        reason?: string
+      ) {
         return {
           streamId,
           reason,
@@ -207,7 +215,9 @@ describe('continuum session adapter', () => {
     expect(adapter.abortStream).toBeUndefined();
     expect(adapter.getStreams).toBeUndefined();
     expect(adapter.getPendingRestoreReviews()).toEqual([]);
-    expect(adapter.acceptRestoreCandidate('detached:key', 'profile/email', 'view')).toBeUndefined();
+    expect(
+      adapter.acceptRestoreCandidate('detached:key', 'profile/email', 'view')
+    ).toBeUndefined();
     expect(adapter.rejectRestoreReview('detached:key', 'view')).toBeUndefined();
   });
 

@@ -89,7 +89,9 @@ describe('semantic key move planner', () => {
         template: makeNode({
           id: 'row',
           type: 'group',
-          children: [makeNode({ id: 'title', type: 'field', dataType: 'string' })],
+          children: [
+            makeNode({ id: 'title', type: 'field', dataType: 'string' }),
+          ],
         }),
       }),
     ]);

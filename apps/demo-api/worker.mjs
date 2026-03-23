@@ -22,14 +22,11 @@ async function handleAnthropicProxy(request) {
   }
 
   const upstreamHeaders = new Headers(request.headers);
-  const upstreamRequest = new Request(
-    'https://api.anthropic.com/v1/messages',
-    {
-      method: 'POST',
-      headers: upstreamHeaders,
-      body: request.body,
-    }
-  );
+  const upstreamRequest = new Request('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: upstreamHeaders,
+    body: request.body,
+  });
 
   return fetch(upstreamRequest);
 }

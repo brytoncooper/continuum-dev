@@ -244,7 +244,9 @@ export function commitStream(
     issues: committedStream.issues,
     diffs: committedStream.diffs,
     resolutions: committedStream.resolutions,
-    strategy: committedStream.parts.some((part) => part.kind === 'append-content')
+    strategy: committedStream.parts.some(
+      (part) => part.kind === 'append-content'
+    )
       ? 'incremental'
       : 'full',
   };
@@ -288,7 +290,9 @@ export function getPublicStreams(internal: SessionState) {
   return [...internal.streams.values()].map(toPublicSessionStream);
 }
 
-export function getCommittedOrRenderViewId(internal: SessionState): string | null {
+export function getCommittedOrRenderViewId(
+  internal: SessionState
+): string | null {
   return (
     getActiveForegroundStream(internal)?.workingView?.viewId ??
     buildCommittedSnapshotFromCurrentState(internal)?.view.viewId ??

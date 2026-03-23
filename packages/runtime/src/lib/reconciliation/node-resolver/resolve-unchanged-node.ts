@@ -1,10 +1,7 @@
 import type { NodeValue, ViewNode } from '@continuum-dev/contract';
 import { carriedResolution, migratedDiff } from '../differ/index.js';
 import { carryValuesMeta } from '../lineage-utils.js';
-import {
-  areDefaultValuesEqual,
-  isProtectedValue,
-} from './helpers.js';
+import { areDefaultValuesEqual, isProtectedValue } from './helpers.js';
 import type { ResolveUnchangedNodeInput } from './types.js';
 
 export function resolveUnchangedNode(input: ResolveUnchangedNodeInput): void {

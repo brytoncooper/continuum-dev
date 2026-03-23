@@ -1,7 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useLayoutEffect, useRef } from 'react';
 import { color, control, radius, space, type } from '../../tokens.js';
-import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
+import {
+  starterKitDefaultStyles,
+  useStarterKitStyle,
+} from '../../style-config.js';
 import { streamedNodeMotionStyle } from './motion.js';
 import { nodeDepth } from './node.js';
 
@@ -113,7 +116,8 @@ function useStreamingContainerMotion(nodeId?: string) {
     };
 
     const syncToContentHeight = (force = false) => {
-      const targetHeight = content.getBoundingClientRect().height + readContainerChromeHeight();
+      const targetHeight =
+        content.getBoundingClientRect().height + readContainerChromeHeight();
       animateHeight(targetHeight, force);
     };
 
@@ -212,23 +216,27 @@ export function ContainerShell({
   const depth = nodeDepth(nodeId);
   const isItem = typeof itemIndex === 'number';
   const { shellRef, contentRef } = useStreamingContainerMotion(nodeId);
-  const removeButtonStyle = useStarterKitStyle('itemRemoveButton', starterKitDefaultStyles.itemRemoveButton);
+  const removeButtonStyle = useStarterKitStyle(
+    'itemRemoveButton',
+    starterKitDefaultStyles.itemRemoveButton
+  );
   const iconRemoveButtonStyle = useStarterKitStyle(
     'itemIconRemoveButton',
     starterKitDefaultStyles.itemIconRemoveButton
   );
 
-  const removeButton =
-    canRemove ? (
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label="Remove item"
-        style={itemRemoveVariant === 'icon' ? iconRemoveButtonStyle : removeButtonStyle}
-      >
-        {itemRemoveVariant === 'icon' ? 'x' : 'Remove'}
-      </button>
-    ) : null;
+  const removeButton = canRemove ? (
+    <button
+      type="button"
+      onClick={onRemove}
+      aria-label="Remove item"
+      style={
+        itemRemoveVariant === 'icon' ? iconRemoveButtonStyle : removeButtonStyle
+      }
+    >
+      {itemRemoveVariant === 'icon' ? 'x' : 'Remove'}
+    </button>
+  ) : null;
 
   return (
     <section
@@ -261,7 +269,9 @@ export function ContainerShell({
                 ...streamedNodeMotionStyle(nodeId, 'content'),
               }}
             >
-              <span style={itemLabelStyle}>{`Item ${String(itemIndex + 1).padStart(2, '0')}`}</span>
+              <span style={itemLabelStyle}>{`Item ${String(
+                itemIndex + 1
+              ).padStart(2, '0')}`}</span>
               {itemRemovePlacement === 'header' ? removeButton : null}
             </div>
             <div
@@ -279,7 +289,9 @@ export function ContainerShell({
                   : streamedNodeMotionStyle(nodeId, 'content')
               }
             >
-              <div style={{ ...layoutStyle, minWidth: 0, flex: 1 }}>{children}</div>
+              <div style={{ ...layoutStyle, minWidth: 0, flex: 1 }}>
+                {children}
+              </div>
               {itemRemovePlacement === 'inline' ? removeButton : null}
             </div>
           </>
@@ -294,7 +306,9 @@ export function ContainerShell({
                 }}
               >
                 {title ? <div style={titleStyle}>{title}</div> : null}
-                {description ? <div style={textStyle}>{description}</div> : null}
+                {description ? (
+                  <div style={textStyle}>{description}</div>
+                ) : null}
               </div>
             ) : null}
             <div

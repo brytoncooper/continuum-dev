@@ -25,11 +25,11 @@ interface ViewDefinition {
 }
 ```
 
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `viewId` | `string` | yes | Stable identifier for the logical workflow |
-| `version` | `string` | yes | Version label for this specific view shape |
-| `nodes` | `ViewNode[]` | yes | Top-level nodes in render order |
+| Field     | Type         | Required | Meaning                                    |
+| --------- | ------------ | -------- | ------------------------------------------ |
+| `viewId`  | `string`     | yes      | Stable identifier for the logical workflow |
+| `version` | `string`     | yes      | Version label for this specific view shape |
+| `nodes`   | `ViewNode[]` | yes      | Top-level nodes in render order            |
 
 Rules:
 
@@ -44,9 +44,7 @@ Rules:
 {
   "viewId": "profile-form",
   "version": "1",
-  "nodes": [
-    { "id": "name", "type": "field", "dataType": "string" }
-  ]
+  "nodes": [{ "id": "name", "type": "field", "dataType": "string" }]
 }
 ```
 
@@ -78,14 +76,14 @@ interface BaseNode {
 }
 ```
 
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | Unique identifier for this node in this view version |
-| `type` | `string` | yes | Node discriminator |
-| `key` | `string` | no | Stable semantic identity across versions |
-| `hidden` | `boolean` | no | Whether the default renderer should hide the node |
-| `hash` | `string` | no | Shape hash used to decide when migration is needed |
-| `migrations` | `MigrationRule[]` | no | Declarative migration rules for hash transitions |
+| Field        | Type              | Required | Meaning                                              |
+| ------------ | ----------------- | -------- | ---------------------------------------------------- |
+| `id`         | `string`          | yes      | Unique identifier for this node in this view version |
+| `type`       | `string`          | yes      | Node discriminator                                   |
+| `key`        | `string`          | no       | Stable semantic identity across versions             |
+| `hidden`     | `boolean`         | no       | Whether the default renderer should hide the node    |
+| `hash`       | `string`          | no       | Shape hash used to decide when migration is needed   |
+| `migrations` | `MigrationRule[]` | no       | Declarative migration rules for hash transitions     |
 
 ### `id` vs `key`
 
@@ -251,13 +249,13 @@ The runtime tries to find prior nodes in this order:
 
 ### What the outcomes mean
 
-| Outcome | Meaning |
-| --- | --- |
-| `added` | New node with no recoverable prior state |
-| `carried` | Prior state preserved as-is |
+| Outcome    | Meaning                                         |
+| ---------- | ----------------------------------------------- |
+| `added`    | New node with no recoverable prior state        |
+| `carried`  | Prior state preserved as-is                     |
 | `migrated` | Prior state transformed by a migration strategy |
-| `detached` | Prior state could not safely continue |
-| `restored` | State was recovered from detached storage |
+| `detached` | Prior state could not safely continue           |
+| `restored` | State was recovered from detached storage       |
 
 ### Important details
 
@@ -276,14 +274,12 @@ interface MigrationRule {
   strategyId?: string;
 }
 
-type MigrationStrategy = (
-  context: {
-    nodeId: string;
-    priorNode: ViewNode;
-    newNode: ViewNode;
-    priorValue: unknown;
-  }
-) => unknown;
+type MigrationStrategy = (context: {
+  nodeId: string;
+  priorNode: ViewNode;
+  newNode: ViewNode;
+  priorValue: unknown;
+}) => unknown;
 ```
 
 `strategyId` points into `ReconciliationOptions.strategyRegistry`.
@@ -300,13 +296,13 @@ interface ReconciliationOptions {
 }
 ```
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `allowPartialRestore` | `boolean` | Suppresses `NODE_REMOVED` warnings for partial-restore workflows |
-| `allowPriorDataWithoutPriorView` | `boolean` | When `priorView` is null but `priorData` exists, best-effort copy of prior values only where scoped node ids exist in the new view (not key-based) |
-| `migrationStrategies` | `Record<string, MigrationStrategy>` | Per-node migration overrides keyed by new node id |
-| `strategyRegistry` | `Record<string, MigrationStrategy>` | Named strategies referenced by migration rules |
-| `clock` | `() => number` | Custom time source for lineage metadata |
+| Field                            | Type                                | Meaning                                                                                                                                            |
+| -------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allowPartialRestore`            | `boolean`                           | Suppresses `NODE_REMOVED` warnings for partial-restore workflows                                                                                   |
+| `allowPriorDataWithoutPriorView` | `boolean`                           | When `priorView` is null but `priorData` exists, best-effort copy of prior values only where scoped node ids exist in the new view (not key-based) |
+| `migrationStrategies`            | `Record<string, MigrationStrategy>` | Per-node migration overrides keyed by new node id                                                                                                  |
+| `strategyRegistry`               | `Record<string, MigrationStrategy>` | Named strategies referenced by migration rules                                                                                                     |
+| `clock`                          | `() => number`                      | Custom time source for lineage metadata                                                                                                            |
 
 ## 6. Diagnostics surfaced by reconciliation
 
@@ -358,21 +354,21 @@ interface ReconciliationIssue {
 
 Common issue codes:
 
-| Code | Severity | Meaning |
-| --- | --- | --- |
-| `NO_PRIOR_DATA` | info | First reconciliation with no prior data |
-| `NO_PRIOR_VIEW` | warning | Carry attempted without a prior view |
-| `TYPE_MISMATCH` | error | Matched node changed type |
-| `NODE_REMOVED` | warning | Node existed before but not in the new view |
-| `MIGRATION_FAILED` | warning | A needed migration was missing or threw |
-| `VALIDATION_FAILED` | warning | Node value failed validation |
-| `UNKNOWN_NODE` | warning | State update referenced a node not in the active view |
-| `DUPLICATE_NODE_ID` | error | Multiple nodes share the same scoped id |
-| `DUPLICATE_NODE_KEY` | warning | Multiple nodes share the same scoped key |
-| `VIEW_CHILD_CYCLE_DETECTED` | error | A circular child reference was detected |
-| `VIEW_MAX_DEPTH_EXCEEDED` | error | View depth exceeded the safety limit |
-| `COLLECTION_CONSTRAINT_VIOLATED` | warning | Collection violated min or max item limits |
-| `SCOPE_COLLISION` | error | Scoped name or key collision occurred |
+| Code                             | Severity | Meaning                                               |
+| -------------------------------- | -------- | ----------------------------------------------------- |
+| `NO_PRIOR_DATA`                  | info     | First reconciliation with no prior data               |
+| `NO_PRIOR_VIEW`                  | warning  | Carry attempted without a prior view                  |
+| `TYPE_MISMATCH`                  | error    | Matched node changed type                             |
+| `NODE_REMOVED`                   | warning  | Node existed before but not in the new view           |
+| `MIGRATION_FAILED`               | warning  | A needed migration was missing or threw               |
+| `VALIDATION_FAILED`              | warning  | Node value failed validation                          |
+| `UNKNOWN_NODE`                   | warning  | State update referenced a node not in the active view |
+| `DUPLICATE_NODE_ID`              | error    | Multiple nodes share the same scoped id               |
+| `DUPLICATE_NODE_KEY`             | warning  | Multiple nodes share the same scoped key              |
+| `VIEW_CHILD_CYCLE_DETECTED`      | error    | A circular child reference was detected               |
+| `VIEW_MAX_DEPTH_EXCEEDED`        | error    | View depth exceeded the safety limit                  |
+| `COLLECTION_CONSTRAINT_VIOLATED` | warning  | Collection violated min or max item limits            |
+| `SCOPE_COLLISION`                | error    | Scoped name or key collision occurred                 |
 
 ## 7. Data model
 
@@ -391,10 +387,10 @@ interface NodeValue<T = unknown> {
 
 Typical mappings:
 
-| `dataType` | Stored value |
-| --- | --- |
-| `'string'` | `{ value: string }` |
-| `'number'` | `{ value: number }` |
+| `dataType`  | Stored value         |
+| ----------- | -------------------- |
+| `'string'`  | `{ value: string }`  |
+| `'number'`  | `{ value: number }`  |
 | `'boolean'` | `{ value: boolean }` |
 
 `suggestion` is used for proposal-based flows where a value is staged rather than immediately accepted.
@@ -553,11 +549,11 @@ Invalid payloads fail fast with explicit errors.
 
 Optional restore limits:
 
-| Limit | Default | Meaning |
-| --- | --- | --- |
-| `maxEventLogSize` | `1000` | Max restored event log entries |
-| `maxPendingIntents` | `500` | Max restored pending intents |
-| `maxCheckpoints` | `50` | Max restored checkpoints |
+| Limit               | Default | Meaning                        |
+| ------------------- | ------- | ------------------------------ |
+| `maxEventLogSize`   | `1000`  | Max restored event log entries |
+| `maxPendingIntents` | `500`   | Max restored pending intents   |
+| `maxCheckpoints`    | `50`    | Max restored checkpoints       |
 
 ### Compatibility
 

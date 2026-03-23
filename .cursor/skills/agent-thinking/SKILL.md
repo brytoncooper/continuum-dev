@@ -31,7 +31,7 @@ This project follows TDD. The workflow has a hard stop between tests and impleme
 
 ### The TDD cycle
 
-1. **Write tests first.** Before implementing anything, write the tests that define the expected behavior. Tests describe *what* the code should do, not *how*.
+1. **Write tests first.** Before implementing anything, write the tests that define the expected behavior. Tests describe _what_ the code should do, not _how_.
 2. **STOP.** Present the tests to the user for review. Do NOT write any implementation code. Wait for the user to review, adjust, and commit the tests.
 3. **Implement after tests are committed.** Once the user confirms the tests, proceed with implementation. The committed tests are now the contract.
 4. **NEVER modify committed tests to make implementation pass.** If the implementation doesn't satisfy the tests, fix the implementation. If you genuinely believe a test is wrong, explain why to the user and let them decide -- do not change it yourself.

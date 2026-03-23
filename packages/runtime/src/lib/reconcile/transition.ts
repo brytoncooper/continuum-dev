@@ -8,7 +8,10 @@ import type {
   ReconciliationResult,
   NodeResolutionAccumulator,
 } from '../types.js';
-import { resolveAllNodes, detectRemovedNodes } from '../reconciliation/node-resolver/index.js';
+import {
+  resolveAllNodes,
+  detectRemovedNodes,
+} from '../reconciliation/node-resolver/index.js';
 import {
   assembleReconciliationResult,
   type RemovedNodesResult,
@@ -55,7 +58,13 @@ function runResolutionStages(
   options: ReconciliationOptions
 ): TransitionStagesState {
   const priorValues = buildPriorValueLookupByIdAndKey(priorData, context);
-  const resolved = resolveAllNodes(context, priorValues, priorData, now, options);
+  const resolved = resolveAllNodes(
+    context,
+    priorValues,
+    priorData,
+    now,
+    options
+  );
   const removals = detectRemovedNodes(context, priorData, options, now);
   return {
     context,

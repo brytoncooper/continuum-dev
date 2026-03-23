@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useState,
-  type RefObject,
-} from 'react';
+import { useEffect, useLayoutEffect, useState, type RefObject } from 'react';
 
 export type AnchoredPopupLayout = {
   placement: 'up' | 'down';
@@ -33,7 +28,10 @@ const defaultOptions: Required<AnchoredPopupOptions> = {
 const useSafeLayoutEffect =
   typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-function resolvePopoverHeight(spaceAvailable: number, options: Required<AnchoredPopupOptions>) {
+function resolvePopoverHeight(
+  spaceAvailable: number,
+  options: Required<AnchoredPopupOptions>
+) {
   const safeSpace = Math.max(spaceAvailable, 0);
   return Math.max(
     Math.min(options.preferredHeight, safeSpace),
@@ -128,7 +126,10 @@ export function useAnchoredPopupLayout({
       }
 
       setLayout(
-        measureAnchoredPopupLayout(anchorRef.current.getBoundingClientRect(), options)
+        measureAnchoredPopupLayout(
+          anchorRef.current.getBoundingClientRect(),
+          options
+        )
       );
     };
 

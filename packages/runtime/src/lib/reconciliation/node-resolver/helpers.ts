@@ -9,7 +9,9 @@ export function readNodeLabel(node: ViewNode | undefined): string | undefined {
   }
 
   const label = 'label' in node ? node.label : undefined;
-  return typeof label === 'string' && label.trim().length > 0 ? label : undefined;
+  return typeof label === 'string' && label.trim().length > 0
+    ? label
+    : undefined;
 }
 
 export function readParentLabel(
@@ -28,11 +30,17 @@ export function areCompatibleContainerTypes(a: string, b: string): boolean {
   return CONTAINER_TYPES.has(a) && CONTAINER_TYPES.has(b);
 }
 
-export function isProtectedValue(value: { isDirty?: boolean; isSticky?: boolean }): boolean {
+export function isProtectedValue(value: {
+  isDirty?: boolean;
+  isSticky?: boolean;
+}): boolean {
   return value.isDirty === true || value.isSticky === true;
 }
 
-export function hasNodeHashChanged(priorNode: ViewNode, newNode: ViewNode): boolean {
+export function hasNodeHashChanged(
+  priorNode: ViewNode,
+  newNode: ViewNode
+): boolean {
   return !!(priorNode.hash && newNode.hash && priorNode.hash !== newNode.hash);
 }
 

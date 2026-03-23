@@ -54,7 +54,9 @@ export function normalizeGeneratedView(
   const unsupported = collectUnsupportedNodeTypes(normalizedView.nodes);
   if (unsupported.length > 0) {
     throw new Error(
-      `Unsupported node types returned: ${unsupported.join(', ')}. Supported types: ${SUPPORTED_NODE_TYPE_VALUES.join(', ')}.`
+      `Unsupported node types returned: ${unsupported.join(
+        ', '
+      )}. Supported types: ${SUPPORTED_NODE_TYPE_VALUES.join(', ')}.`
     );
   }
 

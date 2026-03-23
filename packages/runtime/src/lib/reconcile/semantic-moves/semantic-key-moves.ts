@@ -10,9 +10,23 @@ export function applySemanticKeyMoves(
   priorData: DataSnapshot,
   resolved: NodeResolutionAccumulator
 ): void {
-  const priorLocations = collectSemanticKeyLocations(ctx.priorView?.nodes ?? []);
+  const priorLocations = collectSemanticKeyLocations(
+    ctx.priorView?.nodes ?? []
+  );
   const newLocations = collectSemanticKeyLocations(ctx.newView.nodes);
 
-  applyTopToCollectionMoves(priorLocations, newLocations, priorData, ctx, resolved);
-  applyCollectionToTopMoves(priorLocations, newLocations, priorData, ctx, resolved);
+  applyTopToCollectionMoves(
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
+  applyCollectionToTopMoves(
+    priorLocations,
+    newLocations,
+    priorData,
+    ctx,
+    resolved
+  );
 }

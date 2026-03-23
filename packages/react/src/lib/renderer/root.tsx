@@ -37,7 +37,9 @@ export function ContinuumRenderer({
   }
 
   const resolvedRenderScope =
-    renderScope === undefined || renderScope === null ? LIVE_RENDER_SCOPE : renderScope;
+    renderScope === undefined || renderScope === null
+      ? LIVE_RENDER_SCOPE
+      : renderScope;
 
   const rootScope = useMemo(() => {
     if (!snapshotOverride) {
@@ -67,7 +69,8 @@ export function ContinuumRenderer({
     }
 
     return {
-      subscribeNode: (_nodeId: string, _listener: () => void) => () => undefined,
+      subscribeNode: (_nodeId: string, _listener: () => void) => () =>
+        undefined,
       getNodeValue: (nodeId: string) =>
         snapshotOverride.data.values?.[nodeId] as NodeValue | undefined,
       setNodeValue: (nodeId: string, value: NodeValue) => {

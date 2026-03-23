@@ -46,11 +46,7 @@ export function insertNodeIntoList(
     insertIndex = clampIndex(position.index, nodes.length);
   }
 
-  return [
-    ...nodes.slice(0, insertIndex),
-    node,
-    ...nodes.slice(insertIndex),
-  ];
+  return [...nodes.slice(0, insertIndex), node, ...nodes.slice(insertIndex)];
 }
 
 export function replaceStructuralChildren(

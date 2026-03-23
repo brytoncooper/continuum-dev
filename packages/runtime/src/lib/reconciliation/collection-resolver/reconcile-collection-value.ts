@@ -32,7 +32,10 @@ export function reconcileCollectionValue(
 
   const incompatibleTemplateRootType =
     priorNode.template.type !== newNode.template.type &&
-    !areCompatibleContainerTypes(priorNode.template.type, newNode.template.type);
+    !areCompatibleContainerTypes(
+      priorNode.template.type,
+      newNode.template.type
+    );
   if (incompatibleTemplateRootType) {
     return createTypeMismatchResult(priorNode, newNode, issues);
   }
@@ -187,7 +190,8 @@ function resolveMigratedItems(input: {
 
       if (migrationResult.kind === 'migrated') {
         didMigrateItems = true;
-        values[newNode.template.id] = migrationResult.value as typeof priorTemplateValue;
+        values[newNode.template.id] =
+          migrationResult.value as typeof priorTemplateValue;
         if (newNode.template.id !== priorNode.template.id) {
           delete values[priorNode.template.id];
         }

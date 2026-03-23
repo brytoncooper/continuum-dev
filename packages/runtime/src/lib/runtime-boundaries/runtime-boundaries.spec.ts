@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
-import { applyContinuumNodeValueWrite, decideContinuumNodeValueWrite } from './direct-updates.js';
+import {
+  applyContinuumNodeValueWrite,
+  decideContinuumNodeValueWrite,
+} from './direct-updates.js';
 import { applyContinuumViewStreamPart } from './stream-parts.js';
 import { applyContinuumViewUpdate } from './view-updates.js';
 
@@ -460,7 +463,9 @@ describe('runtime state operations', () => {
       priorResolutions: [],
     });
 
-    const profile = applied.view.nodes[0] as { children: Array<{ id: string }> };
+    const profile = applied.view.nodes[0] as {
+      children: Array<{ id: string }>;
+    };
     expect(profile.children.map((child) => child.id)).toEqual(['contact_row']);
     expect(applied.data.values['profile/contact_row/email']).toEqual({
       value: 'jordan@example.com',
@@ -526,7 +531,9 @@ describe('runtime state operations', () => {
       priorResolutions: [],
     });
 
-    const contact = applied.view.nodes[1] as { children: Array<{ id: string }> };
+    const contact = applied.view.nodes[1] as {
+      children: Array<{ id: string }>;
+    };
     expect(contact.children.map((child) => child.id)).toEqual(['email']);
     expect(applied.data.values['contact/email']).toEqual({
       value: 'jordan@example.com',

@@ -30,12 +30,12 @@ describe('restore-reviews orchestrator', () => {
         viewId: 'v1',
         nodes: [],
         timestamp: Date.now(),
-        sessionId: 'test-session'
+        sessionId: 'test-session',
       },
       currentData: {
         values: {},
         detachedValues: {},
-        lineage: { timestamp: Date.now(), sessionId: 'test-session' }
+        lineage: { timestamp: Date.now(), sessionId: 'test-session' },
       },
       streams: new Map(),
       listeners: new Set(),
@@ -43,7 +43,7 @@ describe('restore-reviews orchestrator', () => {
       issueListeners: new Set(),
       streamListeners: new Set(),
       approvedRestoreTargets: {},
-      rejectedRestoreReviews: {}
+      rejectedRestoreReviews: {},
     } as unknown as SessionState;
   });
 

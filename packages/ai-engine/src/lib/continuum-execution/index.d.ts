@@ -1,10 +1,6 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 
-export type ContinuumExecutionMode =
-  | 'state'
-  | 'patch'
-  | 'transform'
-  | 'view';
+export type ContinuumExecutionMode = 'state' | 'patch' | 'transform' | 'view';
 
 export interface ContinuumExecutionTarget {
   nodeId: string;

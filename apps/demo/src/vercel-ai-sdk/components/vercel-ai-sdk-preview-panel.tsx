@@ -83,7 +83,8 @@ export function VercelAiSdkPreviewPanel({
         Your Vercel AI SDK output, stabilized
       </div>
       <div style={helperTextStyle}>
-        The stream can change the form structure. Continuum keeps matching user state attached while the UI updates.
+        The stream can change the form structure. Continuum keeps matching user
+        state attached while the UI updates.
       </div>
       <div ref={previewFrameRef} style={previewFrameStyle}>
         {previewStatusText ? (

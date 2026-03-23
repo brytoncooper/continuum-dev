@@ -221,15 +221,15 @@ Time resolution is deterministic under the current reconcile contract:
 
 ## Submodule Map
 
-| Module | What it owns | Primary doc |
-| --- | --- | --- |
-| `view-traversal` | deterministic DFS traversal, node pathing, depth/cycle issues | [`view-traversal/README.md`](./view-traversal/README.md) |
-| `differ` | canonical `StateDiff` and `ReconciliationResolution` factories | [`differ/README.md`](./differ/README.md) |
-| `migrator` | migration strategy selection and deterministic chain execution | [`migrator/README.md`](./migrator/README.md) |
-| `collection-resolver` | collection-value normalization, remap/migrate, constraints | [`collection-resolver/README.md`](./collection-resolver/README.md) |
-| `node-resolver` | per-node resolution and removed-node detection | [`node-resolver/README.md`](./node-resolver/README.md) |
-| `result-builder` | fresh/blind builders, final assembly, lineage + detached merge | [`result-builder/README.md`](./result-builder/README.md) |
-| `lineage-utils.ts` | shared value-lineage carry helper used by builders/resolvers | in-file contracts |
+| Module                | What it owns                                                   | Primary doc                                                        |
+| --------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `view-traversal`      | deterministic DFS traversal, node pathing, depth/cycle issues  | [`view-traversal/README.md`](./view-traversal/README.md)           |
+| `differ`              | canonical `StateDiff` and `ReconciliationResolution` factories | [`differ/README.md`](./differ/README.md)                           |
+| `migrator`            | migration strategy selection and deterministic chain execution | [`migrator/README.md`](./migrator/README.md)                       |
+| `collection-resolver` | collection-value normalization, remap/migrate, constraints     | [`collection-resolver/README.md`](./collection-resolver/README.md) |
+| `node-resolver`       | per-node resolution and removed-node detection                 | [`node-resolver/README.md`](./node-resolver/README.md)             |
+| `result-builder`      | fresh/blind builders, final assembly, lineage + detached merge | [`result-builder/README.md`](./result-builder/README.md)           |
+| `lineage-utils.ts`    | shared value-lineage carry helper used by builders/resolvers   | in-file contracts                                                  |
 
 ## How Detached Values Flow
 

@@ -93,7 +93,11 @@ describe('traverseViewNodes', () => {
 
     const result = traverseViewNodes(nodes, 2);
 
-    expect(result.visited.map((entry) => entry.nodeId)).toEqual(['a', 'a/b', 'a/b/c']);
+    expect(result.visited.map((entry) => entry.nodeId)).toEqual([
+      'a',
+      'a/b',
+      'a/b/c',
+    ]);
     expect(result.issues).toContainEqual(
       expect.objectContaining({
         code: ISSUE_CODES.VIEW_MAX_DEPTH_EXCEEDED,

@@ -20,8 +20,7 @@ export function buildDetachedFieldHints(
       typeof record.reason === 'string' ? record.reason : 'node-removed';
     const viewVersion =
       typeof record.viewVersion === 'string' ? record.viewVersion : 'unknown';
-    const semanticKey =
-      typeof record.key === 'string' ? record.key : undefined;
+    const semanticKey = typeof record.key === 'string' ? record.key : undefined;
     const previousLabel =
       typeof record.previousLabel === 'string'
         ? truncateString(record.previousLabel)

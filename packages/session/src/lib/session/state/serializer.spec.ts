@@ -7,7 +7,10 @@ describe('serializeSession', () => {
   it('returns a JSON-serializable object with formatVersion', () => {
     const internal = createEmptySessionState('my-session', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
-    internal.currentData = { values: { a: { value: 'hello' } }, lineage: { timestamp: 1000, sessionId: 'my-session' } };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      lineage: { timestamp: 1000, sessionId: 'my-session' },
+    };
 
     const serialized = serializeSession(internal) as Record<string, unknown>;
 
@@ -19,7 +22,17 @@ describe('serializeSession', () => {
   it('includes all session data', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
-    internal.eventLog = [{ interactionId: 'i1', sessionId: 's', nodeId: 'a', type: 'value-change', payload: {}, timestamp: 1, viewVersion: '1.0' }];
+    internal.eventLog = [
+      {
+        interactionId: 'i1',
+        sessionId: 's',
+        nodeId: 'a',
+        type: 'value-change',
+        payload: {},
+        timestamp: 1,
+        viewVersion: '1.0',
+      },
+    ];
 
     const serialized = serializeSession(internal) as Record<string, unknown>;
 
@@ -107,7 +120,9 @@ describe('serializeSession', () => {
       checkpoints: Array<{ snapshot: { data: Record<string, unknown> } }>;
     };
 
-    expect('viewContext' in serialized.checkpoints[0].snapshot.data).toBe(false);
+    expect('viewContext' in serialized.checkpoints[0].snapshot.data).toBe(
+      false
+    );
   });
 });
 
@@ -115,7 +130,10 @@ describe('deserializeToState', () => {
   it('reconstructs SessionState from serialized data', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
-    internal.currentData = { values: { a: { value: 'hello' } }, lineage: { timestamp: 1000, sessionId: 's' } };
+    internal.currentData = {
+      values: { a: { value: 'hello' } },
+      lineage: { timestamp: 1000, sessionId: 's' },
+    };
     const serialized = serializeSession(internal);
 
     const restored = deserializeToState(serialized, () => 2000);
@@ -128,13 +146,38 @@ describe('deserializeToState', () => {
   });
 
   it('throws when format version is too high', () => {
-    const data = { formatVersion: 999, sessionId: 's', currentView: null, currentData: null, priorView: null, eventLog: [], pendingIntents: [], checkpoints: [], issues: [], diffs: [], resolutions: [] };
+    const data = {
+      formatVersion: 999,
+      sessionId: 's',
+      currentView: null,
+      currentData: null,
+      priorView: null,
+      eventLog: [],
+      pendingIntents: [],
+      checkpoints: [],
+      issues: [],
+      diffs: [],
+      resolutions: [],
+    };
 
-    expect(() => deserializeToState(data, () => 0)).toThrow('Unsupported format version');
+    expect(() => deserializeToState(data, () => 0)).toThrow(
+      'Unsupported format version'
+    );
   });
 
   it('accepts data without formatVersion (legacy)', () => {
-    const data = { sessionId: 's', currentView: null, currentData: null, priorView: null, eventLog: [], pendingIntents: [], checkpoints: [], issues: [], diffs: [], resolutions: [] };
+    const data = {
+      sessionId: 's',
+      currentView: null,
+      currentData: null,
+      priorView: null,
+      eventLog: [],
+      pendingIntents: [],
+      checkpoints: [],
+      issues: [],
+      diffs: [],
+      resolutions: [],
+    };
 
     const restored = deserializeToState(data, () => 0);
 
@@ -142,7 +185,12 @@ describe('deserializeToState', () => {
   });
 
   it('defaults missing arrays to empty', () => {
-    const data = { sessionId: 's', currentView: null, currentData: null, priorView: null };
+    const data = {
+      sessionId: 's',
+      currentView: null,
+      currentData: null,
+      priorView: null,
+    };
 
     const restored = deserializeToState(data, () => 0);
 
@@ -211,9 +259,9 @@ describe('deserializeToState', () => {
 
     const restored = deserializeToState(data, () => 0);
 
-    expect('viewContext' in (restored.checkpoints[0].snapshot.data as object)).toBe(
-      false
-    );
+    expect(
+      'viewContext' in (restored.checkpoints[0].snapshot.data as object)
+    ).toBe(false);
   });
 
   it('drops focus when deserializing', () => {
@@ -231,12 +279,16 @@ describe('deserializeToState', () => {
   });
 
   it('throws when payload is not an object', () => {
-    expect(() => deserializeToState('bad', () => 0)).toThrow('Invalid serialized session');
+    expect(() => deserializeToState('bad', () => 0)).toThrow(
+      'Invalid serialized session'
+    );
   });
 
   it('throws when sessionId is missing or not a string', () => {
     expect(() => deserializeToState({}, () => 0)).toThrow('sessionId');
-    expect(() => deserializeToState({ sessionId: 1 }, () => 0)).toThrow('sessionId');
+    expect(() => deserializeToState({ sessionId: 1 }, () => 0)).toThrow(
+      'sessionId'
+    );
   });
 
   it('throws when collection fields are not arrays', () => {
@@ -257,7 +309,17 @@ describe('deserializeToState', () => {
       currentView: null,
       currentData: null,
       priorView: null,
-      eventLog: [{ interactionId: 'i1', sessionId: 's', nodeId: 'a', type: 'x', payload: {}, timestamp: 1, viewVersion: '1.0' }],
+      eventLog: [
+        {
+          interactionId: 'i1',
+          sessionId: 's',
+          nodeId: 'a',
+          type: 'x',
+          payload: {},
+          timestamp: 1,
+          viewVersion: '1.0',
+        },
+      ],
       pendingIntents: [],
       checkpoints: [],
       issues: [],
@@ -270,17 +332,31 @@ describe('deserializeToState', () => {
 
   it('trims arrays exceeding configured size limits', () => {
     const events = Array.from({ length: 10 }, (_, i) => ({
-      interactionId: `i${i}`, sessionId: 's', nodeId: 'a',
-      type: 'value-change', payload: {}, timestamp: i, viewVersion: '1.0',
+      interactionId: `i${i}`,
+      sessionId: 's',
+      nodeId: 'a',
+      type: 'value-change',
+      payload: {},
+      timestamp: i,
+      viewVersion: '1.0',
     }));
     const data = {
-      sessionId: 's', currentView: null, currentData: null, priorView: null,
-      eventLog: events, pendingIntents: [], checkpoints: [],
-      issues: [], diffs: [], resolutions: [],
+      sessionId: 's',
+      currentView: null,
+      currentData: null,
+      priorView: null,
+      eventLog: events,
+      pendingIntents: [],
+      checkpoints: [],
+      issues: [],
+      diffs: [],
+      resolutions: [],
     };
 
     const restored = deserializeToState(data, () => 0, {
-      maxEventLogSize: 3, maxPendingIntents: 2, maxCheckpoints: 1,
+      maxEventLogSize: 3,
+      maxPendingIntents: 2,
+      maxCheckpoints: 1,
     });
 
     expect(restored.eventLog.length).toBe(3);

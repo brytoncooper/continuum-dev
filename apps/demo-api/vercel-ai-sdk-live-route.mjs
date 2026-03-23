@@ -104,7 +104,8 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       });
 
       const converted = await convertToModelMessages(uiMessages);
-      const modelMessages = normalizeModelMessagesFileDataUrlsToBase64(converted);
+      const modelMessages =
+        normalizeModelMessagesFileDataUrlsToBase64(converted);
       const result = streamText({
         model: resolvedProvider.languageModel,
         system: DEBUG_ECHO_SYSTEM_PROMPT,
@@ -164,11 +165,14 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
       viewStreamMode: 'foreground',
       async onResult(result) {
         if (result.level === 'warning') {
-          console.warn('[vercel-ai-sdk-live-route] Continuum returned without applying changes.', {
-            mode: result.mode,
-            status: result.status,
-            reason: 'reason' in result ? result.reason : undefined,
-          });
+          console.warn(
+            '[vercel-ai-sdk-live-route] Continuum returned without applying changes.',
+            {
+              mode: result.mode,
+              status: result.status,
+              reason: 'reason' in result ? result.reason : undefined,
+            }
+          );
         }
         try {
           const filePath = await writeVercelAiSdkExecutionLogFile({
@@ -178,7 +182,9 @@ export async function handleVercelAiSdkLiveRequest(request, env = {}) {
             providerLabel: `${resolvedProvider.provider.label} (${resolvedProvider.modelId})`,
             ...serializeContinuumExecutionForObservability(instruction, result),
           });
-          console.log(`[vercel-ai-sdk-live-route] Wrote execution log: ${filePath}`);
+          console.log(
+            `[vercel-ai-sdk-live-route] Wrote execution log: ${filePath}`
+          );
         } catch (error) {
           console.error(
             '[vercel-ai-sdk-live-route] Failed to write execution log file',

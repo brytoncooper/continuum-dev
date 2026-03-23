@@ -5,7 +5,11 @@ import type { Session } from '@continuum-dev/session';
 import { describe, expect, it } from 'vitest';
 import { ContinuumProvider } from '../context/index.js';
 import { useContinuumSession } from '../hooks/provider.js';
-import { deriveNodeBuildState, resolveStreamStatus, useStreamingMappedProps } from './streaming.js';
+import {
+  deriveNodeBuildState,
+  resolveStreamStatus,
+  useStreamingMappedProps,
+} from './streaming.js';
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -74,9 +78,9 @@ describe('renderer streaming', () => {
       )
     ).toBe('building');
 
-    expect(
-      deriveNodeBuildState(null, 'profile/name', undefined)
-    ).toBe('committed');
+    expect(deriveNodeBuildState(null, 'profile/name', undefined)).toBe(
+      'committed'
+    );
   });
 
   it('adds streaming props while preserving caller mapped props', () => {

@@ -1,4 +1,9 @@
-import type { ContinuitySnapshot, NodeValue, Session, SessionStream } from '@continuum-dev/core';
+import type {
+  ContinuitySnapshot,
+  NodeValue,
+  Session,
+  SessionStream,
+} from '@continuum-dev/core';
 
 type Listener = () => void;
 

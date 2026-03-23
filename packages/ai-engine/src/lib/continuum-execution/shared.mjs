@@ -95,9 +95,7 @@ export function uniqueNonEmptyStrings(values) {
   return [
     ...new Set(
       values
-        .filter(
-          (value) => typeof value === 'string' && value.trim().length > 0
-        )
+        .filter((value) => typeof value === 'string' && value.trim().length > 0)
         .map((value) => value.trim())
     ),
   ];
@@ -136,11 +134,7 @@ function isStatefulNode(node) {
   );
 }
 
-export function collectStatefulEntries(
-  nodes,
-  parentPath = '',
-  entries = []
-) {
+export function collectStatefulEntries(nodes, parentPath = '', entries = []) {
   if (!Array.isArray(nodes)) {
     return entries;
   }
@@ -228,7 +222,9 @@ export function summarizeCurrentData(currentData, limit = 20) {
   }
 
   return Object.entries(currentData)
-    .filter(([, entry]) => entry && typeof entry === 'object' && 'value' in entry)
+    .filter(
+      ([, entry]) => entry && typeof entry === 'object' && 'value' in entry
+    )
     .slice(0, limit)
     .map(([nodeId, entry]) => {
       const rawValue = entry.value;
@@ -256,11 +252,7 @@ export function cloneView(view) {
   return structuredClone(view);
 }
 
-export function findNodeByCanonicalId(
-  nodes,
-  canonicalId,
-  parentPath = ''
-) {
+export function findNodeByCanonicalId(nodes, canonicalId, parentPath = '') {
   if (!Array.isArray(nodes)) {
     return null;
   }

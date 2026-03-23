@@ -57,7 +57,9 @@ export function sanitizeStructuredOutputSchema(value: unknown): unknown {
   }
 
   const result: Record<string, unknown> = {};
-  for (const [key, nextValue] of Object.entries(value as Record<string, unknown>)) {
+  for (const [key, nextValue] of Object.entries(
+    value as Record<string, unknown>
+  )) {
     if (UNSUPPORTED_STRUCTURED_OUTPUT_KEYS.has(key)) {
       continue;
     }
@@ -151,7 +153,9 @@ export function sanitizeGoogleResponseSchema(value: unknown): unknown {
   }
 
   const result: Record<string, unknown> = {};
-  for (const [key, nextValue] of Object.entries(value as Record<string, unknown>)) {
+  for (const [key, nextValue] of Object.entries(
+    value as Record<string, unknown>
+  )) {
     if (key === 'additionalProperties') {
       continue;
     }
@@ -195,7 +199,9 @@ export function sanitizeAnthropicOutputSchema(value: unknown): unknown {
   }
 
   const result: Record<string, unknown> = {};
-  for (const [key, nextValue] of Object.entries(value as Record<string, unknown>)) {
+  for (const [key, nextValue] of Object.entries(
+    value as Record<string, unknown>
+  )) {
     if (UNSUPPORTED_ANTHROPIC_SCHEMA_KEYS.has(key)) {
       continue;
     }

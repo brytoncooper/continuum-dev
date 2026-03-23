@@ -74,7 +74,11 @@ export function attemptMigrationImpl(
     return explicitResult;
   }
 
-  if (!input.newNode.migrations || !input.priorNode.hash || !input.newNode.hash) {
+  if (
+    !input.newNode.migrations ||
+    !input.priorNode.hash ||
+    !input.newNode.hash
+  ) {
     return { kind: 'none' };
   }
 
@@ -110,7 +114,9 @@ function normalizeMigrationAttemptInput(
   return inputOrNodeId;
 }
 
-function toMigrationContext(input: MigrationAttemptInput): MigrationStrategyContext {
+function toMigrationContext(
+  input: MigrationAttemptInput
+): MigrationStrategyContext {
   return {
     nodeId: input.nodeId,
     priorNode: input.priorNode,
@@ -182,7 +188,9 @@ function attemptDirectRuleMigration(
   }
 }
 
-function attemptChainMigration(input: MigrationAttemptInput): MigrationAttemptResult {
+function attemptChainMigration(
+  input: MigrationAttemptInput
+): MigrationAttemptResult {
   const strategyRegistry = input.options.strategyRegistry!;
   const path = findMigrationPath({
     rules: input.newNode.migrations!,
@@ -267,10 +275,7 @@ function resolveMigrationStrategyDispatchMode(
     return 'context';
   }
 
-  if (
-    isIdentifier(trimmed) &&
-    referencesContextProperties(source, trimmed)
-  ) {
+  if (isIdentifier(trimmed) && referencesContextProperties(source, trimmed)) {
     migrationStrategyDispatchCache.set(strategy, 'context');
     return 'context';
   }
@@ -335,12 +340,11 @@ function referencesContextProperties(
   });
 }
 
-function findMigrationPath(
-  request: MigrationPathRequest
-): RuleEdge[] | null {
+function findMigrationPath(request: MigrationPathRequest): RuleEdge[] | null {
   const edges: RuleEdge[] = request.rules
     .filter(
-      (rule) => !!rule.strategyId && !!request.strategyRegistry[rule.strategyId!]
+      (rule) =>
+        !!rule.strategyId && !!request.strategyRegistry[rule.strategyId!]
     )
     .map((rule) => ({
       fromHash: rule.fromHash,

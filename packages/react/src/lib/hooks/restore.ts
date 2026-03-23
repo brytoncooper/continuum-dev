@@ -3,9 +3,7 @@ import type {
   DetachedRestoreReview,
   DetachedRestoreReviewCandidate,
 } from '@continuum-dev/core';
-import {
-  ContinuumRenderScopeContext,
-} from '../context/render-contexts.js';
+import { ContinuumRenderScopeContext } from '../context/render-contexts.js';
 import { ContinuumContext } from '../context/render-contexts.js';
 import {
   EMPTY_RESTORE_CANDIDATES,
@@ -84,7 +82,9 @@ export function useContinuumRestoreCandidates(
           areRestoreScopesEqual(review.scope, renderScope)
       )
       .flatMap((review) =>
-        review.candidates.filter((candidate) => candidate.targetNodeId === nodeId)
+        review.candidates.filter(
+          (candidate) => candidate.targetNodeId === nodeId
+        )
       );
 
     if (

@@ -64,7 +64,11 @@ type CursorPosition = {
 
 const demoFields: DemoField[] = [
   { key: 'person.name', label: 'Full name', initialNodeId: 'full_name' },
-  { key: 'person.email', label: 'Email address', initialNodeId: 'email_address' },
+  {
+    key: 'person.email',
+    label: 'Email address',
+    initialNodeId: 'email_address',
+  },
   { key: 'person.phone', label: 'Phone number', initialNodeId: 'phone_number' },
   { key: 'company.name', label: 'Company name' },
   { key: 'company.role', label: 'Your role' },
@@ -309,7 +313,12 @@ const roleRestoredView: ViewDefinition = {
   ],
 };
 
-const demoSteps = [initialView, expandedView, roleRemovedView, roleRestoredView] as const;
+const demoSteps = [
+  initialView,
+  expandedView,
+  roleRemovedView,
+  roleRestoredView,
+] as const;
 
 const moduleStyle: CSSProperties = {
   display: 'grid',
@@ -399,15 +408,27 @@ const panelTitleStyle = (tone: 'naive' | 'continuum'): CSSProperties => ({
   background: tone === 'continuum' ? color.success : color.danger,
 });
 
-const statusStyle = (tone: 'naive' | 'continuum', isPositive: boolean): CSSProperties => ({
+const statusStyle = (
+  tone: 'naive' | 'continuum',
+  isPositive: boolean
+): CSSProperties => ({
   ...type.small,
   display: 'inline-flex',
   alignItems: 'center',
   minWidth: 0,
   maxWidth: 220,
-  color: tone === 'continuum' ? color.success : isPositive ? color.text : color.danger,
+  color:
+    tone === 'continuum'
+      ? color.success
+      : isPositive
+      ? color.text
+      : color.danger,
   border: `1px solid ${
-    tone === 'continuum' ? color.success : isPositive ? color.border : color.danger
+    tone === 'continuum'
+      ? color.success
+      : isPositive
+      ? color.border
+      : color.danger
   }`,
   borderRadius: radius.pill,
   padding: `${space.xs}px ${space.sm}px`,
@@ -415,7 +436,11 @@ const statusStyle = (tone: 'naive' | 'continuum', isPositive: boolean): CSSPrope
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   background:
-    tone === 'continuum' ? color.successSoft : isPositive ? color.surfaceMuted : color.dangerSoft,
+    tone === 'continuum'
+      ? color.successSoft
+      : isPositive
+      ? color.surfaceMuted
+      : color.dangerSoft,
 });
 
 const previewStyle = (
@@ -431,7 +456,8 @@ const previewStyle = (
   height,
   pointerEvents: 'none',
   overflow: 'visible',
-  transition: 'transform 360ms ease, opacity 360ms ease, border-color 360ms ease',
+  transition:
+    'transform 360ms ease, opacity 360ms ease, border-color 360ms ease',
   transform: isAnimating ? 'scale(0.985) translateY(1px)' : 'scale(1)',
   opacity: (isAnimating ? 0.72 : 1) * morphOpacity,
   position: 'relative',
@@ -469,7 +495,10 @@ const overlayTextStyle: CSSProperties = {
   padding: `${space.xs}px ${space.sm}px`,
 };
 
-const cursorStyle = (position: CursorPosition, isPressed: boolean): CSSProperties => {
+const cursorStyle = (
+  position: CursorPosition,
+  isPressed: boolean
+): CSSProperties => {
   return {
     position: 'absolute',
     left: position.left,
@@ -477,7 +506,8 @@ const cursorStyle = (position: CursorPosition, isPressed: boolean): CSSPropertie
     width: 34,
     height: 34,
     transform: `translate(-50%, -50%) scale(${isPressed ? 0.88 : 1})`,
-    transition: 'left 480ms cubic-bezier(0.22, 1, 0.36, 1), top 480ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms ease, opacity 180ms ease',
+    transition:
+      'left 480ms cubic-bezier(0.22, 1, 0.36, 1), top 480ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms ease, opacity 180ms ease',
     opacity: position.visible ? 1 : 0,
     pointerEvents: 'none',
     zIndex: 5,
@@ -488,7 +518,8 @@ const cursorGlowStyle: CSSProperties = {
   position: 'absolute',
   inset: 0,
   borderRadius: 999,
-  background: 'radial-gradient(circle, rgba(117,138,255,0.38) 0%, rgba(117,138,255,0.16) 45%, rgba(117,138,255,0) 72%)',
+  background:
+    'radial-gradient(circle, rgba(117,138,255,0.38) 0%, rgba(117,138,255,0.16) 45%, rgba(117,138,255,0) 72%)',
 };
 
 const cursorRingStyle: CSSProperties = {
@@ -513,18 +544,27 @@ const outcomePopoverStyle = (
       ? { left: 10 }
       : { right: 10 }
     : side === 'naive'
-      ? { left: 6, transform: 'translateX(-100%)' }
-      : { right: 6, transform: 'translateX(100%)' }),
+    ? { left: 6, transform: 'translateX(-100%)' }
+    : { right: 6, transform: 'translateX(100%)' }),
   ...type.small,
-  color: tone === 'danger' ? color.danger : tone === 'warning' ? color.highlight : color.success,
+  color:
+    tone === 'danger'
+      ? color.danger
+      : tone === 'warning'
+      ? color.highlight
+      : color.success,
   background:
     tone === 'danger'
       ? color.surface
       : tone === 'warning'
-        ? color.surface
-        : color.surface,
+      ? color.surface
+      : color.surface,
   border: `1px solid ${
-    tone === 'danger' ? color.danger : tone === 'warning' ? color.highlight : color.success
+    tone === 'danger'
+      ? color.danger
+      : tone === 'warning'
+      ? color.highlight
+      : color.success
   }`,
   borderRadius: radius.md,
   padding: `${space.xs}px ${space.sm}px`,
@@ -547,14 +587,28 @@ function renderOutcomePopover(
   if (stepIndex === 1) {
     if (side === 'naive') {
       return (
-        <div style={outcomePopoverStyle('danger', side, isMobile ? '10%' : '20%', isMobile)}>
+        <div
+          style={outcomePopoverStyle(
+            'danger',
+            side,
+            isMobile ? '10%' : '20%',
+            isMobile
+          )}
+        >
           User data lost
         </div>
       );
     }
 
     return (
-      <div style={outcomePopoverStyle('success', side, isMobile ? '10%' : '20%', isMobile)}>
+      <div
+        style={outcomePopoverStyle(
+          'success',
+          side,
+          isMobile ? '10%' : '20%',
+          isMobile
+        )}
+      >
         Values carried forward
       </div>
     );
@@ -563,14 +617,28 @@ function renderOutcomePopover(
   if (stepIndex === 2) {
     if (side === 'naive') {
       return (
-        <div style={outcomePopoverStyle('danger', side, isMobile ? '58%' : '68%', isMobile)}>
+        <div
+          style={outcomePopoverStyle(
+            'danger',
+            side,
+            isMobile ? '58%' : '68%',
+            isMobile
+          )}
+        >
           User data lost
         </div>
       );
     }
 
     return (
-      <div style={outcomePopoverStyle('warning', side, isMobile ? '58%' : '68%', isMobile)}>
+      <div
+        style={outcomePopoverStyle(
+          'warning',
+          side,
+          isMobile ? '58%' : '68%',
+          isMobile
+        )}
+      >
         Value detached safely
       </div>
     );
@@ -579,14 +647,28 @@ function renderOutcomePopover(
   if (stepIndex === 3) {
     if (side === 'naive') {
       return (
-        <div style={outcomePopoverStyle('danger', side, isMobile ? '66%' : '76%', isMobile)}>
+        <div
+          style={outcomePopoverStyle(
+            'danger',
+            side,
+            isMobile ? '66%' : '76%',
+            isMobile
+          )}
+        >
           User data lost
         </div>
       );
     }
 
     return (
-      <div style={outcomePopoverStyle('success', side, isMobile ? '66%' : '76%', isMobile)}>
+      <div
+        style={outcomePopoverStyle(
+          'success',
+          side,
+          isMobile ? '66%' : '76%',
+          isMobile
+        )}
+      >
         Value restored
       </div>
     );
@@ -610,7 +692,10 @@ function buildNaiveReplay(
   companyNameValue: string,
   companyRoleValue: string
 ): ReplayResult {
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, demoSteps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, demoSteps.length - 1)
+  );
   let currentView = demoSteps[0];
   let values: Record<string, NodeValue> = {};
 
@@ -658,20 +743,22 @@ function buildNaiveReplay(
   ) as Record<string, string>;
   const hasStructuralLoss =
     boundedStepIndex >= 1 &&
-    (!fieldValues['person.name'] || !fieldValues['person.email'] || !fieldValues['person.phone']);
+    (!fieldValues['person.name'] ||
+      !fieldValues['person.email'] ||
+      !fieldValues['person.phone']);
 
   const status =
     boundedStepIndex === 0
       ? 'Personal fields filled'
       : boundedStepIndex === 1
-        ? hasStructuralLoss
-          ? 'Earlier fields lost on regenerate'
-          : companyNameValue || companyRoleValue
-            ? 'Company section added'
-            : 'New fields are blank'
-        : boundedStepIndex === 2
-          ? 'Role data lost'
-          : 'Role field came back empty';
+      ? hasStructuralLoss
+        ? 'Earlier fields lost on regenerate'
+        : companyNameValue || companyRoleValue
+        ? 'Company section added'
+        : 'New fields are blank'
+      : boundedStepIndex === 2
+      ? 'Role data lost'
+      : 'Role field came back empty';
 
   return {
     view: currentView,
@@ -705,7 +792,10 @@ function ContinuumRuntimePreview({
 }) {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
-  const boundedStepIndex = Math.max(0, Math.min(stepIndex, demoSteps.length - 1));
+  const boundedStepIndex = Math.max(
+    0,
+    Math.min(stepIndex, demoSteps.length - 1)
+  );
 
   useEffect(() => {
     session.reset();
@@ -759,18 +849,20 @@ function ContinuumRuntimePreview({
     boundedStepIndex === 0
       ? 'Personal fields filled'
       : boundedStepIndex === 1
-        ? fieldValues['person.name'] && fieldValues['person.email'] && fieldValues['person.phone']
-          ? companyNameValue || companyRoleValue
-            ? 'Renamed fields kept their values'
-            : 'Existing values carried forward'
-          : 'Reconciliation still in progress'
-        : boundedStepIndex === 2
-          ? hasDetachedRole
-            ? 'Role detached safely'
-            : 'Processing detached value'
-          : fieldValues['company.role']
-            ? 'Role restored'
-            : 'Waiting to restore';
+      ? fieldValues['person.name'] &&
+        fieldValues['person.email'] &&
+        fieldValues['person.phone']
+        ? companyNameValue || companyRoleValue
+          ? 'Renamed fields kept their values'
+          : 'Existing values carried forward'
+        : 'Reconciliation still in progress'
+      : boundedStepIndex === 2
+      ? hasDetachedRole
+        ? 'Role detached safely'
+        : 'Processing detached value'
+      : fieldValues['company.role']
+      ? 'Role restored'
+      : 'Waiting to restore';
 
   return (
     <div ref={panelRef} style={panelStyle}>
@@ -778,14 +870,23 @@ function ContinuumRuntimePreview({
         <div style={panelTitleStyle('continuum')}>WITH CONTINUUM</div>
         <div style={statusStyle('continuum', true)}>{status}</div>
       </div>
-      <div style={previewStyle('continuum', isAnimating, morphOpacity, previewHeight)}>
+      <div
+        style={previewStyle(
+          'continuum',
+          isAnimating,
+          morphOpacity,
+          previewHeight
+        )}
+      >
         <div style={previewViewportStyle}>
           <ContinuumRenderer view={currentView} />
         </div>
         {renderOutcomePopover('continuum', boundedStepIndex, phase, isMobile)}
         {phase === 'thinking' ? (
           <div style={overlayStyle}>
-            <div style={overlayTextStyle}>{getThinkingLabel(boundedStepIndex)}</div>
+            <div style={overlayTextStyle}>
+              {getThinkingLabel(boundedStepIndex)}
+            </div>
           </div>
         ) : null}
       </div>
@@ -878,14 +979,19 @@ export function HeroProofModule({
 
     const updatePosition = () => {
       const moduleRect = moduleElement.getBoundingClientRect();
-      const naivePanelRect = naivePanelRef.current?.getBoundingClientRect() ?? null;
-      const panelRect = continuumPanelRef.current?.getBoundingClientRect() ?? null;
+      const naivePanelRect =
+        naivePanelRef.current?.getBoundingClientRect() ?? null;
+      const panelRect =
+        continuumPanelRef.current?.getBoundingClientRect() ?? null;
       const chatRect = chatInputRef.current?.getBoundingClientRect() ?? null;
 
       if (cursorTarget === 'hidden') {
         if (panelRect) {
           setCursorPosition({
-            left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.52 : 0.6),
+            left:
+              panelRect.left -
+              moduleRect.left +
+              panelRect.width * (isMobile ? 0.52 : 0.6),
             top: panelRect.top - moduleRect.top + panelRect.height * 0.34,
             visible: true,
           });
@@ -912,9 +1018,13 @@ export function HeroProofModule({
       if (cursorTarget === 'naive_identity' && naivePanelRect) {
         setCursorPosition({
           left:
-            naivePanelRect.left - moduleRect.left + naivePanelRect.width * (isMobile ? 0.56 : 0.6),
+            naivePanelRect.left -
+            moduleRect.left +
+            naivePanelRect.width * (isMobile ? 0.56 : 0.6),
           top:
-            naivePanelRect.top - moduleRect.top + naivePanelRect.height * (isMobile ? 0.7 : 0.67),
+            naivePanelRect.top -
+            moduleRect.top +
+            naivePanelRect.height * (isMobile ? 0.7 : 0.67),
           visible: true,
         });
         return;
@@ -922,8 +1032,14 @@ export function HeroProofModule({
 
       if (cursorTarget === 'continuum_identity' && panelRect) {
         setCursorPosition({
-          left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.56 : 0.6),
-          top: panelRect.top - moduleRect.top + panelRect.height * (isMobile ? 0.7 : 0.67),
+          left:
+            panelRect.left -
+            moduleRect.left +
+            panelRect.width * (isMobile ? 0.56 : 0.6),
+          top:
+            panelRect.top -
+            moduleRect.top +
+            panelRect.height * (isMobile ? 0.7 : 0.67),
           visible: true,
         });
         return;
@@ -931,7 +1047,10 @@ export function HeroProofModule({
 
       if (cursorTarget === 'company_name' && panelRect) {
         setCursorPosition({
-          left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.56 : 0.7),
+          left:
+            panelRect.left -
+            moduleRect.left +
+            panelRect.width * (isMobile ? 0.56 : 0.7),
           top: panelRect.top - moduleRect.top + panelRect.height * 0.54,
           visible: true,
         });
@@ -941,9 +1060,13 @@ export function HeroProofModule({
       if (cursorTarget === 'naive_role' && naivePanelRect) {
         setCursorPosition({
           left:
-            naivePanelRect.left - moduleRect.left + naivePanelRect.width * (isMobile ? 0.56 : 0.62),
+            naivePanelRect.left -
+            moduleRect.left +
+            naivePanelRect.width * (isMobile ? 0.56 : 0.62),
           top:
-            naivePanelRect.top - moduleRect.top + naivePanelRect.height * (isMobile ? 0.84 : 0.83),
+            naivePanelRect.top -
+            moduleRect.top +
+            naivePanelRect.height * (isMobile ? 0.84 : 0.83),
           visible: true,
         });
         return;
@@ -951,7 +1074,10 @@ export function HeroProofModule({
 
       if (cursorTarget === 'company_role' && panelRect) {
         setCursorPosition({
-          left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.58 : 0.72),
+          left:
+            panelRect.left -
+            moduleRect.left +
+            panelRect.width * (isMobile ? 0.58 : 0.72),
           top: panelRect.top - moduleRect.top + panelRect.height * 0.7,
           visible: true,
         });
@@ -960,8 +1086,14 @@ export function HeroProofModule({
 
       if (cursorTarget === 'continuum_role' && panelRect) {
         setCursorPosition({
-          left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.56 : 0.62),
-          top: panelRect.top - moduleRect.top + panelRect.height * (isMobile ? 0.84 : 0.83),
+          left:
+            panelRect.left -
+            moduleRect.left +
+            panelRect.width * (isMobile ? 0.56 : 0.62),
+          top:
+            panelRect.top -
+            moduleRect.top +
+            panelRect.height * (isMobile ? 0.84 : 0.83),
           visible: true,
         });
         return;
@@ -971,7 +1103,10 @@ export function HeroProofModule({
       if (!targetElement) {
         if (panelRect) {
           setCursorPosition({
-            left: panelRect.left - moduleRect.left + panelRect.width * (isMobile ? 0.52 : 0.6),
+            left:
+              panelRect.left -
+              moduleRect.left +
+              panelRect.width * (isMobile ? 0.52 : 0.6),
             top: panelRect.top - moduleRect.top + panelRect.height * 0.34,
             visible: true,
           });
@@ -1000,7 +1135,14 @@ export function HeroProofModule({
       window.cancelAnimationFrame(frameId);
       window.removeEventListener('resize', updatePosition);
     };
-  }, [companyNameLength, companyRoleLength, cursorTarget, isMobile, morphOpacity, stepIndex]);
+  }, [
+    companyNameLength,
+    companyRoleLength,
+    cursorTarget,
+    isMobile,
+    morphOpacity,
+    stepIndex,
+  ]);
 
   useEffect(() => {
     if (!isModuleVisible) {
@@ -1242,8 +1384,14 @@ export function HeroProofModule({
     return clearTimers;
   }, [isModuleVisible, onInteraction]);
 
-  const companyNameValue = inputValues['company.name'].slice(0, companyNameLength);
-  const companyRoleValue = inputValues['company.role'].slice(0, companyRoleLength);
+  const companyNameValue = inputValues['company.name'].slice(
+    0,
+    companyNameLength
+  );
+  const companyRoleValue = inputValues['company.role'].slice(
+    0,
+    companyRoleLength
+  );
   const previewHeight = proofPreviewHeight(isMobile);
   const naiveReplay = useMemo(
     () => buildNaiveReplay(stepIndex, companyNameValue, companyRoleValue),
@@ -1251,8 +1399,11 @@ export function HeroProofModule({
   );
   const isAnimating = phase === 'thinking' || phase === 'morphing';
   const chatText =
-    phase === 'prompt_typing' ? currentPrompt.slice(0, typedLength) : currentPrompt;
-  const showChatCaret = phase === 'prompt_typing' && typedLength < currentPrompt.length;
+    phase === 'prompt_typing'
+      ? currentPrompt.slice(0, typedLength)
+      : currentPrompt;
+  const showChatCaret =
+    phase === 'prompt_typing' && typedLength < currentPrompt.length;
 
   return (
     <div ref={moduleRef} style={moduleStyle}>
@@ -1261,15 +1412,19 @@ export function HeroProofModule({
           {phase === 'idle'
             ? 'Starting with name, email, and phone'
             : phase === 'filling_company'
-              ? 'New company fields are being filled'
-              : 'User asks AI to change the form'}
+            ? 'New company fields are being filled'
+            : 'User asks AI to change the form'}
         </div>
         <div style={chatRowStyle}>
           <div ref={chatInputRef} style={chatInputStyle}>
             {chatText}
             {showChatCaret ? '|' : ''}
           </div>
-          <button ref={submitButtonRef} type="button" style={submitButtonStyle(phase)}>
+          <button
+            ref={submitButtonRef}
+            type="button"
+            style={submitButtonStyle(phase)}
+          >
             Submit
           </button>
         </div>
@@ -1277,21 +1432,35 @@ export function HeroProofModule({
       <div
         style={{
           ...panelsGridStyle,
-          gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : panelsGridStyle.gridTemplateColumns,
+          gridTemplateColumns: isMobile
+            ? 'minmax(0, 1fr)'
+            : panelsGridStyle.gridTemplateColumns,
         }}
       >
         <div ref={naivePanelRef} style={panelStyle}>
           <div style={panelHeaderStyle}>
             <div style={panelTitleStyle('naive')}>WITHOUT CONTINUUM</div>
-            <div style={statusStyle('naive', !naiveReplay.hasStructuralLoss && stepIndex === 0)}>
+            <div
+              style={statusStyle(
+                'naive',
+                !naiveReplay.hasStructuralLoss && stepIndex === 0
+              )}
+            >
               {naiveReplay.status}
             </div>
           </div>
           <div
             style={{
-              ...previewStyle('naive', isAnimating, morphOpacity, previewHeight),
+              ...previewStyle(
+                'naive',
+                isAnimating,
+                morphOpacity,
+                previewHeight
+              ),
               borderColor:
-                naiveReplay.hasStructuralLoss || stepIndex >= 2 ? color.danger : color.border,
+                naiveReplay.hasStructuralLoss || stepIndex >= 2
+                  ? color.danger
+                  : color.border,
               background:
                 naiveReplay.hasStructuralLoss || stepIndex >= 2
                   ? color.dangerSoft
@@ -1308,7 +1477,9 @@ export function HeroProofModule({
             {renderOutcomePopover('naive', stepIndex, phase, isMobile)}
             {phase === 'thinking' ? (
               <div style={overlayStyle}>
-                <div style={overlayTextStyle}>{getThinkingLabel(stepIndex)}</div>
+                <div style={overlayTextStyle}>
+                  {getThinkingLabel(stepIndex)}
+                </div>
               </div>
             ) : null}
           </div>

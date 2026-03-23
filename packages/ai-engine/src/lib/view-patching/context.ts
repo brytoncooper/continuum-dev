@@ -1,5 +1,10 @@
 import type { ViewDefinition } from '@continuum-dev/core';
-import { MAX_NODE_HINTS, toCompactPatchNode, truncateString, truncateUnknown } from './truncate.js';
+import {
+  MAX_NODE_HINTS,
+  toCompactPatchNode,
+  truncateString,
+  truncateUnknown,
+} from './truncate.js';
 import type { PatchContextPayload, PatchNodeHint } from './types.js';
 
 export function buildPatchContext(view: ViewDefinition): PatchContextPayload {
@@ -69,6 +74,8 @@ export function buildPatchContext(view: ViewDefinition): PatchContextPayload {
 
   return {
     nodeHints: nodeHints.slice(0, MAX_NODE_HINTS),
-    compactTree: (view.nodes as unknown[]).map((node) => toCompactPatchNode(node)),
+    compactTree: (view.nodes as unknown[]).map((node) =>
+      toCompactPatchNode(node)
+    ),
   };
 }

@@ -1,7 +1,10 @@
 import type { DetachedValue } from '@continuum-dev/contract';
 import type { SessionState } from '../state/index.js';
 import { findNodeByIdentity } from '@continuum-dev/runtime/restore-candidates';
-import type { InternalApprovedRestoreTarget, RejectedRestoreReviewState } from './types.js';
+import type {
+  InternalApprovedRestoreTarget,
+  RejectedRestoreReviewState,
+} from './types.js';
 import type { DetachedRestoreReviewCandidate } from '../../types.js';
 import type { ScopeSnapshot } from './scopes.js';
 import { scopeKey, getScopeSnapshot } from './scopes.js';
@@ -55,13 +58,18 @@ export function replayApprovedRestoreTargetToScope(
   if (scopeKey(approval.scope) !== scopeKey(scopeSnapshot.scope)) {
     return false;
   }
-  if (approval.targetViewId && approval.targetViewId !== scopeSnapshot.view.viewId) {
+  if (
+    approval.targetViewId &&
+    approval.targetViewId !== scopeSnapshot.view.viewId
+  ) {
     return false;
   }
 
-  const hasDetachedKey = scopeSnapshot.data?.detachedValues && detachedKey in scopeSnapshot.data.detachedValues;
+  const hasDetachedKey =
+    scopeSnapshot.data?.detachedValues &&
+    detachedKey in scopeSnapshot.data.detachedValues;
   const detachedValue =
-    (scopeSnapshot.data?.detachedValues?.[detachedKey]) ?? approval.detachedValue;
+    scopeSnapshot.data?.detachedValues?.[detachedKey] ?? approval.detachedValue;
   if (!hasDetachedKey) {
     return false;
   }
@@ -111,11 +119,7 @@ export function replayApprovedRestoreTargetsToStream(
   internal: SessionState,
   stream: InternalSessionStreamState
 ): boolean {
-  if (
-    stream.status !== 'open' ||
-    !stream.workingView ||
-    !stream.workingData
-  ) {
+  if (stream.status !== 'open' || !stream.workingView || !stream.workingData) {
     return false;
   }
 

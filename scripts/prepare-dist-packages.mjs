@@ -2,27 +2,12 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   writeFileSync,
 } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
-const packageNames = [
-  'contract',
-  'protocol',
-  'runtime',
-  'session',
-  'core',
-  'react',
-  'prompts',
-  'ai-connect',
-  'ai-engine',
-  'vercel-ai-sdk',
-  'starter-kit',
-  'starter-kit-ai',
-  'ai-core',
-];
+import { loadAlignedReleasePackages } from './release-public-packages.mjs';
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
@@ -49,9 +34,9 @@ function stripSourceExportCondition(packageJson) {
 }
 
 function main() {
-  for (const packageName of packageNames) {
-    const sourceRoot = resolve(process.cwd(), 'packages', packageName);
-    const distRoot = resolve(process.cwd(), 'dist', 'packages', packageName);
+  for (const releasePackage of loadAlignedReleasePackages()) {
+    const sourceRoot = releasePackage.packageRoot;
+    const distRoot = releasePackage.distRoot;
     const sourcePackageJsonPath = resolve(sourceRoot, 'package.json');
     const distPackageJsonPath = resolve(distRoot, 'package.json');
     const sourceReadmePath = resolve(sourceRoot, 'README.md');
@@ -69,7 +54,7 @@ function main() {
 
     if (!existsSync(distRoot)) {
       throw new Error(
-        `Missing dist output for package "${packageName}": ${distRoot}`
+        `Missing dist output for package "${releasePackage.dir}": ${distRoot}`
       );
     }
 

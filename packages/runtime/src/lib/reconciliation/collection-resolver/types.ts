@@ -4,7 +4,10 @@ import type {
   NodeValue,
   ViewNode,
 } from '@continuum-dev/contract';
-import type { ReconciliationOptions, ReconciliationIssue } from '../../types.js';
+import type {
+  ReconciliationOptions,
+  ReconciliationIssue,
+} from '../../types.js';
 
 export interface CollectionResolutionResult {
   value: NodeValue<CollectionNodeState>;

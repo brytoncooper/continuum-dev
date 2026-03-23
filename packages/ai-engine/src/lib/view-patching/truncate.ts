@@ -82,8 +82,10 @@ export function toCompactPatchNode(input: unknown): CompactPatchNode {
   };
 
   if (typeof source.key === 'string') compact.key = source.key;
-  if (typeof source.semanticKey === 'string') compact.semanticKey = source.semanticKey;
-  if (typeof source.label === 'string') compact.label = truncateString(source.label);
+  if (typeof source.semanticKey === 'string')
+    compact.semanticKey = source.semanticKey;
+  if (typeof source.label === 'string')
+    compact.label = truncateString(source.label);
   if (typeof source.description === 'string') {
     compact.description = truncateString(source.description);
   }
@@ -91,8 +93,10 @@ export function toCompactPatchNode(input: unknown): CompactPatchNode {
     compact.placeholder = truncateString(source.placeholder);
   }
   if (typeof source.dataType === 'string') compact.dataType = source.dataType;
-  if (typeof source.contentType === 'string') compact.contentType = source.contentType;
-  if (typeof source.content === 'string') compact.content = truncateString(source.content);
+  if (typeof source.contentType === 'string')
+    compact.contentType = source.contentType;
+  if (typeof source.content === 'string')
+    compact.content = truncateString(source.content);
   if (typeof source.intentId === 'string') compact.intentId = source.intentId;
   if (typeof source.min === 'number') compact.min = source.min;
   if (typeof source.max === 'number') compact.max = source.max;
@@ -115,24 +119,22 @@ export function toCompactPatchNode(input: unknown): CompactPatchNode {
   }
 
   if (Array.isArray(source.options)) {
-    compact.options = source.options
-      .slice(0, MAX_OPTIONS)
-      .map((option) => {
-        const asRecord =
-          option && typeof option === 'object'
-            ? (option as Record<string, unknown>)
-            : {};
-        return {
-          value:
-            typeof asRecord.value === 'string'
-              ? truncateString(asRecord.value)
-              : String(asRecord.value ?? ''),
-          label:
-            typeof asRecord.label === 'string'
-              ? truncateString(asRecord.label)
-              : String(asRecord.label ?? ''),
-        };
-      });
+    compact.options = source.options.slice(0, MAX_OPTIONS).map((option) => {
+      const asRecord =
+        option && typeof option === 'object'
+          ? (option as Record<string, unknown>)
+          : {};
+      return {
+        value:
+          typeof asRecord.value === 'string'
+            ? truncateString(asRecord.value)
+            : String(asRecord.value ?? ''),
+        label:
+          typeof asRecord.label === 'string'
+            ? truncateString(asRecord.label)
+            : String(asRecord.label ?? ''),
+      };
+    });
     if (source.options.length > MAX_OPTIONS) {
       compact.optionsTruncatedCount = source.options.length - MAX_OPTIONS;
     }

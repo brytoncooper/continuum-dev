@@ -146,7 +146,9 @@ function resolveStateTarget(
       ? reference.nodeId.trim()
       : null;
   if (preferredNodeId) {
-    const byNodeId = targetCatalog.find((target) => target.nodeId === preferredNodeId);
+    const byNodeId = targetCatalog.find(
+      (target) => target.nodeId === preferredNodeId
+    );
     if (byNodeId) {
       return byNodeId;
     }
@@ -189,11 +191,15 @@ function resolveCollectionTemplateTarget(
   }
 
   return (
-    collectionTarget.templateFields.find((target) => target.nodeId === referenceKey) ??
+    collectionTarget.templateFields.find(
+      (target) => target.nodeId === referenceKey
+    ) ??
     collectionTarget.templateFields.find(
       (target) => target.semanticKey === referenceKey
     ) ??
-    collectionTarget.templateFields.find((target) => target.key === referenceKey) ??
+    collectionTarget.templateFields.find(
+      (target) => target.key === referenceKey
+    ) ??
     null
   );
 }
@@ -220,12 +226,18 @@ function normalizeCollectionItemValues(
   const values: Record<string, { value: ContinuumScalarValue }> = {};
 
   for (const [referenceKey, rawFieldValue] of Object.entries(source)) {
-    const templateTarget = resolveCollectionTemplateTarget(target, referenceKey);
+    const templateTarget = resolveCollectionTemplateTarget(
+      target,
+      referenceKey
+    );
     if (!templateTarget) {
       continue;
     }
 
-    const normalizedValue = coerceScalarStateValue(templateTarget, rawFieldValue);
+    const normalizedValue = coerceScalarStateValue(
+      templateTarget,
+      rawFieldValue
+    );
     if (normalizedValue === undefined) {
       continue;
     }
@@ -248,8 +260,8 @@ function normalizeCollectionStateUpdate(
   const rawItems = Array.isArray(valueRecord.items)
     ? valueRecord.items
     : Array.isArray(updateRecord.items)
-      ? updateRecord.items
-      : null;
+    ? updateRecord.items
+    : null;
 
   if (!rawItems) {
     return null;
@@ -259,11 +271,11 @@ function normalizeCollectionStateUpdate(
     .map((rawItem) => {
       const source =
         rawItem && typeof rawItem === 'object'
-          ? ('values' in (rawItem as Record<string, unknown>) &&
+          ? 'values' in (rawItem as Record<string, unknown>) &&
             rawItem.values &&
             typeof rawItem.values === 'object'
-              ? (rawItem.values as Record<string, unknown>)
-              : (rawItem as Record<string, unknown>))
+            ? (rawItem.values as Record<string, unknown>)
+            : (rawItem as Record<string, unknown>)
           : null;
       if (!source) {
         return null;
@@ -303,11 +315,11 @@ export function parseContinuumStateResponse(args: {
   const rawUpdates = Array.isArray(parsed.updates)
     ? parsed.updates
     : parsed.values && typeof parsed.values === 'object'
-      ? Object.entries(parsed.values).map(([key, value]) => ({
-          key,
-          value,
-        }))
-      : null;
+    ? Object.entries(parsed.values).map(([key, value]) => ({
+        key,
+        value,
+      }))
+    : null;
 
   if (!rawUpdates || rawUpdates.length === 0) {
     return null;

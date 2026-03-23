@@ -201,7 +201,9 @@ export function ExampleGrid({
     <div
       style={{
         ...gridStyle,
-        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : gridStyle.gridTemplateColumns,
+        gridTemplateColumns: isMobile
+          ? 'minmax(0, 1fr)'
+          : gridStyle.gridTemplateColumns,
         alignItems,
       }}
     >
@@ -247,7 +249,9 @@ export function ExampleCard({
         <div
           style={{
             ...cardHeaderStyle,
-            gridTemplateColumns: headerAction ? 'minmax(0, 1fr) auto' : undefined,
+            gridTemplateColumns: headerAction
+              ? 'minmax(0, 1fr) auto'
+              : undefined,
             alignItems: 'start',
           }}
         >

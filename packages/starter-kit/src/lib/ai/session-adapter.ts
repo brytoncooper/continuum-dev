@@ -42,10 +42,7 @@ export interface StarterKitSessionLike {
     targetNodeId: string,
     scope: DetachedRestoreScope
   ): void;
-  rejectRestoreReview?(
-    detachedKey: string,
-    scope: DetachedRestoreScope
-  ): void;
+  rejectRestoreReview?(detachedKey: string, scope: DetachedRestoreScope): void;
   rewind(checkpointId: string): void;
   reset(): void;
   updateState(nodeId: string, value: NodeValue): void;
@@ -73,10 +70,7 @@ export interface StarterKitSessionAdapter {
     targetNodeId: string,
     scope: DetachedRestoreScope
   ): void;
-  rejectRestoreReview(
-    detachedKey: string,
-    scope: DetachedRestoreScope
-  ): void;
+  rejectRestoreReview(detachedKey: string, scope: DetachedRestoreScope): void;
   rewind(checkpointId: string): void;
   reset(): void;
   updateState(nodeId: string, value: NodeValue): void;

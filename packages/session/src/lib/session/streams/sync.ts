@@ -64,7 +64,12 @@ export function syncCommittedValueToStreams(
     }
 
     stream.workingData = result.data;
-    syncIssuesForStreamStateUpdate(internal, stream, lookup.canonicalId, result.issues);
+    syncIssuesForStreamStateUpdate(
+      internal,
+      stream,
+      lookup.canonicalId,
+      result.issues
+    );
     stream.updatedAt = now;
   }
 }

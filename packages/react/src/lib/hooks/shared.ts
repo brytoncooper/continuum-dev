@@ -98,7 +98,10 @@ export function shallowRestoreReviewsEqual(
       leftReview.reviewId !== rightReview.reviewId ||
       leftReview.status !== rightReview.status ||
       !areRestoreScopesEqual(leftReview.scope, rightReview.scope) ||
-      !shallowRestoreCandidatesEqual(leftReview.candidates, rightReview.candidates)
+      !shallowRestoreCandidatesEqual(
+        leftReview.candidates,
+        rightReview.candidates
+      )
     ) {
       return false;
     }

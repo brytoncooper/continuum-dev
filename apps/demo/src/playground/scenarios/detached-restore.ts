@@ -181,22 +181,19 @@ export const detachedRestoreScenario: PlaygroundDetachedScenario = {
     {
       id: 'initial-values',
       title: 'Step 1: Filled values',
-      description:
-        'Both panes start with the same entered values.',
+      description: 'Both panes start with the same entered values.',
       view: initialView,
     },
     {
       id: 'fields-removed',
       title: 'Step 2: Fields removed',
-      description:
-        'Some fields disappear. Continuum saves the data.',
+      description: 'Some fields disappear. Continuum saves the data.',
       view: detachedView,
     },
     {
       id: 'fields-return',
       title: 'Step 3: Fields return',
-      description:
-        'Fields come back. Continuum restores the data.',
+      description: 'Fields come back. Continuum restores the data.',
       view: restoredView,
     },
   ],

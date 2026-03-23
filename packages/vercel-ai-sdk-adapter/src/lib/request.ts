@@ -48,7 +48,7 @@ export interface ContinuumVercelAiSdkRequestBody {
 }
 
 export interface BuildContinuumVercelAiSdkRequestBodyOptions<
-  BODY extends Record<string, unknown> = Record<string, unknown>,
+  BODY extends Record<string, unknown> = Record<string, unknown>
 > {
   body?: BODY | null;
   currentView?: ViewDefinition | null;
@@ -62,7 +62,7 @@ export interface BuildContinuumVercelAiSdkRequestBodyOptions<
 }
 
 export function buildContinuumVercelAiSdkRequestBody<
-  BODY extends Record<string, unknown> = Record<string, unknown>,
+  BODY extends Record<string, unknown> = Record<string, unknown>
 >(
   options: BuildContinuumVercelAiSdkRequestBodyOptions<BODY> = {}
 ): BODY & ContinuumVercelAiSdkRequestBody {

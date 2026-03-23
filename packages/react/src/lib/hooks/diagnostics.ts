@@ -65,7 +65,9 @@ export function useContinuumConflict(nodeId: string): {
   accept: () => void;
   reject: () => void;
 } {
-  const { session, store } = useRequiredContinuumContext('useContinuumConflict');
+  const { session, store } = useRequiredContinuumContext(
+    'useContinuumConflict'
+  );
   const proposalCacheRef = useRef<ProposedValue | null>(null);
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),

@@ -19,7 +19,10 @@ import type {
 } from '@continuum-dev/runtime';
 import type { DetachedValuePolicy, SessionStream } from '../../types.js';
 import type { InternalSessionStreamState } from '../streams/types.js';
-import type { InternalApprovedRestoreTarget, RejectedRestoreReviewState } from '../restore-reviews/types.js';
+import type {
+  InternalApprovedRestoreTarget,
+  RejectedRestoreReviewState,
+} from '../restore-reviews/types.js';
 
 /**
  * Internal mutable session backing state.

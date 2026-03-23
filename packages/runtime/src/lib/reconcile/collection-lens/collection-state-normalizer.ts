@@ -17,9 +17,9 @@ export function normalizeCollectionState(
     return createInitialCollectionValue(collectionNode);
   }
 
-  const items = ((value as NodeValue<CollectionNodeState>).value?.items ?? []).map(
-    (item) => ({ values: { ...(item?.values ?? {}) } })
-  );
+  const items = (
+    (value as NodeValue<CollectionNodeState>).value?.items ?? []
+  ).map((item) => ({ values: { ...(item?.values ?? {}) } }));
 
   return {
     ...(value as NodeValue<CollectionNodeState>),

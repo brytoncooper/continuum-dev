@@ -136,7 +136,8 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Planning horizon (years)',
           required: false,
           dataType: 'number',
-          description: 'Rough horizon for goals and cashflow; not a legal commitment.',
+          description:
+            'Rough horizon for goals and cashflow; not a legal commitment.',
         },
         {
           semanticKey: 'client.advisorNotes',
@@ -187,7 +188,14 @@ export const financialPlanningIntegrationCatalog = {
               label: 'Source type',
               required: true,
               dataType: 'string',
-              enumValues: ['social_security', 'pension', 'annuity', 'rental', 'part_time', 'other'],
+              enumValues: [
+                'social_security',
+                'pension',
+                'annuity',
+                'rental',
+                'part_time',
+                'other',
+              ],
             },
             {
               semanticKey: 'income.monthlyAmount',
@@ -230,7 +238,8 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Monthly fixed expenses (rollup)',
           required: true,
           dataType: 'number',
-          description: 'Should align with the sum of fixed categories when detail rows are present.',
+          description:
+            'Should align with the sum of fixed categories when detail rows are present.',
         },
         {
           shape: 'collection',
@@ -281,7 +290,12 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Risk band',
           required: true,
           dataType: 'string',
-          enumValues: ['conservative', 'moderate_balanced', 'growth', 'aggressive'],
+          enumValues: [
+            'conservative',
+            'moderate_balanced',
+            'growth',
+            'aggressive',
+          ],
         },
         {
           semanticKey: 'risk.equityAllocationPct',
@@ -483,7 +497,8 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Subtotal',
           required: false,
           dataType: 'number',
-          description: 'May be server-calculated; still persisted for snapshots.',
+          description:
+            'May be server-calculated; still persisted for snapshots.',
         },
         {
           semanticKey: 'invoice.taxTotal',
@@ -657,7 +672,13 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Shipping method',
           required: false,
           dataType: 'string',
-          enumValues: ['ground', 'expedited', 'freight', 'pickup', 'customer_arranged'],
+          enumValues: [
+            'ground',
+            'expedited',
+            'freight',
+            'pickup',
+            'customer_arranged',
+          ],
         },
         {
           semanticKey: 'salesOrder.freightAmount',
@@ -670,7 +691,13 @@ export const financialPlanningIntegrationCatalog = {
           label: 'Payment terms',
           required: false,
           dataType: 'string',
-          enumValues: ['net_15', 'net_30', 'net_45', 'due_on_receipt', 'prepaid'],
+          enumValues: [
+            'net_15',
+            'net_30',
+            'net_45',
+            'due_on_receipt',
+            'prepaid',
+          ],
         },
         {
           semanticKey: 'salesOrder.priority',
@@ -851,7 +878,14 @@ export const financialPlanningIntegrationCatalog = {
           label: 'PO status',
           required: true,
           dataType: 'string',
-          enumValues: ['draft', 'submitted', 'approved', 'partially_received', 'closed', 'cancelled'],
+          enumValues: [
+            'draft',
+            'submitted',
+            'approved',
+            'partially_received',
+            'closed',
+            'cancelled',
+          ],
         },
         {
           semanticKey: 'purchaseOrder.approvalRequired',

@@ -54,7 +54,9 @@ export function ScenarioSelector({
   const isCoreActive = coreScenario.id === activeScenarioId;
 
   return (
-    <div style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}>
+    <div
+      style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}
+    >
       <div style={introStyle}>
         Start with the basic example, or try other scenarios.
       </div>

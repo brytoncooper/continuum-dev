@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { GroupNode, ViewDefinition, ViewNode } from '@continuum-dev/contract';
+import type {
+  GroupNode,
+  ViewDefinition,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { createSession, deserialize } from '../../session.js';
 import type { Session } from '../../types.js';
 
@@ -401,7 +405,9 @@ describe('session streams subsystem', () => {
 
     expect(result.status).toBe('stale');
     expect(session.getCommittedSnapshot()?.view.version).toBe('3');
-    expect(session.getCommittedSnapshot()?.data.values['email']).toBeUndefined();
+    expect(
+      session.getCommittedSnapshot()?.data.values['email']
+    ).toBeUndefined();
   });
 
   it('notifies stream listeners when a stream lifecycle changes', () => {
@@ -487,7 +493,8 @@ describe('session streams subsystem', () => {
 
     session.commitStream(stream.streamId);
 
-    const committedGroup = session.getCommittedSnapshot()?.view.nodes[0] as GroupNode;
+    const committedGroup = session.getCommittedSnapshot()?.view
+      .nodes[0] as GroupNode;
     expect(committedGroup.children.map((child) => child.id)).toEqual(['email']);
     expect(committedGroup.children[0]).toMatchObject({
       type: 'presentation',
@@ -524,16 +531,31 @@ describe('session streams subsystem', () => {
     });
 
     expect(
-      (session.getSnapshot()?.view.nodes[0] as Extract<ViewNode, { type: 'presentation' }>).content
+      (
+        session.getSnapshot()?.view.nodes[0] as Extract<
+          ViewNode,
+          { type: 'presentation' }
+        >
+      ).content
     ).toBe('Hello world');
     expect(
-      (session.getCommittedSnapshot()?.view.nodes[0] as Extract<ViewNode, { type: 'presentation' }>).content
+      (
+        session.getCommittedSnapshot()?.view.nodes[0] as Extract<
+          ViewNode,
+          { type: 'presentation' }
+        >
+      ).content
     ).toBe('Hello');
 
     session.commitStream(stream.streamId);
 
     expect(
-      (session.getCommittedSnapshot()?.view.nodes[0] as Extract<ViewNode, { type: 'presentation' }>).content
+      (
+        session.getCommittedSnapshot()?.view.nodes[0] as Extract<
+          ViewNode,
+          { type: 'presentation' }
+        >
+      ).content
     ).toBe('Hello world');
   });
 

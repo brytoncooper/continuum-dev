@@ -302,9 +302,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
       mode: 'patch',
       level: 'success',
     });
-    expect(
-      chunks.some((chunk) => chunk.type === 'data-continuum-patch')
-    ).toBe(true);
+    expect(chunks.some((chunk) => chunk.type === 'data-continuum-patch')).toBe(
+      true
+    );
   });
 
   it('downgrades zero-mutation patch streams to a warning instead of final success', async () => {
@@ -330,7 +330,8 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
           return {
             mode: 'patch',
             source: 'Mock AI',
-            status: 'Applied localized Continuum patch operations from Mock AI.',
+            status:
+              'Applied localized Continuum patch operations from Mock AI.',
             level: 'success',
             trace: [],
             currentView,
@@ -347,7 +348,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
       const response = createUIMessageStreamResponse({ stream });
       const body = await response.text();
 
-      expect(body).toContain('Patch update could not be applied; no changes were made.');
+      expect(body).toContain(
+        'Patch update could not be applied; no changes were made.'
+      );
       expect(body).toContain('"level":"warning"');
       expect(body).not.toContain('"level":"success"');
       expect(body).not.toContain('data-continuum-patch');
@@ -391,11 +394,19 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
   it('derives conversation summary from prior chat messages for Continuum context', async () => {
     const streamSpy = vi
       .spyOn(aiEngine, 'streamContinuumExecution')
-      .mockImplementation((async function* (args) {
-        expect(args.context?.conversationSummary).toContain('Prior conversation');
-        expect(args.context?.conversationSummary).toContain('Harborline live UI');
-        expect(args.context?.conversationSummary).toContain('Assistant: Understood.');
-        expect(args.context?.conversationSummary).not.toContain('Update my profile');
+      .mockImplementation(async function* (args) {
+        expect(args.context?.conversationSummary).toContain(
+          'Prior conversation'
+        );
+        expect(args.context?.conversationSummary).toContain(
+          'Harborline live UI'
+        );
+        expect(args.context?.conversationSummary).toContain(
+          'Assistant: Understood.'
+        );
+        expect(args.context?.conversationSummary).not.toContain(
+          'Update my profile'
+        );
         yield {
           kind: 'status',
           status: 'done',
@@ -410,7 +421,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
           requestedMode: 'view',
           reason: 'test',
         } as never;
-      }) as typeof aiEngine.streamContinuumExecution);
+      } as typeof aiEngine.streamContinuumExecution);
 
     try {
       const handler = createContinuumVercelAiSdkRouteHandler({
@@ -453,7 +464,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
   it('merges explicit conversationSummary with derived prior messages', async () => {
     const streamSpy = vi
       .spyOn(aiEngine, 'streamContinuumExecution')
-      .mockImplementation((async function* (args) {
+      .mockImplementation(async function* (args) {
         const summary = args.context?.conversationSummary ?? '';
         expect(summary).toContain('Explicit bounded note.');
         expect(summary).toContain('Prior conversation');
@@ -472,7 +483,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
           requestedMode: 'view',
           reason: 'test',
         } as never;
-      }) as typeof aiEngine.streamContinuumExecution);
+      } as typeof aiEngine.streamContinuumExecution);
 
     try {
       const handler = createContinuumVercelAiSdkRouteHandler({
@@ -507,7 +518,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
   it('passes conversation summary and detached values into Continuum execution context', async () => {
     const streamSpy = vi
       .spyOn(aiEngine, 'streamContinuumExecution')
-      .mockImplementation((async function* (args) {
+      .mockImplementation(async function* (args) {
         expect(args.context?.conversationSummary).toBe(
           'Assistant removed several fields.'
         );
@@ -529,7 +540,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
           requestedMode: 'view',
           reason: 'test',
         } as never;
-      }) as typeof aiEngine.streamContinuumExecution);
+      } as typeof aiEngine.streamContinuumExecution);
 
     try {
       const handler = createContinuumVercelAiSdkRouteHandler({
@@ -572,7 +583,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
 describe('buildConversationTranscriptFromMessages', () => {
   it('returns undefined when there is no prior turn before the latest user message', () => {
     expect(
-      buildConversationTranscriptFromMessages([{ role: 'user', content: 'Only' }])
+      buildConversationTranscriptFromMessages([
+        { role: 'user', content: 'Only' },
+      ])
     ).toBeUndefined();
   });
 

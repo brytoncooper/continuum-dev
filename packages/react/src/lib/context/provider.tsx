@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { hydrateOrCreate } from '@continuum-dev/core';
 import type { Session } from '@continuum-dev/core';
 import type { ContinuumNodeMap, ContinuumProviderProps } from '../types.js';
-import { ContinuumContext, type ContinuumContextValue } from './render-contexts.js';
+import {
+  ContinuumContext,
+  type ContinuumContextValue,
+} from './render-contexts.js';
 import { createContinuumStore, type ContinuumStore } from './store.js';
 
 const DEFAULT_STORAGE_KEY = 'continuum_session';

@@ -15,7 +15,9 @@ describe('view-patching prompts', () => {
     expect(prompt).toContain(
       'insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content'
     );
-    expect(prompt).toContain('Preserve semantic continuity and detached key continuity.');
+    expect(prompt).toContain(
+      'Preserve semantic continuity and detached key continuity.'
+    );
   });
 
   it('keeps the output contract strict about the top-level JSON shape', () => {

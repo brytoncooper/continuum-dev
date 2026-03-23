@@ -39,7 +39,10 @@ function findReusableNode(
   return undefined;
 }
 
-function mergeNodeList(previousNodes: ViewNode[], nextNodes: ViewNode[]): ViewNode[] {
+function mergeNodeList(
+  previousNodes: ViewNode[],
+  nextNodes: ViewNode[]
+): ViewNode[] {
   const usedIndexes = new Set<number>();
   let changed = previousNodes.length !== nextNodes.length;
 
@@ -80,10 +83,16 @@ export function patchViewNode(
   }
 
   if (isChildContainerNode(previousNode) && isChildContainerNode(nextNode)) {
-    const mergedChildren = mergeNodeList(previousNode.children, nextNode.children);
+    const mergedChildren = mergeNodeList(
+      previousNode.children,
+      nextNode.children
+    );
     if (
       mergedChildren === previousNode.children &&
-      deepEqual(stripStructuralChildren(previousNode), stripStructuralChildren(nextNode))
+      deepEqual(
+        stripStructuralChildren(previousNode),
+        stripStructuralChildren(nextNode)
+      )
     ) {
       return previousNode;
     }
@@ -95,10 +104,16 @@ export function patchViewNode(
   }
 
   if (isCollectionNode(previousNode) && isCollectionNode(nextNode)) {
-    const mergedTemplate = patchViewNode(previousNode.template, nextNode.template);
+    const mergedTemplate = patchViewNode(
+      previousNode.template,
+      nextNode.template
+    );
     if (
       mergedTemplate === previousNode.template &&
-      deepEqual(stripCollectionTemplate(previousNode), stripCollectionTemplate(nextNode))
+      deepEqual(
+        stripCollectionTemplate(previousNode),
+        stripCollectionTemplate(nextNode)
+      )
     ) {
       return previousNode;
     }

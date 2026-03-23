@@ -76,7 +76,11 @@ describe('resolveAllNodes', () => {
 
     const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
 
-    expect(result.resolutions.map((item) => item.nodeId)).toEqual(['a', 'c', 'd']);
+    expect(result.resolutions.map((item) => item.nodeId)).toEqual([
+      'a',
+      'c',
+      'd',
+    ]);
     expect(result.resolutions.map((item) => item.matchedBy)).toEqual([
       'id',
       'key',

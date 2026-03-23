@@ -1,7 +1,4 @@
-import type {
-  NodeValue,
-  ViewNode,
-} from '@continuum-dev/contract';
+import type { NodeValue, ViewNode } from '@continuum-dev/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import { collectDuplicateIssues } from '../../context/index.js';
 import type {

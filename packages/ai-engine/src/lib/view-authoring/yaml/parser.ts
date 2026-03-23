@@ -34,8 +34,8 @@ function coerceYamlViewDefinition(
     typeof root.version === 'string'
       ? root.version
       : fallbackView
-        ? bumpVersion(fallbackView.version)
-        : '1';
+      ? bumpVersion(fallbackView.version)
+      : '1';
   const nodes = Array.isArray(root.nodes)
     ? (root.nodes as ViewDefinition['nodes'])
     : null;

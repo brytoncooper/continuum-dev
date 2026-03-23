@@ -6,7 +6,9 @@ import { carryValuesMeta } from '../lineage-utils.js';
 import { resolveUnchangedNode } from './resolve-unchanged-node.js';
 import type { ResolveHashChangedNodeInput } from './types.js';
 
-export function resolveHashChangedNode(input: ResolveHashChangedNodeInput): void {
+export function resolveHashChangedNode(
+  input: ResolveHashChangedNodeInput
+): void {
   const {
     acc,
     newId,

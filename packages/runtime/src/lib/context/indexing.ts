@@ -1,7 +1,4 @@
-import {
-  type ViewDefinition,
-  type ViewNode,
-} from '@continuum-dev/contract';
+import { type ViewDefinition, type ViewNode } from '@continuum-dev/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import type { ReconciliationIssue } from '../types.js';
 import {

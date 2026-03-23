@@ -427,7 +427,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     const previewStreamId =
-      'streamId' in previewApplication ? previewApplication.streamId : undefined;
+      'streamId' in previewApplication
+        ? previewApplication.streamId
+        : undefined;
     if (!previewStreamId) {
       throw new Error('Expected transient draft view to create a stream id');
     }
@@ -471,9 +473,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
       adapter
     );
 
-    expect('streamId' in finalApplication ? finalApplication.streamId : undefined).toBe(
-      previewStreamId
-    );
+    expect(
+      'streamId' in finalApplication ? finalApplication.streamId : undefined
+    ).toBe(previewStreamId);
     expect(session.getSnapshot()?.view.version).toBe('2');
     expect(session.getCommittedSnapshot()?.view.version).toBe('2');
     expect(session.getStreams()[0]?.status).toBe('committed');
@@ -511,7 +513,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     const draftStreamId =
-      'streamId' in previewApplication ? previewApplication.streamId : undefined;
+      'streamId' in previewApplication
+        ? previewApplication.streamId
+        : undefined;
     if (!draftStreamId) {
       throw new Error('Expected transient draft view to create a stream id');
     }
@@ -528,9 +532,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     expect(statusApplication.kind).toBe('status');
-    expect('streamId' in statusApplication ? statusApplication.streamId : undefined).toBe(
-      draftStreamId
-    );
+    expect(
+      'streamId' in statusApplication ? statusApplication.streamId : undefined
+    ).toBe(draftStreamId);
     expect(session.getStreams()).toHaveLength(1);
     expect(session.getStreams()[0]?.mode).toBe('draft');
     expect(session.getStreams()[0]?.status).toBe('open');
@@ -568,8 +572,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
       ),
       adapter
     );
-    const streamId =
-      'streamId' in inserted ? inserted.streamId : undefined;
+    const streamId = 'streamId' in inserted ? inserted.streamId : undefined;
     if (!streamId) {
       throw new Error('Expected transient insert-node to create a stream id');
     }
@@ -777,9 +780,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     }
 
     const rendered = renderIntoDom(<Probe />);
-    let inflightSend:
-      | Promise<void>
-      | undefined;
+    let inflightSend: Promise<void> | undefined;
 
     await act(async () => {
       inflightSend = sendMessage?.({ text: 'Build a new form' });
@@ -869,7 +870,9 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     const previewStreamId =
-      'streamId' in previewApplication ? previewApplication.streamId : undefined;
+      'streamId' in previewApplication
+        ? previewApplication.streamId
+        : undefined;
     if (!previewStreamId) {
       throw new Error('Expected transient preview to create a stream id');
     }
@@ -923,20 +926,25 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     expect(finalApplication.kind).toBe('view');
-    expect('streamId' in finalApplication ? finalApplication.streamId : undefined).not.toBe(
-      previewStreamId
-    );
+    expect(
+      'streamId' in finalApplication ? finalApplication.streamId : undefined
+    ).not.toBe(previewStreamId);
     expect(session.getCommittedSnapshot()?.view.version).toBe('4');
-    expect(session.getSnapshot()?.data.values['tax_form/name_row/first_name']).toEqual({
+    expect(
+      session.getSnapshot()?.data.values['tax_form/name_row/first_name']
+    ).toEqual({
       value: 'Jordan',
       isDirty: true,
     });
-    expect(session.getSnapshot()?.data.values['tax_form/name_row/last_name']).toEqual({
+    expect(
+      session.getSnapshot()?.data.values['tax_form/name_row/last_name']
+    ).toEqual({
       value: 'Lee',
       isDirty: true,
     });
     expect(
-      session.getStreams().find((stream) => stream.streamId === previewStreamId)?.status
+      session.getStreams().find((stream) => stream.streamId === previewStreamId)
+        ?.status
     ).toBe('superseded');
   });
 

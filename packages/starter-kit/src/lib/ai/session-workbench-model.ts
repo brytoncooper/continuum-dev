@@ -269,13 +269,11 @@ export function buildRestoreReviewSections(
 
   for (const review of sortedReviews) {
     const sectionId = sectionIdForScope(review.scope);
-    const section =
-      sections.get(sectionId) ??
-      {
-        id: sectionId,
-        title: sectionId === 'draft' ? 'In draft preview' : 'In live form',
-        items: [],
-      };
+    const section = sections.get(sectionId) ?? {
+      id: sectionId,
+      title: sectionId === 'draft' ? 'In draft preview' : 'In live form',
+      items: [],
+    };
 
     section.items.push({
       reviewId: review.reviewId,

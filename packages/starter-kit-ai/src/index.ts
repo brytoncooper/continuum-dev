@@ -7,7 +7,10 @@ export type { StarterKitProviderChatBoxProps } from './lib/provider-chat-box.js'
 export { StarterKitVercelAiSdkChatBox } from './lib/vercel-ai-sdk-chat-box.js';
 export type { StarterKitVercelAiSdkChatBoxProps } from './lib/vercel-ai-sdk-chat-box.js';
 export { StarterKitChatBox } from './lib/chat-box.js';
-export type { StarterKitChatBoxDriver, StarterKitChatBoxProps } from './lib/chat-box.js';
+export type {
+  StarterKitChatBoxDriver,
+  StarterKitChatBoxProps,
+} from './lib/chat-box.js';
 export {
   useProviderChatController,
   type ProviderChatControllerArgs,

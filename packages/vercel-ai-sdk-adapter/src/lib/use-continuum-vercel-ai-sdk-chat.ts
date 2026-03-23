@@ -1,4 +1,8 @@
-import { useChat, type UseChatHelpers, type UseChatOptions } from '@ai-sdk/react';
+import {
+  useChat,
+  type UseChatHelpers,
+  type UseChatOptions,
+} from '@ai-sdk/react';
 import { isDataUIPart, type ChatOnDataCallback } from 'ai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { isContinuumVercelAiSdkDataPart } from './data-parts.js';
@@ -20,18 +24,16 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
   : never;
 
 export type UseContinuumVercelAiSdkChatOptions<
-  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
+  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage
 > = DistributiveOmit<UseChatOptions<UI_MESSAGE>, 'onData'> & {
-  session:
-    | ContinuumVercelAiSdkSessionAdapter
-    | ContinuumVercelAiSdkSessionLike;
+  session: ContinuumVercelAiSdkSessionAdapter | ContinuumVercelAiSdkSessionLike;
   autoApplyMessages?: boolean;
   onContinuumPart?: (application: ContinuumVercelAiSdkPartApplication) => void;
   onData?: ChatOnDataCallback<UI_MESSAGE>;
 };
 
 export interface UseContinuumVercelAiSdkChatHelpers<
-  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
+  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage
 > extends UseChatHelpers<UI_MESSAGE> {
   continuumSession: ContinuumVercelAiSdkSessionAdapter;
   latestContinuumEvent: ContinuumVercelAiSdkPartApplication | null;
@@ -46,9 +48,10 @@ function buildAppliedPartKey(
   return part.id ?? `${messageId}:${index}:${part.type}`;
 }
 
-function shouldApplyContinuumPartImmediately(
-  part: { type: string; transient?: boolean }
-): boolean {
+function shouldApplyContinuumPartImmediately(part: {
+  type: string;
+  transient?: boolean;
+}): boolean {
   return (
     part.transient === true &&
     (part.type === 'data-continuum-view' ||
@@ -58,7 +61,7 @@ function shouldApplyContinuumPartImmediately(
 }
 
 function getMessagesForContinuumApplyScan<
-  UI_MESSAGE extends ContinuumVercelAiSdkMessage,
+  UI_MESSAGE extends ContinuumVercelAiSdkMessage
 >(
   messages: readonly UI_MESSAGE[],
   status: UseChatHelpers<UI_MESSAGE>['status']
@@ -76,7 +79,7 @@ function getMessagesForContinuumApplyScan<
 }
 
 export function useContinuumVercelAiSdkChat<
-  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage,
+  UI_MESSAGE extends ContinuumVercelAiSdkMessage = ContinuumVercelAiSdkMessage
 >(
   options: UseContinuumVercelAiSdkChatOptions<UI_MESSAGE>
 ): UseContinuumVercelAiSdkChatHelpers<UI_MESSAGE> {
@@ -106,7 +109,8 @@ export function useContinuumVercelAiSdkChat<
         if (
           autoApplyMessages &&
           shouldApplyContinuumPartImmediately(part) &&
-          (!part.id || !immediatelyAppliedTransientPartIdsRef.current.has(part.id))
+          (!part.id ||
+            !immediatelyAppliedTransientPartIdsRef.current.has(part.id))
         ) {
           const application = applyContinuumVercelAiSdkDataPart(
             part,
@@ -125,7 +129,9 @@ export function useContinuumVercelAiSdkChat<
           ) {
             const stream = continuumSession
               .getStreams?.()
-              ?.find((candidate) => candidate.streamId === application.streamId);
+              ?.find(
+                (candidate) => candidate.streamId === application.streamId
+              );
             if (stream?.status === 'open') {
               pendingStreamIdsRef.current.add(application.streamId);
             }

@@ -117,11 +117,9 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
   selectorLabel: 'AI overwrite conflict',
   problem:
     'Start with five filled fields, then go to step 2. AI suggests new values. The naive pane overwrites. Continuum stages suggestions for review.',
-  whyItMatters:
-    'User input needs protection from being overwritten.',
+  whyItMatters: 'User input needs protection from being overwritten.',
   controls: {
-    helperText:
-      'Step 1 shows user values. Step 2 shows AI suggestions.',
+    helperText: 'Step 1 shows user values. Step 2 shows AI suggestions.',
   },
   trackedFields: [
     { key: 'profile.name', label: 'Name' },
@@ -157,15 +155,13 @@ export const conflictProposalsScenario: PlaygroundConflictScenario = {
     {
       id: 'initial-user-values',
       title: 'Step 1: User values',
-      description:
-        'Both panes start with the same user-entered values.',
+      description: 'Both panes start with the same user-entered values.',
       view: initialView,
     },
     {
       id: 'ai-pass',
       title: 'Step 2: AI suggestions arrive',
-      description:
-        'AI proposes new values. See what happens.',
+      description: 'AI proposes new values. See what happens.',
       view: evolvedView,
     },
   ],

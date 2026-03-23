@@ -34,9 +34,10 @@ function loadSource(relativePath: string): ts.SourceFile {
 function hasExportModifier(node: ts.Node): boolean {
   return (
     ts.canHaveModifiers(node) &&
-    ts.getModifiers(node)?.some(
-      (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword
-    ) === true
+    ts
+      .getModifiers(node)
+      ?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ===
+      true
   );
 }
 
@@ -77,8 +78,13 @@ function getExportModuleSpecifiers(source: ts.SourceFile): string[] {
   return source.statements
     .filter(ts.isExportDeclaration)
     .map((statement) => {
-      if (!statement.moduleSpecifier || !ts.isStringLiteral(statement.moduleSpecifier)) {
-        throw new Error('Expected all protocol entrypoint exports to have module specifiers.');
+      if (
+        !statement.moduleSpecifier ||
+        !ts.isStringLiteral(statement.moduleSpecifier)
+      ) {
+        throw new Error(
+          'Expected all protocol entrypoint exports to have module specifiers.'
+        );
       }
       return statement.moduleSpecifier.text;
     })
@@ -91,11 +97,14 @@ function getInterfaceDeclaration(
 ): ts.InterfaceDeclaration {
   const declaration = source.statements.find(
     (statement): statement is ts.InterfaceDeclaration =>
-      ts.isInterfaceDeclaration(statement) && statement.name.text === interfaceName
+      ts.isInterfaceDeclaration(statement) &&
+      statement.name.text === interfaceName
   );
 
   if (!declaration) {
-    throw new Error(`Could not find interface ${interfaceName} in ${source.fileName}.`);
+    throw new Error(
+      `Could not find interface ${interfaceName} in ${source.fileName}.`
+    );
   }
 
   return declaration;
@@ -111,14 +120,20 @@ function getTypeAliasDeclaration(
   );
 
   if (!declaration) {
-    throw new Error(`Could not find type alias ${typeName} in ${source.fileName}.`);
+    throw new Error(
+      `Could not find type alias ${typeName} in ${source.fileName}.`
+    );
   }
 
   return declaration;
 }
 
 function getMemberName(name: ts.PropertyName | ts.DeclarationName): string {
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  ) {
     return name.text;
   }
 
@@ -145,7 +160,9 @@ function getInterfaceMembers(
       }
 
       throw new Error(
-        `Unsupported member kind ${ts.SyntaxKind[member.kind]} in ${interfaceName}.`
+        `Unsupported member kind ${
+          ts.SyntaxKind[member.kind]
+        } in ${interfaceName}.`
       );
     })
     .sort();
@@ -192,7 +209,10 @@ function getStringLiteralUnionValues(
   typeName: string
 ): string[] {
   return uniqueSorted(
-    collectStringLiteralValues(source, getTypeAliasDeclaration(source, typeName).type)
+    collectStringLiteralValues(
+      source,
+      getTypeAliasDeclaration(source, typeName).type
+    )
   );
 }
 
@@ -203,7 +223,12 @@ function collectDiscriminantValues(
   seenAliases = new Set<string>()
 ): string[] {
   if (ts.isParenthesizedTypeNode(typeNode)) {
-    return collectDiscriminantValues(source, typeNode.type, propertyName, seenAliases);
+    return collectDiscriminantValues(
+      source,
+      typeNode.type,
+      propertyName,
+      seenAliases
+    );
   }
 
   if (ts.isUnionTypeNode(typeNode)) {
@@ -245,7 +270,9 @@ function collectDiscriminantValues(
   }
 
   throw new Error(
-    `Unsupported discriminated union member ${ts.SyntaxKind[typeNode.kind]} in ${source.fileName}.`
+    `Unsupported discriminated union member ${
+      ts.SyntaxKind[typeNode.kind]
+    } in ${source.fileName}.`
   );
 }
 
@@ -317,7 +344,10 @@ describe('protocol public shape', () => {
           'streams.ts': SOURCES['streams.ts'],
           'transforms.ts': SOURCES['transforms.ts'],
           'view-patch.ts': SOURCES['view-patch.ts'],
-        }).map(([fileName, source]) => [fileName, getExportedDeclarationNames(source)])
+        }).map(([fileName, source]) => [
+          fileName,
+          getExportedDeclarationNames(source),
+        ])
       )
     ).toEqual({
       'actions.ts': [
@@ -390,26 +420,62 @@ describe('protocol public shape', () => {
   it('keeps the public interface keys stable', () => {
     expect(
       Object.fromEntries([
-        ['ActionRegistration', getInterfaceMembers(SOURCES['actions.ts'], 'ActionRegistration')],
-        ['ActionResult', getInterfaceMembers(SOURCES['actions.ts'], 'ActionResult')],
-        ['ActionSessionRef', getInterfaceMembers(SOURCES['actions.ts'], 'ActionSessionRef')],
-        ['ActionContext', getInterfaceMembers(SOURCES['actions.ts'], 'ActionContext')],
-        ['Interaction', getInterfaceMembers(SOURCES['interactions.ts'], 'Interaction')],
-        ['PendingIntent', getInterfaceMembers(SOURCES['interactions.ts'], 'PendingIntent')],
-        ['Checkpoint', getInterfaceMembers(SOURCES['interactions.ts'], 'Checkpoint')],
-        ['ProposedValue', getInterfaceMembers(SOURCES['proposals.ts'], 'ProposedValue')],
+        [
+          'ActionRegistration',
+          getInterfaceMembers(SOURCES['actions.ts'], 'ActionRegistration'),
+        ],
+        [
+          'ActionResult',
+          getInterfaceMembers(SOURCES['actions.ts'], 'ActionResult'),
+        ],
+        [
+          'ActionSessionRef',
+          getInterfaceMembers(SOURCES['actions.ts'], 'ActionSessionRef'),
+        ],
+        [
+          'ActionContext',
+          getInterfaceMembers(SOURCES['actions.ts'], 'ActionContext'),
+        ],
+        [
+          'Interaction',
+          getInterfaceMembers(SOURCES['interactions.ts'], 'Interaction'),
+        ],
+        [
+          'PendingIntent',
+          getInterfaceMembers(SOURCES['interactions.ts'], 'PendingIntent'),
+        ],
+        [
+          'Checkpoint',
+          getInterfaceMembers(SOURCES['interactions.ts'], 'Checkpoint'),
+        ],
+        [
+          'ProposedValue',
+          getInterfaceMembers(SOURCES['proposals.ts'], 'ProposedValue'),
+        ],
         [
           'ReconciliationResult',
-          getInterfaceMembers(SOURCES['reconciliation.ts'], 'ReconciliationResult'),
+          getInterfaceMembers(
+            SOURCES['reconciliation.ts'],
+            'ReconciliationResult'
+          ),
         ],
-        ['StateDiff', getInterfaceMembers(SOURCES['reconciliation.ts'], 'StateDiff')],
+        [
+          'StateDiff',
+          getInterfaceMembers(SOURCES['reconciliation.ts'], 'StateDiff'),
+        ],
         [
           'ReconciliationResolution',
-          getInterfaceMembers(SOURCES['reconciliation.ts'], 'ReconciliationResolution'),
+          getInterfaceMembers(
+            SOURCES['reconciliation.ts'],
+            'ReconciliationResolution'
+          ),
         ],
         [
           'ReconciliationIssue',
-          getInterfaceMembers(SOURCES['reconciliation.ts'], 'ReconciliationIssue'),
+          getInterfaceMembers(
+            SOURCES['reconciliation.ts'],
+            'ReconciliationIssue'
+          ),
         ],
         [
           'DetachedRestoreReviewCandidate',
@@ -420,11 +486,17 @@ describe('protocol public shape', () => {
         ],
         [
           'DetachedRestoreApproval',
-          getInterfaceMembers(SOURCES['restore-reviews.ts'], 'DetachedRestoreApproval'),
+          getInterfaceMembers(
+            SOURCES['restore-reviews.ts'],
+            'DetachedRestoreApproval'
+          ),
         ],
         [
           'DetachedRestoreReview',
-          getInterfaceMembers(SOURCES['restore-reviews.ts'], 'DetachedRestoreReview'),
+          getInterfaceMembers(
+            SOURCES['restore-reviews.ts'],
+            'DetachedRestoreReview'
+          ),
         ],
         [
           'SessionViewApplyOptions',
@@ -432,24 +504,39 @@ describe('protocol public shape', () => {
         ],
         [
           'ContinuumTransformPlan',
-          getInterfaceMembers(SOURCES['transforms.ts'], 'ContinuumTransformPlan'),
+          getInterfaceMembers(
+            SOURCES['transforms.ts'],
+            'ContinuumTransformPlan'
+          ),
         ],
         [
           'SessionStreamStartOptions',
-          getInterfaceMembers(SOURCES['streams.ts'], 'SessionStreamStartOptions'),
+          getInterfaceMembers(
+            SOURCES['streams.ts'],
+            'SessionStreamStartOptions'
+          ),
         ],
-        ['SessionStream', getInterfaceMembers(SOURCES['streams.ts'], 'SessionStream')],
+        [
+          'SessionStream',
+          getInterfaceMembers(SOURCES['streams.ts'], 'SessionStream'),
+        ],
         [
           'SessionStreamResult',
           getInterfaceMembers(SOURCES['streams.ts'], 'SessionStreamResult'),
         ],
         [
           'SessionStreamDiagnostics',
-          getInterfaceMembers(SOURCES['streams.ts'], 'SessionStreamDiagnostics'),
+          getInterfaceMembers(
+            SOURCES['streams.ts'],
+            'SessionStreamDiagnostics'
+          ),
         ],
         [
           'ContinuumViewPatchPosition',
-          getInterfaceMembers(SOURCES['view-patch.ts'], 'ContinuumViewPatchPosition'),
+          getInterfaceMembers(
+            SOURCES['view-patch.ts'],
+            'ContinuumViewPatchPosition'
+          ),
         ],
         [
           'ContinuumViewPatch',
@@ -543,7 +630,12 @@ describe('protocol public shape', () => {
         'reconciledValue',
         'resolution',
       ],
-      ReconciliationResult: ['diffs', 'issues', 'reconciledState', 'resolutions'],
+      ReconciliationResult: [
+        'diffs',
+        'issues',
+        'reconciledState',
+        'resolutions',
+      ],
       ContinuumTransformPlan: ['operations'],
       SessionStream: [
         'affectedNodeIds',
@@ -665,11 +757,7 @@ describe('protocol public shape', () => {
         'merge',
         'split',
       ],
-      continuumTransformStrategyId: [
-        'concat-space',
-        'identity',
-        'split-space',
-      ],
+      continuumTransformStrategyId: ['concat-space', 'identity', 'split-space'],
       sessionStreamMode: ['draft', 'foreground'],
       sessionStreamPart: [
         'append-content',
@@ -684,7 +772,13 @@ describe('protocol public shape', () => {
         'view',
         'wrap-nodes',
       ],
-      sessionStreamStatus: ['aborted', 'committed', 'open', 'stale', 'superseded'],
+      sessionStreamStatus: [
+        'aborted',
+        'committed',
+        'open',
+        'stale',
+        'superseded',
+      ],
       sessionStreamStatusLevel: ['error', 'info', 'success', 'warning'],
     });
   });

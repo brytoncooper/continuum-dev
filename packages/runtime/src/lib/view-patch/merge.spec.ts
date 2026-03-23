@@ -21,7 +21,10 @@ function createView(): ViewDefinition {
         id: 'details',
         type: 'group',
         label: 'Details',
-        children: [createPresentationNode('summary'), createPresentationNode('body')],
+        children: [
+          createPresentationNode('summary'),
+          createPresentationNode('body'),
+        ],
       },
       {
         id: 'line_items',
@@ -54,7 +57,9 @@ describe('merge', () => {
     const previousNode = createView().nodes[1]!;
     const nextNode: ViewNode = {
       ...(previousNode as Extract<ViewNode, { type: 'group' }>),
-      children: (previousNode as Extract<ViewNode, { type: 'group' }>).children.map((child) => ({
+      children: (
+        previousNode as Extract<ViewNode, { type: 'group' }>
+      ).children.map((child) => ({
         ...child,
       })),
     };
@@ -64,12 +69,17 @@ describe('merge', () => {
 
   it('reuses collection nodes when the template is structurally identical', () => {
     const previousNode = createView().nodes[2]!;
-    const previousCollection = previousNode as Extract<ViewNode, { type: 'collection' }>;
+    const previousCollection = previousNode as Extract<
+      ViewNode,
+      { type: 'collection' }
+    >;
     const nextNode: ViewNode = {
       ...previousCollection,
       template: {
         ...previousCollection.template,
-        children: previousCollection.template.children.map((child) => ({ ...child })),
+        children: previousCollection.template.children.map((child) => ({
+          ...child,
+        })),
       },
     };
 
@@ -80,24 +90,27 @@ describe('merge', () => {
     const previousView = createView();
     const nextView: ViewDefinition = {
       ...previousView,
-      nodes: [previousView.nodes[2]!, previousView.nodes[0]!, previousView.nodes[1]!].map(
-        (node) =>
-          node.type === 'group'
-            ? {
-                ...node,
-                children: node.children.map((child) => ({ ...child })),
-              }
-            : node.type === 'collection'
-              ? {
-                  ...node,
-                  template: {
-                    ...node.template,
-                    children: node.template.children.map((child) => ({ ...child })),
-                  },
-                }
-              : {
-                  ...node,
-                }
+      nodes: [
+        previousView.nodes[2]!,
+        previousView.nodes[0]!,
+        previousView.nodes[1]!,
+      ].map((node) =>
+        node.type === 'group'
+          ? {
+              ...node,
+              children: node.children.map((child) => ({ ...child })),
+            }
+          : node.type === 'collection'
+          ? {
+              ...node,
+              template: {
+                ...node.template,
+                children: node.template.children.map((child) => ({ ...child })),
+              },
+            }
+          : {
+              ...node,
+            }
       ),
     };
 

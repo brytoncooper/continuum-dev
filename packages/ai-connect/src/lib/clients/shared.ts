@@ -22,7 +22,9 @@ export async function fetchJson(
 
 export function isSchemaFormatError(error: unknown): boolean {
   const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+    error instanceof Error
+      ? error.message.toLowerCase()
+      : String(error).toLowerCase();
   return (
     message.includes('response_format') ||
     message.includes('json_schema') ||

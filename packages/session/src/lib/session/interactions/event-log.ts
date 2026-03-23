@@ -1,6 +1,4 @@
-import type {
-  NodeValue,
-} from '@continuum-dev/contract';
+import type { NodeValue } from '@continuum-dev/contract';
 import { isInteractionType, type Interaction } from '@continuum-dev/protocol';
 import type { SessionState } from '../state/index.js';
 import { generateId } from '../state/index.js';

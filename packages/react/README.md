@@ -285,15 +285,15 @@ Hooks read and write session state through that store.
 
 #### Props
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `components` | `ContinuumNodeMap` | Required map of node type to React component. |
-| `persist` | `'localStorage' \| 'sessionStorage' \| false` | Optional browser storage strategy. |
-| `storageKey` | `string` | Optional storage key. Default: `continuum_session`. |
-| `maxPersistBytes` | `number` | Optional max serialized payload size before persistence is skipped. |
-| `onPersistError` | `(error: ContinuumPersistError) => void` | Optional callback for `size_limit` and `storage_error`. |
-| `sessionOptions` | `SessionOptions` | Optional session configuration passed to hydration/creation. |
-| `children` | `React.ReactNode` | React subtree rendered inside the provider. |
+| Prop              | Type                                          | Description                                                         |
+| ----------------- | --------------------------------------------- | ------------------------------------------------------------------- |
+| `components`      | `ContinuumNodeMap`                            | Required map of node type to React component.                       |
+| `persist`         | `'localStorage' \| 'sessionStorage' \| false` | Optional browser storage strategy.                                  |
+| `storageKey`      | `string`                                      | Optional storage key. Default: `continuum_session`.                 |
+| `maxPersistBytes` | `number`                                      | Optional max serialized payload size before persistence is skipped. |
+| `onPersistError`  | `(error: ContinuumPersistError) => void`      | Optional callback for `size_limit` and `storage_error`.             |
+| `sessionOptions`  | `SessionOptions`                              | Optional session configuration passed to hydration/creation.        |
+| `children`        | `React.ReactNode`                             | React subtree rendered inside the provider.                         |
 
 ### `ContinuumRenderer`
 
@@ -305,11 +305,11 @@ Renders a `ViewDefinition` tree through your component map.
 
 #### Props
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `view` | `ViewDefinition` | Required view tree to render. |
-| `snapshotOverride` | `ContinuitySnapshot \| null` | Optional non-destructive preview snapshot used instead of the live store values. |
-| `renderScope` | `DetachedRestoreScope \| null` | Optional live/draft scope marker used by restore-review flows and draft previews. |
+| Prop               | Type                           | Description                                                                       |
+| ------------------ | ------------------------------ | --------------------------------------------------------------------------------- |
+| `view`             | `ViewDefinition`               | Required view tree to render.                                                     |
+| `snapshotOverride` | `ContinuitySnapshot \| null`   | Optional non-destructive preview snapshot used instead of the live store values.  |
+| `renderScope`      | `DetachedRestoreScope \| null` | Optional live/draft scope marker used by restore-review flows and draft previews. |
 
 #### What it does
 
@@ -339,7 +339,8 @@ const [value, setValue] = useContinuumState('user_email');
 Use this when system proposals should not overwrite in-progress user edits automatically.
 
 ```ts
-const { hasConflict, proposal, accept, reject } = useContinuumConflict('user_email');
+const { hasConflict, proposal, accept, reject } =
+  useContinuumConflict('user_email');
 ```
 
 #### `useContinuumDiagnostics()`
@@ -442,7 +443,8 @@ const candidates = useContinuumRestoreCandidates('user_email');
 Handles action dispatch with built-in loading and result state.
 
 ```ts
-const { dispatch, isDispatching, lastResult } = useContinuumAction('submit_form');
+const { dispatch, isDispatching, lastResult } =
+  useContinuumAction('submit_form');
 ```
 
 When multiple dispatches overlap, `isDispatching` and `lastResult` reflect the latest in-flight dispatch.
@@ -459,9 +461,7 @@ function SubmitButton({ definition }: ContinuumNodeProps) {
       <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
         {isDispatching ? 'Working...' : definition.label}
       </button>
-      {lastResult && (
-        <span>{lastResult.success ? 'Done' : 'Failed'}</span>
-      )}
+      {lastResult && <span>{lastResult.success ? 'Done' : 'Failed'}</span>}
     </div>
   );
 }
@@ -517,7 +517,8 @@ Collection renderers may also pass props like `canAdd`, `canRemove`, `onAdd`, `o
 import { useContinuumConflict } from '@continuum-dev/react';
 
 function EmailConflict({ nodeId }: { nodeId: string }) {
-  const { hasConflict, proposal, accept, reject } = useContinuumConflict(nodeId);
+  const { hasConflict, proposal, accept, reject } =
+    useContinuumConflict(nodeId);
 
   if (!hasConflict) {
     return null;
@@ -558,7 +559,10 @@ function SuggestionBanner() {
 ## Example: undo with checkpoints
 
 ```tsx
-import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/react';
+import {
+  useContinuumDiagnostics,
+  useContinuumSession,
+} from '@continuum-dev/react';
 
 function UndoButton() {
   const session = useContinuumSession();

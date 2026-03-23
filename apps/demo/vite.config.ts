@@ -144,10 +144,8 @@ function localVercelAiSdkRoutes() {
               ).handleVercelAiSdkProvidersRequest(fetchRequest, {}),
           },
         ];
-        const pathname = new URL(
-          request.url ?? '/',
-          'http://localhost'
-        ).pathname;
+        const pathname = new URL(request.url ?? '/', 'http://localhost')
+          .pathname;
         const routeHandler = localVercelAiSdkRouteHandlers.find((candidate) =>
           candidate.matches(pathname)
         );
@@ -181,7 +179,10 @@ function localVercelAiSdkRoutes() {
 export default defineConfig(({ command }) => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/apps/demo',
-  plugins: [react(), ...(command === 'serve' ? [localVercelAiSdkRoutes()] : [])],
+  plugins: [
+    react(),
+    ...(command === 'serve' ? [localVercelAiSdkRoutes()] : []),
+  ],
   resolve: {
     alias: {
       '@continuum-dev/adapters': resolve(

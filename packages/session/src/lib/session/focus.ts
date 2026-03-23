@@ -33,8 +33,7 @@ export function resolveFocusCanonicalId(
     resolveCanonicalIdInView(
       getActiveForegroundStream(internal)?.workingView ?? null,
       nodeId
-    ) ??
-    resolveCanonicalIdInView(internal.currentView, nodeId)
+    ) ?? resolveCanonicalIdInView(internal.currentView, nodeId)
   );
 }
 

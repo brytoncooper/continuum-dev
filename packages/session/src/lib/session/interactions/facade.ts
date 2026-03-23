@@ -9,7 +9,12 @@ import { decideContinuumNodeValueWrite } from '@continuum-dev/runtime';
 import { resolveNodeLookupEntry } from '@continuum-dev/runtime/node-lookup';
 import type { Session } from '../../types.js';
 import type { SessionState } from '../state/index.js';
-import { submitIntent, validateIntent, cancelIntent, recordIntent } from './index.js';
+import {
+  submitIntent,
+  validateIntent,
+  cancelIntent,
+  recordIntent,
+} from './index.js';
 import { notifySnapshotListeners } from '../listeners/index.js';
 
 function assertNotDestroyed(internal: SessionState): void {
@@ -18,7 +23,27 @@ function assertNotDestroyed(internal: SessionState): void {
   }
 }
 
-export function createInteractionsFacade(internal: SessionState, sessionRef: Session): Pick<Session, 'getPendingIntents' | 'proposeValue' | 'acceptProposal' | 'rejectProposal' | 'getPendingProposals' | 'recordIntent' | 'updateState' | 'submitIntent' | 'validateIntent' | 'cancelIntent' | 'registerAction' | 'unregisterAction' | 'getRegisteredActions' | 'dispatchAction' | 'executeIntent'> {
+export function createInteractionsFacade(
+  internal: SessionState,
+  sessionRef: Session
+): Pick<
+  Session,
+  | 'getPendingIntents'
+  | 'proposeValue'
+  | 'acceptProposal'
+  | 'rejectProposal'
+  | 'getPendingProposals'
+  | 'recordIntent'
+  | 'updateState'
+  | 'submitIntent'
+  | 'validateIntent'
+  | 'cancelIntent'
+  | 'registerAction'
+  | 'unregisterAction'
+  | 'getRegisteredActions'
+  | 'dispatchAction'
+  | 'executeIntent'
+> {
   return {
     getPendingIntents() {
       assertNotDestroyed(internal);
@@ -55,8 +80,10 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
     acceptProposal(nodeId: string) {
       assertNotDestroyed(internal);
       const proposalKey =
-        internal.currentView && resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
-          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!.canonicalId
+        internal.currentView &&
+        resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
+          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!
+              .canonicalId
           : nodeId;
       const proposal = internal.pendingProposals[proposalKey];
       if (!proposal) return;
@@ -70,8 +97,10 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
     rejectProposal(nodeId: string) {
       assertNotDestroyed(internal);
       const proposalKey =
-        internal.currentView && resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
-          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!.canonicalId
+        internal.currentView &&
+        resolveNodeLookupEntry(internal.currentView.nodes, nodeId)
+          ? resolveNodeLookupEntry(internal.currentView.nodes, nodeId)!
+              .canonicalId
           : nodeId;
       if (!internal.pendingProposals[proposalKey]) return;
       delete internal.pendingProposals[proposalKey];
@@ -105,7 +134,11 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
       assertNotDestroyed(internal);
       return cancelIntent(internal, intentId);
     },
-    registerAction(intentId: string, registration: Parameters<Session['registerAction']>[1], handler: Parameters<Session['registerAction']>[2]) {
+    registerAction(
+      intentId: string,
+      registration: Parameters<Session['registerAction']>[1],
+      handler: Parameters<Session['registerAction']>[2]
+    ) {
       assertNotDestroyed(internal);
       internal.actionRegistry.set(intentId, { registration, handler });
     },
@@ -121,11 +154,16 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
       }
       return result;
     },
-    async dispatchAction(intentId: string, nodeId: string): Promise<ActionResult> {
+    async dispatchAction(
+      intentId: string,
+      nodeId: string
+    ): Promise<ActionResult> {
       assertNotDestroyed(internal);
       const entry = internal.actionRegistry.get(intentId);
       if (!entry) {
-        console.warn(`[Continuum] dispatchAction: no handler registered for intentId "${intentId}"`);
+        console.warn(
+          `[Continuum] dispatchAction: no handler registered for intentId "${intentId}"`
+        );
         return {
           success: false,
           error: `No handler registered for intentId "${intentId}"`,
@@ -136,10 +174,12 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
         return { success: false, error: 'No active snapshot' };
       }
       const ref: ActionSessionRef = {
-        pushView: (v: Parameters<Session['pushView']>[0]) => sessionRef.pushView(v),
+        pushView: (v: Parameters<Session['pushView']>[0]) =>
+          sessionRef.pushView(v),
         updateState: (id: string, p: unknown) => sessionRef.updateState(id, p),
         getSnapshot: () => sessionRef.getSnapshot(),
-        proposeValue: (id: string, v: NodeValue, s?: string) => sessionRef.proposeValue(id, v, s),
+        proposeValue: (id: string, v: NodeValue, s?: string) =>
+          sessionRef.proposeValue(id, v, s),
       };
       try {
         const raw = await entry.handler({
@@ -154,21 +194,25 @@ export function createInteractionsFacade(internal: SessionState, sessionRef: Ses
       }
     },
     async executeIntent(partial: Parameters<Session['executeIntent']>[0]) {
-        assertNotDestroyed(internal);
-        submitIntent(internal, partial);
-        const intent = internal.pendingIntents[internal.pendingIntents.length - 1];
-        try {
-          const result = await sessionRef.dispatchAction(partial.intentName, partial.nodeId);
-          if (result.success) {
-            validateIntent(internal, intent.intentId);
-          } else {
-            cancelIntent(internal, intent.intentId);
-          }
-          return result;
-        } catch (error) {
+      assertNotDestroyed(internal);
+      submitIntent(internal, partial);
+      const intent =
+        internal.pendingIntents[internal.pendingIntents.length - 1];
+      try {
+        const result = await sessionRef.dispatchAction(
+          partial.intentName,
+          partial.nodeId
+        );
+        if (result.success) {
+          validateIntent(internal, intent.intentId);
+        } else {
           cancelIntent(internal, intent.intentId);
-          return { success: false, error };
         }
+        return result;
+      } catch (error) {
+        cancelIntent(internal, intent.intentId);
+        return { success: false, error };
       }
+    },
   };
 }

@@ -224,7 +224,9 @@ export function CustomChat() {
   });
 
   return (
-    <button onClick={() => chat.sendMessage({ text: 'Add a co-applicant section' })}>
+    <button
+      onClick={() => chat.sendMessage({ text: 'Add a co-applicant section' })}
+    >
       Send prompt
     </button>
   );

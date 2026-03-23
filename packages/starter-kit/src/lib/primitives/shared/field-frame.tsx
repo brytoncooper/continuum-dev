@@ -1,6 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { color, space, type } from '../../tokens.js';
-import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
+import {
+  starterKitDefaultStyles,
+  useStarterKitStyle,
+} from '../../style-config.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
 import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
 import { streamedNodeMotionStyle } from './motion.js';

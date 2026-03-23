@@ -53,8 +53,7 @@ export function StarterKitChatBoxShell({
   copyPrompt,
 }: StarterKitChatBoxShellProps) {
   const attachmentInputRef = useRef<HTMLInputElement>(null);
-  const canSubmit =
-    Boolean(instruction.trim()) || attachmentFiles.length > 0;
+  const canSubmit = Boolean(instruction.trim()) || attachmentFiles.length > 0;
 
   return (
     <section
@@ -219,7 +218,11 @@ export function StarterKitChatBoxShell({
             border: `1px solid ${color.borderStrong}`,
             background: color.accent,
             color: color.surface,
-            cursor: isSubmitting ? 'wait' : submitDisabled ? 'not-allowed' : 'pointer',
+            cursor: isSubmitting
+              ? 'wait'
+              : submitDisabled
+              ? 'not-allowed'
+              : 'pointer',
             opacity: submitDisabled ? 0.6 : 1,
             ...typography.body,
             fontWeight: 600,
@@ -230,13 +233,17 @@ export function StarterKitChatBoxShell({
       </div>
 
       {status ? (
-        <div style={{ ...typography.small, color: color.textMuted }}>{status}</div>
+        <div style={{ ...typography.small, color: color.textMuted }}>
+          {status}
+        </div>
       ) : null}
       {errorText ? (
         <div style={{ ...typography.small, color: '#a91b0d' }}>{errorText}</div>
       ) : null}
 
-      {enableSuggestedPrompts && suggestedPrompts && suggestedPrompts.length > 0 ? (
+      {enableSuggestedPrompts &&
+      suggestedPrompts &&
+      suggestedPrompts.length > 0 ? (
         <div
           style={{
             display: 'grid',

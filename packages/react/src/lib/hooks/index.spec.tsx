@@ -2010,7 +2010,9 @@ describe('restore review hooks', () => {
     }
 
     function DraftScope({ streamId }: { streamId: string }) {
-      draftCandidates = useContinuumRestoreCandidates('profile/secondary_email');
+      draftCandidates = useContinuumRestoreCandidates(
+        'profile/secondary_email'
+      );
       return (
         <div data-testid="draft-scope" data-stream-id={streamId}>
           draft
@@ -2046,7 +2048,9 @@ describe('restore review hooks', () => {
         });
       }
 
-      const draftReview = reviews.find((review) => review.scope.kind === 'draft');
+      const draftReview = reviews.find(
+        (review) => review.scope.kind === 'draft'
+      );
       return (
         <>
           <ContinuumRenderScopeContext.Provider value={{ kind: 'live' }}>

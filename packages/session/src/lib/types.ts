@@ -363,9 +363,7 @@ export interface Session {
   /**
    * Subscribes to focused node id changes.
    */
-  onFocusChange(
-    listener: (focusedNodeId: string | null) => void
-  ): () => void;
+  onFocusChange(listener: (focusedNodeId: string | null) => void): () => void;
   /**
    * Serializes the complete session into a JSON-compatible blob.
    */

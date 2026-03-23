@@ -21,20 +21,35 @@ const actionsStyle: CSSProperties = {
   gap: space.sm,
 };
 
-const actionStyle = (tone: 'strong' | 'default' | 'soft' = 'default'): CSSProperties => ({
+const actionStyle = (
+  tone: 'strong' | 'default' | 'soft' = 'default'
+): CSSProperties => ({
   ...type.small,
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: tone === 'strong' ? color.surface : tone === 'soft' ? color.highlight : color.text,
+  color:
+    tone === 'strong'
+      ? color.surface
+      : tone === 'soft'
+      ? color.highlight
+      : color.text,
   textDecoration: 'none',
   padding: `${space.sm}px ${space.md}px`,
   border: `1px solid ${
-    tone === 'strong' ? color.accentStrong : tone === 'soft' ? color.highlight : color.border
+    tone === 'strong'
+      ? color.accentStrong
+      : tone === 'soft'
+      ? color.highlight
+      : color.border
   }`,
   borderRadius: 999,
   background:
-    tone === 'strong' ? color.accent : tone === 'soft' ? color.highlightSoft : color.surface,
+    tone === 'strong'
+      ? color.accent
+      : tone === 'soft'
+      ? color.highlightSoft
+      : color.surface,
 });
 
 const tertiaryLinkStyle: CSSProperties = {
@@ -57,7 +72,12 @@ export function HeroBlock() {
           <a href="/playground" style={actionStyle()}>
             Open demo
           </a>
-          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={tertiaryLinkStyle}>
+          <a
+            href={repositoryUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={tertiaryLinkStyle}
+          >
             GitHub
           </a>
         </div>
@@ -66,7 +86,9 @@ export function HeroBlock() {
       {heroContent.callouts.map((callout: LandingCallout) => (
         <LandingCard key={callout.title} span={4} tone="soft" fullHeight>
           <div style={cardTitleStyle}>{callout.title}</div>
-          <div style={{ ...cardBodyStyle, marginTop: space.sm }}>{callout.body}</div>
+          <div style={{ ...cardBodyStyle, marginTop: space.sm }}>
+            {callout.body}
+          </div>
         </LandingCard>
       ))}
     </LandingGrid>

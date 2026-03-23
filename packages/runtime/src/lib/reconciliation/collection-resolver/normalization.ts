@@ -43,7 +43,9 @@ export function normalizeCollectionValue(
       ? { suggestion: normalizeState(nodeValue.suggestion) }
       : {}),
     ...(nodeValue.isDirty !== undefined ? { isDirty: nodeValue.isDirty } : {}),
-    ...(nodeValue.isSticky !== undefined ? { isSticky: nodeValue.isSticky } : {}),
+    ...(nodeValue.isSticky !== undefined
+      ? { isSticky: nodeValue.isSticky }
+      : {}),
     ...(nodeValue.isValid !== undefined ? { isValid: nodeValue.isValid } : {}),
   };
 }
@@ -60,8 +62,9 @@ export function hasTemplateHashChanged(
 }
 
 export function hasProtectedItems(value: unknown): boolean {
-  const items = (value as { items?: Array<{ values?: Record<string, NodeValue> }> })
-    ?.items;
+  const items = (
+    value as { items?: Array<{ values?: Record<string, NodeValue> }> }
+  )?.items;
   if (!Array.isArray(items)) {
     return false;
   }

@@ -19,8 +19,14 @@ export default function App() {
         <Route path="/starter-kit" element={<PrimitivePage />} />
         <Route path="/live-ai" element={<LiveAiPage />} />
         <Route path="/vercel-ai-sdk" element={<VercelAiSdkPage />} />
-        <Route path="/integration-schemas" element={<IntegrationSchemasPage />} />
-        <Route path="/showcase" element={<Navigate to="/starter-kit" replace />} />
+        <Route
+          path="/integration-schemas"
+          element={<IntegrationSchemasPage />}
+        />
+        <Route
+          path="/showcase"
+          element={<Navigate to="/starter-kit" replace />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

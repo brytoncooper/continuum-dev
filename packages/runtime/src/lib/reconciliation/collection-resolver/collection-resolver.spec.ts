@@ -280,7 +280,9 @@ describe('collection reconciliation', () => {
     });
 
     const result = reconcile(newView, priorView, priorData);
-    const issues = result.issues.filter((issue) => issue.nodeId === 'addresses');
+    const issues = result.issues.filter(
+      (issue) => issue.nodeId === 'addresses'
+    );
 
     expect(issues).toHaveLength(3);
     expect(issues[0]).toMatchObject({
@@ -321,7 +323,8 @@ describe('collection reconciliation', () => {
     expect(
       result.resolutions.find(
         (resolution) =>
-          resolution.nodeId === 'addresses' && resolution.resolution === 'carried'
+          resolution.nodeId === 'addresses' &&
+          resolution.resolution === 'carried'
       )
     ).toBeDefined();
   });

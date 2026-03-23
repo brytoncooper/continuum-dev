@@ -79,17 +79,22 @@ describe('continuum semantic identity normalization', () => {
     expect(normalized.errors).toEqual([]);
     expect(normalized.view).not.toBe(nextView);
     expect(
-      ((nextView.nodes[0] as ViewNode & {
-        children: Array<ViewNode & { children: Array<ViewNode> }>;
-      }).children[0] as ViewNode & { children: Array<ViewNode> }).children[0]?.id
+      (
+        (
+          nextView.nodes[0] as ViewNode & {
+            children: Array<ViewNode & { children: Array<ViewNode> }>;
+          }
+        ).children[0] as ViewNode & { children: Array<ViewNode> }
+      ).children[0]?.id
     ).toBe('primary_email');
 
     const row = normalized.view?.nodes[0] as ViewNode & {
       children: Array<ViewNode & { children: Array<ViewNode> }>;
     };
-    expect((row.children[0] as ViewNode & { children: Array<ViewNode> }).children[0]?.id).toBe(
-      'email'
-    );
+    expect(
+      (row.children[0] as ViewNode & { children: Array<ViewNode> }).children[0]
+        ?.id
+    ).toBe('email');
   });
 
   it('rejects duplicate semantic keys in the generated view', () => {

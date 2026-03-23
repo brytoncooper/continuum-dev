@@ -12,7 +12,9 @@ import {
 
 function readOpenAiContent(raw: unknown): string {
   const response = raw as {
-    choices?: Array<{ message?: { content?: string | Array<{ text?: string }> } }>;
+    choices?: Array<{
+      message?: { content?: string | Array<{ text?: string }> };
+    }>;
   };
   const content = response.choices?.[0]?.message?.content;
   if (typeof content === 'string') {
@@ -27,7 +29,9 @@ function readOpenAiContent(raw: unknown): string {
   return '';
 }
 
-export function createOpenAiClient(options: OpenAiClientOptions): AiConnectClient {
+export function createOpenAiClient(
+  options: OpenAiClientOptions
+): AiConnectClient {
   const baseUrl = options.baseUrl ?? 'https://api.openai.com/v1';
   const defaultModel = options.model ?? 'gpt-5.4';
 

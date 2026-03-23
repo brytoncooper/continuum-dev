@@ -23,13 +23,18 @@ const bodyStyle: CSSProperties = {
 export function HowItWorksBlock() {
   return (
     <div id="how-it-works">
-      <LandingSection title={howItWorksContent.title} description={howItWorksContent.description}>
+      <LandingSection
+        title={howItWorksContent.title}
+        description={howItWorksContent.description}
+      >
         <LandingGrid alignItems="stretch">
           {howItWorksContent.steps.map((step) => (
             <LandingCard key={step.title} span={3} tone="soft" fullHeight>
               <div style={labelStyle}>{step.label.padStart(2, '0')}</div>
               <div style={titleStyle}>{step.title}</div>
-              <div style={{ ...bodyStyle, marginTop: space.sm }}>{step.body}</div>
+              <div style={{ ...bodyStyle, marginTop: space.sm }}>
+                {step.body}
+              </div>
             </LandingCard>
           ))}
         </LandingGrid>

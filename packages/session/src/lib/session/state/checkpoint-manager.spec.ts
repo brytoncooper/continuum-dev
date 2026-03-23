@@ -1,11 +1,21 @@
 import type { DataSnapshot } from '@continuum-dev/contract';
 import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
-import { autoCheckpoint, createManualCheckpoint, restoreFromCheckpoint, rewind } from './checkpoint-manager.js';
+import {
+  autoCheckpoint,
+  createManualCheckpoint,
+  restoreFromCheckpoint,
+  rewind,
+} from './checkpoint-manager.js';
 
-function setupWithSnapshot(internal: ReturnType<typeof createEmptySessionState>) {
+function setupWithSnapshot(
+  internal: ReturnType<typeof createEmptySessionState>
+) {
   internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
-  internal.currentData = { values: { a: { value: 'hello' } }, lineage: { timestamp: 1000, sessionId: 's' } };
+  internal.currentData = {
+    values: { a: { value: 'hello' } },
+    lineage: { timestamp: 1000, sessionId: 's' },
+  };
 }
 
 describe('autoCheckpoint', () => {
@@ -17,7 +27,9 @@ describe('autoCheckpoint', () => {
 
     expect(internal.checkpoints).toHaveLength(1);
     expect(internal.checkpoints[0].sessionId).toBe('s');
-    expect(internal.checkpoints[0].snapshot.data.values['a']).toEqual({ value: 'hello' });
+    expect(internal.checkpoints[0].snapshot.data.values['a']).toEqual({
+      value: 'hello',
+    });
   });
 
   it('does nothing when snapshot is null', () => {
@@ -84,7 +96,9 @@ describe('createManualCheckpoint', () => {
     createManualCheckpoint(internal);
 
     expect(internal.checkpoints).toHaveLength(2);
-    expect(internal.checkpoints.every((cp) => cp.trigger === 'manual')).toBe(true);
+    expect(internal.checkpoints.every((cp) => cp.trigger === 'manual')).toBe(
+      true
+    );
   });
 });
 
@@ -94,7 +108,10 @@ describe('restoreFromCheckpoint', () => {
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
 
-    internal.currentData = { values: { a: { value: 'changed' } }, lineage: { timestamp: 2000, sessionId: 's' } };
+    internal.currentData = {
+      values: { a: { value: 'changed' } },
+      lineage: { timestamp: 2000, sessionId: 's' },
+    };
 
     restoreFromCheckpoint(internal, internal.checkpoints[0]);
 
@@ -106,7 +123,17 @@ describe('restoreFromCheckpoint', () => {
     setupWithSnapshot(internal);
     autoCheckpoint(internal);
     internal.issues = [{ severity: 'info', message: 'test', code: 'TEST' }];
-    internal.pendingIntents = [{ intentId: 'a', nodeId: 'a', intentName: 'x', payload: {}, queuedAt: 0, viewVersion: '1', status: 'pending' }];
+    internal.pendingIntents = [
+      {
+        intentId: 'a',
+        nodeId: 'a',
+        intentName: 'x',
+        payload: {},
+        queuedAt: 0,
+        viewVersion: '1',
+        status: 'pending',
+      },
+    ];
 
     restoreFromCheckpoint(internal, internal.checkpoints[0]);
 

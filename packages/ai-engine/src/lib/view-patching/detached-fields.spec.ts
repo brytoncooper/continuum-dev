@@ -68,6 +68,8 @@ describe('buildDetachedFieldHints', () => {
     expect(hints).toHaveLength(64);
     expect(hints[0]?.detachedKey).toBe('detached_0');
     expect(hints[63]?.detachedKey).toBe('detached_63');
-    expect(hints.find((hint) => hint.detachedKey === 'malformed')).toBeUndefined();
+    expect(
+      hints.find((hint) => hint.detachedKey === 'malformed')
+    ).toBeUndefined();
   });
 });

@@ -1,4 +1,8 @@
-import { getChildNodes, type NodeValue, type ViewNode } from '@continuum-dev/contract';
+import {
+  getChildNodes,
+  type NodeValue,
+  type ViewNode,
+} from '@continuum-dev/contract';
 import { ISSUE_CODES, ISSUE_SEVERITY } from '@continuum-dev/protocol';
 import { resolveNodeLookupEntry } from '../node-lookup.js';
 import type { SessionState } from '../state/index.js';

@@ -202,14 +202,14 @@ describe('ai-connect clients', () => {
       String(fetchMock.mock.calls[1][1].body)
     ) as Record<string, unknown>;
     const retryText = (
-      (
-        ((retryBody.systemInstruction as { parts: Array<{ text: string }> }).parts ??
-          [])[0] ?? { text: '' }
-      ).text
-    );
+      ((retryBody.systemInstruction as { parts: Array<{ text: string }> })
+        .parts ?? [])[0] ?? { text: '' }
+    ).text;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(retryText).toContain('Output style override: return compact minified JSON only.');
+    expect(retryText).toContain(
+      'Output style override: return compact minified JSON only.'
+    );
     expect(result.json).toEqual({ done: true });
   });
 
@@ -250,12 +250,12 @@ describe('ai-connect clients', () => {
       },
     });
 
-    const firstBody = JSON.parse(
-      String(fetchMock.mock.calls[0][1].body)
-    ) as { generationConfig: Record<string, unknown> };
-    const secondBody = JSON.parse(
-      String(fetchMock.mock.calls[1][1].body)
-    ) as { generationConfig: Record<string, unknown> };
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1].body)) as {
+      generationConfig: Record<string, unknown>;
+    };
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1].body)) as {
+      generationConfig: Record<string, unknown>;
+    };
 
     expect(firstBody.generationConfig).toHaveProperty('responseSchema');
     expect(firstBody.generationConfig).toHaveProperty('responseMimeType');

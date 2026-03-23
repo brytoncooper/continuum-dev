@@ -394,10 +394,9 @@ describe('assembleReconciliationResult', () => {
       'added:c',
       'removed:b',
     ]);
-    expect(result.issues.map((issue) => `${issue.code}:${issue.nodeId ?? ''}`)).toEqual([
-      'UNVALIDATED_CARRY:a',
-      'NODE_REMOVED:b',
-    ]);
+    expect(
+      result.issues.map((issue) => `${issue.code}:${issue.nodeId ?? ''}`)
+    ).toEqual(['UNVALIDATED_CARRY:a', 'NODE_REMOVED:b']);
   });
 
   it('merges detached values and removes restored keys after merge', () => {

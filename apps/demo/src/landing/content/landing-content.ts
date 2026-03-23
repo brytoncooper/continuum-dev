@@ -48,7 +48,12 @@ export const heroContent = {
       body: 'Risky input stays recoverable.',
     },
   ] satisfies LandingCallout[],
-} satisfies { eyebrow: string; title: string; description: string; callouts: LandingCallout[] };
+} satisfies {
+  eyebrow: string;
+  title: string;
+  description: string;
+  callouts: LandingCallout[];
+};
 
 export const problemContent = {
   title: 'Why that feeling matters',
@@ -73,7 +78,7 @@ export const problemContent = {
 export const continuityContent = {
   title: 'Why this needs its own layer',
   description:
-    "Continuum separates changing view structure from durable user data so user work does not rise and fall with the current tree.",
+    'Continuum separates changing view structure from durable user data so user work does not rise and fall with the current tree.',
   columns: [
     {
       title: 'ViewDefinition',
@@ -171,8 +176,7 @@ export const packageStackContent = {
 
 export const useCasesContent = {
   title: 'Where this becomes urgent',
-  description:
-    'Anywhere losing input would feel like product failure.',
+  description: 'Anywhere losing input would feel like product failure.',
   callouts: [
     {
       title: 'AI-generated forms',

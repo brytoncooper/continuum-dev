@@ -28,7 +28,10 @@ function installMatchMedia(matches: boolean) {
   });
 }
 
-function renderDateInput(value: NodeValue<string> | undefined, onChange = vi.fn()) {
+function renderDateInput(
+  value: NodeValue<string> | undefined,
+  onChange = vi.fn()
+) {
   const rendered = render(
     <DateInput
       value={value}

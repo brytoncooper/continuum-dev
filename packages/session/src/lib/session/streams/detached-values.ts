@@ -1,4 +1,8 @@
-import type { DataSnapshot, DetachedValue, ViewNode } from '@continuum-dev/contract';
+import type {
+  DataSnapshot,
+  DetachedValue,
+  ViewNode,
+} from '@continuum-dev/contract';
 import { resolveNodeLookupEntry } from '../node-lookup.js';
 import type { SessionState } from '../state/index.js';
 import type { InternalSessionStreamState } from './types.js';
@@ -37,7 +41,10 @@ export function collectRenderOnlyDetachedValues(
   const detachedValues: Record<string, DetachedValue> = {};
 
   for (const canonicalId of stream.renderOnlyDirtyNodeIds) {
-    const lookup = resolveNodeLookupEntry(stream.workingView.nodes, canonicalId);
+    const lookup = resolveNodeLookupEntry(
+      stream.workingView.nodes,
+      canonicalId
+    );
     const value = stream.workingData.values[canonicalId];
     if (!lookup || !value) {
       continue;

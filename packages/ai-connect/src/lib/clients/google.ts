@@ -29,7 +29,9 @@ function readGoogleFinishReason(raw: unknown): string | undefined {
   return typeof reason === 'string' ? reason : undefined;
 }
 
-export function createGoogleClient(options: GoogleClientOptions): AiConnectClient {
+export function createGoogleClient(
+  options: GoogleClientOptions
+): AiConnectClient {
   const baseUrl =
     options.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta';
   const defaultModel = options.model ?? 'gemini-2.5-flash';
@@ -60,7 +62,9 @@ export function createGoogleClient(options: GoogleClientOptions): AiConnectClien
         );
       }
 
-      const endpoint = `${baseUrl}/models/${model}:generateContent?key=${encodeURIComponent(options.apiKey)}`;
+      const endpoint = `${baseUrl}/models/${model}:generateContent?key=${encodeURIComponent(
+        options.apiKey
+      )}`;
       const buildBody = (config: Record<string, unknown>) =>
         JSON.stringify({
           systemInstruction: {

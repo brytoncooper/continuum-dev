@@ -124,7 +124,11 @@ function normalizeDate(date: Date): Date {
   return createDate(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function createValidatedDate(year: number, month: number, day: number): Date | null {
+function createValidatedDate(
+  year: number,
+  month: number,
+  day: number
+): Date | null {
   const date = createDate(year, month, day);
 
   if (
@@ -154,7 +158,10 @@ function parseIsoDate(value?: string): Date | null {
   return createValidatedDate(year, month, day);
 }
 
-function resolveTypedYear(year: string | undefined, referenceDate: Date): number {
+function resolveTypedYear(
+  year: string | undefined,
+  referenceDate: Date
+): number {
   if (!year) {
     return referenceDate.getFullYear();
   }
@@ -171,7 +178,10 @@ function resolveMonthToken(token: string): number | null {
   return monthIndexLookup[token] ?? null;
 }
 
-function parseFlexibleDateInput(value: string, referenceDate: Date): Date | null {
+function parseFlexibleDateInput(
+  value: string,
+  referenceDate: Date
+): Date | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
     return null;
@@ -283,9 +293,9 @@ function parseFlexibleDateInput(value: string, referenceDate: Date): Date | null
 }
 
 function formatIsoDate(date: Date): string {
-  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(
-    date.getDate()
-  )}`;
+  return `${date.getFullYear()}-${padDatePart(
+    date.getMonth() + 1
+  )}-${padDatePart(date.getDate())}`;
 }
 
 function sameDay(left: Date | null, right: Date | null): boolean {
@@ -305,7 +315,11 @@ function startOfMonth(date: Date): Date {
 }
 
 function addDays(date: Date, amount: number): Date {
-  return createDate(date.getFullYear(), date.getMonth(), date.getDate() + amount);
+  return createDate(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + amount
+  );
 }
 
 function daysInMonth(date: Date): number {
@@ -313,7 +327,11 @@ function daysInMonth(date: Date): number {
 }
 
 function addMonths(date: Date, amount: number): Date {
-  const targetMonth = createDate(date.getFullYear(), date.getMonth() + amount, 1);
+  const targetMonth = createDate(
+    date.getFullYear(),
+    date.getMonth() + amount,
+    1
+  );
   return createDate(
     targetMonth.getFullYear(),
     targetMonth.getMonth(),
@@ -386,7 +404,10 @@ function navButtonStyle(isCompact: boolean): CSSProperties {
   };
 }
 
-function selectorButtonStyle(selected: boolean, isCompact: boolean): CSSProperties {
+function selectorButtonStyle(
+  selected: boolean,
+  isCompact: boolean
+): CSSProperties {
   return {
     ...typeScale.body,
     width: '100%',
@@ -507,8 +528,8 @@ export function DateInput({
     rawDate === '' || rawDate === undefined || rawDate === null
       ? ''
       : typeof rawDate === 'string'
-        ? rawDate
-        : String(rawDate);
+      ? rawDate
+      : String(rawDate);
   const selectedDate = parseIsoDate(dateValue);
   const [today] = useState(() => normalizeDate(new Date()));
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -534,7 +555,9 @@ export function DateInput({
   const valueId = useId();
   const descriptionId = useId();
   const dialogId = useId();
-  const displayedDate = selectedDate ? triggerFormatter.format(selectedDate) : placeholder;
+  const displayedDate = selectedDate
+    ? triggerFormatter.format(selectedDate)
+    : placeholder;
   const calendarDays = buildCalendarDays(viewDate);
   const currentYearRangeStart = yearGridStart(viewDate);
   const disabled = readOnly;
@@ -550,8 +573,7 @@ export function DateInput({
         : 404
       : typedDateError
       ? 356
-      : 336) +
-    bottomButtonSpacing;
+      : 336) + bottomButtonSpacing;
   const desktopPopupShouldScroll = Boolean(
     desktopPopoverLayout &&
       desktopPopoverLayout.maxHeight < desktopPopupTargetHeight
@@ -607,7 +629,9 @@ export function DateInput({
           paddingBottom: popupPadding + bottomButtonSpacing,
           top: desktopPopoverLayout.top,
           bottom: desktopPopoverLayout.bottom,
-          overflowY: desktopPopupShouldScroll ? ('auto' as const) : ('hidden' as const),
+          overflowY: desktopPopupShouldScroll
+            ? ('auto' as const)
+            : ('hidden' as const),
           overflowX: 'hidden' as const,
         }
       : null;
@@ -937,7 +961,9 @@ export function DateInput({
                 style={{
                   position: 'fixed',
                   inset: 0,
-                  background: isCompact ? 'rgba(17, 17, 17, 0.16)' : 'transparent',
+                  background: isCompact
+                    ? 'rgba(17, 17, 17, 0.16)'
+                    : 'transparent',
                   zIndex: popupOverlayZIndex,
                 }}
                 onMouseDown={(event) => {
@@ -953,7 +979,9 @@ export function DateInput({
                   aria-labelledby={label ? labelId : undefined}
                   data-continuum-date-popup="true"
                   data-continuum-date-placement={
-                    isCompact ? 'sheet' : desktopPopoverLayout?.placement ?? 'down'
+                    isCompact
+                      ? 'sheet'
+                      : desktopPopoverLayout?.placement ?? 'down'
                   }
                   style={
                     isCompact
@@ -998,9 +1026,13 @@ export function DateInput({
                         }}
                       >
                         <span>{headerTitle}</span>
-                        {pickerView !== 'years' ? <ChevronIcon direction="down" /> : null}
+                        {pickerView !== 'years' ? (
+                          <ChevronIcon direction="down" />
+                        ) : null}
                       </button>
-                      <span style={{ ...typeScale.small, color: color.textMuted }}>
+                      <span
+                        style={{ ...typeScale.small, color: color.textMuted }}
+                      >
                         {headerSubtitle}
                       </span>
                     </div>
@@ -1028,7 +1060,9 @@ export function DateInput({
                     style={{
                       display: 'grid',
                       gap: isCompact ? space.sm : space.xs,
-                      gridTemplateColumns: isCompact ? '1fr' : 'minmax(0, 1fr) auto',
+                      gridTemplateColumns: isCompact
+                        ? '1fr'
+                        : 'minmax(0, 1fr) auto',
                       alignItems: 'start',
                     }}
                   >
@@ -1060,8 +1094,11 @@ export function DateInput({
                         }}
                       />
                       {helperTextVisible ? (
-                        <span style={{ ...typeScale.small, color: color.textMuted }}>
-                          {typedDateError ?? 'Try 4/21/2030, Apr 21 2030, or today.'}
+                        <span
+                          style={{ ...typeScale.small, color: color.textMuted }}
+                        >
+                          {typedDateError ??
+                            'Try 4/21/2030, Apr 21 2030, or today.'}
                         </span>
                       ) : null}
                     </div>
@@ -1110,7 +1147,8 @@ export function DateInput({
                           const isoDay = formatIsoDate(day);
                           const isSelected = sameDay(day, selectedDate);
                           const isToday = sameDay(day, today);
-                          const isCurrentMonth = day.getMonth() === viewDate.getMonth();
+                          const isCurrentMonth =
+                            day.getMonth() === viewDate.getMonth();
 
                           return (
                             <button
@@ -1135,14 +1173,15 @@ export function DateInput({
                               })}
                               onMouseEnter={() => setHighlightedDate(day)}
                               onClick={() => commitDate(day)}
-                              onKeyDown={(event) => handleDayKeyDown(event, day)}
+                              onKeyDown={(event) =>
+                                handleDayKeyDown(event, day)
+                              }
                             >
                               <span
                                 style={{
-                                  borderBottom:
-                                    isToday
-                                      ? `2px solid ${color.borderStrong}`
-                                      : 'none',
+                                  borderBottom: isToday
+                                    ? `2px solid ${color.borderStrong}`
+                                    : 'none',
                                   lineHeight: 1.2,
                                 }}
                               >
@@ -1164,21 +1203,32 @@ export function DateInput({
                       }}
                     >
                       {monthOptions.map((monthOption) => {
-                        const monthBase = createDate(viewDate.getFullYear(), monthOption.index, 1);
+                        const monthBase = createDate(
+                          viewDate.getFullYear(),
+                          monthOption.index,
+                          1
+                        );
                         const previewDate = createDate(
                           viewDate.getFullYear(),
                           monthOption.index,
-                          Math.min(highlightedDate.getDate(), daysInMonth(monthBase))
+                          Math.min(
+                            highlightedDate.getDate(),
+                            daysInMonth(monthBase)
+                          )
                         );
                         const isSelected =
-                          selectedDate?.getFullYear() === viewDate.getFullYear() &&
+                          selectedDate?.getFullYear() ===
+                            viewDate.getFullYear() &&
                           selectedDate?.getMonth() === monthOption.index;
 
                         return (
                           <button
                             key={monthOption.label}
                             type="button"
-                            style={selectorButtonStyle(Boolean(isSelected), isCompact)}
+                            style={selectorButtonStyle(
+                              Boolean(isSelected),
+                              isCompact
+                            )}
                             onClick={() => {
                               syncVisibleDate(previewDate);
                               setPickerView('days');
@@ -1199,32 +1249,43 @@ export function DateInput({
                         gap: space.sm,
                       }}
                     >
-                      {Array.from({ length: 12 }, (_, index) => currentYearRangeStart + index).map(
-                        (year) => {
-                          const isSelected = selectedDate?.getFullYear() === year;
+                      {Array.from(
+                        { length: 12 },
+                        (_, index) => currentYearRangeStart + index
+                      ).map((year) => {
+                        const isSelected = selectedDate?.getFullYear() === year;
 
-                          return (
-                            <button
-                              key={year}
-                              type="button"
-                              style={selectorButtonStyle(Boolean(isSelected), isCompact)}
-                              onClick={() => {
-                                const targetMonth = createDate(year, viewDate.getMonth(), 1);
-                                syncVisibleDate(
-                                  createDate(
-                                    year,
-                                    viewDate.getMonth(),
-                                    Math.min(highlightedDate.getDate(), daysInMonth(targetMonth))
+                        return (
+                          <button
+                            key={year}
+                            type="button"
+                            style={selectorButtonStyle(
+                              Boolean(isSelected),
+                              isCompact
+                            )}
+                            onClick={() => {
+                              const targetMonth = createDate(
+                                year,
+                                viewDate.getMonth(),
+                                1
+                              );
+                              syncVisibleDate(
+                                createDate(
+                                  year,
+                                  viewDate.getMonth(),
+                                  Math.min(
+                                    highlightedDate.getDate(),
+                                    daysInMonth(targetMonth)
                                   )
-                                );
-                                setPickerView('months');
-                              }}
-                            >
-                              {year}
-                            </button>
-                          );
-                        }
-                      )}
+                                )
+                              );
+                              setPickerView('months');
+                            }}
+                          >
+                            {year}
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : null}
 

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from '../state/index.js';
-import { submitIntent, validateIntent, cancelIntent, markAllPendingIntentsAsStale } from './intent-manager.js';
+import {
+  submitIntent,
+  validateIntent,
+  cancelIntent,
+  markAllPendingIntentsAsStale,
+} from './intent-manager.js';
 
 describe('submitIntent', () => {
   it('adds a pending intent with status pending', () => {
@@ -68,7 +73,9 @@ describe('markAllPendingIntentsAsStale', () => {
 
     markAllPendingIntentsAsStale(internal);
 
-    expect(internal.pendingIntents.every((a) => a.status === 'stale')).toBe(true);
+    expect(internal.pendingIntents.every((a) => a.status === 'stale')).toBe(
+      true
+    );
   });
 
   it('does not affect already validated or cancelled intents', () => {

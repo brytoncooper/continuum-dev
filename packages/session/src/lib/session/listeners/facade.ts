@@ -13,14 +13,27 @@ function assertNotDestroyed(internal: SessionState): void {
   }
 }
 
-export function createListenersFacade(internal: SessionState): Pick<Session, 'getIssues' | 'getDiffs' | 'getResolutions' | 'onSnapshot' | 'onStreams' | 'onIssues' | 'onFocusChange'> {
+export function createListenersFacade(
+  internal: SessionState
+): Pick<
+  Session,
+  | 'getIssues'
+  | 'getDiffs'
+  | 'getResolutions'
+  | 'onSnapshot'
+  | 'onStreams'
+  | 'onIssues'
+  | 'onFocusChange'
+> {
   return {
     getIssues() {
       assertNotDestroyed(internal);
       return [
         ...(internal.activeForegroundStreamId &&
-        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
-          ? internal.streams.get(internal.activeForegroundStreamId)?.issues ?? []
+        internal.streams.get(internal.activeForegroundStreamId)?.status ===
+          'open'
+          ? internal.streams.get(internal.activeForegroundStreamId)?.issues ??
+            []
           : internal.issues),
       ];
     },
@@ -28,7 +41,8 @@ export function createListenersFacade(internal: SessionState): Pick<Session, 'ge
       assertNotDestroyed(internal);
       return [
         ...(internal.activeForegroundStreamId &&
-        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
+        internal.streams.get(internal.activeForegroundStreamId)?.status ===
+          'open'
           ? internal.streams.get(internal.activeForegroundStreamId)?.diffs ?? []
           : internal.diffs),
       ];
@@ -37,8 +51,10 @@ export function createListenersFacade(internal: SessionState): Pick<Session, 'ge
       assertNotDestroyed(internal);
       return [
         ...(internal.activeForegroundStreamId &&
-        internal.streams.get(internal.activeForegroundStreamId)?.status === 'open'
-          ? internal.streams.get(internal.activeForegroundStreamId)?.resolutions ?? []
+        internal.streams.get(internal.activeForegroundStreamId)?.status ===
+          'open'
+          ? internal.streams.get(internal.activeForegroundStreamId)
+              ?.resolutions ?? []
           : internal.resolutions),
       ];
     },

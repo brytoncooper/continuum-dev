@@ -1,11 +1,11 @@
 import { DATA_RESOLUTIONS } from '@continuum-dev/protocol';
-import type {
-  DetachedValue,
-  NodeValue,
-} from '@continuum-dev/contract';
+import type { DetachedValue, NodeValue } from '@continuum-dev/contract';
 import type { ReconciliationContext } from '../context/index.js';
 import type { NodeResolutionAccumulator, StateDiff } from '../types.js';
-import { restoredDiff, restoredResolution } from '../reconciliation/differ/index.js';
+import {
+  restoredDiff,
+  restoredResolution,
+} from '../reconciliation/differ/index.js';
 import { findDetachedValueForNode } from '../reconciliation/node-resolver/index.js';
 
 export function restoreFromSamePushDetachments(
@@ -33,7 +33,11 @@ export function restoreFromSamePushDetachments(
       continue;
     }
 
-    const detachedMatch = findDetachedValueForNode(detachedValues, newNode, nodeId);
+    const detachedMatch = findDetachedValueForNode(
+      detachedValues,
+      newNode,
+      nodeId
+    );
     if (
       !detachedMatch ||
       detachedMatch.detachedValue.previousNodeType !== newNode.type
@@ -44,7 +48,9 @@ export function restoreFromSamePushDetachments(
     resolved.values[nodeId] = detachedMatch.detachedValue.value as NodeValue;
     resolved.restoredDetachedKeys.add(detachedMatch.detachedKey);
     removeAddedDiff(resolved.diffs, nodeId);
-    resolved.diffs.push(restoredDiff(nodeId, detachedMatch.detachedValue.value));
+    resolved.diffs.push(
+      restoredDiff(nodeId, detachedMatch.detachedValue.value)
+    );
     resolved.resolutions[index] = restoredResolution(
       nodeId,
       newNode.type,

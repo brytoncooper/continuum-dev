@@ -1,4 +1,8 @@
-import { getChildNodes, type ViewDefinition, type ViewNode } from '@continuum-dev/contract';
+import {
+  getChildNodes,
+  type ViewDefinition,
+  type ViewNode,
+} from '@continuum-dev/contract';
 import type { TargetNodeMatch } from './types.js';
 import { determineNodeFamily } from './family.js';
 import { collectCandidateNodes } from './collect.js';

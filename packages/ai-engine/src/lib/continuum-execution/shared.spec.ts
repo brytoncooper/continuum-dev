@@ -68,7 +68,9 @@ describe('continuum execution shared parsing helpers', () => {
       mode: 'view',
     });
 
-    expect(parseJson('Planner output:\n{"mode":"patch","fallback":"view"}')).toEqual({
+    expect(
+      parseJson('Planner output:\n{"mode":"patch","fallback":"view"}')
+    ).toEqual({
       mode: 'patch',
       fallback: 'view',
     });
@@ -80,10 +82,9 @@ describe('continuum execution shared parsing helpers', () => {
   });
 
   it('deduplicates and trims string arrays while keeping only meaningful values', () => {
-    expect(uniqueNonEmptyStrings([' email ', '', 'email', ' phone ', 42 as never])).toEqual([
-      'email',
-      'phone',
-    ]);
+    expect(
+      uniqueNonEmptyStrings([' email ', '', 'email', ' phone ', 42 as never])
+    ).toEqual(['email', 'phone']);
   });
 
   it('treats only the literal boolean true as dirty', () => {
@@ -96,7 +97,9 @@ describe('continuum execution shared parsing helpers', () => {
 describe('continuum execution shared tree helpers', () => {
   it('walks container children including collection templates', () => {
     expect(getChildNodes(nestedNodes[0])).toHaveLength(3);
-    expect(getChildNodes((nestedNodes[0].children as Array<unknown>)[2])).toEqual([
+    expect(
+      getChildNodes((nestedNodes[0].children as Array<unknown>)[2])
+    ).toEqual([
       {
         id: 'dependent',
         type: 'group',
@@ -287,17 +290,19 @@ describe('continuum execution shared cloning and lookup', () => {
   });
 
   it('finds nodes by canonical id through nested rows and collection templates', () => {
-    expect(findNodeByCanonicalId(nestedNodes, 'profile/contact_row/email')).toMatchObject({
+    expect(
+      findNodeByCanonicalId(nestedNodes, 'profile/contact_row/email')
+    ).toMatchObject({
       id: 'email',
       semanticKey: 'person.email',
     });
 
-    expect(findNodeByCanonicalId(nestedNodes, 'profile/dependents/dependent/name')).toMatchObject(
-      {
-        id: 'name',
-        semanticKey: 'dependent.name',
-      }
-    );
+    expect(
+      findNodeByCanonicalId(nestedNodes, 'profile/dependents/dependent/name')
+    ).toMatchObject({
+      id: 'name',
+      semanticKey: 'dependent.name',
+    });
 
     expect(findNodeByCanonicalId(nestedNodes, 'profile/missing')).toBeNull();
   });

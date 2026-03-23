@@ -12,7 +12,10 @@ const statusRowStyle: CSSProperties = {
   flexWrap: 'wrap',
 };
 
-const statusChipStyle = (status: string, tone: 'naive' | 'continuum'): CSSProperties => ({
+const statusChipStyle = (
+  status: string,
+  tone: 'naive' | 'continuum'
+): CSSProperties => ({
   ...type.small,
   color: color.text,
   padding: `${space.sm}px ${space.md}px`,
@@ -21,15 +24,15 @@ const statusChipStyle = (status: string, tone: 'naive' | 'continuum'): CSSProper
     tone === 'continuum'
       ? color.highlight
       : status === 'State dropped'
-        ? color.danger
-        : color.border
+      ? color.danger
+      : color.border
   }`,
   background:
     tone === 'continuum'
       ? color.highlightSoft
       : status === 'State dropped'
-        ? color.dangerSoft
-        : color.surface,
+      ? color.dangerSoft
+      : color.surface,
 });
 
 const gridStyle: CSSProperties = {
@@ -97,7 +100,9 @@ export function ComparisonPane({
   const previewStyle: CSSProperties = {
     padding: space.lg,
     borderRadius: radius.md,
-    border: `1px solid ${tone === 'continuum' ? color.highlight : color.borderSoft}`,
+    border: `1px solid ${
+      tone === 'continuum' ? color.highlight : color.borderSoft
+    }`,
     background: tone === 'continuum' ? color.highlightSoft : color.surfaceMuted,
     pointerEvents: 'none',
   };
@@ -107,7 +112,9 @@ export function ComparisonPane({
     gap: space.sm,
     padding: space.lg,
     borderRadius: radius.md,
-    border: `1px solid ${tone === 'continuum' ? color.highlight : color.borderSoft}`,
+    border: `1px solid ${
+      tone === 'continuum' ? color.highlight : color.borderSoft
+    }`,
     background: tone === 'continuum' ? color.surfaceAccent : color.surfaceMuted,
   };
 
@@ -121,7 +128,9 @@ export function ComparisonPane({
         <div style={gridStyle}>
           <div style={fullRowStyle}>
             <div style={explanationCardStyle}>
-              <div style={explanationTitleStyle}>Why this pane behaves this way</div>
+              <div style={explanationTitleStyle}>
+                Why this pane behaves this way
+              </div>
               <div style={explanationBodyStyle}>
                 {title === 'Without Continuum Reconciliation'
                   ? 'Values are attached only to current node ids.'
@@ -134,7 +143,10 @@ export function ComparisonPane({
               title="Tracked field"
               rows={[
                 { label: 'Semantic key', value: semanticKey },
-                { label: 'Current node id', value: currentNodeId ?? 'Not present in this view' },
+                {
+                  label: 'Current node id',
+                  value: currentNodeId ?? 'Not present in this view',
+                },
                 { label: 'Stored value', value: storedValue || 'Empty' },
               ]}
             />

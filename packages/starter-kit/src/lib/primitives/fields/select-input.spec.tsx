@@ -33,7 +33,10 @@ function installMatchMedia(matches: boolean) {
   });
 }
 
-function renderSelect(value: NodeValue<string> | undefined, onChange = vi.fn()) {
+function renderSelect(
+  value: NodeValue<string> | undefined,
+  onChange = vi.fn()
+) {
   const rendered = render(
     <SelectInput
       value={value}
@@ -135,7 +138,9 @@ describe('SelectInput', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /travel style/i }));
 
-    expect(screen.getByText('Tap an option to update this field.')).toBeTruthy();
+    expect(
+      screen.getByText('Tap an option to update this field.')
+    ).toBeTruthy();
     expect(document.body.style.overflow).toBe('hidden');
   });
 });

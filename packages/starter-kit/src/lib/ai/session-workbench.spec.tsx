@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { useEffect } from 'react';
 import { ContinuumProvider, useContinuumSession } from '@continuum-dev/react';
 import type { ViewDefinition } from '@continuum-dev/core';

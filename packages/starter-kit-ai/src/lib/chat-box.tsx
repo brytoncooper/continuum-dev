@@ -9,9 +9,9 @@ import {
 
 export type StarterKitChatBoxDriver =
   | {
-    kind: 'provider';
-    props: StarterKitProviderChatBoxProps;
-  }
+      kind: 'provider';
+      props: StarterKitProviderChatBoxProps;
+    }
   | {
       kind: 'vercel-ai-sdk';
       props: StarterKitVercelAiSdkChatBoxProps;

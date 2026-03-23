@@ -66,7 +66,7 @@ All notable changes to this project will be documented in this file.
   - Session workbench model with checkpoint preview
   - Session workbench UI component
   - Provider chat controller and chat box UI
-- **Data Snapshot Enhancements**: 
+- **Data Snapshot Enhancements**:
   - `isSticky` flag for protecting user-edited values from AI overwrites
   - Refined DataSnapshot types in contract
 - **Runtime Reconciliation Improvements**:

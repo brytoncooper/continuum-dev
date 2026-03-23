@@ -171,10 +171,7 @@ describe('react integration', () => {
         session.pushView(viewDef);
       }
       return (
-        <button
-          data-testid="focus-button"
-          onClick={() => setFocused(!focused)}
-        >
+        <button data-testid="focus-button" onClick={() => setFocused(!focused)}>
           {focused ? '1' : '0'}
         </button>
       );
@@ -291,7 +288,10 @@ describe('react integration', () => {
         }
       }, [session]);
 
-      const activeView = previewSnapshot?.view ?? session.getSnapshot()?.view ?? initialDraftView;
+      const activeView =
+        previewSnapshot?.view ??
+        session.getSnapshot()?.view ??
+        initialDraftView;
 
       return (
         <ContinuumRenderer

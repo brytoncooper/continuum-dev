@@ -4,9 +4,7 @@ import type { SessionState } from '../state/index.js';
 import { cloneCheckpointSnapshot } from '../state/index.js';
 import { buildCommittedSnapshotFromCurrentState } from '../listeners/index.js';
 
-export function isRecord(
-  value: unknown
-): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -35,7 +33,10 @@ export function removeDetachedValue(
   delete nextDetachedValues[detachedKey];
   return {
     ...data,
-    detachedValues: Object.keys(nextDetachedValues).length === 0 ? undefined : nextDetachedValues,
+    detachedValues:
+      Object.keys(nextDetachedValues).length === 0
+        ? undefined
+        : nextDetachedValues,
     values: data.values || {},
   } as DataSnapshot;
 }
@@ -45,10 +46,7 @@ export function replaceIssuesForNode(
   nodeId: string,
   nextIssues: SessionIssue[]
 ): SessionIssue[] {
-  return [
-    ...issues.filter((issue) => issue.nodeId !== nodeId),
-    ...nextIssues,
-  ];
+  return [...issues.filter((issue) => issue.nodeId !== nodeId), ...nextIssues];
 }
 
 export function refreshLastAutoCheckpoint(internal: SessionState): void {

@@ -1,4 +1,8 @@
-import type { DetachedValue, NodeValue, ViewNode } from '@continuum-dev/contract';
+import type {
+  DetachedValue,
+  NodeValue,
+  ViewNode,
+} from '@continuum-dev/contract';
 import type { ReconciliationContext } from '../../context/index.js';
 import { readNodeLabel, readParentLabel } from './helpers.js';
 
@@ -45,7 +49,9 @@ export function findDetachedValueForNode(
   return null;
 }
 
-export function createDetachedValue(input: CreateDetachedValueInput): DetachedValue {
+export function createDetachedValue(
+  input: CreateDetachedValueInput
+): DetachedValue {
   return {
     value: input.priorValue,
     previousNodeType: input.priorNode?.type ?? 'unknown',

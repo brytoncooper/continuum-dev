@@ -1,4 +1,8 @@
-import type { DataSnapshot, NodeValue, ViewDefinition } from '@continuum-dev/contract';
+import type {
+  DataSnapshot,
+  NodeValue,
+  ViewDefinition,
+} from '@continuum-dev/contract';
 import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
 
 export function ensureStreamData(

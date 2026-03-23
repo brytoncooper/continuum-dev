@@ -326,7 +326,9 @@ function isPlausibleStreamingTextField(value: string | undefined): boolean {
   return true;
 }
 
-function viewNodePassesPreviewQualityGate(node: ViewDefinition['nodes'][number]): boolean {
+function viewNodePassesPreviewQualityGate(
+  node: ViewDefinition['nodes'][number]
+): boolean {
   if (!isPlausibleNodeIdForPreview(node.id)) {
     return false;
   }
@@ -521,7 +523,9 @@ export async function* streamContinuumExecution(
   const integrationCatalog = args.context?.integrationCatalog;
   const registeredActions = args.context?.registeredActions;
   const chatAttachments = args.context?.chatAttachments;
-  const attach = (request: ContinuumExecutionRequest): ContinuumExecutionRequest =>
+  const attach = (
+    request: ContinuumExecutionRequest
+  ): ContinuumExecutionRequest =>
     mergeRequestAttachments(request, chatAttachments);
   const authoringFormat = args.authoringFormat ?? 'line-dsl';
   const promptMode = inferPromptMode(args.mode, currentView);
@@ -549,9 +553,7 @@ export async function* streamContinuumExecution(
         promptMode === 'create-view' || promptMode === 'evolve-view'
           ? promptMode
           : undefined,
-      reason: autoApplyView
-        ? 'planner pending'
-        : 'view generation requested',
+      reason: autoApplyView ? 'planner pending' : 'view generation requested',
       targetNodeIds: [],
       targetSemanticKeys: [],
       validation: 'accepted',
@@ -608,9 +610,13 @@ export async function* streamContinuumExecution(
       endpointId: executionPlan.endpointId,
       payloadSemanticKeys: executionPlan.payloadSemanticKeys,
     });
-    const actionsBinding = buildRegisteredActionsParagraph({ registeredActions });
+    const actionsBinding = buildRegisteredActionsParagraph({
+      registeredActions,
+    });
     const integrationBinding = [endpointSchemaBinding, actionsBinding]
-      .filter((section) => typeof section === 'string' && section.trim().length > 0)
+      .filter(
+        (section) => typeof section === 'string' && section.trim().length > 0
+      )
       .join('\n\n');
 
     yield {
@@ -713,7 +719,9 @@ export async function* streamContinuumExecution(
             selectedTargets,
             conversationSummary: conversationSummary || undefined,
             supplementalContext: [stateIntegrationContext, stateRetryFeedback]
-              .filter((value) => typeof value === 'string' && value.trim().length > 0)
+              .filter(
+                (value) => typeof value === 'string' && value.trim().length > 0
+              )
               .join('\n\n'),
           }),
         });
@@ -806,11 +814,7 @@ export async function* streamContinuumExecution(
         outputContract: VIEW_PATCH_OUTPUT_CONTRACT,
         temperature: 0,
       });
-      let patchResponse = await runGenerate(
-        args.adapter,
-        patchRequest,
-        trace
-      );
+      let patchResponse = await runGenerate(args.adapter, patchRequest, trace);
       let rawPatchValue =
         patchResponse.json ?? parseJson<unknown>(patchResponse.text);
       let normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
@@ -826,7 +830,9 @@ export async function* streamContinuumExecution(
             : 'no operations';
         yield {
           kind: 'status',
-          status: `[debug] Patch normalization failed: ${normalizedPatch.reason ?? 'unknown reason'}. First op: ${opKeys}`,
+          status: `[debug] Patch normalization failed: ${
+            normalizedPatch.reason ?? 'unknown reason'
+          }. First op: ${opKeys}`,
           level: 'info',
         };
       }
@@ -842,10 +848,14 @@ export async function* streamContinuumExecution(
         rawPatchPlan.operations.length === 0;
 
       const patchLooksEmpty =
-        (parsedPatch?.mode === 'patch' && parsedPatch.operations.length === 0) ||
+        (parsedPatch?.mode === 'patch' &&
+          parsedPatch.operations.length === 0) ||
         rawHadEmptyPatchOperations === true;
 
-      if (patchLooksEmpty && looksLikeStructuralEditInstruction(args.instruction)) {
+      if (
+        patchLooksEmpty &&
+        looksLikeStructuralEditInstruction(args.instruction)
+      ) {
         yield {
           kind: 'status',
           status:
@@ -934,7 +944,10 @@ export async function* streamContinuumExecution(
           }),
           integrationBinding.trim().length > 0 ? integrationBinding : '',
         ]
-          .filter((section) => typeof section === 'string' && section.trim().length > 0)
+          .filter(
+            (section) =>
+              typeof section === 'string' && section.trim().length > 0
+          )
           .join('\n\n'),
         mode: 'transform',
         outputKind: 'json-object',
@@ -1043,8 +1056,7 @@ export async function* streamContinuumExecution(
         format: authoringFormat,
         mode: nextPromptMode,
         instruction: args.instruction,
-        currentView:
-          nextPromptMode === 'create-view' ? undefined : currentView,
+        currentView: nextPromptMode === 'create-view' ? undefined : currentView,
         detachedFields:
           nextPromptMode === 'create-view' ? undefined : detachedFields,
         conversationSummary: conversationSummary || undefined,
@@ -1087,8 +1099,14 @@ export async function* streamContinuumExecution(
             continue;
           }
 
-          const previewView = normalizePreviewView(currentView, previewCandidate);
-          if (!previewView || !shouldAttemptPreview(previewView, lastPreviewSignature)) {
+          const previewView = normalizePreviewView(
+            currentView,
+            previewCandidate
+          );
+          if (
+            !previewView ||
+            !shouldAttemptPreview(previewView, lastPreviewSignature)
+          ) {
             continue;
           }
 
@@ -1113,7 +1131,10 @@ export async function* streamContinuumExecution(
             continue;
           }
 
-          const previewView = normalizePreviewView(currentView, previewCandidate);
+          const previewView = normalizePreviewView(
+            currentView,
+            previewCandidate
+          );
           if (
             !previewView ||
             !viewPassesPreviewQualityGate(previewView) ||
@@ -1126,8 +1147,7 @@ export async function* streamContinuumExecution(
           pendingPreviewView = previewView;
           const now = Date.now();
           const allowEmit =
-            lastPreviewEmitAt === null ||
-            now - lastPreviewEmitAt >= throttleMs;
+            lastPreviewEmitAt === null || now - lastPreviewEmitAt >= throttleMs;
           if (allowEmit) {
             lastPreviewSignature = signature;
             lastPreviewEmitAt = now;
@@ -1154,13 +1174,10 @@ export async function* streamContinuumExecution(
         text: finalViewText,
         raw: finalViewText,
       };
-      trace.push(
-        toTraceEntry('view', fullViewRequest, streamedViewResponse)
-      );
+      trace.push(toTraceEntry('view', fullViewRequest, streamedViewResponse));
     } else {
-      finalViewText = (
-        await runGenerate(args.adapter, fullViewRequest, trace)
-      ).text;
+      finalViewText = (await runGenerate(args.adapter, fullViewRequest, trace))
+        .text;
     }
 
     const parsedView = parseViewAuthoringToViewDefinition({
@@ -1182,7 +1199,9 @@ export async function* streamContinuumExecution(
         validationErrors = [normalizeError(error).message];
       }
     } else {
-      validationErrors = ['Model output did not compile into a valid ViewDefinition.'];
+      validationErrors = [
+        'Model output did not compile into a valid ViewDefinition.',
+      ];
     }
 
     if (!finalView && currentView) {
@@ -1220,7 +1239,6 @@ export async function* streamContinuumExecution(
           'The model response did not produce a valid Continuum view.'
       );
     }
-
 
     yield {
       kind: 'view-final',

@@ -7,8 +7,15 @@ import {
 } from './apply-shared.js';
 import { isChildContainerNode, isCollectionNode } from './shared.js';
 
-function buildWrapperNode(wrapper: ViewNode, children: ViewNode[]): ViewNode | null {
-  if (wrapper.type !== 'group' && wrapper.type !== 'row' && wrapper.type !== 'grid') {
+function buildWrapperNode(
+  wrapper: ViewNode,
+  children: ViewNode[]
+): ViewNode | null {
+  if (
+    wrapper.type !== 'group' &&
+    wrapper.type !== 'row' &&
+    wrapper.type !== 'grid'
+  ) {
     return null;
   }
 

@@ -1,5 +1,8 @@
 import type { ViewDefinition } from '@continuum-dev/core';
-import { parseJson, sanitizeJsonViewDefinition } from '../../view-guardrails/index.js';
+import {
+  parseJson,
+  sanitizeJsonViewDefinition,
+} from '../../view-guardrails/index.js';
 import {
   buildViewDefinitionNodeFromDsl,
   bumpVersion,
@@ -51,8 +54,7 @@ export function parseViewLineDslToViewDefinition(args: {
     const indent = indentMatch ? indentMatch[0].length / 2 : 0;
     const trimmed = line.trim();
     const firstSpace = trimmed.indexOf(' ');
-    const typeToken =
-      firstSpace >= 0 ? trimmed.slice(0, firstSpace) : trimmed;
+    const typeToken = firstSpace >= 0 ? trimmed.slice(0, firstSpace) : trimmed;
     const rest = firstSpace >= 0 ? trimmed.slice(firstSpace + 1) : '';
 
     if (!isViewLineDslNodeType(typeToken)) {

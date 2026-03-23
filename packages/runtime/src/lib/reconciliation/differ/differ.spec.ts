@@ -29,7 +29,12 @@ describe('diff factories', () => {
   });
 
   it('typeChangedDiff includes both type names in the reason', () => {
-    const diff = typeChangedDiff('node-1', { value: 'hello' }, 'field', 'action');
+    const diff = typeChangedDiff(
+      'node-1',
+      { value: 'hello' },
+      'field',
+      'action'
+    );
     expect(diff.type).toBe('type-changed');
     expect(diff.oldValue).toEqual({ value: 'hello' });
     expect(diff.reason).toContain('field');

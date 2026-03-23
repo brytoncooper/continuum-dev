@@ -118,12 +118,10 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
   selectorLabel: 'Collection evolution',
   problem:
     'Enter two contacts, then go to step 2. The layout changes to cards. The naive pane loses the data. Continuum keeps it.',
-  whyItMatters:
-    'Lists often change layout. The data should stay.',
+  whyItMatters: 'Lists often change layout. The data should stay.',
   controls: {
     inputLabel: 'Contact values',
-    inputDescription:
-      'Enter two contacts for both panes.',
+    inputDescription: 'Enter two contacts for both panes.',
     helperText: 'Go to step 2 to change the layout.',
   },
   inputFields: [
@@ -193,15 +191,13 @@ export const collectionEvolutionScenario: PlaygroundCollectionScenario = {
     {
       id: 'collection-initial',
       title: 'Step 1: Two contacts',
-      description:
-        'Both panes start with two entered contacts.',
+      description: 'Both panes start with two entered contacts.',
       view: initialView,
     },
     {
       id: 'collection-evolved',
       title: 'Step 2: Layout changes',
-      description:
-        'Rows become cards. See what happens to the data.',
+      description: 'Rows become cards. See what happens to the data.',
       view: evolvedView,
     },
   ],

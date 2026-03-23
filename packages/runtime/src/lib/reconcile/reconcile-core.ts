@@ -1,7 +1,4 @@
-import type {
-  ReconcileInput,
-  ReconciliationResult,
-} from '../types.js';
+import type { ReconcileInput, ReconciliationResult } from '../types.js';
 
 import {
   buildInitialSnapshotFromView,

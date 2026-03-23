@@ -113,23 +113,26 @@ describe('applyPatchPlanToView', () => {
     ['1', '2'],
     ['v1', 'v2'],
     ['release', 'release-next'],
-  ])('bumps version %s to %s when a patch changes the tree', (version, expected) => {
-    const patched = applyPatchPlanToView(createInvoiceView(version), {
-      mode: 'patch',
-      operations: [
-        {
-          kind: 'insert-node',
-          parentId: 'details',
-          position: {
-            afterId: 'summary',
+  ])(
+    'bumps version %s to %s when a patch changes the tree',
+    (version, expected) => {
+      const patched = applyPatchPlanToView(createInvoiceView(version), {
+        mode: 'patch',
+        operations: [
+          {
+            kind: 'insert-node',
+            parentId: 'details',
+            position: {
+              afterId: 'summary',
+            },
+            node: createPresentationNode('note', 'Note'),
           },
-          node: createPresentationNode('note', 'Note'),
-        },
-      ],
-    });
+        ],
+      });
 
-    expect(patched?.version).toBe(expected);
-  });
+      expect(patched?.version).toBe(expected);
+    }
+  );
 
   it.each([
     {
@@ -175,9 +178,12 @@ describe('applyPatchPlanToView', () => {
         ],
       },
     },
-  ])('returns null when runtime patching produces a no-op for $label', ({ plan }) => {
-    expect(applyPatchPlanToView(createInvoiceView('v1'), plan)).toBeNull();
-  });
+  ])(
+    'returns null when runtime patching produces a no-op for $label',
+    ({ plan }) => {
+      expect(applyPatchPlanToView(createInvoiceView('v1'), plan)).toBeNull();
+    }
+  );
 
   it('returns null when sequential operations land back on the original tree', () => {
     const view = createInvoiceView('v7');

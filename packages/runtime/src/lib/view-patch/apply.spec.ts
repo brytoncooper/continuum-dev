@@ -95,7 +95,10 @@ function requireNode(view: ViewDefinition, nodeId: string): ViewNode {
   return node;
 }
 
-function requireContainerChildIds(view: ViewDefinition, nodeId: string): string[] {
+function requireContainerChildIds(
+  view: ViewDefinition,
+  nodeId: string
+): string[] {
   const node = requireNode(view, nodeId);
   if (node.type !== 'group' && node.type !== 'row' && node.type !== 'grid') {
     throw new Error(`Expected ${nodeId} to be a structural container`);
@@ -356,7 +359,9 @@ describe('applyContinuumViewPatch', () => {
 
     const nextView = applyContinuumViewPatch(currentView, patch);
 
-    expect(requireContainerChildIds(nextView, 'line_item')).toEqual(['line_item_row']);
+    expect(requireContainerChildIds(nextView, 'line_item')).toEqual([
+      'line_item_row',
+    ]);
     expect(requireContainerChildIds(nextView, 'line_item_row')).toEqual([
       'name',
       'price',

@@ -314,11 +314,23 @@ function LiveStudio({
     <div
       style={{
         ...studioGridStyle,
-        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : studioGridStyle.gridTemplateColumns,
+        gridTemplateColumns: isMobile
+          ? 'minmax(0, 1fr)'
+          : studioGridStyle.gridTemplateColumns,
       }}
     >
-      <aside style={{ ...chatPanelStyle, gridColumn: isMobile ? '1 / -1' : chatPanelStyle.gridColumn }}>
-        <div style={{ ...panelShellStyle, padding: isMobile ? space.md : panelShellStyle.padding }}>
+      <aside
+        style={{
+          ...chatPanelStyle,
+          gridColumn: isMobile ? '1 / -1' : chatPanelStyle.gridColumn,
+        }}
+      >
+        <div
+          style={{
+            ...panelShellStyle,
+            padding: isMobile ? space.md : panelShellStyle.padding,
+          }}
+        >
           <div style={sectionTitleStyle}>AI chat</div>
           <StarterKitSessionWorkbench
             initialView={liveView}
@@ -349,10 +361,16 @@ function LiveStudio({
           gridColumn: isMobile ? '1 / -1' : previewPanelStyle.gridColumn,
         }}
       >
-        <div style={{ ...panelShellStyle, padding: isMobile ? space.md : panelShellStyle.padding }}>
+        <div
+          style={{
+            ...panelShellStyle,
+            padding: isMobile ? space.md : panelShellStyle.padding,
+          }}
+        >
           <div style={sectionTitleStyle}>Generated view</div>
           <div style={helperTextStyle}>
-            This panel intentionally takes more space so you can inspect structure, spacing, and behavior while iterating.
+            This panel intentionally takes more space so you can inspect
+            structure, spacing, and behavior while iterating.
           </div>
           <div style={previewFrameStyle}>
             {isGenerating ? (
@@ -485,7 +503,9 @@ export function LiveAiPage() {
     ? rawModel
     : '';
 
-  const selectedProvider = providerOptions.find((item) => item.key === provider);
+  const selectedProvider = providerOptions.find(
+    (item) => item.key === provider
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -511,7 +531,9 @@ export function LiveAiPage() {
   const providers = useMemo(() => {
     const token = accessToken.trim();
     if (!token) {
-      return [createTokenRequiredProvider(selectedProvider?.label ?? 'Provider')];
+      return [
+        createTokenRequiredProvider(selectedProvider?.label ?? 'Provider'),
+      ];
     }
 
     if (provider === 'openai') {
@@ -587,7 +609,9 @@ export function LiveAiPage() {
                 </select>
               </label>
               <label style={controlGroupStyle}>
-                <span style={fieldLabelStyle}>{selectedProvider?.tokenLabel ?? 'Access token'}</span>
+                <span style={fieldLabelStyle}>
+                  {selectedProvider?.tokenLabel ?? 'Access token'}
+                </span>
                 <input
                   type="password"
                   value={accessToken}
@@ -638,7 +662,10 @@ export function LiveAiPage() {
               </label>
             </div>
             <div style={helperTextStyle}>
-              Stored locally in this browser so you do not have to re-enter keys while testing. Model IDs are sourced from provider docs current on March 8, 2026. Line DSL is the default path. YAML stays available here for experiments.
+              Stored locally in this browser so you do not have to re-enter keys
+              while testing. Model IDs are sourced from provider docs current on
+              March 8, 2026. Line DSL is the default path. YAML stays available
+              here for experiments.
             </div>
           </ExampleCard>
         </ExampleGrid>
@@ -649,7 +676,12 @@ export function LiveAiPage() {
         description="This Live AI Demo is built using the Starter Kit. Prompt on the left and watch the generated Continuum view evolve in a larger workspace on the right."
       >
         <div style={linkRowStyle}>
-          <a href={repositoryUrl} target="_blank" rel="noreferrer" style={inlineLinkStyle}>
+          <a
+            href={repositoryUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={inlineLinkStyle}
+          >
             View on GitHub
           </a>
           <a href="/docs" style={inlineLinkStyle}>

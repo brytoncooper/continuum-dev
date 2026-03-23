@@ -32,8 +32,12 @@ export function toPublicSessionStream(
     updatedAt: stream.updatedAt,
     latestStatus: stream.latestStatus,
     nodeStatuses: { ...stream.nodeStatuses },
-    previewData: stream.workingData ? structuredClone(stream.workingData) : null,
-    previewView: stream.workingView ? structuredClone(stream.workingView) : null,
+    previewData: stream.workingData
+      ? structuredClone(stream.workingData)
+      : null,
+    previewView: stream.workingView
+      ? structuredClone(stream.workingView)
+      : null,
     viewVersion: stream.workingView?.version ?? null,
     affectedNodeIds: [...stream.affectedNodeIds],
     partCount: stream.parts.length,

@@ -13,7 +13,5 @@ export function resolveReconciliationTimestamp(
     return priorData.lineage.timestamp + 1;
   }
 
-  throw new Error(
-    'reconcile requires options.clock when no prior data exists'
-  );
+  throw new Error('reconcile requires options.clock when no prior data exists');
 }

@@ -35,14 +35,20 @@ function applyOperationToNode(
   }
 
   if (isCollectionNode(node)) {
-    if (operation.op === 'remove-node' && node.template.id === operation.nodeId) {
+    if (
+      operation.op === 'remove-node' &&
+      node.template.id === operation.nodeId
+    ) {
       return {
         node,
         applied: true,
       };
     }
 
-    if (operation.op === 'replace-node' && node.template.id === operation.nodeId) {
+    if (
+      operation.op === 'replace-node' &&
+      node.template.id === operation.nodeId
+    ) {
       return {
         node: replaceCollectionTemplate(node, operation.node),
         applied: true,
@@ -99,7 +105,11 @@ export function applyOperationToNodeList(
         nextNodes.push(
           replaceStructuralChildren(
             node,
-            insertNodeIntoList(node.children, operation.node, operation.position)
+            insertNodeIntoList(
+              node.children,
+              operation.node,
+              operation.position
+            )
           )
         );
         applied = true;
@@ -164,7 +174,10 @@ function removeNodeFromTree(node: ViewNode, nodeId: string): NodeRemovalResult {
   };
 }
 
-function removeNodeFromList(nodes: ViewNode[], nodeId: string): RemoveNodeResult {
+function removeNodeFromList(
+  nodes: ViewNode[],
+  nodeId: string
+): RemoveNodeResult {
   let removedNode: ViewNode | null = null;
   let applied = false;
   let changed = false;
@@ -212,7 +225,9 @@ export function applyMoveNode(
   const inserted = applyOperationToNodeList(removed.nodes, {
     op: 'insert-node',
     parentId:
-      typeof operation.parentId === 'string' ? operation.parentId : operation.parentId ?? null,
+      typeof operation.parentId === 'string'
+        ? operation.parentId
+        : operation.parentId ?? null,
     position: operation.position,
     node: removed.removedNode,
   });

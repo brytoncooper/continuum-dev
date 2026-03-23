@@ -155,8 +155,12 @@ export function LandingShell({
           <div
             style={{
               ...supportingStyle,
-              fontSize: isMobile ? type.body.fontSize : supportingStyle.fontSize,
-              lineHeight: isMobile ? type.body.lineHeight : supportingStyle.lineHeight,
+              fontSize: isMobile
+                ? type.body.fontSize
+                : supportingStyle.fontSize,
+              lineHeight: isMobile
+                ? type.body.lineHeight
+                : supportingStyle.lineHeight,
             }}
           >
             {description}
@@ -195,7 +199,9 @@ export function LandingSection({
           }}
         >
           {title ? <div style={sectionTitleStyle}>{title}</div> : null}
-          {description ? <div style={sectionTextStyle}>{description}</div> : null}
+          {description ? (
+            <div style={sectionTextStyle}>{description}</div>
+          ) : null}
         </div>
       ) : null}
       {children}
@@ -216,7 +222,9 @@ export function LandingGrid({
     <div
       style={{
         ...gridStyle,
-        gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : gridStyle.gridTemplateColumns,
+        gridTemplateColumns: isMobile
+          ? 'minmax(0, 1fr)'
+          : gridStyle.gridTemplateColumns,
         alignItems,
       }}
     >
@@ -241,8 +249,8 @@ export function LandingCard({
     tone === 'strong'
       ? color.surfaceAccent
       : tone === 'soft'
-        ? color.surfaceMuted
-        : color.surface;
+      ? color.surfaceMuted
+      : color.surface;
 
   const borderColor = tone === 'strong' ? color.border : color.borderSoft;
 

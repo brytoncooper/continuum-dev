@@ -17,7 +17,10 @@ function createNodes(): ViewNode[] {
     {
       id: 'details',
       type: 'group',
-      children: [createPresentationNode('summary'), createPresentationNode('body')],
+      children: [
+        createPresentationNode('summary'),
+        createPresentationNode('body'),
+      ],
     },
     {
       id: 'sidebar',

@@ -75,10 +75,10 @@ export function normalizeViewPatchOperation(
     typeof input.kind === 'string'
       ? input.kind
       : typeof input.op === 'string'
-        ? input.op
-        : typeof input.type === 'string'
-          ? input.type
-          : null;
+      ? input.op
+      : typeof input.type === 'string'
+      ? input.type
+      : null;
   if (!kind) {
     return null;
   }
@@ -94,7 +94,9 @@ export function normalizeViewPatchOperation(
 
     return {
       kind: 'insert-node',
-      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(typeof input.parentId === 'string'
+        ? { parentId: input.parentId }
+        : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
       ...(position ? { position } : {}),
       node,
@@ -110,7 +112,9 @@ export function normalizeViewPatchOperation(
     return {
       kind: 'move-node',
       nodeId,
-      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(typeof input.parentId === 'string'
+        ? { parentId: input.parentId }
+        : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
       ...(position ? { position } : {}),
     };
@@ -139,7 +143,9 @@ export function normalizeViewPatchOperation(
 
     return {
       kind: 'wrap-nodes',
-      ...(typeof input.parentId === 'string' ? { parentId: input.parentId } : {}),
+      ...(typeof input.parentId === 'string'
+        ? { parentId: input.parentId }
+        : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
       nodeIds: input.nodeIds,
       wrapper,
@@ -175,11 +181,7 @@ export function normalizeViewPatchOperation(
   }
 
   if (kind === 'append-content') {
-    if (
-      !nodeId ||
-      typeof input.text !== 'string' ||
-      input.text.length === 0
-    ) {
+    if (!nodeId || typeof input.text !== 'string' || input.text.length === 0) {
       return null;
     }
 
@@ -197,7 +199,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function resolvePatchTargetNodeId(input: Record<string, unknown>): string | null {
+function resolvePatchTargetNodeId(
+  input: Record<string, unknown>
+): string | null {
   if (typeof input.nodeId === 'string' && input.nodeId.trim().length > 0) {
     return input.nodeId.trim();
   }

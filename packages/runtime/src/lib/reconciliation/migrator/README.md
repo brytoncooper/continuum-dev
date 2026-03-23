@@ -5,9 +5,11 @@ view versions, while preserving reconciliation outcomes and strict
 deterministic behavior.
 
 Public entrypoint:
+
 - `reconciliation/migrator/index.ts`
 
 Internal implementation:
+
 - `reconciliation/migrator/migrator-core.ts`
 
 ## Import Boundary

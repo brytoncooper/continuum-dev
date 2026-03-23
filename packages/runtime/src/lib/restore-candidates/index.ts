@@ -1,4 +1,8 @@
-import type { DataSnapshot, DetachedValue, ViewNode } from '@continuum-dev/contract';
+import type {
+  DataSnapshot,
+  DetachedValue,
+  ViewNode,
+} from '@continuum-dev/contract';
 import type { RestoreCandidateMatch } from './types.js';
 import { determineDetachedFamily } from './family.js';
 import { collectCandidateNodes } from './collect.js';
@@ -11,7 +15,7 @@ export { determineDetachedFamily, determineNodeFamily } from './family.js';
 /**
  * Searches the provided node tree for possible candidate nodes that a
  * detached value might belong to, using a heuristic fuzzy matching approach.
- * 
+ *
  * This logic does not auto-apply restore operations; it merely provides
  * suggestions that higher-level orchestration can surface for user review.
  */

@@ -74,7 +74,9 @@ export async function POST(request: Request) {
   const { messages, currentView, currentData } = body;
   const instruction =
     body.continuum?.instruction ??
-    messages[messages.length - 1]?.parts?.find((part: any) => part.type === 'text')?.text;
+    messages[messages.length - 1]?.parts?.find(
+      (part: any) => part.type === 'text'
+    )?.text;
 
   const model = openai('gpt-5');
   const result = streamText({

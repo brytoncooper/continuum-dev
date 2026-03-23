@@ -24,9 +24,7 @@ export function TextareaInput({
   const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const text =
-    nodeValue?.value ??
-    readNodeProp<string>(definition, 'defaultValue') ??
-    '';
+    nodeValue?.value ?? readNodeProp<string>(definition, 'defaultValue') ?? '';
 
   return (
     <FieldFrame
@@ -61,9 +59,7 @@ export function TextareaInput({
         value={text}
         data-continuum-control="true"
         data-continuum-node-id={nodeId}
-        placeholder={
-          nodePlaceholder(definition) ?? 'Enter text'
-        }
+        placeholder={nodePlaceholder(definition) ?? 'Enter text'}
         style={{
           ...useInputLikeStyle({
             minHeight: 120,

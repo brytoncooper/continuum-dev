@@ -1,4 +1,8 @@
-import type { CollectionNode, CollectionNodeState, NodeValue } from '@continuum-dev/core';
+import type {
+  CollectionNode,
+  CollectionNodeState,
+  NodeValue,
+} from '@continuum-dev/core';
 import { describe, expect, it } from 'vitest';
 import {
   clearCollectionItemSuggestion,

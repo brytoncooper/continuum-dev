@@ -1,7 +1,10 @@
 import type { NodeValue } from '@continuum-dev/contract';
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { color, space, type } from '../../tokens.js';
-import { starterKitDefaultStyles, useStarterKitStyle } from '../../style-config.js';
+import {
+  starterKitDefaultStyles,
+  useStarterKitStyle,
+} from '../../style-config.js';
 import { FieldFrame } from '../shared/field-frame.js';
 import {
   nodeDescription,
@@ -29,7 +32,10 @@ export function SliderInput({
       : typeof defaultValue === 'number'
       ? defaultValue
       : fallback;
-  const sliderStyle = useStarterKitStyle('sliderInput', starterKitDefaultStyles.sliderInput);
+  const sliderStyle = useStarterKitStyle(
+    'sliderInput',
+    starterKitDefaultStyles.sliderInput
+  );
 
   return (
     <FieldFrame

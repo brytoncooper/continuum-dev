@@ -149,9 +149,9 @@ describe('runtime contract', () => {
       options: { clock: () => 11 },
     });
     expect(result.reconciledState.values.a?.value).toBe('x');
-    expect(result.diffs.some((d) => d.type === 'added' && d.nodeId === 'b')).toBe(
-      true
-    );
+    expect(
+      result.diffs.some((d) => d.type === 'added' && d.nodeId === 'b')
+    ).toBe(true);
   });
 
   it('structural updates return canonical snapshot data even when legacy fields exist on prior data', () => {

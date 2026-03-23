@@ -76,9 +76,14 @@ describe('attemptMigration', () => {
       { migrationStrategies: { 'node-1': strategy } }
     );
 
-    expect(strategy).toHaveBeenCalledWith('node-1', expect.anything(), expect.anything(), {
-      value: 'hello',
-    });
+    expect(strategy).toHaveBeenCalledWith(
+      'node-1',
+      expect.anything(),
+      expect.anything(),
+      {
+        value: 'hello',
+      }
+    );
     expect(result).toEqual({ kind: 'migrated', value: { value: 'NODE-1' } });
   });
 

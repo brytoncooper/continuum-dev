@@ -74,9 +74,7 @@ describe('buildContinuumVercelAiSdkRequestBody', () => {
           path: '/x',
           description: 'd',
           userAction: 'act',
-          persistedFields: [
-            { semanticKey: 'a.b', label: 'L', required: true },
-          ],
+          persistedFields: [{ semanticKey: 'a.b', label: 'L', required: true }],
         },
       ],
     };

@@ -1,6 +1,9 @@
 import type { SessionState } from './session-state.js';
 import { replaceInternalState } from './session-state.js';
-import { subscribeSnapshot, notifySnapshotAndIssueListeners } from '../listeners/index.js';
+import {
+  subscribeSnapshot,
+  notifySnapshotAndIssueListeners,
+} from '../listeners/index.js';
 import { serializeSession, deserializeToState } from './serializer.js';
 import type { SessionPersistenceOptions } from '../../types.js';
 
@@ -15,8 +18,10 @@ function isMatchingStorageEvent(
 ): event is { key: string | null; newValue: string; storageArea?: unknown } {
   if (!isRecord(event)) return false;
   if (event.key !== key) return false;
-  if (event.newValue === null || typeof event.newValue !== 'string') return false;
-  if (event.storageArea !== undefined && event.storageArea !== storage) return false;
+  if (event.newValue === null || typeof event.newValue !== 'string')
+    return false;
+  if (event.storageArea !== undefined && event.storageArea !== storage)
+    return false;
   return true;
 }
 
@@ -48,10 +53,10 @@ export function attachPersistence(
       const payload = JSON.stringify(serializeSession(internal));
       const attemptedBytes = encoder.encode(payload).byteLength;
       if (
-        typeof options.maxBytes === 'number'
-        && Number.isFinite(options.maxBytes)
-        && options.maxBytes >= 0
-        && attemptedBytes > options.maxBytes
+        typeof options.maxBytes === 'number' &&
+        Number.isFinite(options.maxBytes) &&
+        options.maxBytes >= 0 &&
+        attemptedBytes > options.maxBytes
       ) {
         options.onError?.({
           reason: 'size_limit',
@@ -98,8 +103,22 @@ export function attachPersistence(
     }
   };
 
-  const maybeAdd = (globalThis as { addEventListener?: (type: string, listener: (event: unknown) => void) => void }).addEventListener;
-  const maybeRemove = (globalThis as { removeEventListener?: (type: string, listener: (event: unknown) => void) => void }).removeEventListener;
+  const maybeAdd = (
+    globalThis as {
+      addEventListener?: (
+        type: string,
+        listener: (event: unknown) => void
+      ) => void;
+    }
+  ).addEventListener;
+  const maybeRemove = (
+    globalThis as {
+      removeEventListener?: (
+        type: string,
+        listener: (event: unknown) => void
+      ) => void;
+    }
+  ).removeEventListener;
   if (maybeAdd) {
     maybeAdd('storage', onStorage);
     maybeAdd('beforeunload', flushNow as unknown as (event: unknown) => void);
@@ -113,7 +132,10 @@ export function attachPersistence(
     unsubscribe();
     if (maybeRemove) {
       maybeRemove('storage', onStorage);
-      maybeRemove('beforeunload', flushNow as unknown as (event: unknown) => void);
+      maybeRemove(
+        'beforeunload',
+        flushNow as unknown as (event: unknown) => void
+      );
     }
   };
 }

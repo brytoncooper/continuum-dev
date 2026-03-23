@@ -8,7 +8,14 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import { color, control, radius, shadow, space, type as typeScale } from '../../tokens.js';
+import {
+  color,
+  control,
+  radius,
+  shadow,
+  space,
+  type as typeScale,
+} from '../../tokens.js';
 import { FieldFrame, useInputLikeStyle } from '../shared/field-frame.js';
 import { useAnchoredPopupLayout } from '../shared/anchored-popup.js';
 import { PopupPortal } from '../shared/popup-portal.js';
@@ -56,7 +63,10 @@ function clampIndex(index: number, total: number): number {
   return Math.min(Math.max(index, 0), total - 1);
 }
 
-function selectedIndexForValue(options: FieldOption[], selected: string): number {
+function selectedIndexForValue(
+  options: FieldOption[],
+  selected: string
+): number {
   const index = options.findIndex((option) => option.value === selected);
   return index >= 0 ? index : 0;
 }
@@ -111,7 +121,11 @@ function optionButtonStyle(
     minWidth: 0,
     padding: `${isCompact ? space.md : space.sm}px ${space.md}px`,
     border: `1px solid ${
-      selected ? color.borderStrong : highlighted ? color.border : color.borderSoft
+      selected
+        ? color.borderStrong
+        : highlighted
+        ? color.border
+        : color.borderSoft
     }`,
     borderRadius: radius.md,
     background: selected ? color.surfaceMuted : color.surface,
@@ -137,13 +151,12 @@ export function SelectInput({
   const placeholder = nodePlaceholder(definition) ?? 'Select one';
   const options = nodeOptions(definition);
   const selected =
-    nodeValue?.value ??
-    readNodeProp<string>(definition, 'defaultValue') ??
-    '';
+    nodeValue?.value ?? readNodeProp<string>(definition, 'defaultValue') ?? '';
   const readOnly = Boolean(readNodeProp<boolean>(definition, 'readOnly'));
   const disabled = readOnly || options.length === 0;
   const selectedOption = options.find((option) => option.value === selected);
-  const selectedLabel = selectedOption?.label ?? (selected ? selected : placeholder);
+  const selectedLabel =
+    selectedOption?.label ?? (selected ? selected : placeholder);
   const selectedIndex = selectedIndexForValue(options, selected);
   const triggerId = useId();
   const labelId = useId();
@@ -264,7 +277,9 @@ export function SelectInput({
     closeMenu(true);
   };
 
-  const handleTriggerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+  const handleTriggerKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>
+  ) => {
     if (disabled) {
       return;
     }
@@ -428,7 +443,9 @@ export function SelectInput({
                 style={{
                   position: 'fixed',
                   inset: 0,
-                  background: isCompact ? 'rgba(17, 17, 17, 0.16)' : 'transparent',
+                  background: isCompact
+                    ? 'rgba(17, 17, 17, 0.16)'
+                    : 'transparent',
                   zIndex: popupOverlayZIndex,
                 }}
                 onMouseDown={(event) => {
@@ -440,7 +457,9 @@ export function SelectInput({
                 <div
                   data-continuum-select-popup="true"
                   data-continuum-select-placement={
-                    isCompact ? 'sheet' : desktopPopoverLayout?.placement ?? 'down'
+                    isCompact
+                      ? 'sheet'
+                      : desktopPopoverLayout?.placement ?? 'down'
                   }
                   style={
                     isCompact
@@ -465,7 +484,9 @@ export function SelectInput({
                       <span style={{ ...typeScale.section, color: color.text }}>
                         {label ?? 'Choose an option'}
                       </span>
-                      <span style={{ ...typeScale.small, color: color.textMuted }}>
+                      <span
+                        style={{ ...typeScale.small, color: color.textMuted }}
+                      >
                         Tap an option to update this field.
                       </span>
                     </div>
@@ -479,7 +500,8 @@ export function SelectInput({
                       gap: space.xs,
                       maxHeight: isCompact
                         ? 'min(52vh, 360px)'
-                        : desktopPopoverLayout?.maxHeight ?? desktopPreferredPopoverHeight,
+                        : desktopPopoverLayout?.maxHeight ??
+                          desktopPreferredPopoverHeight,
                       overflowY: 'auto',
                     }}
                   >
@@ -498,12 +520,21 @@ export function SelectInput({
                           aria-selected={isSelected}
                           data-continuum-control="true"
                           data-continuum-node-id={nodeId}
-                          style={optionButtonStyle(isSelected, isHighlighted, isCompact)}
+                          style={optionButtonStyle(
+                            isSelected,
+                            isHighlighted,
+                            isCompact
+                          )}
                           onMouseEnter={() => setHighlightedIndex(index)}
                           onClick={() => commitValue(option.value)}
-                          onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                          onKeyDown={(event) =>
+                            handleOptionKeyDown(event, index)
+                          }
                         >
-                          <span aria-hidden="true" style={selectionBadgeStyle(isSelected)} />
+                          <span
+                            aria-hidden="true"
+                            style={selectionBadgeStyle(isSelected)}
+                          />
                           <span
                             style={{
                               ...typeScale.body,

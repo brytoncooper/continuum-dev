@@ -42,8 +42,14 @@ export * from './lib/proposals/restore-review-card.js';
 export * from './lib/proposals/suggestions-bar.js';
 export * from './lib/tokens.js';
 
-export { StarterKitStyleProvider, starterKitDefaultStyles } from './lib/style-config.js';
-export type { StarterKitStyleConfig, StarterKitStyleSlot } from './lib/style-config.js';
+export {
+  StarterKitStyleProvider,
+  starterKitDefaultStyles,
+} from './lib/style-config.js';
+export type {
+  StarterKitStyleConfig,
+  StarterKitStyleSlot,
+} from './lib/style-config.js';
 
 export { StarterKitSessionWorkbench } from './lib/ai/session-workbench.js';
 export type {

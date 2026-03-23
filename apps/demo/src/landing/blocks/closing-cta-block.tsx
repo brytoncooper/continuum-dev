@@ -22,7 +22,9 @@ const actionsStyle: CSSProperties = {
   gap: space.sm,
 };
 
-const actionStyle = (tone: 'default' | 'soft' | 'strong' = 'default'): CSSProperties => ({
+const actionStyle = (
+  tone: 'default' | 'soft' | 'strong' = 'default'
+): CSSProperties => ({
   ...type.small,
   display: 'inline-flex',
   alignItems: 'center',
@@ -30,12 +32,9 @@ const actionStyle = (tone: 'default' | 'soft' | 'strong' = 'default'): CSSProper
   color: tone === 'strong' ? color.surface : color.text,
   textDecoration: 'none',
   padding: `${space.sm}px ${space.md}px`,
-  border: `1px solid ${
-    tone === 'strong' ? color.accentStrong : color.border
-  }`,
+  border: `1px solid ${tone === 'strong' ? color.accentStrong : color.border}`,
   borderRadius: radius.pill,
-  background:
-    tone === 'strong' ? color.accent : color.surface,
+  background: tone === 'strong' ? color.accent : color.surface,
 });
 
 export function ClosingCtaBlock() {
@@ -44,7 +43,9 @@ export function ClosingCtaBlock() {
       <LandingGrid alignItems="stretch">
         <LandingCard span={12} tone="strong">
           <div style={headlineStyle}>{closingCtaContent.title}</div>
-          <div style={{ ...bodyStyle, marginTop: space.sm }}>{closingCtaContent.description}</div>
+          <div style={{ ...bodyStyle, marginTop: space.sm }}>
+            {closingCtaContent.description}
+          </div>
           <div style={{ ...actionsStyle, marginTop: space.lg }}>
             {closingCtaContent.actions.map((action) => (
               <a

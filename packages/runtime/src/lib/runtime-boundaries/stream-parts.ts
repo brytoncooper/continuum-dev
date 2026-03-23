@@ -204,7 +204,10 @@ export function applyContinuumViewStreamPart(
     };
   }
 
-  const { patch, affectedNodeIds } = buildPatchForStructuralPart(input.currentView, part);
+  const { patch, affectedNodeIds } = buildPatchForStructuralPart(
+    input.currentView,
+    part
+  );
   return {
     view: applyContinuumViewPatch(input.currentView, patch),
     affectedNodeIds,

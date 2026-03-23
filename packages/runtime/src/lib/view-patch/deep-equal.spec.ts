@@ -41,7 +41,9 @@ describe('deepEqual', () => {
 
   it('rejects array-object mismatches and differing keys', () => {
     expect(deepEqual(['summary'], { 0: 'summary' })).toBe(false);
-    expect(deepEqual({ id: 'summary' }, { id: 'summary', hidden: true })).toBe(false);
+    expect(deepEqual({ id: 'summary' }, { id: 'summary', hidden: true })).toBe(
+      false
+    );
     expect(
       deepEqual(
         { id: 'summary', hidden: true },

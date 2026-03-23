@@ -149,7 +149,8 @@ export function VercelAiSdkControlsPanel({
           Add stable Continuum state to Vercel AI SDK
         </div>
         <div style={helperTextStyle}>
-          Keep your existing route and transport. Continuum preserves user-entered state while streamed UI changes land.
+          Keep your existing route and transport. Continuum preserves
+          user-entered state while streamed UI changes land.
         </div>
       </div>
 
@@ -252,9 +253,10 @@ export function VercelAiSdkControlsPanel({
             Debug: what the model sees
           </span>
           <span style={helperTextStyle}>
-            Stream a normal assistant reply that describes your text and attachments (no Continuum
-            view generation). Uses the same provider and model as above. Choose PDFs or images in the
-            file picker, then send in the same action as your message so the request includes file
+            Stream a normal assistant reply that describes your text and
+            attachments (no Continuum view generation). Uses the same provider
+            and model as above. Choose PDFs or images in the file picker, then
+            send in the same action as your message so the request includes file
             parts; toggling this checkbox no longer resets the chat.
           </span>
         </span>
@@ -290,7 +292,8 @@ export function VercelAiSdkControlsPanel({
                 Add a key to continue
               </div>
               <div style={helperTextStyle}>
-                Paste your provider key above to enable live requests. Continuum stays in the same Vercel AI SDK flow you already use.
+                Paste your provider key above to enable live requests. Continuum
+                stays in the same Vercel AI SDK flow you already use.
               </div>
             </div>
           </div>

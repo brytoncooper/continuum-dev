@@ -3,6 +3,7 @@
 `@continuum-dev/contract` is the pure Continuum model layer.
 
 It defines the durable, declarative shapes that describe what a Continuum view is and how user-owned state is stored against it:
+
 - `ViewDefinition`
 - `ViewNode` and node variants
 - `DataSnapshot`
@@ -13,6 +14,7 @@ It defines the durable, declarative shapes that describe what a Continuum view i
 ## Scope
 
 Use `@continuum-dev/contract` when you need the canonical model for:
+
 - persisted view/data state
 - schema-aware rendering
 - reconciliation inputs and outputs that point back to the model
@@ -21,6 +23,7 @@ Use `@continuum-dev/contract` when you need the canonical model for:
 Keep workflow and operational protocol types out of this package.
 
 Those now live in [`@continuum-dev/protocol`](../protocol/README.md), which owns:
+
 - issue and diff taxonomies
 - interactions, intents, and checkpoints
 - action handler contracts

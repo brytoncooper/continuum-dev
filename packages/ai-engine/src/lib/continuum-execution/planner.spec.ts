@@ -68,8 +68,12 @@ describe('continuum execution planner prompts', () => {
   it('documents the planner contract in the system prompt', () => {
     const prompt = buildContinuumExecutionPlannerSystemPrompt();
 
-    expect(prompt).toContain('Return exactly one JSON object and nothing else.');
-    expect(prompt).toContain('Choose one mode from the provided availableModes array.');
+    expect(prompt).toContain(
+      'Return exactly one JSON object and nothing else.'
+    );
+    expect(prompt).toContain(
+      'Choose one mode from the provided availableModes array.'
+    );
     expect(prompt).toContain('Continuum product context:');
     expect(prompt).toContain('Treat valid modes as runtime contracts');
     expect(prompt).toContain('"Populate the email"');

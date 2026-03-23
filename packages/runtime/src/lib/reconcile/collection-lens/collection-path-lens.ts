@@ -42,7 +42,9 @@ export function readCollectionFirstItemValue(
   outerCollectionNode: CollectionNode,
   pathChain: string[]
 ): NodeValue | undefined {
-  const rootValue = priorData.values[outerCollectionId] as NodeValue | undefined;
+  const rootValue = priorData.values[outerCollectionId] as
+    | NodeValue
+    | undefined;
   const items = (rootValue?.value as CollectionNodeState | undefined)?.items;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -84,7 +86,10 @@ export function writePathChain(
     return values;
   }
 
-  const normalizedNested = normalizeCollectionStateFn(values[nestedPath], nestedNode);
+  const normalizedNested = normalizeCollectionStateFn(
+    values[nestedPath],
+    nestedNode
+  );
   return {
     ...values,
     [nestedPath]: {
@@ -143,7 +148,9 @@ export function findNodeByPath(
   template: ViewNode,
   relativePath: string
 ): ViewNode | null {
-  const segments = relativePath.split('/').filter((segment) => segment.length > 0);
+  const segments = relativePath
+    .split('/')
+    .filter((segment) => segment.length > 0);
   if (segments.length === 0 || segments[0] !== template.id) {
     return null;
   }

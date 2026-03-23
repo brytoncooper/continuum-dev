@@ -224,18 +224,18 @@ flowchart TD
 
 The runtime is organized into a few clear layers.
 
-| Area | Responsibility | Primary doc |
-| --- | --- | --- |
-| `reconcile` | entrypoint, branching, time resolution, post-resolution transforms | [`src/lib/reconcile/README.md`](./src/lib/reconcile/README.md) |
-| `context` | scoped indexing, duplicate issues, match helpers, prior-value projection | [`src/lib/context/README.md`](./src/lib/context/README.md) |
-| `reconciliation/node-resolver` | per-node resolution and removed-node detection | [`src/lib/reconciliation/node-resolver/README.md`](./src/lib/reconciliation/node-resolver/README.md) |
-| `reconciliation/collection-resolver` | collection normalization, remap, migration, constraints | [`src/lib/reconciliation/collection-resolver/README.md`](./src/lib/reconciliation/collection-resolver/README.md) |
-| `reconciliation/migrator` | strategy selection and deterministic migration execution | [`src/lib/reconciliation/migrator/README.md`](./src/lib/reconciliation/migrator/README.md) |
-| `reconciliation/differ` | canonical diff and resolution factories | [`src/lib/reconciliation/differ/README.md`](./src/lib/reconciliation/differ/README.md) |
-| `reconciliation/result-builder` | fresh/blind result builders, final assembly, lineage merge | [`src/lib/reconciliation/result-builder/README.md`](./src/lib/reconciliation/result-builder/README.md) |
-| `reconciliation/view-traversal` | deterministic DFS traversal and structural traversal issues | [`src/lib/reconciliation/view-traversal/README.md`](./src/lib/reconciliation/view-traversal/README.md) |
-| `validator` | constraint validation and issue emission | [`src/lib/validator/README.md`](./src/lib/validator/README.md) |
-| `view-patch` | internal patch application helpers used behind runtime structural flows | `src/lib/view-patch/index.ts` |
+| Area                                 | Responsibility                                                           | Primary doc                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `reconcile`                          | entrypoint, branching, time resolution, post-resolution transforms       | [`src/lib/reconcile/README.md`](./src/lib/reconcile/README.md)                                                   |
+| `context`                            | scoped indexing, duplicate issues, match helpers, prior-value projection | [`src/lib/context/README.md`](./src/lib/context/README.md)                                                       |
+| `reconciliation/node-resolver`       | per-node resolution and removed-node detection                           | [`src/lib/reconciliation/node-resolver/README.md`](./src/lib/reconciliation/node-resolver/README.md)             |
+| `reconciliation/collection-resolver` | collection normalization, remap, migration, constraints                  | [`src/lib/reconciliation/collection-resolver/README.md`](./src/lib/reconciliation/collection-resolver/README.md) |
+| `reconciliation/migrator`            | strategy selection and deterministic migration execution                 | [`src/lib/reconciliation/migrator/README.md`](./src/lib/reconciliation/migrator/README.md)                       |
+| `reconciliation/differ`              | canonical diff and resolution factories                                  | [`src/lib/reconciliation/differ/README.md`](./src/lib/reconciliation/differ/README.md)                           |
+| `reconciliation/result-builder`      | fresh/blind result builders, final assembly, lineage merge               | [`src/lib/reconciliation/result-builder/README.md`](./src/lib/reconciliation/result-builder/README.md)           |
+| `reconciliation/view-traversal`      | deterministic DFS traversal and structural traversal issues              | [`src/lib/reconciliation/view-traversal/README.md`](./src/lib/reconciliation/view-traversal/README.md)           |
+| `validator`                          | constraint validation and issue emission                                 | [`src/lib/validator/README.md`](./src/lib/validator/README.md)                                                   |
+| `view-patch`                         | internal patch application helpers used behind runtime structural flows  | `src/lib/view-patch/index.ts`                                                                                    |
 
 ## What Is Stable vs Internal
 

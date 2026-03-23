@@ -1,7 +1,4 @@
-import {
-  isViewDefinition,
-  SUPPORTED_NODE_TYPE_VALUES,
-} from '../../index.js';
+import { isViewDefinition, SUPPORTED_NODE_TYPE_VALUES } from '../../index.js';
 
 describe('view-guardrails', () => {
   it('recognizes valid view definitions and exposes supported node types', () => {

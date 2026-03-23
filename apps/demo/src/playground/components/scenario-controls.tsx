@@ -146,7 +146,9 @@ export function ScenarioControls({
   const { isMobile } = useResponsiveState();
 
   return (
-    <div style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}>
+    <div
+      style={{ ...wrapStyle, padding: isMobile ? space.xl : wrapStyle.padding }}
+    >
       {inputFields?.length ? (
         <div style={inputSectionStyle}>
           {inputTitle ? (
@@ -197,9 +199,13 @@ export function ScenarioControls({
         </div>
       ) : null}
       <div style={progressStyle}>
-        <div style={progressLabelStyle}>{`Step ${stepIndex + 1} of ${stepTitles.length}`}</div>
+        <div style={progressLabelStyle}>{`Step ${stepIndex + 1} of ${
+          stepTitles.length
+        }`}</div>
         <div style={progressTitleStyle}>{stepTitles[stepIndex]}</div>
-        {stepDescription ? <div style={progressDescriptionStyle}>{stepDescription}</div> : null}
+        {stepDescription ? (
+          <div style={progressDescriptionStyle}>{stepDescription}</div>
+        ) : null}
       </div>
       <div style={navigationStyle}>
         <div

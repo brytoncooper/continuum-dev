@@ -45,6 +45,7 @@ docs/*
 !docs/INTEGRATION_GUIDE.md
 !docs/AI_INTEGRATION.md
 !docs/VIEW_CONTRACT.md
+!docs/PACKAGE_VALIDATION_POLICY.md
 
 .nx/cache
 .nx/workspace-data

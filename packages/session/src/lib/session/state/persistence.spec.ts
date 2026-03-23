@@ -2,7 +2,10 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { SessionState } from './session-state.js';
 import { createEmptySessionState } from './session-state.js';
 import { serializeSession } from './serializer.js';
-import { notifySnapshotListeners, subscribeSnapshot } from '../listeners/index.js';
+import {
+  notifySnapshotListeners,
+  subscribeSnapshot,
+} from '../listeners/index.js';
 import { attachPersistence } from './persistence.js';
 
 interface StorageEventLike {
@@ -47,8 +50,12 @@ function makeState(sessionId: string): SessionState {
 }
 
 describe('attachPersistence', () => {
-  const originalAddEventListener = (globalThis as { addEventListener?: typeof addEventListener }).addEventListener;
-  const originalRemoveEventListener = (globalThis as { removeEventListener?: typeof removeEventListener }).removeEventListener;
+  const originalAddEventListener = (
+    globalThis as { addEventListener?: typeof addEventListener }
+  ).addEventListener;
+  const originalRemoveEventListener = (
+    globalThis as { removeEventListener?: typeof removeEventListener }
+  ).removeEventListener;
   let storageHandlers: Array<(event: StorageEventLike) => void> = [];
   let beforeUnloadHandlers: Array<() => void> = [];
 
@@ -56,36 +63,64 @@ describe('attachPersistence', () => {
     vi.useFakeTimers();
     storageHandlers = [];
     beforeUnloadHandlers = [];
-    (globalThis as { addEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void }).addEventListener = (type, listener) => {
+    (
+      globalThis as {
+        addEventListener?: (
+          type: string,
+          listener: EventListenerOrEventListenerObject
+        ) => void;
+      }
+    ).addEventListener = (type, listener) => {
       if (type === 'storage' && typeof listener === 'function') {
-        storageHandlers.push(listener as unknown as (event: StorageEventLike) => void);
+        storageHandlers.push(
+          listener as unknown as (event: StorageEventLike) => void
+        );
       }
       if (type === 'beforeunload' && typeof listener === 'function') {
         beforeUnloadHandlers.push(listener as unknown as () => void);
       }
     };
-    (globalThis as { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void }).removeEventListener = (type, listener) => {
+    (
+      globalThis as {
+        removeEventListener?: (
+          type: string,
+          listener: EventListenerOrEventListenerObject
+        ) => void;
+      }
+    ).removeEventListener = (type, listener) => {
       if (typeof listener !== 'function') return;
       if (type === 'storage') {
-        storageHandlers = storageHandlers.filter((entry) => entry !== (listener as unknown as (event: StorageEventLike) => void));
+        storageHandlers = storageHandlers.filter(
+          (entry) =>
+            entry !== (listener as unknown as (event: StorageEventLike) => void)
+        );
       }
       if (type === 'beforeunload') {
-        beforeUnloadHandlers = beforeUnloadHandlers.filter((entry) => entry !== (listener as unknown as () => void));
+        beforeUnloadHandlers = beforeUnloadHandlers.filter(
+          (entry) => entry !== (listener as unknown as () => void)
+        );
       }
     };
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    (globalThis as { addEventListener?: typeof addEventListener }).addEventListener = originalAddEventListener;
-    (globalThis as { removeEventListener?: typeof removeEventListener }).removeEventListener = originalRemoveEventListener;
+    (
+      globalThis as { addEventListener?: typeof addEventListener }
+    ).addEventListener = originalAddEventListener;
+    (
+      globalThis as { removeEventListener?: typeof removeEventListener }
+    ).removeEventListener = originalRemoveEventListener;
   });
 
   it('writes to storage after debounce when snapshot changes', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
     notifySnapshotListeners(state);
     expect(setItemSpy).not.toHaveBeenCalled();
@@ -103,7 +138,10 @@ describe('attachPersistence', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
     notifySnapshotListeners(state);
     expect(setItemSpy).toHaveBeenCalledTimes(0);
@@ -118,7 +156,10 @@ describe('attachPersistence', () => {
   it('applies matching storage events and notifies snapshot subscribers', () => {
     const storage = new MemoryStorage();
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
     const remote = makeState('remote');
     remote.currentData = {
@@ -135,13 +176,11 @@ describe('attachPersistence', () => {
       snapshots.push(String(snapshot.data.values['field']?.value ?? ''));
     });
 
-    storageHandlers[0](
-      {
-        key: 'continuum_session',
-        newValue: payload,
-        storageArea: storage,
-      }
-    );
+    storageHandlers[0]({
+      key: 'continuum_session',
+      newValue: payload,
+      storageArea: storage,
+    });
 
     expect(snapshots.at(-1)).toBe('remote');
     unsub();
@@ -158,33 +197,30 @@ describe('attachPersistence', () => {
         sessionId: 'local',
       },
     };
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
-    storageHandlers[0](
-      {
-        key: 'other_key',
-        newValue: JSON.stringify(serializeSession(makeState('x'))),
-        storageArea: storage,
-      }
-    );
+    storageHandlers[0]({
+      key: 'other_key',
+      newValue: JSON.stringify(serializeSession(makeState('x'))),
+      storageArea: storage,
+    });
     expect(state.currentData?.values['field']).toEqual({ value: 'before' });
 
-    storageHandlers[0](
-      {
-        key: 'continuum_session',
-        newValue: null,
-        storageArea: storage,
-      }
-    );
+    storageHandlers[0]({
+      key: 'continuum_session',
+      newValue: null,
+      storageArea: storage,
+    });
     expect(state.currentData?.values['field']).toEqual({ value: 'before' });
 
-    storageHandlers[0](
-      {
-        key: 'continuum_session',
-        newValue: '{bad-json',
-        storageArea: storage,
-      }
-    );
+    storageHandlers[0]({
+      key: 'continuum_session',
+      newValue: '{bad-json',
+      storageArea: storage,
+    });
     expect(state.currentData?.values['field']).toEqual({ value: 'before' });
     detach();
   });
@@ -193,7 +229,10 @@ describe('attachPersistence', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
     const remote = makeState('remote');
     remote.currentData = {
@@ -204,13 +243,11 @@ describe('attachPersistence', () => {
       },
     };
 
-    storageHandlers[0](
-      {
-        key: 'continuum_session',
-        newValue: JSON.stringify(serializeSession(remote)),
-        storageArea: storage,
-      }
-    );
+    storageHandlers[0]({
+      key: 'continuum_session',
+      newValue: JSON.stringify(serializeSession(remote)),
+      storageArea: storage,
+    });
     vi.runAllTimers();
     expect(setItemSpy).toHaveBeenCalledTimes(1);
     detach();
@@ -220,7 +257,10 @@ describe('attachPersistence', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
     const listener = vi.fn(() => {
       if (!state.currentData?.values['listener']) {
         state.currentData = {
@@ -259,7 +299,10 @@ describe('attachPersistence', () => {
     const storage = new MemoryStorage();
     const setItemSpy = vi.spyOn(storage, 'setItem');
     const state = makeState('local');
-    const detach = attachPersistence(state, { storage, key: 'continuum_session' });
+    const detach = attachPersistence(state, {
+      storage,
+      key: 'continuum_session',
+    });
 
     notifySnapshotListeners(state);
     detach();

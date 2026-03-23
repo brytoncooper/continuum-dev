@@ -11,9 +11,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from 'ai';
-import type {
-  SessionStreamMode,
-} from '@continuum-dev/core';
+import type { SessionStreamMode } from '@continuum-dev/core';
 import type {
   ContinuumViewPatch,
   ContinuumViewPatchOperation,
@@ -246,7 +244,9 @@ function buildLanguageModelPromptArgs(
   };
 }
 
-function joinBoundedConversationSections(sections: string[]): string | undefined {
+function joinBoundedConversationSections(
+  sections: string[]
+): string | undefined {
   const trimmed = sections
     .map((section) => section.trim())
     .filter((section) => section.length > 0);
@@ -277,7 +277,10 @@ function extractMessagePlainText(message: unknown): string {
     return '';
   }
 
-  return parts.map((part) => textFromPart(part)).join(' ').trim();
+  return parts
+    .map((part) => textFromPart(part))
+    .join(' ')
+    .trim();
 }
 
 function messageHasUserVisibleContent(message: unknown): boolean {
@@ -354,10 +357,10 @@ export function buildConversationTranscriptFromMessages(
       role === 'assistant'
         ? 'Assistant'
         : role === 'user'
-          ? 'User'
-          : role === 'system'
-            ? 'System'
-            : 'Other';
+        ? 'User'
+        : role === 'system'
+        ? 'System'
+        : 'Other';
 
     lines.push(`${label}: ${text}`);
   }
@@ -613,10 +616,7 @@ function toPatchOperation(
     };
   }
 
-  if (
-    candidate.kind === 'move-node' &&
-    typeof candidate.nodeId === 'string'
-  ) {
+  if (candidate.kind === 'move-node' && typeof candidate.nodeId === 'string') {
     return {
       op: 'move-node',
       nodeId: candidate.nodeId,
@@ -693,7 +693,7 @@ function normalizeMutationlessExecutionResult(
       result.mode === 'patch'
         ? 'Patch update could not be applied; no changes were made.'
         : result.mode === 'transform'
-          ? 'Transform update could not be applied; no changes were made.'
+        ? 'Transform update could not be applied; no changes were made.'
         : 'Continuum completed without applying any changes.',
     level: 'warning',
     trace: result.trace,
@@ -790,9 +790,7 @@ function writeExecutionEvent(
       type: 'data-continuum-view',
       data: {
         view: event.view,
-        ...(event.transformPlan
-          ? { transformPlan: event.transformPlan }
-          : {}),
+        ...(event.transformPlan ? { transformPlan: event.transformPlan } : {}),
         streamMode: viewStreamMode,
       },
     });
@@ -1026,10 +1024,9 @@ export function createContinuumVercelAiSdkRouteHandler(
       });
     }
 
-    const body =
-      (await request
-        .json()
-        .catch(() => null)) as ContinuumVercelAiSdkRouteRequestBody | null;
+    const body = (await request
+      .json()
+      .catch(() => null)) as ContinuumVercelAiSdkRouteRequestBody | null;
 
     if (!body || typeof body !== 'object') {
       return new Response('Invalid JSON request body.', {

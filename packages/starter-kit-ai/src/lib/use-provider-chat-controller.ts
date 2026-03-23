@@ -126,7 +126,10 @@ export function useProviderChatController(
       setStatus(result.status);
       const rawResult = findAiConnectRawResult(result, activeProvider.kind);
       if (rawResult) {
-        args.onResult?.(rawResult, 'parsed' in result ? result.parsed : undefined);
+        args.onResult?.(
+          rawResult,
+          'parsed' in result ? result.parsed : undefined
+        );
       }
     } catch (error) {
       const normalized =

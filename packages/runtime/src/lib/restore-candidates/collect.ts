@@ -1,4 +1,8 @@
-import { getChildNodes, type DataSnapshot, type ViewNode } from '@continuum-dev/contract';
+import {
+  getChildNodes,
+  type DataSnapshot,
+  type ViewNode,
+} from '@continuum-dev/contract';
 import type { RestoreNodeCandidate } from './types.js';
 import { determineNodeFamily } from './family.js';
 import { mergeTokenSets, tokenize } from './tokenizer.js';

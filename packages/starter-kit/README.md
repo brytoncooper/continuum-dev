@@ -91,7 +91,10 @@ function Page() {
 
 export function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
       <Page />
     </ContinuumProvider>
   );
@@ -131,7 +134,10 @@ export function App() {
         suggestionsActionButton: { borderRadius: 999 },
       }}
     >
-      <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+      <ContinuumProvider
+        components={starterKitComponentMap}
+        persist="localStorage"
+      >
         <ContinuumRenderer view={view} />
       </ContinuumProvider>
     </StarterKitStyleProvider>
@@ -200,8 +206,15 @@ const models = getAiConnectModelCatalog(providers);
 
 export function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
-      <StarterKitProviderChatBox providers={providers} models={models} mode="evolve-view" />
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
+      <StarterKitProviderChatBox
+        providers={providers}
+        models={models}
+        mode="evolve-view"
+      />
       <StarterKitSessionWorkbench />
       <ContinuumRenderer view={view} />
     </ContinuumProvider>

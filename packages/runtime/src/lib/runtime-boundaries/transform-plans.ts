@@ -52,8 +52,9 @@ function readDetachedKeys(
   priorLookup: NonNullable<ReturnType<typeof resolveNodeLookupEntry>>
 ): string[] {
   return dedupe(
-    [priorLookup.canonicalId, priorLookup.node.key]
-      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    [priorLookup.canonicalId, priorLookup.node.key].filter(
+      (value): value is string => typeof value === 'string' && value.length > 0
+    )
   );
 }
 
@@ -64,7 +65,9 @@ function readSourceValue(
 ): SourceValueMatch {
   const lookup = resolveNodeLookupEntry(priorView.nodes, sourceNodeId);
   if (!lookup) {
-    throw new Error(`Transform source node "${sourceNodeId}" was not found in the prior view.`);
+    throw new Error(
+      `Transform source node "${sourceNodeId}" was not found in the prior view.`
+    );
   }
 
   return {
@@ -82,7 +85,9 @@ function resolveTargetCanonicalId(
 ): { canonicalId: string; nodeType: string } {
   const lookup = resolveNodeLookupEntry(nextView.nodes, targetNodeId);
   if (!lookup) {
-    throw new Error(`Transform target node "${targetNodeId}" was not found in the next view.`);
+    throw new Error(
+      `Transform target node "${targetNodeId}" was not found in the next view.`
+    );
   }
 
   return {
@@ -134,12 +139,16 @@ function applyIdentityTransform(sourceValues: NodeValue[]): NodeValue | null {
   return cloneNodeValue(sourceValue);
 }
 
-function applyConcatSpaceTransform(sourceValues: NodeValue[]): NodeValue | null {
+function applyConcatSpaceTransform(
+  sourceValues: NodeValue[]
+): NodeValue | null {
   if (sourceValues.length === 0) {
     return null;
   }
 
-  const tokens = sourceValues.map((sourceValue) => coerceToken(sourceValue.value).trim());
+  const tokens = sourceValues.map((sourceValue) =>
+    coerceToken(sourceValue.value).trim()
+  );
   const joined = tokens.filter((token) => token.length > 0).join(' ');
 
   return buildDerivedNodeValue(joined, sourceValues);
@@ -163,7 +172,7 @@ function applySplitSpaceTransform(
     const segment =
       index === targetCount - 1
         ? pieces.slice(index).join(' ')
-        : (pieces[index] ?? '');
+        : pieces[index] ?? '';
     results[index] = buildDerivedNodeValue(segment, [sourceValue]);
   }
 
@@ -183,9 +192,13 @@ function updateTargetValueLineage(
     timestamps.length > 0 ? Math.max(...timestamps) : data.lineage.timestamp;
   const interactionIds = sourceValues
     .map((sourceValue) => sourceValue.valueLineage?.lastInteractionId)
-    .filter((value): value is string => typeof value === 'string' && value.length > 0);
+    .filter(
+      (value): value is string => typeof value === 'string' && value.length > 0
+    );
   const latestInteractionId =
-    interactionIds.length > 0 ? interactionIds[interactionIds.length - 1] : undefined;
+    interactionIds.length > 0
+      ? interactionIds[interactionIds.length - 1]
+      : undefined;
 
   valueLineage[targetCanonicalId] = {
     ...(valueLineage[targetCanonicalId] ?? {}),
@@ -236,14 +249,8 @@ function consumeDetachedKeys(
   };
 }
 
-function replaceDiff(
-  diffs: StateDiff[],
-  nextDiff: StateDiff
-): StateDiff[] {
-  return [
-    ...diffs.filter((diff) => diff.nodeId !== nextDiff.nodeId),
-    nextDiff,
-  ];
+function replaceDiff(diffs: StateDiff[], nextDiff: StateDiff): StateDiff[] {
+  return [...diffs.filter((diff) => diff.nodeId !== nextDiff.nodeId), nextDiff];
 }
 
 function replaceResolution(
@@ -251,7 +258,9 @@ function replaceResolution(
   nextResolution: ReconciliationResolution
 ): ReconciliationResolution[] {
   return [
-    ...resolutions.filter((resolution) => resolution.nodeId !== nextResolution.nodeId),
+    ...resolutions.filter(
+      (resolution) => resolution.nodeId !== nextResolution.nodeId
+    ),
     nextResolution,
   ];
 }
@@ -303,8 +312,7 @@ function applyTargetNodeValue(args: {
       priorType: args.sourceValues[0]?.nodeType ?? null,
       newType: args.targetNodeType,
       resolution: DATA_RESOLUTIONS.MIGRATED,
-      priorValue:
-        priorValues.length <= 1 ? priorValues[0] : priorValues,
+      priorValue: priorValues.length <= 1 ? priorValues[0] : priorValues,
       reconciledValue: args.derivedValue.value,
     }),
     consumedSourceNodeIds: args.sourceValues.map(
@@ -350,7 +358,10 @@ export function applyContinuumTransformPlan(
         continue;
       }
 
-      const target = resolveTargetCanonicalId(input.nextView, operation.targetNodeId);
+      const target = resolveTargetCanonicalId(
+        input.nextView,
+        operation.targetNodeId
+      );
       ({ data, diffs, resolutions } = applyTargetNodeValue({
         data,
         diffs,
@@ -384,7 +395,10 @@ export function applyContinuumTransformPlan(
         continue;
       }
 
-      const target = resolveTargetCanonicalId(input.nextView, operation.targetNodeId);
+      const target = resolveTargetCanonicalId(
+        input.nextView,
+        operation.targetNodeId
+      );
       ({ data, diffs, resolutions } = applyTargetNodeValue({
         data,
         diffs,

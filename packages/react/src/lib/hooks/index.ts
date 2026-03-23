@@ -3,10 +3,7 @@ export {
   useContinuumConflict,
   useContinuumDiagnostics,
 } from './diagnostics.js';
-export {
-  useContinuumHydrated,
-  useContinuumSession,
-} from './provider.js';
+export { useContinuumHydrated, useContinuumSession } from './provider.js';
 export {
   useContinuumRestoreCandidates,
   useContinuumRestoreReviews,

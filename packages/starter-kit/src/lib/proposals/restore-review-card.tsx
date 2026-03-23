@@ -1,5 +1,8 @@
 import type { CSSProperties } from 'react';
-import { starterKitDefaultStyles, useStarterKitStyle } from '../style-config.js';
+import {
+  starterKitDefaultStyles,
+  useStarterKitStyle,
+} from '../style-config.js';
 import { color, radius, shadow, space, type } from '../tokens.js';
 import type {
   RestoreReviewCandidateItem,
@@ -79,13 +82,17 @@ export function RestoreReviewCard({
     <div id={restoreReviewElementId(review.reviewId)} style={containerStyle}>
       <div style={rowStyle}>
         <div style={{ display: 'grid', gap: space.xs }}>
-          <div style={{ ...type.section, color: color.text }}>{review.title}</div>
+          <div style={{ ...type.section, color: color.text }}>
+            {review.title}
+          </div>
           <div style={helperStyle}>
             {review.status === 'waiting'
               ? 'Waiting for possible matches in this scope.'
               : review.status === 'approved'
-                ? `Approved for ${review.approvedTargetLabel ?? 'a future matching field'}.`
-                : 'Choose where this preserved value should go.'}
+              ? `Approved for ${
+                  review.approvedTargetLabel ?? 'a future matching field'
+                }.`
+              : 'Choose where this preserved value should go.'}
           </div>
         </div>
         <button type="button" style={buttonStyle} onClick={onRejectAll}>

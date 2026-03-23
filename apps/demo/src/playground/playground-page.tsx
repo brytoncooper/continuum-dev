@@ -149,7 +149,8 @@ export function PlaygroundPage() {
     0,
     Math.min(stepIndex, scenario.steps.length - 1)
   );
-  const inputValues = scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
+  const inputValues =
+    scenarioInputs[scenario.id] ?? getScenarioDefaultInputValues(scenario);
   const inputFields = getScenarioInputFields(scenario).map((field) => ({
     ...field,
     value: inputValues[field.key] ?? '',
@@ -180,10 +181,7 @@ export function PlaygroundPage() {
       title={playgroundContent.title}
       description={playgroundContent.description}
     >
-      <PageSection
-        title={scenario.title}
-        description={currentStep.description}
-      >
+      <PageSection title={scenario.title} description={currentStep.description}>
         <div style={sectionWrapStyle}>
           <ScenarioSelector
             coreScenario={coreScenario}
@@ -285,14 +283,18 @@ export function PlaygroundPage() {
               style={helperButtonStyle}
               onClick={() => toggleSupportPanel('learn')}
             >
-              {supportPanel === 'learn' ? 'Hide context' : 'Why this scenario matters'}
+              {supportPanel === 'learn'
+                ? 'Hide context'
+                : 'Why this scenario matters'}
             </button>
             <button
               type="button"
               style={helperButtonStyle}
               onClick={() => toggleSupportPanel('resources')}
             >
-              {supportPanel === 'resources' ? 'Hide links' : 'Open docs and links'}
+              {supportPanel === 'resources'
+                ? 'Hide links'
+                : 'Open docs and links'}
             </button>
             <button
               type="button"
@@ -311,8 +313,13 @@ export function PlaygroundPage() {
               />
               <div style={stepListStyle}>
                 {scenario.steps.map((step, index) => (
-                  <div key={step.title} style={stepItemStyle(index === boundedStepIndex)}>
-                    <div style={stepTitleStyle}>{`Step ${index + 1}: ${step.title}`}</div>
+                  <div
+                    key={step.title}
+                    style={stepItemStyle(index === boundedStepIndex)}
+                  >
+                    <div style={stepTitleStyle}>{`Step ${index + 1}: ${
+                      step.title
+                    }`}</div>
                     <div style={stepDescriptionStyle}>{step.description}</div>
                   </div>
                 ))}
@@ -322,7 +329,12 @@ export function PlaygroundPage() {
           {supportPanel === 'resources' ? (
             <div style={helperPanelStyle}>
               <div style={linkRowStyle}>
-                <a href={repositoryUrl} target="_blank" rel="noreferrer" style={primaryLinkStyle}>
+                <a
+                  href={repositoryUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={primaryLinkStyle}
+                >
                   View Continuum on GitHub
                 </a>
                 <a href="/docs" style={secondaryLinkStyle}>

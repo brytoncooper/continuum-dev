@@ -60,7 +60,7 @@ const session = createSession();
 session.pushView({
   viewId: 'agent-form',
   version: '1.0',
-  nodes: [{ id: 'field_1', key: 'username', type: 'field' }]
+  nodes: [{ id: 'field_1', key: 'username', type: 'field' }],
 });
 
 session.updateState('field_1', { value: 'Alice' });
@@ -168,7 +168,7 @@ Records a raw interaction event.
 session.recordIntent({
   nodeId: 'email',
   type: 'data-update',
-  payload: { value: 'test@example.com' }
+  payload: { value: 'test@example.com' },
 });
 ```
 
@@ -306,7 +306,7 @@ Queue a pending user intent for AI/backend processing.
 session.submitIntent({
   nodeId: 'submit_btn',
   intentName: 'execute_search',
-  payload: { term: 'Continuum' }
+  payload: { term: 'Continuum' },
 });
 ```
 

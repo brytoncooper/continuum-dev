@@ -6,7 +6,10 @@ import {
 } from '@continuum-dev/vercel-ai-sdk-adapter';
 import type { ContinuumSessionLike } from '@continuum-dev/ai-engine';
 import { createContinuumSessionAdapter } from '@continuum-dev/ai-engine';
-import { useContinuumSession, useContinuumStreaming } from '@continuum-dev/react';
+import {
+  useContinuumSession,
+  useContinuumStreaming,
+} from '@continuum-dev/react';
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
   ? Omit<T, K>
@@ -59,14 +62,12 @@ export function useVercelAiSdkChatController(
   const status =
     streaming.activeStream?.latestStatus?.status ??
     chat.latestStatus?.status ??
-    (streaming.isStreaming
-      ? 'Applying streamed Continuum update...'
-      : null) ??
+    (streaming.isStreaming ? 'Applying streamed Continuum update...' : null) ??
     (chat.status === 'submitted'
       ? 'Submitting request...'
       : chat.status === 'streaming'
-        ? 'Streaming response...'
-        : null);
+      ? 'Streaming response...'
+      : null);
   const errorText = chat.error?.message ?? null;
 
   useEffect(() => {

@@ -93,7 +93,8 @@ export const generateSessionId = generateSessionIdImpl;
 /**
  * Object input contract for `assembleReconciliationResult`.
  */
-export type AssembleReconciliationResultInput = AssembleReconciliationResultInputModel;
+export type AssembleReconciliationResultInput =
+  AssembleReconciliationResultInputModel;
 /**
  * Object input contract for `buildResultForPriorDataWithoutView`.
  */

@@ -36,6 +36,8 @@ function sanitizeJsonViewStringArtifacts(value: unknown): unknown {
  * @param view - Parsed JSON view definition before normalization.
  * @returns The same structure with sanitized string leaves.
  */
-export function sanitizeJsonViewDefinition(view: ViewDefinition): ViewDefinition {
+export function sanitizeJsonViewDefinition(
+  view: ViewDefinition
+): ViewDefinition {
   return sanitizeJsonViewStringArtifacts(view) as ViewDefinition;
 }

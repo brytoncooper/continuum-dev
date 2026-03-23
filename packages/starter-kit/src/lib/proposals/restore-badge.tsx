@@ -27,7 +27,9 @@ export function StarterKitFieldRestoreBadge({ nodeId }: { nodeId?: string }) {
 
   const firstReviewId = candidates[0]?.reviewId;
   const label =
-    candidates.length === 1 ? 'Possible restore' : `${candidates.length} restores`;
+    candidates.length === 1
+      ? 'Possible restore'
+      : `${candidates.length} restores`;
 
   return (
     <button
@@ -48,4 +50,3 @@ export function StarterKitFieldRestoreBadge({ nodeId }: { nodeId?: string }) {
     </button>
   );
 }
-

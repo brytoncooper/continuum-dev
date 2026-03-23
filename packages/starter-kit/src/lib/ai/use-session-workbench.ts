@@ -145,7 +145,9 @@ export function useSessionWorkbench(
     }
 
     for (const seed of seeds) {
-      const current = snapshot.data.values[seed.nodeId] as NodeValue | undefined;
+      const current = snapshot.data.values[seed.nodeId] as
+        | NodeValue
+        | undefined;
 
       if (shouldApplySeed(current, seed.defaultValue)) {
         sessionAdapter.updateState(seed.nodeId, {
@@ -178,11 +180,7 @@ export function useSessionWorkbench(
         view: selectedCheckpoint.snapshot.view,
       },
     });
-  }, [
-    args,
-    selectedCheckpoint,
-    selectedCheckpointId,
-  ]);
+  }, [args, selectedCheckpoint, selectedCheckpointId]);
 
   useEffect(() => {
     setSelectedCheckpointId('');

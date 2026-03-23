@@ -22,7 +22,8 @@ const cardStyle: CSSProperties = {
   borderRadius: radius.lg,
   background: color.surface,
   padding: space.xxl,
-  boxShadow: '0 6px 16px rgba(22, 32, 51, 0.05), 0 1px 3px rgba(22, 32, 51, 0.03)',
+  boxShadow:
+    '0 6px 16px rgba(22, 32, 51, 0.05), 0 1px 3px rgba(22, 32, 51, 0.03)',
 };
 
 const titleRowStyle: CSSProperties = {
@@ -41,7 +42,8 @@ const endpointTitleStyle: CSSProperties = {
 
 const routeBadgeStyle: CSSProperties = {
   ...type.small,
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   color: color.textMuted,
   padding: `${space.xs}px ${space.sm}px`,
   borderRadius: radius.sm,
@@ -97,7 +99,8 @@ const tdMutedStyle: CSSProperties = {
 };
 
 const monoStyle: CSSProperties = {
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   fontSize: 12,
 };
 
@@ -113,7 +116,9 @@ const optionalBadgeStyle: CSSProperties = {
   color: color.textSoft,
 };
 
-function buildPersistedFieldTypeLabel(field: ContinuumIntegrationPersistedField): string {
+function buildPersistedFieldTypeLabel(
+  field: ContinuumIntegrationPersistedField
+): string {
   const shape = field.shape ?? 'scalar';
   if (shape === 'collection') {
     const min = field.minItems != null ? ` min=${field.minItems}` : '';
@@ -160,10 +165,17 @@ function renderPersistedFieldTableRows(
     if (shape === 'object' && field.fields && field.fields.length > 0) {
       rows.push(...renderPersistedFieldTableRows(field.fields, depth + 1));
     }
-    if (shape === 'collection' && field.itemFields && field.itemFields.length > 0) {
+    if (
+      shape === 'collection' &&
+      field.itemFields &&
+      field.itemFields.length > 0
+    ) {
       rows.push(
         <tr key={`${rowKey}-item-heading`}>
-          <td colSpan={4} style={{ ...tdMutedStyle, paddingLeft: pad + 14, fontSize: 12 }}>
+          <td
+            colSpan={4}
+            style={{ ...tdMutedStyle, paddingLeft: pad + 14, fontSize: 12 }}
+          >
             Row template
           </td>
         </tr>
@@ -182,7 +194,9 @@ export function IntegrationSchemasPage() {
       title="Endpoint payload schemas"
       description="Reference for the fictional Harborline Financial Workspace demo: HTTP surface and persisted fields per endpoint (required vs optional semantic keys)."
     >
-      <p style={pageIntroStyle}>{financialPlanningIntegrationCatalog.productSummary}</p>
+      <p style={pageIntroStyle}>
+        {financialPlanningIntegrationCatalog.productSummary}
+      </p>
 
       <div style={endpointListStyle}>
         {financialPlanningIntegrationCatalog.endpoints.map((endpoint) => (

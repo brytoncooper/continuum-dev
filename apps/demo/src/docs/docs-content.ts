@@ -29,11 +29,7 @@ export type DocsDocument = {
   body: string;
 };
 
-export const docsProofChips = [
-  'Starter Kit',
-  'Headless React',
-  'Core package',
-];
+export const docsProofChips = ['Starter Kit', 'Headless React', 'Core package'];
 
 export const primaryInstall: DocsPrimaryInstall = {
   label: 'Recommended install',

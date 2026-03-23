@@ -46,7 +46,9 @@ function readStableSnapshot(
  */
 export function useContinuumSnapshot(): ContinuitySnapshot | null {
   const { store } = useRequiredContinuumContext('useContinuumSnapshot');
-  const snapshotCacheRef = useRef<ContinuitySnapshotCache>(createSnapshotCache());
+  const snapshotCacheRef = useRef<ContinuitySnapshotCache>(
+    createSnapshotCache()
+  );
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
@@ -65,8 +67,12 @@ export function useContinuumSnapshot(): ContinuitySnapshot | null {
  * Subscribes to the latest durable committed continuity snapshot.
  */
 export function useContinuumCommittedSnapshot(): ContinuitySnapshot | null {
-  const { store } = useRequiredContinuumContext('useContinuumCommittedSnapshot');
-  const snapshotCacheRef = useRef<ContinuitySnapshotCache>(createSnapshotCache());
+  const { store } = useRequiredContinuumContext(
+    'useContinuumCommittedSnapshot'
+  );
+  const snapshotCacheRef = useRef<ContinuitySnapshotCache>(
+    createSnapshotCache()
+  );
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => store.subscribeSnapshot(onStoreChange),
@@ -74,7 +80,11 @@ export function useContinuumCommittedSnapshot(): ContinuitySnapshot | null {
   );
 
   const getSnapshot = useCallback(
-    () => readStableSnapshot(snapshotCacheRef.current, store.getCommittedSnapshot()),
+    () =>
+      readStableSnapshot(
+        snapshotCacheRef.current,
+        store.getCommittedSnapshot()
+      ),
     [store]
   );
 

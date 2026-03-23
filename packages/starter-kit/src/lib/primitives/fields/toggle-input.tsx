@@ -13,7 +13,10 @@ const wrapStyle: CSSProperties = {
   minWidth: 0,
 };
 
-const controlWrapStyle = (checked: boolean, isCompact: boolean): CSSProperties => ({
+const controlWrapStyle = (
+  checked: boolean,
+  isCompact: boolean
+): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -65,8 +68,7 @@ export function ToggleInput({
   const isCompact = useCompactViewport();
   const label = nodeLabel(definition);
   const checked = Boolean(
-    nodeValue?.value ??
-      readNodeProp<boolean>(definition, 'defaultValue')
+    nodeValue?.value ?? readNodeProp<boolean>(definition, 'defaultValue')
   );
 
   return (
@@ -75,7 +77,9 @@ export function ToggleInput({
         <span style={{ display: 'grid', gap: space.xs, minWidth: 0 }}>
           {label ? (
             <span style={labelLineStyle}>
-              <span style={{ ...type.section, color: color.text }}>{label}</span>
+              <span style={{ ...type.section, color: color.text }}>
+                {label}
+              </span>
               <StarterKitFieldRestoreBadge nodeId={nodeId} />
             </span>
           ) : (

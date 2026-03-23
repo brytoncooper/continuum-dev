@@ -50,8 +50,16 @@ function getItems(
 
 describe('api signature smoke', () => {
   it('object signature works for transition path', () => {
-    const priorView = makeView([makeNode({ id: 'a', key: 'stable' })], 'view-smoke', '1');
-    const newView = makeView([makeNode({ id: 'b', key: 'stable' })], 'view-smoke', '2');
+    const priorView = makeView(
+      [makeNode({ id: 'a', key: 'stable' })],
+      'view-smoke',
+      '1'
+    );
+    const newView = makeView(
+      [makeNode({ id: 'b', key: 'stable' })],
+      'view-smoke',
+      '2'
+    );
     const priorData = makeData({ a: { value: 'x' } });
 
     const result = runtimeReconcile({

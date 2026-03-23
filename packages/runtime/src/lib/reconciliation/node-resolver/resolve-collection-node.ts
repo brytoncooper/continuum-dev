@@ -1,4 +1,8 @@
-import { carriedResolution, migratedDiff, migratedResolution } from '../differ/index.js';
+import {
+  carriedResolution,
+  migratedDiff,
+  migratedResolution,
+} from '../differ/index.js';
 import { reconcileCollectionValue } from '../collection-resolver/index.js';
 import { carryValuesMeta } from '../lineage-utils.js';
 import type { ResolveCollectionNodeInput } from './types.js';

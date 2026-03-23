@@ -6,7 +6,9 @@ import {
   type ProviderChatControllerState,
 } from './use-provider-chat-controller.js';
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 const aiEngineMocks = vi.hoisted(() => {
   const sessionAdapter = {

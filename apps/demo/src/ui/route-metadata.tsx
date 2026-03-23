@@ -24,8 +24,7 @@ const routeMetadata: Record<string, RouteMetadata> = {
     path: '/docs',
   },
   '/playground': {
-    title:
-      'Continuum Demo | See State Loss vs Continuity Preservation',
+    title: 'Continuum Demo | See State Loss vs Continuity Preservation',
     description:
       'Type something, watch the form change, and see the difference with and without Continuum.',
     path: '/playground',
@@ -52,8 +51,7 @@ const routeMetadata: Record<string, RouteMetadata> = {
     path: '/vercel-ai-sdk',
   },
   '/integration-schemas': {
-    title:
-      'Continuum Demo | Integration Endpoint Payload Schemas',
+    title: 'Continuum Demo | Integration Endpoint Payload Schemas',
     description:
       'Reference for the Harborline Financial Workspace demo: HTTP methods, paths, and persisted field semantic keys per endpoint.',
     path: '/integration-schemas',

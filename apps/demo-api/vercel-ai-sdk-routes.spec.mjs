@@ -1,9 +1,5 @@
-import {
-  handleVercelAiSdkLiveRequest,
-} from './vercel-ai-sdk-live-route.mjs';
-import {
-  handleVercelAiSdkProvidersRequest,
-} from './vercel-ai-sdk-providers-route.mjs';
+import { handleVercelAiSdkLiveRequest } from './vercel-ai-sdk-live-route.mjs';
+import { handleVercelAiSdkProvidersRequest } from './vercel-ai-sdk-providers-route.mjs';
 
 describe('demo-api Vercel AI SDK routes', () => {
   it('returns provider catalog metadata from the providers route', async () => {

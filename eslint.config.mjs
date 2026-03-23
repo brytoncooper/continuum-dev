@@ -116,7 +116,10 @@ export default [
             },
             {
               sourceTag: 'scope:vercel-ai-sdk-adapter',
-              onlyDependOnLibsWithTags: ['scope:core', 'scope:vercel-ai-sdk-adapter'],
+              onlyDependOnLibsWithTags: [
+                'scope:core',
+                'scope:vercel-ai-sdk-adapter',
+              ],
             },
             {
               sourceTag: 'scope:playground',

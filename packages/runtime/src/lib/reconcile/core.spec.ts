@@ -125,7 +125,10 @@ describe('reconcile', () => {
 
     it('keeps context issues before assembled transition issues', () => {
       const priorView = makeView([makeNode({ id: 'legacy' })]);
-      const newView = makeView([makeNode({ id: 'dup' }), makeNode({ id: 'dup' })]);
+      const newView = makeView([
+        makeNode({ id: 'dup' }),
+        makeNode({ id: 'dup' }),
+      ]);
       const priorData = makeData({ legacy: { value: 'old' } });
 
       const result = reconcile(newView, priorView, priorData);

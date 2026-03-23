@@ -22,7 +22,9 @@ function normalizeStringArray(value: unknown): string[] {
     return [];
   }
 
-  return [...new Set(value.map((item) => trimString(item)).filter(Boolean))] as string[];
+  return [
+    ...new Set(value.map((item) => trimString(item)).filter(Boolean)),
+  ] as string[];
 }
 
 function validateOperationAgainstViews(
@@ -105,7 +107,9 @@ function normalizeOperation(
     if (!sourceNodeId || !targetNodeId) {
       return {
         operation: null,
-        reason: `Transform operation ${index + 1} must include sourceNodeId and targetNodeId.`,
+        reason: `Transform operation ${
+          index + 1
+        } must include sourceNodeId and targetNodeId.`,
       };
     }
     operation = {
@@ -120,13 +124,17 @@ function normalizeOperation(
     if (sourceNodeIds.length === 0 || !targetNodeId || !strategyId) {
       return {
         operation: null,
-        reason: `Transform operation ${index + 1} must include sourceNodeIds, a targetNodeId, and a strategyId.`,
+        reason: `Transform operation ${
+          index + 1
+        } must include sourceNodeIds, a targetNodeId, and a strategyId.`,
       };
     }
     if (strategyId !== 'identity' && strategyId !== 'concat-space') {
       return {
         operation: null,
-        reason: `Transform merge operation ${index + 1} used an unsupported strategy "${strategyId}".`,
+        reason: `Transform merge operation ${
+          index + 1
+        } used an unsupported strategy "${strategyId}".`,
       };
     }
     operation = {
@@ -142,13 +150,17 @@ function normalizeOperation(
     if (!sourceNodeId || targetNodeIds.length < 2 || !strategyId) {
       return {
         operation: null,
-        reason: `Transform operation ${index + 1} must include sourceNodeId, at least two targetNodeIds, and a strategyId.`,
+        reason: `Transform operation ${
+          index + 1
+        } must include sourceNodeId, at least two targetNodeIds, and a strategyId.`,
       };
     }
     if (strategyId !== 'split-space') {
       return {
         operation: null,
-        reason: `Transform split operation ${index + 1} used an unsupported strategy "${strategyId}".`,
+        reason: `Transform split operation ${
+          index + 1
+        } used an unsupported strategy "${strategyId}".`,
       };
     }
     operation = {
@@ -162,7 +174,9 @@ function normalizeOperation(
     if (sourceNodeIds.length === 0) {
       return {
         operation: null,
-        reason: `Transform operation ${index + 1} must include at least one sourceNodeId.`,
+        reason: `Transform operation ${
+          index + 1
+        } must include at least one sourceNodeId.`,
       };
     }
     operation = {
@@ -175,7 +189,9 @@ function normalizeOperation(
   } else {
     return {
       operation: null,
-      reason: `Transform operation ${index + 1} used an unsupported kind "${kind}".`,
+      reason: `Transform operation ${
+        index + 1
+      } used an unsupported kind "${kind}".`,
     };
   }
 
@@ -430,9 +446,7 @@ export function normalizeSurgicalTransformPlan(
   const patchOperations = Array.isArray(candidate.patchOperations)
     ? candidate.patchOperations
     : [];
-  const rawContinuityOperations = Array.isArray(
-    candidate.continuityOperations
-  )
+  const rawContinuityOperations = Array.isArray(candidate.continuityOperations)
     ? candidate.continuityOperations
     : [];
 
@@ -451,4 +465,3 @@ export function normalizeSurgicalTransformPlan(
     },
   };
 }
-

@@ -1,5 +1,8 @@
 import type { SessionState } from '../state/index.js';
-import type { DetachedRestoreScope, DetachedRestoreReview } from '../../types.js';
+import type {
+  DetachedRestoreScope,
+  DetachedRestoreReview,
+} from '../../types.js';
 import {
   scopeKey,
   getScopeSnapshot,
@@ -11,10 +14,7 @@ import {
   buildCandidateList,
   candidateSignature,
 } from './candidates.js';
-import {
-  buildApprovedRestoreTarget,
-  shouldDismissReview,
-} from './replay.js';
+import { buildApprovedRestoreTarget, shouldDismissReview } from './replay.js';
 import { applyDetachedValueToScope } from './apply.js';
 import {
   notifySnapshotAndIssueListeners,
@@ -187,7 +187,9 @@ export function clearApprovedRestoreTargetsForScope(
   scope: DetachedRestoreScope
 ): void {
   const targetScopeKey = scopeKey(scope);
-  for (const [key, approval] of Object.entries(internal.approvedRestoreTargets)) {
+  for (const [key, approval] of Object.entries(
+    internal.approvedRestoreTargets
+  )) {
     if (scopeKey(approval.scope) === targetScopeKey) {
       delete internal.approvedRestoreTargets[key];
     }

@@ -10,7 +10,9 @@ import type {
 
 const DEFAULT_MAX_VIEW_DEPTH = 128;
 
-export function traverseViewNodesCore(input: TraverseViewInput): TraverseViewResult {
+export function traverseViewNodesCore(
+  input: TraverseViewInput
+): TraverseViewResult {
   const maxDepth = input.maxDepth ?? DEFAULT_MAX_VIEW_DEPTH;
   const visited: TraverseViewResult['visited'] = [];
   const issues: TraverseViewResult['issues'] = [];
@@ -63,7 +65,10 @@ export function traverseViewNodesCore(input: TraverseViewInput): TraverseViewRes
   return { visited, issues };
 }
 
-function seedRootFrames(input: { nodes: ViewNode[]; stack: TraversalFrame[] }): void {
+function seedRootFrames(input: {
+  nodes: ViewNode[];
+  stack: TraversalFrame[];
+}): void {
   for (let i = input.nodes.length - 1; i >= 0; i--) {
     input.stack.push({
       kind: 'enter',

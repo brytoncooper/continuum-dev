@@ -16,7 +16,10 @@ const bodyStyle: CSSProperties = {
 export function ProblemBlock() {
   return (
     <div id="the-problem">
-      <LandingSection title={problemContent.title} description={problemContent.description}>
+      <LandingSection
+        title={problemContent.title}
+        description={problemContent.description}
+      >
         <LandingGrid alignItems="stretch">
           {problemContent.callouts.map((callout, index) => (
             <LandingCard
@@ -26,7 +29,9 @@ export function ProblemBlock() {
               fullHeight
             >
               <div style={titleStyle}>{callout.title}</div>
-              <div style={{ ...bodyStyle, marginTop: space.sm }}>{callout.body}</div>
+              <div style={{ ...bodyStyle, marginTop: space.sm }}>
+                {callout.body}
+              </div>
             </LandingCard>
           ))}
         </LandingGrid>

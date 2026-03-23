@@ -6,17 +6,13 @@ import type {
 const adapterCache = new WeakMap<object, ContinuumVercelAiSdkSessionAdapter>();
 
 function hasApplyView(
-  session:
-    | ContinuumVercelAiSdkSessionLike
-    | ContinuumVercelAiSdkSessionAdapter
+  session: ContinuumVercelAiSdkSessionLike | ContinuumVercelAiSdkSessionAdapter
 ): session is ContinuumVercelAiSdkSessionAdapter {
   return typeof session.applyView === 'function';
 }
 
 function hasStreamSupport(
-  session:
-    | ContinuumVercelAiSdkSessionLike
-    | ContinuumVercelAiSdkSessionAdapter
+  session: ContinuumVercelAiSdkSessionLike | ContinuumVercelAiSdkSessionAdapter
 ): session is ContinuumVercelAiSdkSessionAdapter &
   Required<
     Pick<
@@ -32,9 +28,7 @@ function hasStreamSupport(
 }
 
 export function createContinuumVercelAiSdkSessionAdapter(
-  session:
-    | ContinuumVercelAiSdkSessionLike
-    | ContinuumVercelAiSdkSessionAdapter
+  session: ContinuumVercelAiSdkSessionLike | ContinuumVercelAiSdkSessionAdapter
 ): ContinuumVercelAiSdkSessionAdapter {
   if (typeof session === 'object' && session !== null) {
     const cached = adapterCache.get(session as object);
@@ -90,7 +84,8 @@ export function createContinuumVercelAiSdkSessionAdapter(
     updateState: (nodeId, value) => session.updateState(nodeId, value),
     proposeValue:
       typeof session.proposeValue === 'function'
-        ? (nodeId, value, source) => session.proposeValue?.(nodeId, value, source)
+        ? (nodeId, value, source) =>
+            session.proposeValue?.(nodeId, value, source)
         : undefined,
     beginStream,
     applyStreamPart,
@@ -109,9 +104,7 @@ export function createContinuumVercelAiSdkSessionAdapter(
 }
 
 export function adapterSupportsContinuumStreams(
-  session:
-    | ContinuumVercelAiSdkSessionLike
-    | ContinuumVercelAiSdkSessionAdapter
+  session: ContinuumVercelAiSdkSessionLike | ContinuumVercelAiSdkSessionAdapter
 ): session is ContinuumVercelAiSdkSessionAdapter &
   Required<
     Pick<

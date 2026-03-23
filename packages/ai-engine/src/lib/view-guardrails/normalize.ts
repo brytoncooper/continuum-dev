@@ -15,9 +15,9 @@ function normalizeNode(
   input: unknown,
   usedIds: Set<string>
 ): Record<string, unknown> {
-  const source = (input && typeof input === 'object'
-    ? (input as Record<string, unknown>)
-    : {}) as Record<string, unknown>;
+  const source = (
+    input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
+  ) as Record<string, unknown>;
   const type = typeof source.type === 'string' ? source.type : 'presentation';
   const normalized: Record<string, unknown> = { ...source, type };
 
@@ -58,9 +58,11 @@ function normalizeNode(
     const children = Array.isArray(source.children)
       ? source.children
       : source.template && typeof source.template === 'object'
-        ? [source.template]
-        : [];
-    normalized.children = children.map((child) => normalizeNode(child, usedIds));
+      ? [source.template]
+      : [];
+    normalized.children = children.map((child) =>
+      normalizeNode(child, usedIds)
+    );
     delete normalized.template;
   }
 

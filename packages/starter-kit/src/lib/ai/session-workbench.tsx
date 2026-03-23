@@ -1,6 +1,12 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 import { ContinuumRenderer } from '@continuum-dev/react';
-import { color, control, radius, space, type as typography } from '../tokens.js';
+import {
+  color,
+  control,
+  radius,
+  space,
+  type as typography,
+} from '../tokens.js';
 import { ConflictBanner } from '../proposals/conflict-banner.js';
 import { RestoreReviewCard } from '../proposals/restore-review-card.js';
 import { StarterKitSuggestionsBar } from '../proposals/suggestions-bar.js';
@@ -116,8 +122,8 @@ export function StarterKitSessionWorkbench({
             Possible restores
           </div>
           <div style={{ ...typography.small, color: color.textSoft }}>
-            Continuum found likely matches for preserved values, but it is waiting
-            for your approval instead of guessing.
+            Continuum found likely matches for preserved values, but it is
+            waiting for your approval instead of guessing.
           </div>
           {restoreReviewSections.map((section) => (
             <div key={section.id} style={{ display: 'grid', gap: space.sm }}>

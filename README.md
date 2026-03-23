@@ -110,7 +110,10 @@ function Page() {
 
 export function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
       <Page />
     </ContinuumProvider>
   );
@@ -195,20 +198,20 @@ Action nodes trigger registered handlers by `intentId`. Handlers receive the cur
 
 ## Package map
 
-| Package | What it is | Status |
-| --- | --- | --- |
-| `@continuum-dev/contract` | Core types and constants such as `ViewDefinition`, `DataSnapshot`, and checkpoints | Published |
-| `@continuum-dev/runtime` | Stateless reconciliation engine | Published |
-| `@continuum-dev/session` | Stateful session lifecycle, persistence, checkpoints, rewind, proposals, restore review, and streaming | Published |
-| `@continuum-dev/core` | Thin facade over contract, runtime, and session | Published |
-| `@continuum-dev/react` | Headless React bindings | Published |
-| `@continuum-dev/starter-kit` | Slim preset layer: default component map, primitives, styles, React hook re-exports, and session tooling | Published |
-| `@continuum-dev/starter-kit-ai` | Default starter AI facade over starter-kit, ai-engine, ai-connect, and vercel-ai-sdk-adapter | New |
-| `@continuum-dev/ai-core` | Headless AI facade over react, core, session, ai-connect, ai-engine, and vercel-ai-sdk-adapter | New |
-| `@continuum-dev/ai-engine` | Shared headless AI planning, authoring, parsing, normalization, and apply helpers | New |
-| `@continuum-dev/ai-connect` | Provider factories, registry helpers, and model catalog utilities | Published |
-| `@continuum-dev/vercel-ai-sdk-adapter` | Continuum adapter for Vercel AI SDK request and stream integration | Published |
-| `@continuum-dev/prompts` | Shared prompt building primitives used by higher-level AI packages | Published |
+| Package                                | What it is                                                                                               | Status    |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------- |
+| `@continuum-dev/contract`              | Core types and constants such as `ViewDefinition`, `DataSnapshot`, and checkpoints                       | Published |
+| `@continuum-dev/runtime`               | Stateless reconciliation engine                                                                          | Published |
+| `@continuum-dev/session`               | Stateful session lifecycle, persistence, checkpoints, rewind, proposals, restore review, and streaming   | Published |
+| `@continuum-dev/core`                  | Thin facade over contract, runtime, and session                                                          | Published |
+| `@continuum-dev/react`                 | Headless React bindings                                                                                  | Published |
+| `@continuum-dev/starter-kit`           | Slim preset layer: default component map, primitives, styles, React hook re-exports, and session tooling | Published |
+| `@continuum-dev/starter-kit-ai`        | Default starter AI facade over starter-kit, ai-engine, ai-connect, and vercel-ai-sdk-adapter             | New       |
+| `@continuum-dev/ai-core`               | Headless AI facade over react, core, session, ai-connect, ai-engine, and vercel-ai-sdk-adapter           | New       |
+| `@continuum-dev/ai-engine`             | Shared headless AI planning, authoring, parsing, normalization, and apply helpers                        | New       |
+| `@continuum-dev/ai-connect`            | Provider factories, registry helpers, and model catalog utilities                                        | Published |
+| `@continuum-dev/vercel-ai-sdk-adapter` | Continuum adapter for Vercel AI SDK request and stream integration                                       | Published |
+| `@continuum-dev/prompts`               | Shared prompt building primitives used by higher-level AI packages                                       | Published |
 
 ## Recommended reading path
 
@@ -277,6 +280,8 @@ npx nx run demo:typecheck
 npx nx run demo:serve
 npx nx run demo-api:dev
 ```
+
+Publishing and release verification: [RELEASE.md](RELEASE.md). Package validation expectations: [docs/PACKAGE_VALIDATION_POLICY.md](docs/PACKAGE_VALIDATION_POLICY.md).
 
 ## License
 

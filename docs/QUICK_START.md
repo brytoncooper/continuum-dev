@@ -44,12 +44,18 @@ npm install @continuum-dev/ai-core react
 Create your app shell with `ContinuumProvider`.
 
 ```tsx
-import { ContinuumProvider, starterKitComponentMap } from '@continuum-dev/starter-kit';
+import {
+  ContinuumProvider,
+  starterKitComponentMap,
+} from '@continuum-dev/starter-kit';
 import { Page } from './Page';
 
 export default function App() {
   return (
-    <ContinuumProvider components={starterKitComponentMap} persist="localStorage">
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
       <Page />
     </ContinuumProvider>
   );
@@ -220,7 +226,10 @@ export function DiagnosticsPanel() {
 Every `pushView` creates an auto-checkpoint.
 
 ```tsx
-import { useContinuumDiagnostics, useContinuumSession } from '@continuum-dev/starter-kit';
+import {
+  useContinuumDiagnostics,
+  useContinuumSession,
+} from '@continuum-dev/starter-kit';
 
 export function UndoButton() {
   const session = useContinuumSession();
@@ -247,23 +256,22 @@ Action nodes can trigger registered handlers by `intentId`.
 
 ```tsx
 import { useEffect } from 'react';
-import { useContinuumAction, useContinuumSession } from '@continuum-dev/starter-kit';
+import {
+  useContinuumAction,
+  useContinuumSession,
+} from '@continuum-dev/starter-kit';
 
 export function RegisterActions() {
   const session = useContinuumSession();
 
   useEffect(() => {
-    session.registerAction(
-      'submit',
-      { label: 'Submit' },
-      async (context) => {
-        await fetch('/api/submit', {
-          method: 'POST',
-          body: JSON.stringify(context.snapshot.values),
-        });
-        return { success: true };
-      }
-    );
+    session.registerAction('submit', { label: 'Submit' }, async (context) => {
+      await fetch('/api/submit', {
+        method: 'POST',
+        body: JSON.stringify(context.snapshot.values),
+      });
+      return { success: true };
+    });
   }, [session]);
 
   return null;

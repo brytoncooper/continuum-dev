@@ -76,12 +76,10 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
   selectorLabel: 'Rewind recovery',
   problem:
     'Start with a working draft. Go to step 2, a bad update breaks it. The naive pane is stuck. Continuum can restore the last good version.',
-  whyItMatters:
-    'Sometimes updates go wrong. You need a way back.',
+  whyItMatters: 'Sometimes updates go wrong. You need a way back.',
   controls: {
     inputLabel: 'Your draft',
-    inputDescription:
-      'Enter values, go to step 2 to break it, then restore.',
+    inputDescription: 'Enter values, go to step 2 to break it, then restore.',
     helperText: 'Step 2 has a restore button on the Continuum side.',
   },
   trackedFields: [
@@ -107,15 +105,13 @@ export const rewindRecoveryScenario: PlaygroundRecoveryScenario = {
     {
       id: 'working-draft',
       title: 'Step 1: Working draft',
-      description:
-        'Both panes start with your entered values.',
+      description: 'Both panes start with your entered values.',
       view: initialView,
     },
     {
       id: 'bad-update',
       title: 'Step 2: Bad update',
-      description:
-        'Something goes wrong. Restore the good version.',
+      description: 'Something goes wrong. Restore the good version.',
       view: badView,
     },
   ],

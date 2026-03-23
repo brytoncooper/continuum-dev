@@ -22,7 +22,10 @@ export function createUpdatesFacade(
   | 'purgeDetachedValues'
 > {
   return {
-    pushView(view: Parameters<Session['pushView']>[0], options?: Parameters<Session['pushView']>[1]) {
+    pushView(
+      view: Parameters<Session['pushView']>[0],
+      options?: Parameters<Session['pushView']>[1]
+    ) {
       assertNotDestroyed(internal);
       pushView(internal, view, options);
     },
@@ -38,7 +41,9 @@ export function createUpdatesFacade(
       assertNotDestroyed(internal);
       return { ...(internal.currentData?.detachedValues ?? {}) };
     },
-    purgeDetachedValues(filter?: (key: string, value: DetachedValue) => boolean) {
+    purgeDetachedValues(
+      filter?: (key: string, value: DetachedValue) => boolean
+    ) {
       assertNotDestroyed(internal);
       if (!internal.currentData?.detachedValues) return;
       if (!filter) {
@@ -47,7 +52,9 @@ export function createUpdatesFacade(
         internal.currentData = rest;
       } else {
         const remaining: Record<string, DetachedValue> = {};
-        for (const [key, value] of Object.entries(internal.currentData.detachedValues)) {
+        for (const [key, value] of Object.entries(
+          internal.currentData.detachedValues
+        )) {
           if (!filter(key, value)) {
             remaining[key] = value;
           }

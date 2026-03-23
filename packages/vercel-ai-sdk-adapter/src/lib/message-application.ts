@@ -84,7 +84,9 @@ function resolveTargetViewId(
     case 'append-content':
     case 'node-status':
       return (
-        ('patch' in application ? application.patch.viewId : application.targetViewId) ??
+        ('patch' in application
+          ? application.patch.viewId
+          : application.targetViewId) ??
         sessionAdapter.getSnapshot()?.view.viewId ??
         sessionAdapter.getCommittedSnapshot()?.view.viewId ??
         null
@@ -180,7 +182,9 @@ function applyThroughStreamingFoundation(
   const streamPart = normalizeStreamPart(application);
   const targetViewId = resolveTargetViewId(application, sessionAdapter);
   const preferredStreamMode =
-    'streamMode' in application ? application.streamMode ?? 'foreground' : 'foreground';
+    'streamMode' in application
+      ? application.streamMode ?? 'foreground'
+      : 'foreground';
   if (!streamPart || !targetViewId) {
     return application;
   }
@@ -215,7 +219,9 @@ function applyThroughStreamingFoundation(
     const result = sessionAdapter.commitStream(streamId);
     if (result.status !== 'committed') {
       throw new Error(
-        `Continuum stream commit failed with status "${result.status}"${result.reason ? `: ${result.reason}` : ''}.`
+        `Continuum stream commit failed with status "${result.status}"${
+          result.reason ? `: ${result.reason}` : ''
+        }.`
       );
     }
   }
@@ -331,9 +337,7 @@ export function interpretContinuumVercelAiSdkDataPart(
 
 export function applyContinuumVercelAiSdkDataPart(
   part: ApplicablePart,
-  session:
-    | ContinuumVercelAiSdkSessionAdapter
-    | ContinuumVercelAiSdkSessionLike
+  session: ContinuumVercelAiSdkSessionAdapter | ContinuumVercelAiSdkSessionLike
 ): ContinuumVercelAiSdkPartApplication {
   const sessionAdapter = createContinuumVercelAiSdkSessionAdapter(session);
   const application = interpretContinuumVercelAiSdkDataPart(part);
@@ -349,7 +353,10 @@ export function applyContinuumVercelAiSdkDataPart(
       application.kind === 'status' ||
       application.kind === 'node-status'
     ) {
-      const streamed = applyThroughStreamingFoundation(application, sessionAdapter);
+      const streamed = applyThroughStreamingFoundation(
+        application,
+        sessionAdapter
+      );
       if (
         streamed.kind === 'view' ||
         streamed.kind === 'patch' ||
@@ -405,8 +412,7 @@ export function applyContinuumVercelAiSdkDataPart(
       if (!currentView) {
         return {
           kind: 'ignored',
-          reason:
-            `Received continuum ${application.kind} part before a session view existed to apply it against.`,
+          reason: `Received continuum ${application.kind} part before a session view existed to apply it against.`,
         };
       }
 
@@ -473,9 +479,7 @@ export function applyContinuumVercelAiSdkDataPart(
 
 export function applyContinuumVercelAiSdkMessage(
   message: ContinuumVercelAiSdkMessage,
-  session:
-    | ContinuumVercelAiSdkSessionAdapter
-    | ContinuumVercelAiSdkSessionLike
+  session: ContinuumVercelAiSdkSessionAdapter | ContinuumVercelAiSdkSessionLike
 ): ContinuumVercelAiSdkPartApplication[] {
   const applications: ContinuumVercelAiSdkPartApplication[] = [];
   const touchedStreamIds = new Set<string>();
@@ -502,16 +506,18 @@ export function applyContinuumVercelAiSdkMessage(
     typeof sessionAdapter.getStreams === 'function'
   ) {
     for (const streamId of touchedStreamIds) {
-      const stream = sessionAdapter.getStreams()?.find(
-        (candidate) => candidate.streamId === streamId
-      );
+      const stream = sessionAdapter
+        .getStreams()
+        ?.find((candidate) => candidate.streamId === streamId);
       if (!stream || stream.status !== 'open') {
         continue;
       }
       const result = sessionAdapter.commitStream(streamId);
       if (result.status !== 'committed') {
         throw new Error(
-          `Continuum stream commit failed with status "${result.status}"${result.reason ? `: ${result.reason}` : ''}.`
+          `Continuum stream commit failed with status "${result.status}"${
+            result.reason ? `: ${result.reason}` : ''
+          }.`
         );
       }
     }
@@ -522,9 +528,7 @@ export function applyContinuumVercelAiSdkMessage(
 
 export function applyContinuumVercelAiSdkMessages(
   messages: ContinuumVercelAiSdkMessage[],
-  session:
-    | ContinuumVercelAiSdkSessionAdapter
-    | ContinuumVercelAiSdkSessionLike
+  session: ContinuumVercelAiSdkSessionAdapter | ContinuumVercelAiSdkSessionLike
 ): ContinuumVercelAiSdkPartApplication[] {
   return messages.flatMap((message) =>
     applyContinuumVercelAiSdkMessage(message, session)
