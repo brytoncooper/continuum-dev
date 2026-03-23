@@ -1,0 +1,35 @@
+{
+  "name": "starter",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@continuum-dev/starter-kit": "^0.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0"
+  },
+  "nx": {
+    "tags": ["scope:starter-app"],
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/starter",
+          "command": "vitest"
+        }
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "apps/starter",
+          "command": "tsc --noEmit -p tsconfig.json"
+        },
+        "dependsOn": ["^build"]
+      }
+    }
+  }
+}

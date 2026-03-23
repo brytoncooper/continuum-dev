@@ -182,6 +182,20 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:starter-app',
+              onlyDependOnLibsWithTags: [
+                'scope:contract',
+                'scope:protocol',
+                'scope:session',
+                'scope:core',
+                'scope:react',
+                'scope:ai-engine',
+                'scope:starter-kit',
+                'scope:starter-kit-ai',
+                'scope:vercel-ai-sdk-adapter',
+              ],
+            },
+            {
               sourceTag: 'scope:async',
               onlyDependOnLibsWithTags: ['scope:shared', 'scope:async'],
             },

@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "demo": "nx run demo:serve",
+    "starter": "nx run starter:serve",
     "demo:api": "nx run demo-api:dev",
     "build:release-packages": "node scripts/build-release-packages.mjs",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
