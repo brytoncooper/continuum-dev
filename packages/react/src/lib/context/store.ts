@@ -21,9 +21,6 @@ function getChangedNodeIds(
   }
   const previousValues = previous.data.values ?? {};
   const nextValues = next.data.values ?? {};
-  if (previousValues === nextValues) {
-    return [];
-  }
   const ids = new Set<string>([
     ...Object.keys(previousValues),
     ...Object.keys(nextValues),

@@ -45,6 +45,18 @@ export function resolveUnchangedNode(input: ResolveUnchangedNodeInput): void {
     if (resolvedValue.didApplyDefaultChange) {
       acc.diffs.push(migratedDiff(newId, priorValue, resolvedValue.value));
     }
+  } else if (shouldSeedInitialValueFromDefinition(newNode)) {
+    acc.values[newId] = { value: newNode.defaultValue };
+    reconciledValue = acc.values[newId];
+    carryValuesMeta({
+      target: acc.valueLineage,
+      newId,
+      priorId: priorNodeId,
+      priorData,
+      now,
+      isMigrated: false,
+    });
+    acc.diffs.push(migratedDiff(newId, undefined, acc.values[newId]));
   }
 
   acc.resolutions.push(
@@ -107,4 +119,13 @@ function shouldApplyDefaultChange(
       newNode.semanticKey === priorNode.semanticKey) ||
     (newNode.key !== undefined && newNode.key === priorNode.key)
   );
+}
+
+function shouldSeedInitialValueFromDefinition(
+  newNode: ViewNode
+): newNode is ViewNode & { defaultValue: unknown } {
+  if (newNode.type === 'collection') {
+    return false;
+  }
+  return 'defaultValue' in newNode && newNode.defaultValue !== undefined;
 }

@@ -216,6 +216,25 @@ describe('resolveAllNodes', () => {
     });
   });
 
+  it('seeds defaultValue when the prior snapshot had no value for an unchanged node', () => {
+    const priorView = makeView([makeNode({ id: 'a', key: 'alpha' })]);
+    const newView = makeView([
+      makeNode({ id: 'a', key: 'alpha', defaultValue: 'from-later-chunk' }),
+    ]);
+    const priorData = makeData({});
+    const ctx = buildReconciliationContext(newView, priorView);
+    const priorValues = buildPriorValueLookupByIdAndKey(priorData, ctx);
+
+    const result = resolveAllNodes(ctx, priorValues, priorData, 5000, {});
+
+    expect(result.values['a']).toEqual({ value: 'from-later-chunk' });
+    expect(
+      result.diffs.some(
+        (diff) => diff.nodeId === 'a' && diff.type === 'migrated'
+      )
+    ).toBe(true);
+  });
+
   it('does not migrate when object default values are semantically equal', () => {
     const priorView = makeView([
       makeNode({

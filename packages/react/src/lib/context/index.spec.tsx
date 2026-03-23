@@ -543,6 +543,32 @@ describe('createContinuumStore (via context capture)', () => {
     unmount();
   });
 
+  it('session getSnapshot returns distinct values map references for consecutive reads', () => {
+    let session: Session | null = null;
+
+    function Probe() {
+      const ctx = useContext(ContinuumContext);
+      session = ctx?.session ?? null;
+      return null;
+    }
+
+    const { unmount } = render(
+      <ContinuumProvider components={componentMap}>
+        <Probe />
+      </ContinuumProvider>
+    );
+
+    act(() => {
+      session!.pushView(simpleView);
+    });
+
+    const first = session!.getSnapshot()!.data.values;
+    const second = session!.getSnapshot()!.data.values;
+    expect(first).not.toBe(second);
+    expect(first).toEqual(second);
+    unmount();
+  });
+
   it('subscribeSnapshot listener fires on session snapshot change', () => {
     let store: ContinuumStore | null = null;
     let session: Session | null = null;

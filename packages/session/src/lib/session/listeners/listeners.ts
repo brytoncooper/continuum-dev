@@ -13,7 +13,10 @@ function freezeSnapshot(
 ): ContinuitySnapshot {
   const snapshot: ContinuitySnapshot = {
     view: { ...view },
-    data: sanitizeContinuumDataSnapshot({ ...data })!,
+    data: sanitizeContinuumDataSnapshot({
+      ...data,
+      values: data.values ? { ...data.values } : {},
+    })!,
   };
   Object.freeze(snapshot.view);
   Object.freeze(snapshot.data);

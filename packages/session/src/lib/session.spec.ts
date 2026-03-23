@@ -137,6 +137,16 @@ describe('Session Ledger', () => {
       expect(snapshot!.data.values).toEqual({});
     });
 
+    it('each getSnapshot returns an independent shallow copy of values', () => {
+      const session = createSession();
+      const view = makeView([makeNode({ id: 'a' })]);
+      session.pushView(view);
+      const first = session.getSnapshot()!;
+      const second = session.getSnapshot()!;
+      expect(first.data.values).not.toBe(second.data.values);
+      expect(first.data.values).toEqual(second.data.values);
+    });
+
     it('second pushView triggers reconciliation and preserves matching data', () => {
       const session = createSession();
       const viewV1 = makeView([makeNode({ id: 'a' })], 'view-1', '1.0');
