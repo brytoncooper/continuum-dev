@@ -335,4 +335,28 @@ export default [
       '@nx/enforce-module-boundaries': 'off',
     },
   },
+  {
+    files: [
+      '**/*.ts',
+      '**/*.tsx',
+      '**/*.js',
+      '**/*.jsx',
+      '**/*.mjs',
+      '**/*.cjs',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@continuum-cloud/*'],
+              message:
+                'Do not import application packages from outside this SDK monorepo. Integrate via published @continuum-dev libraries or an explicit API added in this repository.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
