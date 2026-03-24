@@ -10,7 +10,8 @@
     "sync:workspace-entrypoints": "node scripts/sync-workspace-entrypoints.mjs",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
     "verify:release-packages": "node scripts/verify-release-packages.mjs",
-    "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages"
+    "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages",
+    "publish:local-verdaccio": "npm run build:release-packages && npm run prepare:dist-packages && node scripts/publish-local-verdaccio.mjs"
   },
   "private": true,
   "devDependencies": {

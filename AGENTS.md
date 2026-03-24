@@ -15,6 +15,10 @@
 
 For repository layout, a maintainer-oriented reading order, anchor files for core logic, and how `.cursor/` rules, agents, and skills fit together, see [AI_ONBOARDING.md](AI_ONBOARDING.md) at the repository root.
 
+## Repository boundary
+
+Cloud and deployment code for Continuum belongs in the separate **continuum-cloud** Git repository only. Do not commit Cloudflare workers, cloud-only apps, or cross-repo path wiring into **continuum-dev**; downstream cloud repos should consume `@continuum-dev/*` from a registry (for example local Verdaccio), not from checked-in copies of this tree.
+
 # CooperContinuum Agent Context
 
 ## What We Are Building
