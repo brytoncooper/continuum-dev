@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/ai-core",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -42,12 +42,12 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/ai-connect": "^0.3.0",
-    "@continuum-dev/ai-engine": "^0.3.0",
-    "@continuum-dev/core": "^0.3.0",
-    "@continuum-dev/react": "^0.3.0",
-    "@continuum-dev/session": "^0.3.0",
-    "@continuum-dev/vercel-ai-sdk-adapter": "^0.3.0"
+    "@continuum-dev/ai-connect": "^0.4.0-alpha.1",
+    "@continuum-dev/ai-engine": "^0.4.0-alpha.1",
+    "@continuum-dev/core": "^0.4.0-alpha.1",
+    "@continuum-dev/react": "^0.4.0-alpha.1",
+    "@continuum-dev/session": "^0.4.0-alpha.1",
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.4.0-alpha.1"
   },
   "nx": {
     "tags": [

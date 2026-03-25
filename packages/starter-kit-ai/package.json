@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/starter-kit-ai",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -42,10 +42,10 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/ai-connect": "^0.3.0",
-    "@continuum-dev/ai-engine": "^0.3.0",
-    "@continuum-dev/starter-kit": "^0.3.0",
-    "@continuum-dev/vercel-ai-sdk-adapter": "^0.3.0"
+    "@continuum-dev/ai-connect": "^0.4.0-alpha.1",
+    "@continuum-dev/ai-engine": "^0.4.0-alpha.1",
+    "@continuum-dev/starter-kit": "^0.4.0-alpha.1",
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.4.0-alpha.1"
   },
   "nx": {
     "tags": [

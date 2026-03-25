@@ -1,13 +1,13 @@
 {
   "name": "demo-api",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "private": true,
   "type": "module",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
     "@ai-sdk/openai": "^3.0.41",
-    "@continuum-dev/ai-engine": "^0.3.0",
-    "@continuum-dev/vercel-ai-sdk-adapter": "^0.3.0",
+    "@continuum-dev/ai-engine": "^0.4.0-alpha.1",
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.4.0-alpha.1",
     "ai": "^6.0.116"
   },
   "nx": {
