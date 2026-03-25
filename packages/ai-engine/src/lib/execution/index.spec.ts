@@ -55,6 +55,7 @@ describe('continuum execution fallback behavior', () => {
         generate,
       },
       instruction: 'Add a budget input under email.',
+      executionMode: 'patch',
       context: {
         currentView,
         currentData: {},
@@ -123,6 +124,7 @@ describe('continuum execution fallback behavior', () => {
         generate,
       },
       instruction: 'Repopulate the company field with Acme Corp.',
+      executionMode: 'state',
       context: {
         currentView,
         currentData: {},
@@ -192,6 +194,7 @@ describe('continuum execution fallback behavior', () => {
         generate,
       },
       instruction: 'populate the email',
+      executionMode: 'state',
       context: {
         currentView,
         currentData: {},
@@ -276,6 +279,7 @@ describe('continuum execution fallback behavior', () => {
         generate,
       },
       instruction: 'Add a budget field under email.',
+      executionMode: 'patch',
       context: {
         currentView,
         currentData: {},
@@ -389,6 +393,7 @@ group id="tax_form"
         generate,
       },
       instruction: 'Make first name and last name into full name.',
+      executionMode: 'transform',
       context: {
         currentView,
         currentData: {
@@ -416,7 +421,7 @@ group id="tax_form"
     });
   });
 
-  it('uses create-view authoring when the reference executor detects a greenfield workflow request', async () => {
+  it('uses create-view authoring when mode is create-view for a greenfield-style instruction', async () => {
     const currentView = {
       viewId: 'vercel-ai-sdk-demo',
       version: 'baseline',
@@ -440,7 +445,6 @@ group id="tax_form"
 
     const generate = vi.fn(async (request) => {
       if (request.mode === 'view') {
-        expect(request.userMessage).not.toContain('Current view:');
         return {
           text: `view viewId="tax-form" version="1"
 group id="tax_form" label="Tax form"
@@ -457,6 +461,7 @@ group id="tax_form" label="Tax form"
         generate,
       },
       instruction: 'I want a tax form instead.',
+      mode: 'create-view',
       context: {
         currentView,
         currentData: {},
@@ -577,6 +582,7 @@ group id="root" label="Hello"`,
         generate,
       },
       instruction: 'Replace first and last name with a full name field.',
+      executionMode: 'patch',
       context: {
         currentView,
         currentData: {},
@@ -620,6 +626,57 @@ group id="root" label="Hello"`,
 
     expect(kinds.filter((k) => k === 'view-preview')).toHaveLength(0);
     expect(kinds.some((k) => k === 'view-final')).toBe(true);
+  });
+
+  it('defaults to view generation when executionMode is omitted even for patch-like instructions', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'view') {
+        return {
+          text: `view viewId="lead-form" version="2"
+group id="profile"
+  field id="email" key="lead.email" label="Email" dataType="string"`,
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Add a budget field under email.',
+      context: {
+        currentView,
+        currentData: {},
+      },
+    });
+
+    expect(result.mode).toBe('view');
+    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
+      'view',
+    ]);
   });
 
   it('throttles view-preview events when viewPreviewThrottleMs is high', async () => {

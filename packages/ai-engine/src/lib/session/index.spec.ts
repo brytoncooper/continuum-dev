@@ -349,6 +349,7 @@ describe('continuum session adapter', () => {
       context: buildContinuumExecutionContext(session),
       instruction: 'Populate dependents with one child named Ava',
       mode: 'create-view',
+      executionMode: 'state',
       autoApplyView: true,
     });
 
