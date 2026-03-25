@@ -6,12 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking
 
-- `@continuum-dev/ai-engine` **`runContinuumExecution` / `streamContinuumExecution`** now use a **reference** execution path (deterministic heuristics, no LLM planner call). The previous planner-led behavior lives in private **`@continuum-cloud/ai-execution`** in the **continuum-cloud** repository.
+- `@continuum-dev/ai-engine` **`runContinuumExecution` / `streamContinuumExecution`** (OSS) **default to full view generation** and no longer infer execution mode (patch / state / transform) from instruction text. Use **`executionMode`** or **`executionPlan`** for non-view phases (precedence: plan > mode > default view). Prompts stay **internal** and fixed per mode on the public execution surface.
+- `@continuum-dev/ai-engine` **`runContinuumExecution` / `streamContinuumExecution`** no longer use the removed **reference heuristic planner** for mode selection. Automatic planner-led routing remains in private **`@continuum-cloud/ai-execution`** (inject via **`streamContinuumExecution`** on **`@continuum-dev/vercel-ai-sdk-adapter`** or your host).
 - **`@continuum-dev/ai-engine` root exports** no longer re-export LLM planner functions (`buildContinuumExecutionPlannerSystemPrompt`, `resolveContinuumExecutionPlan`, etc.). The **`@continuum-dev/ai-engine/continuum-execution`** subpath now exposes **shared primitives** (for example `normalizeContinuumSemanticIdentity`, `parseJson`) for custom planners—not the premium planner prompts.
 - **`apps/demo`** and **`apps/demo-api`** were **removed** from this monorepo; they now live under **continuum-cloud** as **`continuum-demo`** and **`continuum-demo-api`**.
 
 ### Added
 
+- **`executionMode`** and **`executionPlan`** on **`@continuum-dev/vercel-ai-sdk-adapter`** `continuum` request options and server stream helpers so OSS callers can route execution explicitly.
 - `@continuum-dev/ai-engine/execution-stream` subpath exporting phase runners and stream environment construction for advanced composition.
 - Optional **`streamContinuumExecution`** injection on **`@continuum-dev/vercel-ai-sdk-adapter`** server helpers and route factory for wiring premium execution.
 - Exported **`ContinuumExecutionMode`**, **`ContinuumExecutionPlan`**, and **`ContinuumResolvedExecutionPlan`** types from `@continuum-dev/ai-engine` root.
