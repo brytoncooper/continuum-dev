@@ -44,8 +44,7 @@ All notable changes to this project will be documented in this file.
 
 ### Docs
 
-- Added [docs/API_DELTA_0.3.x_TO_NEXT.md](docs/API_DELTA_0.3.x_TO_NEXT.md)
-- Added [docs/UPGRADING_FROM_0.3.x_TO_NEXT.md](docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
+- Added upgrade and API delta notes (now maintained in the private Continuum documentation repository).
 - Added [packages/session/STREAMING.md](packages/session/STREAMING.md)
 
 ## 0.3.0 - 2026-03-09

@@ -26,12 +26,7 @@ Workspace-only `.js` entry files under `packages/*/`, when present, are generate
 
 ## Upgrading from 0.3.x
 
-If you are upgrading an existing Continuum integration, start here:
-
-- [Upgrade Guide](docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
-- [API Delta](docs/API_DELTA_0.3.x_TO_NEXT.md)
-- [Starter Kit AI Migration Guide](docs/STARTER_KIT_AI_MIGRATION.md)
-- [Session Streaming Guide](packages/session/STREAMING.md)
+Upgrade guides and API deltas are maintained in the **private Continuum documentation** repository (not shipped with the public SDK). For published integration help, use [Session Streaming Guide](packages/session/STREAMING.md) and the guides under [docs/](docs/README.md).
 
 ## Why this exists
 
@@ -218,17 +213,15 @@ If you are building gen UI already:
 
 1. [AI Integration Guide](docs/AI_INTEGRATION.md)
 2. [Integration Guide](docs/INTEGRATION_GUIDE.md)
-3. [Headless AI reference app](docs/REFERENCE_HEADLESS_AI_APP.md)
-4. [React README](packages/react/README.md)
-5. [AI Engine README](packages/ai-engine/README.md)
-6. [Vercel AI SDK Adapter README](packages/vercel-ai-sdk-adapter/README.md)
+3. [React README](packages/react/README.md)
+4. [AI Engine README](packages/ai-engine/README.md)
+5. [Vercel AI SDK Adapter README](packages/vercel-ai-sdk-adapter/README.md)
 
 If you want a fast first success:
 
 1. [Quick Start](docs/QUICK_START.md)
-2. [Starter reference app](docs/REFERENCE_STARTER_APP.md)
-3. [Starter Kit README](packages/starter-kit/README.md)
-4. [Integration Guide](docs/INTEGRATION_GUIDE.md)
+2. [Starter Kit README](packages/starter-kit/README.md)
+3. [Integration Guide](docs/INTEGRATION_GUIDE.md)
 
 If you need the lower-level continuity boundary:
 
@@ -239,9 +232,7 @@ If you need the lower-level continuity boundary:
 
 If you are upgrading:
 
-1. [Starter Kit AI Migration Guide](docs/STARTER_KIT_AI_MIGRATION.md)
-2. [Upgrade Guide](docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
-3. [API Delta](docs/API_DELTA_0.3.x_TO_NEXT.md)
+Use the private maintainer documentation repository for migration notes and API deltas; the public tree keeps only the integration guides linked from [docs/](docs/README.md).
 
 ## Architecture
 
@@ -278,7 +269,7 @@ npx nx run demo:serve
 npx nx run demo-api:dev
 ```
 
-Publishing and release verification: [RELEASE.md](RELEASE.md). Package validation expectations: [docs/PACKAGE_VALIDATION_POLICY.md](docs/PACKAGE_VALIDATION_POLICY.md).
+Publishing and release verification: [RELEASE.md](RELEASE.md). Package validation expectations for maintainers live in the private documentation repository.
 
 ## License
 
