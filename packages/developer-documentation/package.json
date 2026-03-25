@@ -1,0 +1,58 @@
+{
+  "name": "@continuum-dev/developer-documentation",
+  "version": "0.4.0-alpha.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Bundled Continuum developer documentation for marketing and tooling",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brytoncooper/continuum-dev.git",
+    "directory": "packages/developer-documentation"
+  },
+  "author": "Bryton Cooper",
+  "keywords": [
+    "continuum",
+    "documentation"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "@continuum-dev/source": "./src/index.ts",
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.d.ts.map",
+    "README.md",
+    "LICENSE*"
+  ],
+  "dependencies": {
+    "@continuum-dev/adapters": "^0.4.0-alpha.1",
+    "@continuum-dev/ai-connect": "^0.4.0-alpha.1",
+    "@continuum-dev/ai-core": "^0.4.0-alpha.1",
+    "@continuum-dev/ai-engine": "^0.4.0-alpha.1",
+    "@continuum-dev/angular": "^0.4.0-alpha.1",
+    "@continuum-dev/contract": "^0.4.0-alpha.1",
+    "@continuum-dev/core": "^0.4.0-alpha.1",
+    "@continuum-dev/prompts": "^0.4.0-alpha.1",
+    "@continuum-dev/protocol": "^0.4.0-alpha.1",
+    "@continuum-dev/react": "^0.4.0-alpha.1",
+    "@continuum-dev/runtime": "^0.4.0-alpha.1",
+    "@continuum-dev/session": "^0.4.0-alpha.1",
+    "@continuum-dev/starter-kit": "^0.4.0-alpha.1",
+    "@continuum-dev/starter-kit-ai": "^0.4.0-alpha.1",
+    "@continuum-dev/vercel-ai-sdk-adapter": "^0.4.0-alpha.1"
+  },
+  "nx": {
+    "tags": ["scope:developer-documentation"]
+  }
+}
