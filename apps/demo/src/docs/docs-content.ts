@@ -83,14 +83,6 @@ export const secondaryLinks: DocsLinkItem[] = [
     href: repositoryFileUrl('docs/AI_INTEGRATION.md'),
   },
   {
-    label: 'Headless AI reference app',
-    href: repositoryFileUrl('docs/REFERENCE_HEADLESS_AI_APP.md'),
-  },
-  {
-    label: 'Starter reference app',
-    href: repositoryFileUrl('docs/REFERENCE_STARTER_APP.md'),
-  },
-  {
     label: 'View Contract',
     href: repositoryFileUrl('docs/VIEW_CONTRACT.md'),
   },
