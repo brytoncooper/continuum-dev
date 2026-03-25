@@ -47,7 +47,7 @@ function copyTree(src, dest) {
   }
 }
 
-const privateAppDirs = ['demo', 'demo-api', 'starter'];
+const privateAppDirs = ['starter'];
 
 for (const dir of privateAppDirs) {
   const appRoot = join(root, 'apps', dir);

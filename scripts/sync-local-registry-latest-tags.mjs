@@ -25,7 +25,7 @@ for (const pkg of loadAlignedReleasePackages()) {
   pointLatestAt(manifest.name, manifest.version);
 }
 
-const privateAppDirs = ['demo', 'demo-api', 'starter'];
+const privateAppDirs = ['starter'];
 for (const dir of privateAppDirs) {
   const manifest = loadJson(resolve(root, 'apps', dir, 'package.json'));
   pointLatestAt(manifest.name, manifest.version);
