@@ -46,7 +46,8 @@ export interface BaseNode {
    */
   key?: string;
   /**
-   * Optional explicit semantic identity for cross-level matching.
+   * Optional explicit semantic identity for deterministic reconciliation,
+   * restoration, and semantic-targeted structural edits.
    */
   semanticKey?: string;
   /**

@@ -28,35 +28,52 @@ export type ContinuumViewStreamPart =
   | {
       kind: 'insert-node';
       parentId?: string | null;
+      parentSemanticKey?: string | null;
       position?: ContinuumViewPatchPosition;
       node: ViewNode;
     }
   | {
       kind: 'move-node';
-      nodeId: string;
+      nodeId?: string;
+      semanticKey?: string;
       parentId?: string | null;
+      parentSemanticKey?: string | null;
       position?: ContinuumViewPatchPosition;
     }
   | {
       kind: 'wrap-nodes';
       parentId?: string | null;
-      nodeIds: string[];
+      parentSemanticKey?: string | null;
+      nodeIds?: string[];
+      semanticKeys?: string[];
       wrapper: ViewNode;
     }
   | {
       kind: 'replace-node';
-      nodeId: string;
+      nodeId?: string;
+      semanticKey?: string;
       node: ViewNode;
     }
   | {
       kind: 'remove-node';
-      nodeId: string;
+      nodeId?: string;
+      semanticKey?: string;
     }
   | {
       kind: 'append-content';
-      nodeId: string;
+      nodeId?: string;
+      semanticKey?: string;
       text: string;
     };
+
+/**
+ * One local structural edit operation as streamed to or from the runtime boundary.
+ * Excludes full-view replacement and batched patch envelopes.
+ */
+export type ContinuumViewStructuralStreamPart = Exclude<
+  ContinuumViewStreamPart,
+  { kind: 'view' } | { kind: 'patch' }
+>;
 
 export interface SessionViewApplyOptions {
   transient?: boolean;

@@ -26,6 +26,14 @@ describe('protocol constants', () => {
       'VIEW_MAX_DEPTH_EXCEEDED',
       'COLLECTION_CONSTRAINT_VIOLATED',
       'SCOPE_COLLISION',
+      'SEMANTIC_KEY_MISSING_STATEFUL',
+      'SEMANTIC_KEY_CHURN',
+      'VIEW_REPLACEMENT_RATIO_HIGH',
+      'DETACHED_FIELD_GROWTH',
+      'CONTINUITY_LOSS',
+      'ORPHANED_ACTION_INTENT',
+      'LAYOUT_DEPTH_EXPLOSION',
+      'COLLECTION_TEMPLATE_INVALID',
     ]);
     expect(Object.values(DATA_RESOLUTIONS)).toEqual([
       'carried',

@@ -7,3 +7,4 @@ export * from './lib/restore-reviews.js';
 export * from './lib/streams.js';
 export * from './lib/transforms.js';
 export * from './lib/view-patch.js';
+export * from './lib/view-evolution.js';

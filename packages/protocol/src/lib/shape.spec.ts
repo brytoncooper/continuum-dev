@@ -16,6 +16,7 @@ const SOURCES: SourceFileMap = {
   'streams.ts': loadSource('./streams.ts'),
   'transforms.ts': loadSource('./transforms.ts'),
   'view-patch.ts': loadSource('./view-patch.ts'),
+  'view-evolution.ts': loadSource('./view-evolution.ts'),
 };
 
 function loadSource(relativePath: string): ts.SourceFile {
@@ -327,6 +328,7 @@ describe('protocol public shape', () => {
       './lib/restore-reviews.js',
       './lib/streams.js',
       './lib/transforms.js',
+      './lib/view-evolution.js',
       './lib/view-patch.js',
     ]);
   });
@@ -344,6 +346,7 @@ describe('protocol public shape', () => {
           'streams.ts': SOURCES['streams.ts'],
           'transforms.ts': SOURCES['transforms.ts'],
           'view-patch.ts': SOURCES['view-patch.ts'],
+          'view-evolution.ts': SOURCES['view-evolution.ts'],
         }).map(([fileName, source]) => [
           fileName,
           getExportedDeclarationNames(source),
@@ -388,6 +391,7 @@ describe('protocol public shape', () => {
       ],
       'streams.ts': [
         'ContinuumViewStreamPart',
+        'ContinuumViewStructuralStreamPart',
         'SessionStream',
         'SessionStreamDiagnostics',
         'SessionStreamMode',
@@ -413,6 +417,13 @@ describe('protocol public shape', () => {
         'ContinuumViewPatch',
         'ContinuumViewPatchOperation',
         'ContinuumViewPatchPosition',
+      ],
+      'view-evolution.ts': [
+        'ContinuumEditExemplarTrace',
+        'ScopedEditBrief',
+        'ViewEvolutionDiagnostic',
+        'ViewEvolutionDiagnostics',
+        'ViewEvolutionMetrics',
       ],
     });
   });
@@ -562,7 +573,13 @@ describe('protocol public shape', () => {
         'trigger',
       ],
       ContinuumViewPatch: ['operations', 'version?', 'viewId?'],
-      ContinuumViewPatchPosition: ['afterId?', 'beforeId?', 'index?'],
+      ContinuumViewPatchPosition: [
+        'afterId?',
+        'afterSemanticKey?',
+        'beforeId?',
+        'beforeSemanticKey?',
+        'index?',
+      ],
       DetachedRestoreApproval: [
         'approvedAt',
         'detachedKey',
@@ -731,6 +748,7 @@ describe('protocol public shape', () => {
     }).toEqual({
       checkpointTrigger: ['auto', 'manual'],
       continuumViewPatchOperation: [
+        'append-content',
         'insert-node',
         'move-node',
         'remove-node',
