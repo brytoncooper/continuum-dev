@@ -348,7 +348,6 @@ Recommended policy:
 
 - [Quick Start](./QUICK_START.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
-- [Starter reference app](./REFERENCE_STARTER_APP.md)
-- [Headless AI reference app](./REFERENCE_HEADLESS_AI_APP.md)
-- [Starter Kit AI Migration Guide](./STARTER_KIT_AI_MIGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)
+
+Reference app walkthroughs and migration guides live in the private Continuum documentation repository.

@@ -39,18 +39,31 @@ Or use `npx nx release publish --groups=publicPackages` after the same build/pre
 npx nx run @continuum-dev/source:local-registry
 ```
 
-Use this to dry-run installs against a local Verdaccio before touching npm.
+Use this to dry-run installs against a local Verdaccio before touching npm. After `build:release-packages`, `prepare:dist-packages`, and `verify:release-packages`, publish **every** package in [`scripts/release-build-package-dirs.json`](scripts/release-build-package-dirs.json) to the local registry with:
+
+```bash
+npm run publish:local-verdaccio
+```
+
+Set `VERDACCIO_REGISTRY` if Verdaccio is not on the default `http://localhost:4873/`. Public npm publishing still uses only the projects in `release.groups.publicPackages` (see `release-npm-publish-dirs.json`).
+
+The local [`.verdaccio/config.yml`](.verdaccio/config.yml) does **not** set `proxy` on the `**` package rule so the web UI’s `/-/static/*` assets are not mistaken for registry traffic (which would return JSON 404s and break the UI). Scoped packages still use `proxy: npmjs` under `@*/*`. Restart Verdaccio after changing this file.
+
+### Clearing local Verdaccio storage
+
+To drop every tarball the local registry has stored (for example before republishing the same prerelease such as `0.3.0-alpha.1`), stop Verdaccio, delete the `storage` directory from [`.verdaccio/config.yml`](.verdaccio/config.yml) (default: `tmp/local-registry/storage` under this repo), restart Verdaccio, then run `npm run publish:local-verdaccio` again after `build:release-packages`, `prepare:dist-packages`, and `verify:release-packages`. Local publishes use the `next` dist-tag (not `latest`). As an alternative, `npm unpublish <package>@<version> --registry <url> --force` can remove one package at a time when the registry configuration allows it.
 
 ## Adding or removing a published package
 
-1. Add the package folder name to [`scripts/release-public-package-dirs.json`](scripts/release-public-package-dirs.json) (order should respect TypeScript project references / build order).
-2. Add the Nx project to `release.groups.publicPackages.projects` in [`nx.json`](nx.json).
+1. Add the package folder name to [`scripts/release-build-package-dirs.json`](scripts/release-build-package-dirs.json) (order should respect TypeScript project references / build order). If the package is part of the public npm group, also add it to [`scripts/release-npm-publish-dirs.json`](scripts/release-npm-publish-dirs.json) in the same order as `nx.json`.
+2. Add the Nx project to `release.groups.publicPackages.projects` in [`nx.json`](nx.json) when the package ships to npm.
 3. Ensure `packages/<name>/project.json` defines `nx-release-publish` with `packageRoot` `dist/packages/<name>`.
-4. Document validation expectations in [`docs/PACKAGE_VALIDATION_POLICY.md`](docs/PACKAGE_VALIDATION_POLICY.md) if the role is new or unusual.
+4. Document validation expectations in the private maintainer documentation repository if the role is new or unusual.
 
-`verify:release-packages` fails if the script directory list and `nx.json` `publicPackages` diverge.
+`verify:release-packages` fails if `release-npm-publish-dirs.json` and `nx.json` `publicPackages` diverge.
 
 ## Reference
 
-- Validation categories and facades: [`docs/PACKAGE_VALIDATION_POLICY.md`](docs/PACKAGE_VALIDATION_POLICY.md)
-- Publishable directory list: [`scripts/release-public-package-dirs.json`](scripts/release-public-package-dirs.json)
+- Validation categories and facades: private maintainer documentation repository
+- Full build directory list: [`scripts/release-build-package-dirs.json`](scripts/release-build-package-dirs.json)
+- Public npm directory list: [`scripts/release-npm-publish-dirs.json`](scripts/release-npm-publish-dirs.json)

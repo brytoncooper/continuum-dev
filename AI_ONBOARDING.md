@@ -6,7 +6,7 @@ This file is a **navigation map** for learning the CooperContinuum monorepo as a
 
 - **[README.md](README.md)** — What Continuum is for end users and integrators, consumer-oriented reading paths, quick start samples, and the high-level architecture block.
 - **[AGENTS.md](AGENTS.md)** — Default agent context: product goals, package lanes, where behavior should live, architectural boundaries, and **source-of-truth order** when docs disagree with code.
-- **[CONTINUUM.md](CONTINUUM.md)** — SDK-shaped reference (types, integration patterns) for implementing against published APIs.
+- **Private documentation repository** — Maintainer-only deep reference and agent-oriented context files that previously lived at the repo root (for example `CONTINUUM.md`, `CLAUDE.md`).
 - **This file** — Full tree map, **every package and app**, how to explore them systematically, anchor files, `.cursor/` layout, and paths that are usually noise.
 
 **Source of truth:** When prose and implementation disagree, follow the order in [AGENTS.md](AGENTS.md) (manifests, exports, ESLint boundaries, rules, then human docs).
@@ -36,7 +36,7 @@ packages/
   vercel-ai-sdk-adapter/  scope:vercel-ai-sdk-adapter — Vercel AI SDK stream bridge
   adapters/          scope:adapters — internal protocol adapters (not in public release group)
 
-docs/                Whitelisted guides (see root .gitignore — most of docs/ is ignored except listed files)
+docs/                Public integration guides plus docs/README.md (see root .gitignore); maintainer-only markdown lives in the private documentation repository
 .cursor/
   rules/             Workspace rules (.mdc): architecture, clean code, public API docs
   agents/            Specialized review persona prompts (markdown)
@@ -49,7 +49,6 @@ eslint.config.mjs    @nx/enforce-module-boundaries → depConstraints (allowed i
 nx.json              Nx plugins, target defaults, public release group membership
 package.json         Root workspaces, npm scripts (release pipeline entrypoints)
 RELEASE.md, CHANGELOG.md   Release and versioning process
-CONTINUUM.md         SDK-oriented reference (root)
 ```
 
 ## Package catalog (explore every library)
@@ -166,7 +165,7 @@ Use this when the goal is **how the repo is built**, not “ship my first integr
 
 **Optional parallel tracks** (after step 3): **AI vertical** — `prompts` → `ai-engine` → `ai-connect` → `vercel-ai-sdk-adapter` → `starter-kit-ai`. **UI vertical** — `react` → `starter-kit` → `angular` (if relevant).
 
-Deep references you can branch to when needed: [packages/runtime/README.md](packages/runtime/README.md), [packages/session/README.md](packages/session/README.md), [CONTINUUM.md](CONTINUUM.md).
+Deep references you can branch to when needed: [packages/runtime/README.md](packages/runtime/README.md), [packages/session/README.md](packages/session/README.md), plus maintainer-only material in the private documentation repository.
 
 ## Anchor files
 

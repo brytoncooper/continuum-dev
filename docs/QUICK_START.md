@@ -344,9 +344,9 @@ Add `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK path or `@conti
 ## 9. What to read next
 
 - [Starter Kit README](../packages/starter-kit/README.md)
-- [Starter reference app](REFERENCE_STARTER_APP.md)
 - [Starter Kit AI README](../packages/starter-kit-ai/README.md)
-- [Headless AI reference app](REFERENCE_HEADLESS_AI_APP.md)
 - [Integration Guide](INTEGRATION_GUIDE.md)
 - [AI Integration Guide](AI_INTEGRATION.md)
 - [View Contract Reference](VIEW_CONTRACT.md)
+
+Reference app walkthroughs and migration guides for maintainers live in the private Continuum documentation repository.
