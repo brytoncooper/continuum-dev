@@ -19,6 +19,8 @@ For repository layout, a maintainer-oriented reading order, anchor files for cor
 
 Cloud and deployment code for Continuum belongs in the separate **continuum-cloud** Git repository only. Do not commit Cloudflare workers, cloud-only apps, or cross-repo path wiring into **continuum-dev**; downstream cloud repos should consume `@continuum-dev/*` from a registry (for example local Verdaccio), not from checked-in copies of this tree.
 
+**OSS versus proprietary:** This repo is the **open-source** SDK. Proprietary execution planning and full product demos live in **continuum-cloud**. See the workspace root **`AGENTS.md`** and **`.cursor/rules/continuum-dev-oss-and-cloud-proprietary.mdc`** (multi-repo **`.cursor/`**).
+
 # CooperContinuum Agent Context
 
 ## What We Are Building
@@ -124,8 +126,7 @@ headless engine reusable. Keep provider and transport details at the edges.
 | --- | --- |
 | `@continuum-dev/adapters` | Internal protocol adapters. |
 | `@continuum-dev/angular` | Internal Angular bindings. |
-| `apps/demo` | Demo composition root for validating package integration in a UI app. |
-| `apps/demo-api` | Demo API and transport playground for provider and stream integration. |
+| Full product demo (SPA + Worker) | Lives in **continuum-cloud** (`continuum-demo`, `continuum-demo-api`); uses private `@continuum-cloud/ai-execution` for premium planning. |
 
 These surfaces are useful, but they are not the center of the public product story.
 
@@ -195,9 +196,9 @@ Agents should treat package exports as the contract consumers depend on.
 
 Agents must keep a hard boundary between repo apps and published library consumers.
 
-- `apps/demo` and `apps/starter` are repo apps. They are allowed to consume workspace package source during local
+- `apps/starter` is a repo app. It is allowed to consume workspace package source during local
   development and integration testing.
-- `apps/demo` is a brand/demo site and composition root, not the canonical proof of npm-consumer behavior.
+- The former `apps/demo` site now lives in **continuum-cloud**; it is not the canonical proof of npm-consumer behavior for `@continuum-dev/*`.
 - `apps/starter` is an internal experiment and integration harness, not the canonical proof of npm-consumer behavior.
 - The canonical proof of what downstream users get is the packed output from `dist/packages/*` after
   `build:release-packages`, `prepare:dist-packages`, and `verify:release-packages`.

@@ -134,7 +134,7 @@ export function CustomChat() {
 This explicit stack keeps the responsibilities clear:
 
 - `@continuum-dev/react` and `@continuum-dev/session` own the live app state
-- `@continuum-dev/ai-engine` owns planning, parsing, normalization, and apply behavior
+- `@continuum-dev/ai-engine` owns **reference** execution routing, parsing, normalization, and apply behavior (the LLM planner for premium mode selection lives in private `@continuum-cloud/ai-execution`)
 - `@continuum-dev/vercel-ai-sdk-adapter` owns the Vercel AI SDK request and stream bridge
 - `@continuum-dev/ai-connect` is optional when you want built-in provider clients
 
@@ -193,7 +193,7 @@ export function App() {
 }
 ```
 
-These wrappers stay intentionally thin. The runtime behavior still lives in `@continuum-dev/ai-engine`, `@continuum-dev/react`, `@continuum-dev/session`, and the transport layer underneath.
+These wrappers stay intentionally thin. The runtime behavior still lives in `@continuum-dev/ai-engine` (reference executor), `@continuum-dev/react`, `@continuum-dev/session`, and the transport layer underneath; optional premium execution streams may be injected from `@continuum-cloud/ai-execution`.
 
 ### Convenience facades: `@continuum-dev/core` and `@continuum-dev/ai-core`
 

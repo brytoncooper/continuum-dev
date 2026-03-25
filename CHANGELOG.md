@@ -4,8 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking
+
+- `@continuum-dev/ai-engine` **`runContinuumExecution` / `streamContinuumExecution`** now use a **reference** execution path (deterministic heuristics, no LLM planner call). The previous planner-led behavior lives in private **`@continuum-cloud/ai-execution`** in the **continuum-cloud** repository.
+- **`@continuum-dev/ai-engine` root exports** no longer re-export LLM planner functions (`buildContinuumExecutionPlannerSystemPrompt`, `resolveContinuumExecutionPlan`, etc.). The **`@continuum-dev/ai-engine/continuum-execution`** subpath now exposes **shared primitives** (for example `normalizeContinuumSemanticIdentity`, `parseJson`) for custom planners—not the premium planner prompts.
+- **`apps/demo`** and **`apps/demo-api`** were **removed** from this monorepo; they now live under **continuum-cloud** as **`continuum-demo`** and **`continuum-demo-api`**.
+
 ### Added
 
+- `@continuum-dev/ai-engine/execution-stream` subpath exporting phase runners and stream environment construction for advanced composition.
+- Optional **`streamContinuumExecution`** injection on **`@continuum-dev/vercel-ai-sdk-adapter`** server helpers and route factory for wiring premium execution.
+- Exported **`ContinuumExecutionMode`**, **`ContinuumExecutionPlan`**, and **`ContinuumResolvedExecutionPlan`** types from `@continuum-dev/ai-engine` root.
 - Session streaming lifecycle APIs:
   - `beginStream`, `applyStreamPart`, `commitStream`, `abortStream`
   - `getStreams`, `onStreams`
@@ -29,9 +38,6 @@ All notable changes to this project will be documented in this file.
 - Runtime reconciliation docs now prefer object-form `reconcile({ newView, priorView, priorData, options })`.
 - Session snapshot model now distinguishes render snapshot from durable committed snapshot.
 - Stream-aware integrations now route partial AI updates through session stream lifecycle semantics.
-- Demo topology split is documented as:
-  - `apps/demo` for frontend SPA
-  - `apps/demo-api` for Cloudflare Worker `/api/*` routes
 
 ### Deprecated
 

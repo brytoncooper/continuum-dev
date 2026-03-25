@@ -15,9 +15,10 @@ This file is a **navigation map** for learning the CooperContinuum monorepo as a
 
 ```text
 apps/
-  demo/              Nx: demo — scope:demo — brand site, playground, Vercel AI SDK demos
-  demo-api/          Nx: demo-api — scope:demo-api — Cloudflare worker transport playground
   starter/           Nx: starter — scope:starter-app — slim integration harness / template
+
+continuum-cloud/ (sibling repo)
+  apps/continuum-demo, apps/continuum-demo-api — full brand site + Worker; private @continuum-cloud/ai-execution
 
 packages/
   contract/          scope:contract — view and data contracts
@@ -67,7 +68,7 @@ Use this table when you need to **land in the right folder** and **know what to 
 | `packages/angular` | `@continuum-dev/angular` | `scope:angular` | **no** (internal) | Angular bindings for the continuity runtime | [packages/angular/src/index.ts](packages/angular/src/index.ts) |
 | `packages/starter-kit` | `@continuum-dev/starter-kit` | `scope:starter-kit` | yes | React starter: primitives, component map, styles, session tooling | [packages/starter-kit/src/index.ts](packages/starter-kit/src/index.ts) |
 | `packages/starter-kit-ai` | `@continuum-dev/starter-kit-ai` | `scope:starter-kit-ai` | yes | Optional AI UI wrappers for starter-kit integrations | [packages/starter-kit-ai/src/index.ts](packages/starter-kit-ai/src/index.ts) |
-| `packages/ai-engine` | `@continuum-dev/ai-engine` | `scope:ai-engine` | yes | Headless AI planning, authoring, normalization, apply helpers | [packages/ai-engine/src/index.ts](packages/ai-engine/src/index.ts) |
+| `packages/ai-engine` | `@continuum-dev/ai-engine` | `scope:ai-engine` | yes | Headless **reference** AI execution, authoring, normalization, apply helpers | [packages/ai-engine/src/index.ts](packages/ai-engine/src/index.ts) |
 | `packages/ai-connect` | `@continuum-dev/ai-connect` | `scope:ai-connect` | yes | Headless provider connection clients for AI workflows | [packages/ai-connect/src/index.ts](packages/ai-connect/src/index.ts) |
 | `packages/ai-core` | `@continuum-dev/ai-core` | `scope:ai-core` | yes | Facade: React, session, engine, and transport primitives (mostly re-exports) | [packages/ai-core/src/index.ts](packages/ai-core/src/index.ts) |
 | `packages/vercel-ai-sdk-adapter` | `@continuum-dev/vercel-ai-sdk-adapter` | `scope:vercel-ai-sdk-adapter` | yes | Adapter for the Vercel AI SDK stream protocol | [packages/vercel-ai-sdk-adapter/src/index.ts](packages/vercel-ai-sdk-adapter/src/index.ts) |
@@ -79,9 +80,8 @@ Use this table when you need to **land in the right folder** and **know what to 
 
 | Path | Nx project name | `scope:*` | Purpose |
 | --- | --- | --- | --- |
-| [apps/demo](apps/demo) | `demo` | `scope:demo` | Full composition root: routing, marketing pages, AI demos, starter-kit usage |
-| [apps/demo-api](apps/demo-api) | `demo-api` | `scope:demo-api` | Worker-style API for streams and providers (Wrangler); pairs with transport experiments |
 | [apps/starter](apps/starter) | `starter` | `scope:starter-app` | Minimal app for validating starter-kit + Vercel adapter wiring (not the npm consumer contract) |
+| continuum-cloud `continuum-demo` / `continuum-demo-api` | (cloud Nx) | `type:cloud-app` | Full product demo SPA + Worker; premium execution via `@continuum-cloud/ai-execution` |
 
 **Repo apps versus published consumers:** Treat `apps/*` as integration surfaces. The canonical downstream experience is the **packed** output under `dist/packages/*` after the release scripts (see [AGENTS.md](AGENTS.md) and [.cursor/rules/repo-apps-vs-library-consumers.mdc](.cursor/rules/repo-apps-vs-library-consumers.mdc)).
 
@@ -108,7 +108,7 @@ flowchart TB
   T3["Tier 3: react, angular, starter-kit"]
   T4["Tier 4: ai-engine, ai-connect, vercel-ai-sdk-adapter"]
   T5["Tier 5: ai-core, starter-kit-ai"]
-  T6["Tier 6: apps (demo, demo-api, starter)"]
+  T6["Tier 6: apps (starter)"]
   T0 --> T1 --> T2 --> T3 --> T4 --> T5 --> T6
 ```
 
@@ -138,14 +138,14 @@ Pick a track and follow it depth-first before jumping across unrelated packages.
 | **Session lifecycle** | [packages/session/src/index.ts](packages/session/src/index.ts) | [packages/session/src/lib/session.ts](packages/session/src/lib/session.ts), [packages/session/src/lib/session/README.md](packages/session/src/lib/session/README.md) |
 | **React integration** | [packages/react/src/index.ts](packages/react/src/index.ts) | `lib/hooks`, `lib/context`, `lib/renderer` |
 | **Preset UI and DX** | [packages/starter-kit/src/index.ts](packages/starter-kit/src/index.ts) | `lib/primitives`, `lib/component-map.js`, `lib/style-config` |
-| **AI authoring and execution** | [packages/ai-engine/src/index.ts](packages/ai-engine/src/index.ts) | `lib/view-authoring`, `lib/execution`, `lib/continuum-execution`, `lib/view-patching` |
+| **AI authoring and execution** | [packages/ai-engine/src/index.ts](packages/ai-engine/src/index.ts) | `lib/view-authoring`, `lib/execution`, `lib/continuum-execution` (shared primitives), `lib/view-patching` |
 | **Providers and models** | [packages/ai-connect/src/index.ts](packages/ai-connect/src/index.ts) | `lib/clients`, `lib/registry`, `lib/model-catalog` |
 | **Vercel AI SDK bridge** | [packages/vercel-ai-sdk-adapter/src/index.ts](packages/vercel-ai-sdk-adapter/src/index.ts) | `lib/message-application`, `lib/session-adapter`, `lib/data-parts` |
 | **Thin AI + React bundle** | [packages/ai-core/src/index.ts](packages/ai-core/src/index.ts) | Follow re-exports back to the packages above (policy rarely lives here) |
-| **Starter AI widgets** | [packages/starter-kit-ai/src/index.ts](packages/starter-kit-ai/src/index.ts) | Chat box and controller hooks; compare with `demo` usage |
+| **Starter AI widgets** | [packages/starter-kit-ai/src/index.ts](packages/starter-kit-ai/src/index.ts) | Chat box and controller hooks; compare with `starter` or continuum-cloud demos |
 | **Angular** | [packages/angular/src/index.ts](packages/angular/src/index.ts) | `lib/renderer`, `lib/forms` |
 | **Internal protocols** | [packages/adapters/src/index.ts](packages/adapters/src/index.ts) | `lib/a2ui`, `lib/adapter` |
-| **End-to-end app wiring** | [apps/demo/src/main.tsx](apps/demo/src/main.tsx) | [apps/demo/src/App.tsx](apps/demo/src/App.tsx); compare with [apps/starter/src/main.tsx](apps/starter/src/main.tsx) |
+| **End-to-end app wiring** | [apps/starter/src/main.tsx](apps/starter/src/main.tsx) | [apps/starter/src/App.tsx](apps/starter/src/App.tsx); full demos live in **continuum-cloud** |
 
 ## Reading order: learn the codebase (maintainers)
 
@@ -161,7 +161,7 @@ Use this when the goal is **how the repo is built**, not “ship my first integr
 8. **[packages/runtime/src/lib/public-surface.spec.ts](packages/runtime/src/lib/public-surface.spec.ts)** — What the runtime package exposes to consumers.
 9. **[packages/runtime/src/lib/reconcile/core.spec.ts](packages/runtime/src/lib/reconcile/core.spec.ts)** — Representative reconciliation behavior tests.
 10. **[packages/session/src/index.ts](packages/session/src/index.ts)** → **[packages/session/src/lib/session.ts](packages/session/src/lib/session.ts)** — Session orchestration entry; internal layout is described in [packages/session/src/lib/session/README.md](packages/session/src/lib/session/README.md).
-11. **Composition root** — Either [apps/demo/src/main.tsx](apps/demo/src/main.tsx) + [apps/demo/src/App.tsx](apps/demo/src/App.tsx) or [packages/starter-kit/src/index.ts](packages/starter-kit/src/index.ts), depending on whether you prefer a full app or the preset package surface.
+11. **Composition root** — [apps/starter/src/main.tsx](apps/starter/src/main.tsx) + [apps/starter/src/App.tsx](apps/starter/src/App.tsx), or [packages/starter-kit/src/index.ts](packages/starter-kit/src/index.ts) for the preset package surface; full marketing/demo apps are in **continuum-cloud**.
 
 **Optional parallel tracks** (after step 3): **AI vertical** — `prompts` → `ai-engine` → `ai-connect` → `vercel-ai-sdk-adapter` → `starter-kit-ai`. **UI vertical** — `react` → `starter-kit` → `angular` (if relevant).
 

@@ -247,7 +247,7 @@ outer AI integrations: vercel-ai-sdk-adapter + ai-connect
 optional thin wrappers: starter-kit-ai
 convenience facades: core + ai-core
 
-reference apps: apps/demo + apps/demo-api
+reference app (OSS): apps/starter — full demo site + Worker: continuum-cloud (continuum-demo, continuum-demo-api)
 ```
 
 The public package stack is layered on purpose:
@@ -264,9 +264,8 @@ Contributors and coding agents: [AI_ONBOARDING.md](AI_ONBOARDING.md) maps the mo
 ```bash
 npx nx run-many -t build
 npx nx run-many -t test
-npx nx run demo:typecheck
-npx nx run demo:serve
-npx nx run demo-api:dev
+npx nx run starter:typecheck
+npx nx run starter:serve
 ```
 
 Publishing and release verification: [RELEASE.md](RELEASE.md). Package validation expectations for maintainers live in the private documentation repository.

@@ -3,7 +3,7 @@
 How to wire AI into Continuum without losing the layering:
 
 - `@continuum-dev/react` and `@continuum-dev/session` for the renderable runtime state
-- `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
+- `@continuum-dev/ai-engine` for headless **reference** execution (heuristic mode routing), authoring, parsing, normalization, and apply helpers
 - `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK transport path
 - `@continuum-dev/ai-connect` for built-in provider factories and model catalogs
 - `@continuum-dev/starter-kit-ai` for optional thin starter-oriented chat wrappers
@@ -23,7 +23,7 @@ The safest loop looks like this:
 
 ```text
 instruction
-  -> execution planning
+  -> reference execution routing (or your own planner)
   -> patch or state mode when safe
   -> otherwise full authoring output
   -> parse into ViewDefinition or typed updates
@@ -42,7 +42,7 @@ Use these packages when you need the live Continuum session that views, diagnost
 
 Use this package when you want the shared headless contract:
 
-- execution planning helpers
+- reference execution (`runContinuumExecution` / `streamContinuumExecution`) without the private LLM planner
 - authoring format types
 - prompt builders and parsers
 - patch and state target catalogs
@@ -55,6 +55,8 @@ Use this package when Vercel AI SDK is your transport layer. It owns:
 - client-side session/message application
 - request-body helpers for `currentView` and `currentData`
 - server-side writer helpers that emit Continuum `data-*` parts into AI SDK UI streams
+
+Optional **`streamContinuumExecution`** injection forwards premium execution from `@continuum-cloud/ai-execution` when you own that private package.
 
 It should not own prompt policy, repair policy, auth, storage, tools, or your main AI SDK route architecture.
 
