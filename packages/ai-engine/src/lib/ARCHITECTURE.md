@@ -6,7 +6,7 @@
 
 | Exported from `src/index.ts` | Area |
 |------------------------------|------|
-| Yes | `session`, `execution`, `execution-targets`, `continuum-execution`, `view-guardrails`, `view-patching`, `view-authoring` (line-dsl + yaml + view-json + facade) |
+| Yes | `session`, `execution`, `execution-targets`, `continuum-execution` (shared primitives + semantic identity), `view-guardrails`, `view-patching`, `view-authoring` (line-dsl + yaml + view-json + facade) |
 | No (internal engines) | `view-generation`, `view-transforms` — used by `execution` / `patching` / `transforms` paths |
 
 ## `lib/*` capabilities
@@ -15,8 +15,8 @@
 |--------|---------|
 | `session/` | `ContinuumSessionAdapter` port for apply and streaming. |
 | `execution-targets/` | `catalog/`, `parser/`, `coercion/`; `types.ts` + `shared.ts` at area root. |
-| `continuum-execution/` | Prebuilt planner (`.mjs` + `.d.ts`), not a normal TS layout. |
-| `execution/` | `streamContinuumExecution`, session apply/context; `session-api/`, `stream/`, `stream/phases/`, `stream/trace|preview|instruction/`. |
+| `continuum-execution/` | Shared `.mjs` helpers (`shared.mjs`) and semantic identity normalization for custom planners; **not** the premium LLM planner (see `@continuum-cloud/ai-execution`). |
+| `execution/` | Reference `streamContinuumExecution`, session apply/context; `session-api/`, `stream/`, `stream/phases/`, `stream/trace|preview|instruction/`. |
 | `view-guardrails/` | `definition/`, `json/`, `normalize/`, `structure/`, `runtime-errors/`. |
 | `view-patching/` | `truncate/`, `prompts/`, `normalize/`, `apply/`, `context/`, `detached-fields/`; `types.ts` at root. |
 | `view-authoring/` | `line-dsl/`, `yaml/`, `view-json/` (structured ViewDefinition JSON); root `index.ts` picks `authoringFormat`. Shared Continuum layout, continuity, and collection rules live in `shared/continuum-view-authoring-guidance.ts` and are composed into each format’s system prompt (`view-json` appends them after `assembleSystemPrompt` + `VIEW_DEFINITION_OUTPUT_CONTRACT`). |
@@ -26,7 +26,7 @@
 ## Typical request flow
 
 1. Host builds **context** (`buildContinuumExecutionContext` → `session`).
-2. **Planner** (`continuum-execution`) chooses mode using **targets** (`execution-targets` catalogs).
+2. **Reference routing** (`reference-execution-plan`) or a **private planner** chooses mode using **targets** (`execution-targets` catalogs).
 3. **Execution** (`execution/stream`) runs **phases**: state, patch, transform, or full view.
 4. View paths use **authoring**, **patching**, **guardrails**, **generation**, **transforms** as needed.
 5. **Apply** (`applyContinuumExecutionFinalResult` → `session-api`) updates the session.
@@ -36,34 +36,25 @@ flowchart TB
   entry[src/index.ts]
   session[lib/session]
   targets[lib/execution-targets]
-  planner[lib/continuum-execution]
+  planner["Reference routing or private planner"]
   exec[lib/execution]
   guard[lib/view-guardrails]
   author[lib/view-authoring]
   patch[lib/view-patching]
   gen[lib/view-generation]
   xf[lib/view-transforms]
-
   entry --> session
   entry --> targets
   entry --> planner
-  entry --> exec
-  entry --> guard
-  entry --> author
-  entry --> patch
-  exec --> planner
-  exec --> targets
+  planner --> exec
+  targets --> exec
+  exec --> guard
   exec --> author
   exec --> patch
-  exec --> guard
   exec --> gen
-  patch --> guard
-  author --> guard
   exec --> xf
 ```
 
-## Conventions
+## Subpath `execution-stream`
 
-- **Subfolder names** = pipeline stage or artifact (`json/`, `normalize/`, `apply/`, `phases/`), not generic `support/`.
-- **Cross-area imports**: prefer `../<other-area>/index.js`.
-- **Depth**: one implementation level under an area unless there is a strong reason to go deeper.
+[`../../execution-stream.ts`](../../execution-stream.ts) re-exports phase runners and stream environment construction for packages (for example **`@continuum-cloud/ai-execution`**) that implement premium planning while reusing OSS phase behavior.

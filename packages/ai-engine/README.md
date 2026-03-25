@@ -1,14 +1,21 @@
 # @continuum-dev/ai-engine
 
-Transport-agnostic Continuum **AI execution**: turn a user instruction into planner-driven **state**, **patch**, **transform**, or **view** results, with prompts, normalization, and guardrails handled inside the library.
+Transport-agnostic Continuum **AI execution**: turn a user instruction into **state**, **patch**, **transform**, or **view** results using a **reference** routing policy (no LLM planner), with prompts, normalization, and guardrails handled inside the library.
 
 ## Features
 
 - One pipeline for state / patch / transform / view across backends, agents, or apps
+- **Reference execution path** — deterministic heuristics for mode selection; suitable for adoption and extension
 - Authoring helpers for **line-dsl**, **yaml**, and optional **view-json** (structured `ViewDefinition` JSON), plus parsers to `ViewDefinition`
 - State and patch **target catalogs** and parsing for model JSON replies
 - View **guardrails** and patch planning helpers
 - Optional **`applyContinuumExecutionFinalResult`** when you use a Continuum **session**
+
+## Premium planner (private product)
+
+The LLM **execution planner** (mode selection, integration binding, registered-action binding, and related orchestration prompts) ships in the private **`@continuum-cloud/ai-execution`** package. The OSS `runContinuumExecution` / `streamContinuumExecution` entrypoints intentionally do **not** call that planner.
+
+To use premium execution from **`@continuum-dev/vercel-ai-sdk-adapter`**, pass **`streamContinuumExecution`** from `@continuum-cloud/ai-execution` into `writeContinuumExecutionToUiMessageWriter`, `createContinuumUiMessageStream`, or `createContinuumVercelAiSdkRouteHandler`.
 
 ## Installation
 
@@ -105,7 +112,7 @@ Types: [`src/lib/execution/types.ts`](src/lib/execution/types.ts) (`ContinuumExe
 
 ## How a run fits together
 
-A planner chooses what kind of work to do. Each phase may call `adapter.generate` one or more times. You get a `ContinuumExecutionFinalResult` with a `trace` of requests and responses. With a session, `applyContinuumExecutionFinalResult` applies that result to the live session.
+The **reference executor** chooses a mode with local heuristics (no planner model call). Each phase may call `adapter.generate` one or more times. You get a `ContinuumExecutionFinalResult` with a `trace` of requests and responses. With a session, `applyContinuumExecutionFinalResult` applies that result to the live session.
 
 ```mermaid
 flowchart LR
@@ -133,7 +140,7 @@ Public exports are declared in [`src/index.ts`](src/index.ts).
 | Session | `ContinuumSessionAdapter`, `ContinuumSessionLike`, `createContinuumSessionAdapter` |
 | Execution | `runContinuumExecution`, `streamContinuumExecution`, `buildContinuumExecutionContext`, `applyContinuumExecutionFinalResult` |
 | Targets | `buildContinuumStateTargetCatalog`, `buildContinuumPatchTargetCatalog`, `parseContinuumStateResponse`, `evaluateStateResponseQuality` |
-| Planner | Re-exports from the bundled **continuum-execution** planner |
+| Types | `ContinuumExecutionMode`, `ContinuumExecutionPlan`, `ContinuumResolvedExecutionPlan` |
 | Guardrails | `normalizeViewDefinition`, `parseJson`, `isViewDefinition`, structural helpers |
 | Patching | Patch types, normalize/apply, prompts, context builders |
 | Authoring | Line DSL, YAML, `view-json/`; `parseViewAuthoringToViewDefinition`, `ContinuumViewAuthoringFormat` |
@@ -146,7 +153,11 @@ Examples: `normalizeViewDefinition` / `parseJson` for safe JSON; `parseViewAutho
 
 ## Subpath: `continuum-execution`
 
-`@continuum-dev/ai-engine/continuum-execution` exposes the prebuilt planner (`.mjs`). Prefer the **package root** unless you need planner-only or special bundling.
+`@continuum-dev/ai-engine/continuum-execution` exposes **shared planner primitives** used to build custom planners: JSON recovery helpers, semantic identity normalization, and related low-level utilities. It does **not** ship the premium LLM planner prompts.
+
+## Subpath: `execution-stream`
+
+`@continuum-dev/ai-engine/execution-stream` exposes **internal stream building blocks** (phase runners and stream environment construction) for advanced composition—for example wiring a private planner package that reuses the same phase implementations.
 
 ## What this package is not
 

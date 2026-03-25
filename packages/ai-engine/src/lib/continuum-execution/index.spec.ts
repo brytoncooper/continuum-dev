@@ -1,21 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildContinuumExecutionPlannerSystemPrompt,
-  getAvailableContinuumExecutionModes,
-  normalizeContinuumSemanticIdentity,
-  parseContinuumExecutionPlan,
-  resolveContinuumExecutionPlan,
-} from './index.mjs';
+import { normalizeContinuumSemanticIdentity, parseJson } from './index.mjs';
 
-describe('continuum execution entrypoint', () => {
-  it('re-exports planner helpers', () => {
-    expect(typeof buildContinuumExecutionPlannerSystemPrompt).toBe('function');
-    expect(typeof getAvailableContinuumExecutionModes).toBe('function');
-    expect(typeof parseContinuumExecutionPlan).toBe('function');
-    expect(typeof resolveContinuumExecutionPlan).toBe('function');
-  });
-
-  it('re-exports semantic identity normalization', () => {
+describe('continuum-execution subpath', () => {
+  it('exports semantic identity normalization', () => {
     const normalized = normalizeContinuumSemanticIdentity({
       currentView: {
         viewId: 'profile',
@@ -35,5 +22,9 @@ describe('continuum execution entrypoint', () => {
       version: '2',
       nodes: [],
     });
+  });
+
+  it('exports parseJson for planner-side JSON recovery', () => {
+    expect(parseJson('{"a":1}')).toEqual({ a: 1 });
   });
 });

@@ -1,9 +1,7 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 import type { PromptMode } from '@continuum-dev/prompts';
-import {
-  getAvailableContinuumExecutionModes,
-  type ContinuumExecutionMode,
-} from '../../continuum-execution/index.mjs';
+import type { ContinuumExecutionMode } from '../planner-types.js';
+import { getAvailableContinuumExecutionModes } from '../reference-execution-modes.js';
 import {
   buildContinuumPatchTargetCatalog,
   buildContinuumStateTargetCatalog,
@@ -108,7 +106,9 @@ export function createStreamContinuumExecutionEnv(
       promptMode === 'create-view' || promptMode === 'evolve-view'
         ? promptMode
         : undefined,
-    reason: autoApplyView ? 'planner pending' : 'view generation requested',
+    reason: autoApplyView
+      ? 'reference executor pending'
+      : 'view generation requested',
     targetNodeIds: [],
     targetSemanticKeys: [],
     validation: 'accepted',

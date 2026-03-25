@@ -24,16 +24,6 @@ describe('continuum execution fallback behavior', () => {
     } as const;
 
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'patch',
-            fallback: 'view',
-            reason: 'localized edit',
-          }),
-        };
-      }
-
       if (request.mode === 'patch') {
         return {
           text: JSON.stringify({
@@ -73,7 +63,6 @@ describe('continuum execution fallback behavior', () => {
 
     expect(result.mode).toBe('patch');
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'patch',
     ]);
     expect(result).toMatchObject({
@@ -111,16 +100,6 @@ describe('continuum execution fallback behavior', () => {
     } as const;
 
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'state',
-            fallback: 'view',
-            reason: 'populate existing field',
-          }),
-        };
-      }
-
       if (request.mode === 'state') {
         return {
           text: JSON.stringify({
@@ -152,7 +131,6 @@ describe('continuum execution fallback behavior', () => {
 
     expect(result.mode).toBe('state');
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'state',
     ]);
     expect(result).toMatchObject({
@@ -163,90 +141,6 @@ describe('continuum execution fallback behavior', () => {
         },
       ],
     });
-  });
-
-  it('threads conversation summary and detached fields into planner prompts for referential restore requests', async () => {
-    const currentView = {
-      viewId: 'lead-form',
-      version: '1',
-      nodes: [
-        {
-          id: 'profile',
-          type: 'group',
-          children: [
-            {
-              id: 'email',
-              type: 'field',
-              dataType: 'string',
-              key: 'lead.email',
-              label: 'Email',
-            },
-          ],
-        },
-      ],
-    } as const;
-
-    const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        expect(request.systemPrompt).toContain('Restore continuity context');
-        expect(request.userMessage).toContain(
-          'Recent conversation summary (bounded):'
-        );
-        expect(request.userMessage).toContain(
-          'Assistant removed phone and notes fields.'
-        );
-        expect(request.userMessage).toContain(
-          'Detached fields (restore continuity):'
-        );
-        expect(request.userMessage).toContain('detached:phone');
-        return {
-          text: JSON.stringify({
-            mode: 'view',
-            fallback: 'view',
-            reason: 'continuity restore',
-            authoringMode: 'evolve-view',
-          }),
-        };
-      }
-
-      if (request.mode === 'view') {
-        return {
-          text: `view viewId="lead-form" version="1"
-group id="profile"
-  field id="email" key="lead.email" label="Email" dataType="string"`,
-        };
-      }
-
-      throw new Error(`Unexpected execution phase: ${request.mode}`);
-    });
-
-    const result = await runContinuumExecution({
-      adapter: {
-        label: 'test-adapter',
-        generate,
-      },
-      instruction: 'You got rid of a bunch of my stuff — bring it back.',
-      context: {
-        currentView,
-        currentData: {},
-        conversationSummary: 'Assistant removed phone and notes fields.',
-        detachedFields: [
-          {
-            detachedKey: 'detached:phone',
-            previousNodeType: 'field',
-            reason: 'node-removed',
-            viewVersion: '0',
-            valuePreview: '555',
-          },
-        ],
-      },
-    });
-
-    expect(result.mode).toBe('view');
-    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
-      'view',
-    ]);
   });
 
   it('retries state once when populate yields only empty values then succeeds', async () => {
@@ -272,16 +166,6 @@ group id="profile"
 
     let stateCalls = 0;
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'state',
-            fallback: 'view',
-            reason: 'populate',
-          }),
-        };
-      }
-
       if (request.mode === 'state') {
         stateCalls += 1;
         if (stateCalls === 1) {
@@ -352,16 +236,6 @@ group id="profile"
 
     let patchCalls = 0;
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'patch',
-            fallback: 'view',
-            reason: 'add field',
-          }),
-        };
-      }
-
       if (request.mode === 'patch') {
         patchCalls += 1;
         if (patchCalls === 1) {
@@ -461,17 +335,6 @@ group id="profile"
     } as const;
 
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'transform',
-            fallback: 'view',
-            reason: 'merge fields',
-            targetNodeIds: ['name_row'],
-          }),
-        };
-      }
-
       if (request.mode === 'view') {
         return {
           text: `view viewId="tax-form" version="3"
@@ -536,7 +399,6 @@ group id="tax_form"
     });
 
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'transform',
     ]);
     expect(result).toMatchObject({
@@ -554,7 +416,7 @@ group id="tax_form"
     });
   });
 
-  it('uses create-view authoring when the planner marks a request as a new workflow', async () => {
+  it('uses create-view authoring when the reference executor detects a greenfield workflow request', async () => {
     const currentView = {
       viewId: 'vercel-ai-sdk-demo',
       version: 'baseline',
@@ -577,17 +439,6 @@ group id="tax_form"
     } as const;
 
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'view',
-            fallback: 'view',
-            reason: 'new workflow/domain request',
-            authoringMode: 'create-view',
-          }),
-        };
-      }
-
       if (request.mode === 'view') {
         expect(request.userMessage).not.toContain('Current view:');
         return {
@@ -613,7 +464,6 @@ group id="tax_form" label="Tax form"
     });
 
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'view',
     ]);
     expect(result).toMatchObject({
@@ -625,19 +475,8 @@ group id="tax_form" label="Tax form"
     });
   });
 
-  it('runs the planner when there is no current view (only view mode available)', async () => {
+  it('runs view generation when there is no current view', async () => {
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'view',
-            fallback: 'view',
-            authoringMode: 'create-view',
-            reason: 'greenfield',
-          }),
-        };
-      }
-
       if (request.mode === 'view') {
         return {
           text: `view viewId="solo" version="1"
@@ -658,7 +497,6 @@ group id="root" label="Hello"`,
     });
 
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'view',
     ]);
     expect(result).toMatchObject({
@@ -705,16 +543,6 @@ group id="root" label="Hello"`,
     } as const;
 
     const generate = vi.fn(async (request) => {
-      if (request.mode === 'planner') {
-        return {
-          text: JSON.stringify({
-            mode: 'patch',
-            fallback: 'view',
-            reason: 'merge name fields',
-          }),
-        };
-      }
-
       if (request.mode === 'patch') {
         return {
           text: JSON.stringify({
@@ -756,7 +584,6 @@ group id="root" label="Hello"`,
     });
 
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
-      'planner',
       'patch',
     ]);
     expect(result).toEqual(

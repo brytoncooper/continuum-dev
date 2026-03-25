@@ -8,7 +8,12 @@ export {
   type ContinuumStateResponseQuality,
   type ContinuumStateUpdate,
 } from './lib/execution-targets/index.js';
-export * from './lib/continuum-execution/index.mjs';
+export { normalizeContinuumSemanticIdentity } from './lib/continuum-execution/index.mjs';
+export type {
+  ContinuumExecutionMode,
+  ContinuumExecutionPlan,
+  ContinuumResolvedExecutionPlan,
+} from './lib/execution/planner-types.js';
 export * from './lib/execution/index.js';
 export * from './lib/view-guardrails/index.js';
 export * from './lib/view-patching/index.js';

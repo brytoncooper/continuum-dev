@@ -3,7 +3,7 @@ import type { PromptMode } from '@continuum-dev/prompts';
 
 export function looksLikeStructuralEditInstruction(instruction: string): boolean {
   const t = instruction.trim().toLowerCase();
-  return /\b(add|remove|move|delete|more|fewer|less|short|shorter|reorder|layout|row|column|section|field|label|insert|wrap)\b/.test(
+  return /\b(add|remove|move|delete|more|fewer|less|short|shorter|reorder|layout|row|column|section|field|label|insert|wrap|replace)\b/.test(
     t
   );
 }

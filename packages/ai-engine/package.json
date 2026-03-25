@@ -34,6 +34,12 @@
       "types": "./continuum-execution.d.ts",
       "import": "./continuum-execution.mjs",
       "default": "./continuum-execution.mjs"
+    },
+    "./execution-stream": {
+      "@continuum-dev/source": "./src/execution-stream.ts",
+      "types": "./execution-stream.d.ts",
+      "import": "./execution-stream.js",
+      "default": "./execution-stream.js"
     }
   },
   "files": [

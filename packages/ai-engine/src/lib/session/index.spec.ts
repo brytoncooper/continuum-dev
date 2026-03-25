@@ -320,36 +320,26 @@ describe('continuum session adapter', () => {
 
     const session = createContinuumSessionAdapter(rawSession);
 
-    const generate = vi
-      .fn()
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          mode: 'state',
-          fallback: 'view',
-          reason: 'fill dependents',
-          targetSemanticKeys: ['person.dependents'],
-        }),
-      })
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          updates: [
-            {
-              semanticKey: 'person.dependents',
-              value: {
-                items: [
-                  {
-                    values: {
-                      'dependent/name': 'Ava',
-                      'person.dependentRelationship': 'Child',
-                    },
+    const generate = vi.fn().mockResolvedValue({
+      text: JSON.stringify({
+        updates: [
+          {
+            semanticKey: 'person.dependents',
+            value: {
+              items: [
+                {
+                  values: {
+                    'dependent/name': 'Ava',
+                    'person.dependentRelationship': 'Child',
                   },
-                ],
-              },
+                },
+              ],
             },
-          ],
-          status: 'Updated dependents',
-        }),
-      });
+          },
+        ],
+        status: 'Updated dependents',
+      }),
+    });
 
     const result = await runContinuumExecution({
       adapter: {
@@ -357,14 +347,14 @@ describe('continuum session adapter', () => {
         generate,
       },
       context: buildContinuumExecutionContext(session),
-      instruction: 'Add one dependent named Ava',
+      instruction: 'Populate dependents with one child named Ava',
       mode: 'create-view',
       autoApplyView: true,
     });
 
     applyContinuumExecutionFinalResult(session, result);
 
-    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate).toHaveBeenCalledTimes(1);
     expect(beginStream).toHaveBeenCalledWith({
       targetViewId: 'household',
       source: 'OpenAI',

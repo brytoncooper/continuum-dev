@@ -1,91 +1,42 @@
 import type { ViewDefinition } from '@continuum-dev/core';
 
-export type ContinuumExecutionMode = 'state' | 'patch' | 'transform' | 'view';
+export function parseJson(text: string): unknown | null;
 
-export interface ContinuumExecutionTarget {
-  nodeId: string;
-  key?: string;
-  semanticKey?: string;
-  label?: string;
-  nodeType?: string;
-}
+export function uniqueNonEmptyStrings(values: unknown[]): string[];
 
-export interface ContinuumExecutionPlan {
-  mode: ContinuumExecutionMode;
-  fallback: 'patch' | 'transform' | 'view';
-  reason?: string;
-  targetNodeIds: string[];
-  targetSemanticKeys: string[];
-  authoringMode?: 'create-view' | 'evolve-view';
-  endpointId?: string;
-  payloadSemanticKeys?: string[];
-}
+export function toBoolean(value: unknown): boolean;
 
-export interface ContinuumResolvedExecutionPlan extends ContinuumExecutionPlan {
-  validation:
-    | 'accepted'
-    | 'invalid-plan'
-    | 'state-unavailable'
-    | 'patch-unavailable'
-    | 'transform-unavailable'
-    | 'unknown-targets'
-    | 'missing-targets'
-    | 'partial-targets';
-  integrationValidation?:
-    | 'accepted'
-    | 'missing-endpoint'
-    | 'invalid-endpoint'
-    | 'missing-payload-keys'
-    | 'partial-payload-keys'
-    | 'not-applicable';
-}
+export function getChildNodes(node: unknown): unknown[];
 
-export function getAvailableContinuumExecutionModes(args?: {
-  hasCurrentView?: boolean;
-  hasStateTargets?: boolean;
-}): ContinuumExecutionMode[];
+export function collectStatefulEntries(
+  nodes: unknown[],
+  parentPath?: string,
+  entries?: unknown[]
+): unknown[];
 
-export function buildContinuumExecutionPlannerSystemPrompt(args?: {
-  hasRestoreContinuity?: boolean;
-  integrationCatalog?: unknown;
-  registeredActions?: Record<string, unknown>;
-}): string;
+export function collectNodeEntries(
+  nodes: unknown[],
+  parentPath?: string,
+  entries?: unknown[]
+): unknown[];
 
-export function buildContinuumExecutionPlannerUserPrompt(args?: {
-  availableModes?: ContinuumExecutionMode[];
-  patchTargets?: ContinuumExecutionTarget[];
-  stateTargets?: ContinuumExecutionTarget[];
-  compactTree?: unknown[];
-  currentData?: Record<string, unknown>;
-  instruction?: string;
-  conversationSummary?: string;
-  detachedFields?: unknown[];
-  integrationCatalog?: unknown;
-  registeredActions?: Record<string, unknown>;
-}): string;
+export function indexTargets(targets: unknown[]): {
+  byNodeId: Map<string, unknown>;
+  bySemanticKey: Map<string, unknown>;
+};
 
-export function buildIntegrationBindingParagraph(args?: {
-  integrationCatalog?: unknown;
-  endpointId?: string;
-  payloadSemanticKeys?: string[];
-}): string;
+export function summarizeCurrentData(
+  currentData: unknown,
+  limit?: number
+): unknown[];
 
-export function buildRegisteredActionsParagraph(args?: {
-  registeredActions?: Record<string, unknown>;
-}): string;
+export function cloneView<T>(view: T): T;
 
-export function parseContinuumExecutionPlan(args?: {
-  text?: string;
-  availableModes?: ContinuumExecutionMode[];
-}): ContinuumExecutionPlan | null;
-
-export function resolveContinuumExecutionPlan(args?: {
-  text?: string;
-  availableModes?: ContinuumExecutionMode[];
-  patchTargets?: ContinuumExecutionTarget[];
-  stateTargets?: ContinuumExecutionTarget[];
-  integrationCatalog?: unknown;
-}): ContinuumResolvedExecutionPlan;
+export function findNodeByCanonicalId(
+  nodes: unknown[],
+  canonicalId: string,
+  parentPath?: string
+): unknown | null;
 
 export function normalizeContinuumSemanticIdentity(args?: {
   currentView?: ViewDefinition | null;
