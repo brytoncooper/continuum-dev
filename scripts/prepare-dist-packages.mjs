@@ -66,11 +66,43 @@ function main() {
     delete packageJson.scripts;
     stripSourceExportCondition(packageJson);
 
-    writeJson(distPackageJsonPath, packageJson);
-
     if (existsSync(sourceReadmePath)) {
       copyFileSync(sourceReadmePath, distReadmePath);
     }
+    const readmeForDocumentation = existsSync(sourceReadmePath)
+      ? readFileSync(sourceReadmePath, 'utf8')
+      : '';
+    const packageDocumentationJs = resolve(distRoot, 'package-documentation.js');
+    const packageDocumentationDts = resolve(distRoot, 'package-documentation.d.ts');
+    writeFileSync(
+      packageDocumentationJs,
+      `export default ${JSON.stringify(readmeForDocumentation)};\n`,
+      'utf8'
+    );
+    writeFileSync(
+      packageDocumentationDts,
+      'declare const readme: string;\nexport default readme;\n',
+      'utf8'
+    );
+    if (!packageJson.exports || typeof packageJson.exports !== 'object') {
+      throw new Error(
+        `Missing exports in source package.json for "${releasePackage.dir}"`
+      );
+    }
+    packageJson.exports['./package-documentation'] = {
+      types: './package-documentation.d.ts',
+      import: './package-documentation.js',
+      default: './package-documentation.js',
+    };
+
+    if (Array.isArray(packageJson.files)) {
+      if (!packageJson.files.includes('package-documentation.js')) {
+        packageJson.files.push('package-documentation.js', 'package-documentation.d.ts');
+      }
+    }
+
+    writeJson(distPackageJsonPath, packageJson);
+
     if (existsSync(sourceContractReferencePath)) {
       copyFileSync(sourceContractReferencePath, distContractReferencePath);
     }

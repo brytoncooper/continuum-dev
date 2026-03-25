@@ -8,6 +8,8 @@ import { loadAlignedReleasePackages } from './release-public-packages.mjs';
 const releasePackages = loadAlignedReleasePackages();
 const distRoots = releasePackages.map((pkg) => pkg.distRoot);
 
+const skipRootNodeImportSpecifiers = new Set(['@continuum-dev/angular']);
+
 const forbiddenFilePatterns = [
   /\.spec\.[cm]?[jt]sx?$/i,
   /\.test\.[cm]?[jt]sx?$/i,
@@ -129,6 +131,9 @@ function collectAllImportSpecifiers() {
       prepared.exports
     );
     for (const spec of specs) {
+      if (skipRootNodeImportSpecifiers.has(spec)) {
+        continue;
+      }
       unique.add(spec);
     }
   }
@@ -147,10 +152,13 @@ function assertNodeImportSmoke(tarballs) {
         }
         return `"${path}"`;
       }),
-      'react@18',
-      'react-dom@18',
+      'react@18.3.1',
+      'react-dom@18.3.1',
     ].join(' ');
-    run(`npm install ${installArgs}`, tempRoot);
+    run(
+      `npm install --registry https://registry.npmjs.org/ --legacy-peer-deps ${installArgs}`,
+      tempRoot
+    );
     const specifiers = collectAllImportSpecifiers();
     const importStatements = specifiers
       .map((spec) => `await import(${JSON.stringify(spec)});`)

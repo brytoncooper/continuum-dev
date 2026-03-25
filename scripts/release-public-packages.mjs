@@ -5,30 +5,49 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 
-function loadJson(path) {
+function parseJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
-export function loadReleasePackages() {
-  const dirs = loadJson(resolve(__dirname, 'release-public-package-dirs.json'));
-  return dirs.map((dir) => {
-    const packageRoot = resolve(repoRoot, 'packages', dir);
-    const packageJson = loadJson(resolve(packageRoot, 'package.json'));
-    const projectJson = loadJson(resolve(packageRoot, 'project.json'));
-    return {
-      dir,
-      packageName: packageJson.name,
-      nxProjectName: projectJson.name,
-      packageRoot,
-      distRoot: resolve(repoRoot, 'dist', 'packages', dir),
-      tsconfigPath: resolve(packageRoot, 'tsconfig.lib.json'),
-    };
-  });
+function loadBuildDirs() {
+  return parseJson(resolve(__dirname, 'release-build-package-dirs.json'));
 }
 
-export function loadAlignedReleasePackages() {
-  const releasePackages = loadReleasePackages();
-  const nxJson = loadJson(resolve(repoRoot, 'nx.json'));
+function loadNpmPublishDirs() {
+  return parseJson(resolve(__dirname, 'release-npm-publish-dirs.json'));
+}
+
+function mapDirToReleasePackage(dir) {
+  const packageRoot = resolve(repoRoot, 'packages', dir);
+  const packageJson = parseJson(resolve(packageRoot, 'package.json'));
+  const projectJson = parseJson(resolve(packageRoot, 'project.json'));
+  return {
+    dir,
+    packageName: packageJson.name,
+    nxProjectName: projectJson.name,
+    packageRoot,
+    distRoot: resolve(repoRoot, 'dist', 'packages', dir),
+    tsconfigPath: resolve(packageRoot, 'tsconfig.lib.json'),
+  };
+}
+
+export function loadReleasePackages() {
+  const dirs = loadBuildDirs();
+  return dirs.map((dir) => mapDirToReleasePackage(dir));
+}
+
+function assertNpmPublishDirsAlignWithNx(buildPackages) {
+  const npmDirs = loadNpmPublishDirs();
+  const buildDirSet = new Set(buildPackages.map((p) => p.dir));
+  for (const dir of npmDirs) {
+    if (!buildDirSet.has(dir)) {
+      throw new Error(
+        `release-npm-publish-dirs.json references "${dir}" which is not in release-build-package-dirs.json.`
+      );
+    }
+  }
+
+  const nxJson = parseJson(resolve(repoRoot, 'nx.json'));
   const nxProjects = nxJson.release?.groups?.publicPackages?.projects;
 
   if (!Array.isArray(nxProjects)) {
@@ -37,26 +56,54 @@ export function loadAlignedReleasePackages() {
     );
   }
 
-  const expectedProjects = releasePackages.map((pkg) => pkg.nxProjectName);
-  const actualProjects = nxProjects.map((value) => String(value));
-  const expectedSet = [...new Set(expectedProjects)].sort();
-  const actualSet = [...new Set(actualProjects)].sort();
+  const expectedFromNpmDirs = npmDirs.map((dir) => {
+    const pkg = buildPackages.find((p) => p.dir === dir);
+    if (!pkg) {
+      throw new Error(`Internal error: missing build package for dir ${dir}`);
+    }
+    return pkg.nxProjectName;
+  });
+
+  const actual = nxProjects.map((value) => String(value));
+  const expectedSet = [...new Set(expectedFromNpmDirs)].sort();
+  const actualSet = [...new Set(actual)].sort();
 
   if (
-    expectedProjects.length !== expectedSet.length ||
-    actualProjects.length !== actualSet.length ||
+    expectedFromNpmDirs.length !== expectedSet.length ||
+    actual.length !== actualSet.length ||
     expectedSet.length !== actualSet.length ||
     expectedSet.some((project, index) => project !== actualSet[index])
   ) {
     throw new Error(
       [
-        'Release package directories do not match nx.json publicPackages.',
-        `Expected from package directories: ${expectedSet.join(', ')}`,
+        'npm publish directory list does not match nx.json publicPackages.',
+        `Expected nx project names from release-npm-publish-dirs.json: ${expectedSet.join(', ')}`,
         `Found in nx.json: ${actualSet.join(', ')}`,
       ].join('\n')
     );
   }
 
+  if (expectedFromNpmDirs.length !== actual.length) {
+    throw new Error(
+      'release-npm-publish-dirs.json and nx.json publicPackages differ in length.'
+    );
+  }
+
+  for (let i = 0; i < expectedFromNpmDirs.length; i += 1) {
+    if (expectedFromNpmDirs[i] !== actual[i]) {
+      throw new Error(
+        [
+          'release-npm-publish-dirs.json order does not match nx.json publicPackages.projects.',
+          `First mismatch at index ${i}: expected ${expectedFromNpmDirs[i]}, found ${actual[i]}.`,
+        ].join('\n')
+      );
+    }
+  }
+}
+
+export function loadAlignedReleasePackages() {
+  const releasePackages = loadReleasePackages();
+  assertNpmPublishDirsAlignWithNx(releasePackages);
   return releasePackages;
 }
 

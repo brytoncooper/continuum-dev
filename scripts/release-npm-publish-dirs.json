@@ -3,13 +3,13 @@
   "protocol",
   "runtime",
   "session",
-  "core",
   "react",
   "prompts",
   "ai-connect",
+  "ai-core",
   "ai-engine",
   "vercel-ai-sdk-adapter",
+  "core",
   "starter-kit",
-  "starter-kit-ai",
-  "ai-core"
+  "starter-kit-ai"
 ]
