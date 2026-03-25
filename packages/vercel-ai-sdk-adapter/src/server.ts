@@ -686,6 +686,18 @@ function toPatchOperation(
     };
   }
 
+  if (
+    candidate.kind === 'append-content' &&
+    typeof candidate.nodeId === 'string' &&
+    typeof candidate.text === 'string'
+  ) {
+    return {
+      op: 'append-content',
+      nodeId: candidate.nodeId,
+      text: candidate.text,
+    };
+  }
+
   return null;
 }
 
