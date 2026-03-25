@@ -8,7 +8,15 @@ import {
 const repoRoot = getRepoRoot();
 const configs = loadAlignedReleasePackages().map((pkg) => pkg.tsconfigPath);
 
-execSync(`npx tsc --build ${configs.map((p) => JSON.stringify(p)).join(' ')}`, {
+execSync('node packages/developer-documentation/scripts/generate-corpus.mjs', {
   cwd: repoRoot,
   stdio: 'inherit',
 });
+
+execSync(
+  `npx tsc --build --force ${configs.map((p) => JSON.stringify(p)).join(' ')}`,
+  {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  }
+);
