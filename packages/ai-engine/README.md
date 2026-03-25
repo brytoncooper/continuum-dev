@@ -1,11 +1,11 @@
 # @continuum-dev/ai-engine
 
-Transport-agnostic Continuum **AI execution**: turn a user instruction into **state**, **patch**, **transform**, or **view** results using a **reference** routing policy (no LLM planner), with prompts, normalization, and guardrails handled inside the library.
+Transport-agnostic Continuum **AI execution**: turn a user instruction into **state**, **patch**, **transform**, or **view** results. The OSS path **defaults to full view generation**; advanced callers pass **`executionMode`** or **`executionPlan`** (precedence: plan > mode > default). Prompts are **fixed per execution mode** and are not overridable on the public execution API.
 
 ## Features
 
 - One pipeline for state / patch / transform / view across backends, agents, or apps
-- **Reference execution path** — deterministic heuristics for mode selection; suitable for adoption and extension
+- **Explicit OSS routing** — default view, or choose a mode/plan; no instruction-text heuristic that picks execution mode for you
 - Authoring helpers for **line-dsl**, **yaml**, and optional **view-json** (structured `ViewDefinition` JSON), plus parsers to `ViewDefinition`
 - State and patch **target catalogs** and parsing for model JSON replies
 - View **guardrails** and patch planning helpers
@@ -58,7 +58,7 @@ applyContinuumExecutionFinalResult(session, result);
 ```
 
 - `session` must be a `ContinuumSessionAdapter` (often via `createContinuumSessionAdapter` wrapping your session implementation).
-- `mode` is an optional authoring hint (`create-view`, `evolve-view`, …). If you omit it, behavior is inferred from whether a view already exists.
+- `mode` is an optional **authoring** hint (`create-view`, `evolve-view`, …). It does **not** select execution routing; use **`executionMode`** or **`executionPlan`** when you need patch, state, or transform instead of the default full view.
 - `authoringFormat` is `'line-dsl'`, `'yaml'`, or `'view-json'`. Use **`view-json`** when you want JSON that matches the built-in `ViewDefinition` schema: the engine sets `outputContract` to that schema on the execution request (this is what `@continuum-dev/ai-connect` forwards to providers). `outputKind: 'json-object'` on the same request is a **hint for routing and traces**; it does not enforce structure without a transport that honors `outputContract`. View generation uses **`generate` only** for `view-json` (no incremental `streamText` previews). If the provider rejects the schema, ai-connect clients **retry once without** the contract and parse JSON from the reply text when possible; the response then includes `outputContractFallbackUsed: true` (surfaced on `ContinuumExecutionResponse` through the ai-connect execution adapter).
 
 ## Bring your own LLM
@@ -112,7 +112,7 @@ Types: [`src/lib/execution/types.ts`](src/lib/execution/types.ts) (`ContinuumExe
 
 ## How a run fits together
 
-The **reference executor** chooses a mode with local heuristics (no planner model call). Each phase may call `adapter.generate` one or more times. You get a `ContinuumExecutionFinalResult` with a `trace` of requests and responses. With a session, `applyContinuumExecutionFinalResult` applies that result to the live session.
+**OSS:** without `executionMode` or `executionPlan`, the runner uses **view** generation. With an explicit mode or plan, it runs the matching phase pipeline. **Premium cloud** can inject **`streamContinuumExecution`** from `@continuum-cloud/ai-execution` for automatic planner-led routing. Each phase may call `adapter.generate` one or more times. You get a `ContinuumExecutionFinalResult` with a `trace` of requests and responses. With a session, `applyContinuumExecutionFinalResult` applies that result to the live session.
 
 ```mermaid
 flowchart LR

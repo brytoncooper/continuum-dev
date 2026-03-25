@@ -3,7 +3,7 @@
 How to wire AI into Continuum without losing the layering:
 
 - `@continuum-dev/react` and `@continuum-dev/session` for the renderable runtime state
-- `@continuum-dev/ai-engine` for headless **reference** execution (heuristic mode routing), authoring, parsing, normalization, and apply helpers
+- `@continuum-dev/ai-engine` for headless execution (**default full view**; optional **`executionMode`** / **`executionPlan`**), authoring, parsing, normalization, and apply helpers
 - `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK transport path
 - `@continuum-dev/ai-connect` for built-in provider factories and model catalogs
 - `@continuum-dev/starter-kit-ai` for optional thin starter-oriented chat wrappers
@@ -23,9 +23,9 @@ The safest loop looks like this:
 
 ```text
 instruction
-  -> reference execution routing (or your own planner)
-  -> patch or state mode when safe
-  -> otherwise full authoring output
+  -> OSS: explicit executionMode / executionPlan, or default full view generation
+   (premium: inject streamContinuumExecution for automatic planner routing)
+  -> run the selected phase (state / patch / transform / view)
   -> parse into ViewDefinition or typed updates
   -> normalize and validate
   -> repair once when malformed
@@ -42,9 +42,10 @@ Use these packages when you need the live Continuum session that views, diagnost
 
 Use this package when you want the shared headless contract:
 
-- reference execution (`runContinuumExecution` / `streamContinuumExecution`) without the private LLM planner
+- execution (`runContinuumExecution` / `streamContinuumExecution`) with **OSS default** full **view** generation, or explicit **`executionMode`** / **`executionPlan`**; **no** public prompt overrides (prompts are fixed per mode inside the library)
+- the private **LLM planner** path ships in **`@continuum-cloud/ai-execution`** and is wired via **`streamContinuumExecution`** injection on adapters and routes
 - authoring format types
-- prompt builders and parsers
+- prompt builders and parsers (for internal use and custom flows; not a substitute for `executionMode` / `executionPlan` on the high-level runner)
 - patch and state target catalogs
 - normalization, guardrails, and apply helpers
 
@@ -116,13 +117,11 @@ group id="checkin" label="Urgent Care Check-In"
 
 ## Patch mode is part of the philosophy
 
-For small changes, `ai-engine` does not always jump straight to full regeneration.
-
-Patch mode exists to make safe incremental evolution easier:
+Patch mode exists to make safe incremental evolution easier when you **choose** it (`executionMode: 'patch'` or an explicit plan). The OSS runner does **not** infer patch vs view from free-form instruction text.
 
 - prefer patch mode when updating existing node props
 - prefer local container patches for layout tweaks
-- switch to full mode when patching is unsafe or the workflow is truly changing
+- switch to full view generation when patching is unsafe or the workflow is truly changing
 - preserve semantic continuity and detached continuity during patch decisions
 
 ## Using the headless engine directly

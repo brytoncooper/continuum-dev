@@ -26,7 +26,7 @@
 ## Typical request flow
 
 1. Host builds **context** (`buildContinuumExecutionContext` → `session`).
-2. **Reference routing** (`reference-execution-plan`) or a **private planner** chooses mode using **targets** (`execution-targets` catalogs).
+2. **OSS routing** (`resolve-oss-execution-plan`): default **view** generation, or explicit `executionMode` / `executionPlan` (precedence: plan > mode > default). **Premium** hosts inject **`streamContinuumExecution`** from `@continuum-cloud/ai-execution` for automatic planner-led routing.
 3. **Execution** (`execution/stream`) runs **phases**: state, patch, transform, or full view.
 4. View paths use **authoring**, **patching**, **guardrails**, **generation**, **transforms** as needed.
 5. **Apply** (`applyContinuumExecutionFinalResult` → `session-api`) updates the session.
@@ -36,7 +36,7 @@ flowchart TB
   entry[src/index.ts]
   session[lib/session]
   targets[lib/execution-targets]
-  planner["Reference routing or private planner"]
+  planner["OSS routing or injected premium planner"]
   exec[lib/execution]
   guard[lib/view-guardrails]
   author[lib/view-authoring]
