@@ -24,9 +24,7 @@ npm install @continuum-dev/starter-kit react
 
 Upgrade references:
 
-- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
-- [Starter Kit AI migration guide](../../docs/STARTER_KIT_AI_MIGRATION.md)
-- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+- Root upgrade guide, Starter Kit AI migration notes, and API delta (private maintainer documentation repository)
 
 ## Use the starter kit when
 
@@ -237,10 +235,9 @@ In those cases, start with `@continuum-dev/react` for headless React rendering, 
 
 - [Root README](../../README.md)
 - [Quick Start](../../docs/QUICK_START.md)
-- [Starter reference app](../../docs/REFERENCE_STARTER_APP.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
-- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
 - [Starter Kit AI README](../starter-kit-ai/README.md)
 - [AI Engine README](../ai-engine/README.md)
-- [Starter Kit AI Migration Guide](../../docs/STARTER_KIT_AI_MIGRATION.md)
+
+Reference app walkthroughs and migration guides live in the private maintainer documentation repository.

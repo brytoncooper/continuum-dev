@@ -52,4 +52,3 @@ In those cases, start with:
 - [Root README](../../README.md)
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
-- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)

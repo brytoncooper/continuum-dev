@@ -58,8 +58,7 @@ npm install @continuum-dev/runtime
 
 Upgrade references:
 
-- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
-- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+- Upgrade and API delta notes (private maintainer documentation repository)
 
 ## Why Reconciliation Matters
 
@@ -309,7 +308,7 @@ The package README describes the supported contract.
 
 These deeper documents explain implementation details and maintenance-level behavior:
 
-- [Runtime comprehensive reference](./RUNTIME_COMPREHENSIVE_REFERENCE.md)
+- Runtime comprehensive reference (private maintainer documentation repository)
 - [Reconcile orchestration](./src/lib/reconcile/README.md)
 - [Behavior guarantees](./src/lib/reconcile/behavior-guarantees.md)
 - [Semantic key moves](./src/lib/reconcile/semantic-moves/README.md)
