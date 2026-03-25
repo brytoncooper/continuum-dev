@@ -21,6 +21,24 @@ function clampIndex(index: number, length: number): number {
   return Math.max(0, Math.min(length, index));
 }
 
+function findIndexBySemanticKey(
+  nodes: ViewNode[],
+  semanticKey: string
+): number {
+  const indexes = nodes.reduce<number[]>((matches, candidate, index) => {
+    if (candidate.semanticKey === semanticKey) {
+      matches.push(index);
+    }
+    return matches;
+  }, []);
+
+  if (indexes.length !== 1) {
+    return -1;
+  }
+
+  return indexes[0]!;
+}
+
 export function insertNodeIntoList(
   nodes: ViewNode[],
   node: ViewNode,
@@ -35,9 +53,25 @@ export function insertNodeIntoList(
     if (beforeIndex >= 0) {
       insertIndex = beforeIndex;
     }
+  } else if (position?.beforeSemanticKey) {
+    const beforeIndex = findIndexBySemanticKey(
+      nodes,
+      position.beforeSemanticKey
+    );
+    if (beforeIndex >= 0) {
+      insertIndex = beforeIndex;
+    }
   } else if (position?.afterId) {
     const afterIndex = nodes.findIndex(
       (candidate) => candidate.id === position.afterId
+    );
+    if (afterIndex >= 0) {
+      insertIndex = afterIndex + 1;
+    }
+  } else if (position?.afterSemanticKey) {
+    const afterIndex = findIndexBySemanticKey(
+      nodes,
+      position.afterSemanticKey
     );
     if (afterIndex >= 0) {
       insertIndex = afterIndex + 1;

@@ -24,6 +24,20 @@ function applyOperationToNode(
   node: ViewNode,
   operation: ContinuumViewPatchOperation
 ): NodePatchResult {
+  if (operation.op === 'append-content' && node.id === operation.nodeId) {
+    if (node.type === 'presentation') {
+      const prior = typeof node.content === 'string' ? node.content : '';
+      return {
+        node: {
+          ...node,
+          content: `${prior}${operation.text}`,
+        },
+        applied: true,
+      };
+    }
+    return { node, applied: false };
+  }
+
   if (isChildContainerNode(node)) {
     const childResult = applyOperationToNodeList(node.children, operation);
     if (childResult.applied) {
@@ -214,6 +228,13 @@ export function applyMoveNode(
   nodes: ViewNode[],
   operation: Extract<ContinuumViewPatchOperation, { op: 'move-node' }>
 ): NodeListPatchResult {
+  if (!operation.nodeId) {
+    return {
+      nodes,
+      applied: false,
+    };
+  }
+
   const removed = removeNodeFromList(nodes, operation.nodeId);
   if (!removed.applied || !removed.removedNode) {
     return {

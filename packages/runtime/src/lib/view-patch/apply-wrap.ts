@@ -56,15 +56,52 @@ function wrapNodeChildren(
   };
 }
 
+function resolveWrapIndexes(
+  nodes: ViewNode[],
+  operation: Extract<ContinuumViewPatchOperation, { op: 'wrap-nodes' }>
+): number[] {
+  if (Array.isArray(operation.nodeIds) && operation.nodeIds.length > 0) {
+    return operation.nodeIds.map((nodeId) =>
+      nodes.findIndex((candidate) => candidate.id === nodeId)
+    );
+  }
+
+  if (
+    Array.isArray(operation.semanticKeys) &&
+    operation.semanticKeys.length > 0
+  ) {
+    return operation.semanticKeys.map((semanticKey) => {
+      const matches = nodes.reduce<number[]>((indexes, candidate, index) => {
+        if (candidate.semanticKey === semanticKey) {
+          indexes.push(index);
+        }
+        return indexes;
+      }, []);
+
+      if (matches.length !== 1) {
+        return -1;
+      }
+
+      return matches[0]!;
+    });
+  }
+
+  return [];
+}
+
 export function wrapNodesInList(
   nodes: ViewNode[],
   operation: Extract<ContinuumViewPatchOperation, { op: 'wrap-nodes' }>,
   parentId: string | null
 ): NodeListPatchResult {
   if (operation.parentId === parentId) {
-    const indexes = operation.nodeIds.map((nodeId) =>
-      nodes.findIndex((candidate) => candidate.id === nodeId)
-    );
+    const indexes = resolveWrapIndexes(nodes, operation);
+    if (indexes.length === 0) {
+      return {
+        nodes,
+        applied: false,
+      };
+    }
     if (indexes.some((index) => index < 0)) {
       return {
         nodes,

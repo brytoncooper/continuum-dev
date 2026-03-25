@@ -24,9 +24,13 @@ function createInvoiceView(): ViewDefinition {
       {
         id: 'details',
         type: 'group',
+        semanticKey: 'invoice.details',
         label: 'Details',
         children: [
-          createPresentationNode('summary', 'Summary'),
+          {
+            ...createPresentationNode('summary', 'Summary'),
+            semanticKey: 'invoice.summary',
+          },
           {
             id: 'body',
             type: 'presentation',
@@ -61,6 +65,7 @@ function createInvoiceView(): ViewDefinition {
               id: 'price',
               type: 'field',
               dataType: 'number',
+              semanticKey: 'invoice.lineItem.price',
               label: 'Price',
             },
           ],
@@ -206,6 +211,45 @@ describe('applyContinuumViewPatch', () => {
       dataType: 'number',
       label: 'Unit price',
       description: 'Before tax',
+    });
+  });
+
+  it('resolves semantic selectors for targeted replacements and parent-based inserts', () => {
+    const currentView = createInvoiceView();
+    const patch: ContinuumViewPatch = {
+      operations: [
+        {
+          op: 'replace-node',
+          semanticKey: 'invoice.lineItem.price',
+          node: {
+            id: 'price',
+            type: 'field',
+            dataType: 'number',
+            semanticKey: 'invoice.lineItem.price',
+            label: 'Unit price',
+          },
+        },
+        {
+          op: 'insert-node',
+          parentSemanticKey: 'invoice.details',
+          position: {
+            afterSemanticKey: 'invoice.summary',
+          },
+          node: createPresentationNode('meta', 'Metadata'),
+        },
+      ],
+    };
+
+    const nextView = applyContinuumViewPatch(currentView, patch);
+
+    expect(requireContainerChildIds(nextView, 'details')).toEqual([
+      'summary',
+      'meta',
+      'body',
+    ]);
+    expect(requireNode(nextView, 'price')).toMatchObject({
+      label: 'Unit price',
+      semanticKey: 'invoice.lineItem.price',
     });
   });
 

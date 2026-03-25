@@ -24,7 +24,9 @@ export function collectContinuumViewPatchAffectedNodeIds(
         collectNodeIds(operation.node, ids);
         break;
       case 'move-node':
-        ids.add(operation.nodeId);
+        if (operation.nodeId) {
+          ids.add(operation.nodeId);
+        }
         if (operation.parentId) {
           ids.add(operation.parentId);
         }
@@ -33,17 +35,26 @@ export function collectContinuumViewPatchAffectedNodeIds(
         if (operation.parentId) {
           ids.add(operation.parentId);
         }
-        for (const nodeId of operation.nodeIds) {
+        for (const nodeId of operation.nodeIds ?? []) {
           ids.add(nodeId);
         }
         collectNodeIds(operation.wrapper, ids);
         break;
       case 'replace-node':
-        ids.add(operation.nodeId);
+        if (operation.nodeId) {
+          ids.add(operation.nodeId);
+        }
         collectNodeIds(operation.node, ids);
         break;
       case 'remove-node':
-        ids.add(operation.nodeId);
+        if (operation.nodeId) {
+          ids.add(operation.nodeId);
+        }
+        break;
+      case 'append-content':
+        if (operation.nodeId) {
+          ids.add(operation.nodeId);
+        }
         break;
     }
   }

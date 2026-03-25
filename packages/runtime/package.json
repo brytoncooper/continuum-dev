@@ -66,6 +66,12 @@
       "types": "./restore-candidates.d.ts",
       "import": "./restore-candidates.js",
       "default": "./restore-candidates.js"
+    },
+    "./view-evolution": {
+      "@continuum-dev/source": "./src/view-evolution.ts",
+      "types": "./view-evolution.d.ts",
+      "import": "./view-evolution.js",
+      "default": "./view-evolution.js"
     }
   },
   "files": [

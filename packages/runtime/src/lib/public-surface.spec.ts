@@ -35,6 +35,10 @@ describe('published runtime surface', () => {
 
     const validator = await import('../validator.js');
     expect(typeof validator.validateNodeValue).toBe('function');
+
+    const viewEvolution = await import('../view-evolution.js');
+    expect(typeof viewEvolution.buildViewEvolutionDiagnostics).toBe('function');
+    expect(typeof viewEvolution.shouldRejectAiEditDiagnostics).toBe('function');
   });
 
   it('does not publish view-patch through package entrypoints', async () => {

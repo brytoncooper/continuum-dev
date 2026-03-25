@@ -14,6 +14,30 @@ import type {
   ApplyContinuumViewStreamPartResult,
 } from './types.js';
 
+function resolveUniqueNodeIdBySemanticKey(
+  nodes: ViewNode[],
+  semanticKey: string
+): string | null {
+  const matches: string[] = [];
+
+  const walk = (items: ViewNode[]) => {
+    for (const node of items) {
+      if (node.semanticKey === semanticKey) {
+        matches.push(node.id);
+      }
+
+      if ('children' in node && Array.isArray(node.children)) {
+        walk(node.children);
+      } else if (node.type === 'collection') {
+        walk([node.template]);
+      }
+    }
+  };
+
+  walk(nodes);
+  return matches.length === 1 ? matches[0]! : null;
+}
+
 function appendContentToNode(
   node: ViewNode,
   nodeId: string,
@@ -89,6 +113,7 @@ function buildPatchForStructuralPart(
           {
             op: 'insert-node',
             parentId: part.parentId,
+            parentSemanticKey: part.parentSemanticKey,
             position: part.position,
             node: part.node,
           },
@@ -107,7 +132,9 @@ function buildPatchForStructuralPart(
           {
             op: 'move-node',
             nodeId: part.nodeId,
+            semanticKey: part.semanticKey,
             parentId: part.parentId,
+            parentSemanticKey: part.parentSemanticKey,
             position: part.position,
           },
         ],
@@ -125,7 +152,9 @@ function buildPatchForStructuralPart(
           {
             op: 'wrap-nodes',
             parentId: part.parentId,
+            parentSemanticKey: part.parentSemanticKey,
             nodeIds: part.nodeIds,
+            semanticKeys: part.semanticKeys,
             wrapper: part.wrapper,
           },
         ],
@@ -143,6 +172,7 @@ function buildPatchForStructuralPart(
           {
             op: 'replace-node',
             nodeId: part.nodeId,
+            semanticKey: part.semanticKey,
             node: part.node,
           },
         ],
@@ -160,6 +190,7 @@ function buildPatchForStructuralPart(
           {
             op: 'remove-node',
             nodeId: part.nodeId,
+            semanticKey: part.semanticKey,
           },
         ],
       };
@@ -181,16 +212,28 @@ export function applyContinuumViewStreamPart(
 ): ApplyContinuumViewStreamPartResult {
   const { part } = input;
   if (part.kind === 'append-content') {
+    const targetNodeId =
+      part.nodeId ??
+      (typeof part.semanticKey === 'string'
+        ? resolveUniqueNodeIdBySemanticKey(
+            input.currentView.nodes,
+            part.semanticKey
+          ) ?? undefined
+        : undefined);
+    if (!targetNodeId) {
+      throw new Error('append-content could not resolve a unique target node');
+    }
+
     let changed = false;
     const nextNodes = input.currentView.nodes.map((node) => {
-      const result = appendContentToNode(node, part.nodeId, part.text);
+      const result = appendContentToNode(node, targetNodeId, part.text);
       changed = changed || result.changed;
       return result.nextNode;
     });
 
     if (!changed) {
       throw new Error(
-        `append-content could not find node ${part.nodeId} in the current view`
+        `append-content could not find node ${targetNodeId} in the current view`
       );
     }
 
@@ -199,7 +242,7 @@ export function applyContinuumViewStreamPart(
         ...input.currentView,
         nodes: nextNodes,
       }),
-      affectedNodeIds: [part.nodeId],
+      affectedNodeIds: [targetNodeId],
       incrementalHint: 'presentation-content',
     };
   }
