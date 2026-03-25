@@ -11,6 +11,8 @@ import {
   type ContinuumExecutionContext,
   type ContinuumExecutionEvent,
   type ContinuumExecutionFinalResult,
+  type ContinuumExecutionMode,
+  type ContinuumExecutionPlan,
   type ContinuumExecutionRequest,
   type ContinuumViewAuthoringFormat,
   type StreamContinuumExecutionArgs,
@@ -50,6 +52,8 @@ export interface WriteContinuumExecutionToUiMessageWriterArgs {
   instruction: string;
   context?: ContinuumExecutionContext;
   mode?: PromptMode;
+  executionMode?: ContinuumExecutionMode;
+  executionPlan?: ContinuumExecutionPlan;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
