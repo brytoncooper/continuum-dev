@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/vercel-ai-sdk-adapter",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -50,10 +50,10 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@continuum-dev/ai-engine": "^0.3.0",
-    "@continuum-dev/core": "^0.3.0",
-    "@continuum-dev/protocol": "^0.3.0",
-    "@continuum-dev/runtime": "^0.3.0",
+    "@continuum-dev/ai-engine": "^0.4.0-alpha.1",
+    "@continuum-dev/core": "^0.4.0-alpha.1",
+    "@continuum-dev/protocol": "^0.4.0-alpha.1",
+    "@continuum-dev/runtime": "^0.4.0-alpha.1",
     "@ai-sdk/react": "^3.0.118",
     "ai": "^6.0.116",
     "zod": "^3.24.2"

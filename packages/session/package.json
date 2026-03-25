@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/session",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -41,9 +41,9 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/contract": "^0.3.0",
-    "@continuum-dev/protocol": "^0.3.0",
-    "@continuum-dev/runtime": "^0.3.0"
+    "@continuum-dev/contract": "^0.4.0-alpha.1",
+    "@continuum-dev/protocol": "^0.4.0-alpha.1",
+    "@continuum-dev/runtime": "^0.4.0-alpha.1"
   },
   "nx": {
     "tags": [

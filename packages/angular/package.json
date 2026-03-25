@@ -1,7 +1,6 @@
 {
   "name": "@continuum-dev/angular",
-  "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -46,9 +45,9 @@
     "@angular/forms": ">=20.0.0"
   },
   "dependencies": {
-    "@continuum-dev/contract": "^0.3.0",
-    "@continuum-dev/runtime": "^0.3.0",
-    "@continuum-dev/session": "^0.3.0"
+    "@continuum-dev/contract": "^0.4.0-alpha.1",
+    "@continuum-dev/runtime": "^0.4.0-alpha.1",
+    "@continuum-dev/session": "^0.4.0-alpha.1"
   },
   "nx": {
     "tags": [

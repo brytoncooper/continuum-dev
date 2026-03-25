@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/ai-engine",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -46,10 +46,10 @@
     "LICENSE*"
   ],
   "dependencies": {
-    "@continuum-dev/core": "^0.3.0",
-    "@continuum-dev/protocol": "^0.3.0",
-    "@continuum-dev/runtime": "^0.3.0",
-    "@continuum-dev/prompts": "^0.3.0",
+    "@continuum-dev/core": "^0.4.0-alpha.1",
+    "@continuum-dev/protocol": "^0.4.0-alpha.1",
+    "@continuum-dev/runtime": "^0.4.0-alpha.1",
+    "@continuum-dev/prompts": "^0.4.0-alpha.1",
     "yaml": "^2.8.2"
   },
   "nx": {
