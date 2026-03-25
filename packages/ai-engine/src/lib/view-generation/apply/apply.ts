@@ -73,11 +73,7 @@ export function applyPatchPlanThroughUpdateParts(
   currentView: ViewDefinition,
   plan: unknown
 ): boolean {
-  if (
-    !isViewPatchPlan(plan) ||
-    plan.mode !== 'patch' ||
-    plan.operations.length === 0
-  ) {
+  if (!isViewPatchPlan(plan) || plan.operations.length === 0) {
     return false;
   }
 

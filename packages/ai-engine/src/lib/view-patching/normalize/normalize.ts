@@ -8,30 +8,59 @@ export interface NormalizedViewPatchPlanResult {
   reason?: string;
 }
 
-export function isViewPatchPlan(value: unknown): value is ViewPatchPlan {
+function isLocalPatchPlanInput(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
   const candidate = value as Record<string, unknown>;
-  if (candidate.mode !== 'patch' && candidate.mode !== 'full') {
+  if (!Array.isArray(candidate.operations)) {
     return false;
   }
+
+  if (candidate.mode === 'full') {
+    return false;
+  }
+
+  if (candidate.mode !== undefined && candidate.mode !== 'patch') {
+    return false;
+  }
+
+  return true;
+}
+
+export function isViewPatchPlan(value: unknown): value is ViewPatchPlan {
+  if (!isLocalPatchPlanInput(value)) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
   return Array.isArray(candidate.operations);
 }
 
 export function normalizeViewPatchPlan(
   input: unknown
 ): NormalizedViewPatchPlanResult {
-  if (!isViewPatchPlan(input)) {
+  if (isRecord(input) && input.mode === 'full') {
+    return {
+      plan: null,
+      reason:
+        'Full view escalation is not supported in the patch lane; use execution mode view instead.',
+    };
+  }
+
+  if (!isLocalPatchPlanInput(input)) {
     return {
       plan: null,
       reason: 'Patch response did not match the expected plan shape.',
     };
   }
 
+  const candidate = input as Record<string, unknown>;
+  const rawOperations = candidate.operations as unknown[];
+
   const operations: ViewPatchOperation[] = [];
-  for (const [index, operation] of input.operations.entries()) {
+  for (const [index, operation] of rawOperations.entries()) {
     const normalizedOperation = normalizeViewPatchOperation(operation);
     if (!normalizedOperation) {
       return {
@@ -43,7 +72,7 @@ export function normalizeViewPatchPlan(
     operations.push(normalizedOperation);
   }
 
-  if (input.mode === 'patch' && operations.length === 0) {
+  if (operations.length === 0) {
     return {
       plan: null,
       reason: 'Patch plan did not include any usable operations.',
@@ -52,13 +81,9 @@ export function normalizeViewPatchPlan(
 
   return {
     plan: {
-      mode: input.mode,
       operations,
-      ...(typeof input.reason === 'string' && input.reason.trim().length > 0
-        ? { reason: input.reason.trim() }
-        : {}),
-      ...(input.fullStrategy === 'evolve' || input.fullStrategy === 'replace'
-        ? { fullStrategy: input.fullStrategy }
+      ...(typeof candidate.reason === 'string' && candidate.reason.trim().length > 0
+        ? { reason: candidate.reason.trim() }
         : {}),
     },
   };
@@ -83,7 +108,7 @@ export function normalizeViewPatchOperation(
     return null;
   }
 
-  const nodeId = resolvePatchTargetNodeId(input);
+  const target = resolvePatchTarget(input);
 
   if (kind === 'insert-node') {
     const node = normalizePlanNode(input.node);
@@ -98,6 +123,13 @@ export function normalizeViewPatchOperation(
         ? { parentId: input.parentId }
         : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
+      ...(typeof input.parentSemanticKey === 'string' &&
+      input.parentSemanticKey.trim().length > 0
+        ? { parentSemanticKey: input.parentSemanticKey.trim() }
+        : {}),
+      ...(input.parentSemanticKey === null
+        ? { parentSemanticKey: null }
+        : {}),
       ...(position ? { position } : {}),
       node,
     };
@@ -105,28 +137,32 @@ export function normalizeViewPatchOperation(
 
   if (kind === 'move-node') {
     const position = normalizePlanPosition(input.position);
-    if (!nodeId) {
+    if (!target) {
       return null;
     }
 
     return {
       kind: 'move-node',
-      nodeId,
+      ...target,
       ...(typeof input.parentId === 'string'
         ? { parentId: input.parentId }
         : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
+      ...(typeof input.parentSemanticKey === 'string' &&
+      input.parentSemanticKey.trim().length > 0
+        ? { parentSemanticKey: input.parentSemanticKey.trim() }
+        : {}),
+      ...(input.parentSemanticKey === null
+        ? { parentSemanticKey: null }
+        : {}),
       ...(position ? { position } : {}),
     };
   }
 
   if (kind === 'wrap-nodes') {
     if (
-      !Array.isArray(input.nodeIds) ||
-      input.nodeIds.length === 0 ||
-      input.nodeIds.some(
-        (nodeId) => typeof nodeId !== 'string' || nodeId.trim().length === 0
-      )
+      !hasNonEmptyStringArray(input.nodeIds) &&
+      !hasNonEmptyStringArray(input.semanticKeys)
     ) {
       return null;
     }
@@ -147,13 +183,29 @@ export function normalizeViewPatchOperation(
         ? { parentId: input.parentId }
         : {}),
       ...(input.parentId === null ? { parentId: null } : {}),
-      nodeIds: input.nodeIds,
+      ...(typeof input.parentSemanticKey === 'string' &&
+      input.parentSemanticKey.trim().length > 0
+        ? { parentSemanticKey: input.parentSemanticKey.trim() }
+        : {}),
+      ...(input.parentSemanticKey === null
+        ? { parentSemanticKey: null }
+        : {}),
+      ...(hasNonEmptyStringArray(input.nodeIds)
+        ? { nodeIds: input.nodeIds.map((id) => id.trim()) }
+        : {}),
+      ...(hasNonEmptyStringArray(input.semanticKeys)
+        ? {
+            semanticKeys: input.semanticKeys.map((semanticKey) =>
+              semanticKey.trim()
+            ),
+          }
+        : {}),
       wrapper,
     };
   }
 
   if (kind === 'replace-node') {
-    if (!nodeId) {
+    if (!target) {
       return null;
     }
 
@@ -164,30 +216,30 @@ export function normalizeViewPatchOperation(
 
     return {
       kind: 'replace-node',
-      nodeId,
+      ...target,
       node,
     };
   }
 
   if (kind === 'remove-node') {
-    if (!nodeId) {
+    if (!target) {
       return null;
     }
 
     return {
       kind: 'remove-node',
-      nodeId,
+      ...target,
     };
   }
 
   if (kind === 'append-content') {
-    if (!nodeId || typeof input.text !== 'string' || input.text.length === 0) {
+    if (!target || typeof input.text !== 'string' || input.text.length === 0) {
       return null;
     }
 
     return {
       kind: 'append-content',
-      nodeId,
+      ...target,
       text: input.text,
     };
   }
@@ -199,17 +251,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function resolvePatchTargetNodeId(
+function resolvePatchTarget(
   input: Record<string, unknown>
-): string | null {
+): { nodeId?: string; semanticKey?: string } | null {
   if (typeof input.nodeId === 'string' && input.nodeId.trim().length > 0) {
-    return input.nodeId.trim();
+    return { nodeId: input.nodeId.trim() };
   }
   if (typeof input.id === 'string' && input.id.trim().length > 0) {
-    return input.id.trim();
+    return { nodeId: input.id.trim() };
   }
   if (typeof input.targetId === 'string' && input.targetId.trim().length > 0) {
-    return input.targetId.trim();
+    return { nodeId: input.targetId.trim() };
+  }
+  if (
+    typeof input.semanticKey === 'string' &&
+    input.semanticKey.trim().length > 0
+  ) {
+    return { semanticKey: input.semanticKey.trim() };
   }
   return null;
 }
@@ -242,9 +300,31 @@ function normalizePlanPosition(
   if (typeof input.afterId === 'string' && input.afterId.trim().length > 0) {
     position.afterId = input.afterId;
   }
+  if (
+    typeof input.beforeSemanticKey === 'string' &&
+    input.beforeSemanticKey.trim().length > 0
+  ) {
+    position.beforeSemanticKey = input.beforeSemanticKey.trim();
+  }
+  if (
+    typeof input.afterSemanticKey === 'string' &&
+    input.afterSemanticKey.trim().length > 0
+  ) {
+    position.afterSemanticKey = input.afterSemanticKey.trim();
+  }
   if (typeof input.index === 'number' && Number.isInteger(input.index)) {
     position.index = input.index;
   }
 
   return Object.keys(position).length > 0 ? position : undefined;
+}
+
+function hasNonEmptyStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (entry) => typeof entry === 'string' && entry.trim().length > 0
+    )
+  );
 }

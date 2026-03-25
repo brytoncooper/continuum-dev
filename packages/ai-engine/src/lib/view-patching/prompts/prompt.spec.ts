@@ -5,18 +5,19 @@ import {
 } from './prompt.js';
 
 describe('view-patching prompts', () => {
-  it('documents the patch/full modes and supported operations', () => {
+  it('documents localized operations and supported operation kinds', () => {
     const prompt = buildPatchSystemPrompt();
 
     expect(prompt).toContain('live Continuum form');
     expect(prompt).toContain(
       'This is the localized structural edit lane, not the state-update lane and not full view authoring.'
     );
-    expect(prompt).toContain('mode="patch"');
-    expect(prompt).toContain('mode="full"');
-    expect(prompt).toContain('fullStrategy as either "evolve" or "replace"');
+    expect(prompt).toContain('Response shape:');
     expect(prompt).toContain(
-      'Stay local. Do not use patch mode for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.'
+      'This lane only emits localized structural operations.'
+    );
+    expect(prompt).toContain(
+      'Stay local. Do not use this lane for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.'
     );
     expect(prompt).toContain(
       'insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content'
@@ -33,7 +34,7 @@ describe('view-patching prompts', () => {
       schema: {
         type: 'object',
         additionalProperties: false,
-        required: ['mode', 'operations'],
+        required: ['operations'],
       },
     });
 

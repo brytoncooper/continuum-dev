@@ -1,5 +1,4 @@
-import type { ViewNode } from '@continuum-dev/core';
-import type { ContinuumViewPatchPosition } from '@continuum-dev/protocol';
+import type { ContinuumViewStructuralStreamPart } from '@continuum-dev/protocol';
 
 export interface PatchNodeHint {
   path: string;
@@ -49,43 +48,9 @@ export interface PatchContextPayload {
   compactTree: CompactPatchNode[];
 }
 
-export type ViewPatchOperation =
-  | {
-      kind: 'insert-node';
-      parentId?: string | null;
-      position?: ContinuumViewPatchPosition;
-      node: ViewNode;
-    }
-  | {
-      kind: 'move-node';
-      nodeId: string;
-      parentId?: string | null;
-      position?: ContinuumViewPatchPosition;
-    }
-  | {
-      kind: 'wrap-nodes';
-      parentId?: string | null;
-      nodeIds: string[];
-      wrapper: ViewNode;
-    }
-  | {
-      kind: 'replace-node';
-      nodeId: string;
-      node: ViewNode;
-    }
-  | {
-      kind: 'remove-node';
-      nodeId: string;
-    }
-  | {
-      kind: 'append-content';
-      nodeId: string;
-      text: string;
-    };
+export type ViewPatchOperation = ContinuumViewStructuralStreamPart;
 
 export interface ViewPatchPlan {
-  mode: 'patch' | 'full';
   operations: ViewPatchOperation[];
   reason?: string;
-  fullStrategy?: 'evolve' | 'replace';
 }

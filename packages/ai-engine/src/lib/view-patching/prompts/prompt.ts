@@ -11,15 +11,9 @@ export const VIEW_PATCH_OUTPUT_CONTRACT: PromptOutputContract = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['mode', 'operations'],
+    required: ['operations'],
     properties: {
-      mode: {
-        type: 'string',
-      },
       reason: {
-        type: 'string',
-      },
-      fullStrategy: {
         type: 'string',
       },
       operations: {
@@ -68,16 +62,11 @@ export function buildPatchSystemPrompt(): string {
     'Return JSON only.',
     'Do not wrap the JSON in markdown fences.',
     'Do not include commentary before or after the JSON.',
-    'Mode options:',
-    '- mode="patch": return explicit update operations for small updates.',
-    '- mode="full": return no operations when patching is unsafe or ambiguous.',
-    '- When mode="full", include fullStrategy as either "evolve" or "replace".',
+    'Response shape: {"operations":[...],"reason":"optional short note"}.',
     'Rules:',
-    '- Prefer mode="patch" when the user asks for a localized change.',
-    '- Stay local. Do not use patch mode for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.',
+    '- This lane only emits localized structural operations. Do not request full view regeneration here; if the change is unsafe or needs a new workflow, return an empty operations array.',
+    '- Stay local. Do not use this lane for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.',
     '- Requests like "add more", "make this shorter", "make it nicer", and "ask less" should usually stay local unless the existing UI clearly cannot support the request without a broader redesign.',
-    '- If instruction implies a brand new or replacement workflow, choose mode="full" and fullStrategy="replace".',
-    '- If instruction can still evolve the current workflow but patching is unsafe, choose mode="full" and fullStrategy="evolve".',
     '- Supported operation kinds are: insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content.',
     '- insert-node adds one full node subtree at a parent or the top level. Include position to control placement: {beforeId, afterId, or index}.',
     '- move-node repositions one existing node within or across parents. Always include position to specify the target ordering: {beforeId, afterId, or index}. For "move to the top" use position:{index:0}. For "move after X" use position:{afterId:"x_id"}.',

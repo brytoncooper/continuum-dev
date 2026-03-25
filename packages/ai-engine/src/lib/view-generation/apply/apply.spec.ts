@@ -184,12 +184,11 @@ describe('view generation apply helpers', () => {
       applyView,
     };
 
-    const result = applyPatchPlanThroughUpdateParts(
-      session as never,
-      'OpenAI',
-      createView(),
-      {
-        mode: 'patch',
+    const result =       applyPatchPlanThroughUpdateParts(
+        session as never,
+        'OpenAI',
+        createView(),
+        {
         operations: [
           {
             kind: 'insert-node',

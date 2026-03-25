@@ -65,21 +65,10 @@ function requireNode(view: ViewDefinition, nodeId: string): ViewNode {
 }
 
 describe('applyPatchPlanToView', () => {
-  it('returns null for non-patch plans and empty patch plans', () => {
+  it('returns null for empty patch plans', () => {
     const view = createInvoiceView();
 
-    expect(
-      applyPatchPlanToView(view, {
-        mode: 'full',
-        operations: [],
-      })
-    ).toBeNull();
-    expect(
-      applyPatchPlanToView(view, {
-        mode: 'patch',
-        operations: [],
-      })
-    ).toBeNull();
+    expect(applyPatchPlanToView(view, { operations: [] })).toBeNull();
   });
 
   it('applies append-content using canonical node ids without mutating the input view', () => {
@@ -87,7 +76,6 @@ describe('applyPatchPlanToView', () => {
     const originalSnapshot = structuredClone(view);
 
     const patched = applyPatchPlanToView(view, {
-      mode: 'patch',
       operations: [
         {
           kind: 'append-content',
@@ -117,7 +105,6 @@ describe('applyPatchPlanToView', () => {
     'bumps version %s to %s when a patch changes the tree',
     (version, expected) => {
       const patched = applyPatchPlanToView(createInvoiceView(version), {
-        mode: 'patch',
         operations: [
           {
             kind: 'insert-node',
@@ -138,7 +125,6 @@ describe('applyPatchPlanToView', () => {
     {
       label: 'invalid move destinations',
       plan: {
-        mode: 'patch' as const,
         operations: [
           {
             kind: 'move-node' as const,
@@ -151,7 +137,6 @@ describe('applyPatchPlanToView', () => {
     {
       label: 'missing remove targets',
       plan: {
-        mode: 'patch' as const,
         operations: [
           {
             kind: 'remove-node' as const,
@@ -163,7 +148,6 @@ describe('applyPatchPlanToView', () => {
     {
       label: 'wrap operations with missing siblings',
       plan: {
-        mode: 'patch' as const,
         operations: [
           {
             kind: 'wrap-nodes' as const,
@@ -189,7 +173,6 @@ describe('applyPatchPlanToView', () => {
     const view = createInvoiceView('v7');
 
     const patched = applyPatchPlanToView(view, {
-      mode: 'patch',
       operations: [
         {
           kind: 'move-node',

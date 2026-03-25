@@ -22,7 +22,7 @@ export function applyPatchPlanToView(
   currentView: ViewDefinition,
   plan: ViewPatchPlan
 ): ViewDefinition | null {
-  if (plan.mode !== 'patch' || plan.operations.length === 0) {
+  if (plan.operations.length === 0) {
     return null;
   }
 

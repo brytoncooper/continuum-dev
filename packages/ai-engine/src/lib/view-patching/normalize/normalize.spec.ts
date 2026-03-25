@@ -5,9 +5,10 @@ import {
 } from './normalize.js';
 
 describe('view-patching normalization', () => {
-  it('recognizes only patch/full objects with an operations array as patch plans', () => {
+  it('recognizes local patch plans with an operations array', () => {
     expect(isViewPatchPlan({ mode: 'patch', operations: [] })).toBe(true);
-    expect(isViewPatchPlan({ mode: 'full', operations: [] })).toBe(true);
+    expect(isViewPatchPlan({ operations: [] })).toBe(true);
+    expect(isViewPatchPlan({ mode: 'full', operations: [] })).toBe(false);
     expect(isViewPatchPlan({ mode: 'patch' })).toBe(false);
     expect(isViewPatchPlan({ mode: 'state', operations: [] })).toBe(false);
     expect(isViewPatchPlan(null)).toBe(false);
@@ -98,6 +99,62 @@ describe('view-patching normalization', () => {
       kind: 'move-node',
       nodeId: 'body',
       position: { index: 0 },
+    });
+  });
+
+  it('accepts semantic selectors for targeted and parent-based operations', () => {
+    expect(
+      normalizeViewPatchOperation({
+        kind: 'replace-node',
+        semanticKey: 'lead.email',
+        node: {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          semanticKey: 'lead.email',
+          label: 'Email address',
+        },
+      })
+    ).toEqual({
+      kind: 'replace-node',
+      semanticKey: 'lead.email',
+      node: {
+        id: 'email',
+        type: 'field',
+        dataType: 'string',
+        semanticKey: 'lead.email',
+        label: 'Email address',
+      },
+    });
+
+    expect(
+      normalizeViewPatchOperation({
+        kind: 'insert-node',
+        parentSemanticKey: 'profile.contact',
+        position: {
+          afterSemanticKey: 'lead.email',
+        },
+        node: {
+          id: 'phone',
+          type: 'field',
+          dataType: 'string',
+          semanticKey: 'lead.phone',
+          label: 'Phone',
+        },
+      })
+    ).toEqual({
+      kind: 'insert-node',
+      parentSemanticKey: 'profile.contact',
+      position: {
+        afterSemanticKey: 'lead.email',
+      },
+      node: {
+        id: 'phone',
+        type: 'field',
+        dataType: 'string',
+        semanticKey: 'lead.phone',
+        label: 'Phone',
+      },
     });
   });
 
@@ -210,6 +267,20 @@ describe('view-patching normalization', () => {
     });
   });
 
+  it('rejects full-view escalation payloads in the patch lane', () => {
+    expect(
+      normalizeViewPatchPlan({
+        mode: 'full',
+        operations: [],
+        reason: 'unsafe',
+      })
+    ).toEqual({
+      plan: null,
+      reason:
+        'Full view escalation is not supported in the patch lane; use execution mode view instead.',
+    });
+  });
+
   it('normalizes entire patch plans before they reach execution', () => {
     expect(
       normalizeViewPatchPlan({
@@ -235,7 +306,6 @@ describe('view-patching normalization', () => {
       })
     ).toEqual({
       plan: {
-        mode: 'patch',
         reason: 'Merge name fields',
         operations: [
           {
