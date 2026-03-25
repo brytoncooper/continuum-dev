@@ -33,8 +33,7 @@ Streaming guide: [STREAMING.md](./STREAMING.md)
 
 Upgrade references:
 
-- [Root upgrade guide](../../docs/UPGRADING_FROM_0.3.x_TO_NEXT.md)
-- [API delta](../../docs/API_DELTA_0.3.x_TO_NEXT.md)
+- Root upgrade guide and API delta (private maintainer documentation repository)
 
 ```bash
 npm install @continuum-dev/session

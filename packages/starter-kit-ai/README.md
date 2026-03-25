@@ -87,7 +87,7 @@ In those cases, start with `@continuum-dev/react`, `@continuum-dev/ai-engine`, a
 
 - [Root README](../../README.md)
 - [Quick Start](../../docs/QUICK_START.md)
-- [Starter reference app](../../docs/REFERENCE_STARTER_APP.md)
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
-- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
+
+Reference app walkthroughs live in the private maintainer documentation repository.

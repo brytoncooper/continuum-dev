@@ -148,7 +148,6 @@ These normalize into Continuum stream/session behavior, including draft previews
 
 - [AI Integration Guide](../../docs/AI_INTEGRATION.md)
 - [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
-- [Headless AI reference app](../../docs/REFERENCE_HEADLESS_AI_APP.md)
 
 ## License
 
