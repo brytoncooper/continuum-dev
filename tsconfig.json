@@ -47,6 +47,9 @@
     },
     {
       "path": "./packages/protocol"
+    },
+    {
+      "path": "./packages/developer-documentation"
     }
   ]
 }

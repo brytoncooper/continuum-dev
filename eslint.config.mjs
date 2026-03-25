@@ -196,6 +196,10 @@ export default [
               ],
             },
             {
+              sourceTag: 'scope:developer-documentation',
+              onlyDependOnLibsWithTags: ['scope:developer-documentation'],
+            },
+            {
               sourceTag: 'scope:async',
               onlyDependOnLibsWithTags: ['scope:shared', 'scope:async'],
             },
