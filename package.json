@@ -1,6 +1,6 @@
 {
   "name": "@continuum-dev/source",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "license": "MIT",
   "scripts": {
     "demo": "nx run demo:serve",
@@ -11,7 +11,7 @@
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
     "verify:release-packages": "node scripts/verify-release-packages.mjs",
     "publish:public-packages": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && npx nx release publish --groups=publicPackages",
-    "publish:local-verdaccio": "npm run build:release-packages && npm run prepare:dist-packages && node scripts/publish-local-verdaccio.mjs"
+    "publish:local-verdaccio": "npm run build:release-packages && npm run prepare:dist-packages && npm run verify:release-packages && node scripts/publish-local-verdaccio.mjs && node scripts/publish-local-private-apps.mjs && node scripts/sync-local-registry-latest-tags.mjs"
   },
   "private": true,
   "devDependencies": {
@@ -63,7 +63,8 @@
         "options": {
           "port": 4873,
           "config": ".verdaccio/config.yml",
-          "storage": "tmp/local-registry/storage"
+          "storage": "tmp/local-registry/storage",
+          "clear": false
         }
       }
     }
