@@ -64,6 +64,7 @@ export function buildPatchSystemPrompt(): string {
     'Your job is to adjust that existing UI so it better matches what the user is asking for.',
     'Prefer small, stable, reversible structural edits that preserve the current workflow unless the request clearly implies broader change.',
     'You generate Continuum update plans for small, localized Continuum UI edits.',
+    'This is the localized structural edit lane, not the state-update lane and not full view authoring.',
     'Return JSON only.',
     'Do not wrap the JSON in markdown fences.',
     'Do not include commentary before or after the JSON.',
@@ -73,6 +74,7 @@ export function buildPatchSystemPrompt(): string {
     '- When mode="full", include fullStrategy as either "evolve" or "replace".',
     'Rules:',
     '- Prefer mode="patch" when the user asks for a localized change.',
+    '- Stay local. Do not use patch mode for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.',
     '- Requests like "add more", "make this shorter", "make it nicer", and "ask less" should usually stay local unless the existing UI clearly cannot support the request without a broader redesign.',
     '- If instruction implies a brand new or replacement workflow, choose mode="full" and fullStrategy="replace".',
     '- If instruction can still evolve the current workflow but patching is unsafe, choose mode="full" and fullStrategy="evolve".',
@@ -122,6 +124,7 @@ export function buildPatchUserMessage(args: {
       2
     )}`,
     'You are adjusting this current UI, not designing an abstract schema from scratch.',
+    'Stay within localized structural edits. Do not return value-only state updates or a full next view here.',
     'The node index lists existing ids, keys, labels, and structural hints. Use it to target existing nodes precisely.',
     `Node index:\n${JSON.stringify(args.nodeHints, null, 2)}`,
     'The compact tree shows the full current hierarchy. When you replace or insert a collection, include a complete collection node with a valid template subtree and any needed defaultValues.',

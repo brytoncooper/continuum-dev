@@ -9,6 +9,9 @@ describe('view-json system prompt', () => {
 
     expect(prompt).toContain('<continuum_view_authoring>');
     expect(prompt).toContain(
+      'This is full view authoring. Do not return state updates, patch operations, or transform plans.'
+    );
+    expect(prompt).toContain(
       '- The JSON object you return becomes the UI a user sees in a live browser session.'
     );
     expect(prompt).toContain(
@@ -60,6 +63,9 @@ describe('view-json user message', () => {
     });
 
     expect(message).toContain('Continuum context:');
+    expect(message).toContain(
+      'This is the full-view authoring lane. Do not answer with state updates, patch operations, or transform plans.'
+    );
     expect(message).toContain('Current view:\n{\n  "viewId": "profile"\n}');
     expect(message).toContain('Detached fields:\nnone');
     expect(message).toContain('Validation errors:\nmissing primary action');

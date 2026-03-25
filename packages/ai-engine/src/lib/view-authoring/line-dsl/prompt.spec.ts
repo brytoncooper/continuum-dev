@@ -12,6 +12,9 @@ describe('view line dsl prompts', () => {
 
     expect(prompt).toContain('Continuum product context:');
     expect(prompt).toContain(
+      'This is full view authoring. Do not return state, patch, or transform JSON.'
+    );
+    expect(prompt).toContain(
       'Return a corrected next view that resolves the provided errors while preserving unchanged semantics and current workflow when possible.'
     );
     expect(
@@ -37,6 +40,9 @@ describe('view line dsl prompts', () => {
     });
 
     expect(message).toContain('Continuum context:');
+    expect(message).toContain(
+      'This is the full-view authoring lane. Do not answer with state updates, patch operations, or transform plans.'
+    );
     expect(message).toContain('Current view:\n{\n  "viewId": "profile"\n}');
     expect(message).toContain('Detached fields:\nnone');
     expect(message).toContain('Validation errors:\nmissing primary action');

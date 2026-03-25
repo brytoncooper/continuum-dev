@@ -27,7 +27,7 @@ export async function* runPatchPhase(
   }
 
   const patchRetryFeedback =
-    'The previous JSON did not yield usable patch operations. Return mode="patch" with a non-empty operations array using only supported kinds, valid existing node ids from the index, or mode="full" with fullStrategy if a full view change is required.';
+    'The previous JSON did not yield usable patch operations. Retry with the smallest valid localized edit plan. If you choose mode="patch", return a non-empty operations array using only supported operation kinds and valid existing node ids from the index. If a localized patch is unsafe, return mode="full" with fullStrategy="evolve" or "replace" and no operations.';
 
   const patchMessageSections = [
     buildPatchUserMessage({

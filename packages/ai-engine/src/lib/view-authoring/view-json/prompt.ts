@@ -21,7 +21,7 @@ export function buildViewJsonSystemPrompt(args: {
     outputContract: VIEW_DEFINITION_OUTPUT_CONTRACT,
     includeOutputContractInstructions: true,
   });
-  return `${core}\n\n${buildViewJsonAuthoringExtension(args)}`;
+  return `${core}\n\nThis is full view authoring. Do not return state updates, patch operations, or transform plans.\n\n${buildViewJsonAuthoringExtension(args)}`;
 }
 
 /**
@@ -48,7 +48,8 @@ export function buildViewJsonUserMessage(args: {
     'Continuum context:\n' +
       '- The current view represents the live browser UI the user is working on.\n' +
       '- Your response becomes the next version of that UI.\n' +
-      '- Keep the current workflow stable unless the instruction clearly asks for broader change.' +
+      '- Keep the current workflow stable unless the instruction clearly asks for broader change.\n' +
+      '- This is the full-view authoring lane. Do not answer with state updates, patch operations, or transform plans.' +
       (integrationBindingText.length > 0
         ? '\n- A backend integration contract is included below: every persisted field semantic key must stay within that single endpoint schema.'
         : '')

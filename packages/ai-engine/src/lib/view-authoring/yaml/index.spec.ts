@@ -101,8 +101,14 @@ version: "2"
     });
 
     expect(systemPrompt).toContain('Continuum product context:');
+    expect(systemPrompt).toContain(
+      'This is full view authoring. Do not return state, patch, or transform JSON.'
+    );
     expect(systemPrompt).toContain('```yaml');
     expect(userMessage).toContain('Continuum context:');
+    expect(userMessage).toContain(
+      'This is the full-view authoring lane. Do not answer with state updates, patch operations, or transform plans.'
+    );
     expect(userMessage).toContain('Return exactly one ```yaml fenced block');
   });
 });

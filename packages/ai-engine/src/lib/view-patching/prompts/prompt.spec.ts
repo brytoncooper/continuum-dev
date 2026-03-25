@@ -9,9 +9,15 @@ describe('view-patching prompts', () => {
     const prompt = buildPatchSystemPrompt();
 
     expect(prompt).toContain('live Continuum form');
+    expect(prompt).toContain(
+      'This is the localized structural edit lane, not the state-update lane and not full view authoring.'
+    );
     expect(prompt).toContain('mode="patch"');
     expect(prompt).toContain('mode="full"');
     expect(prompt).toContain('fullStrategy as either "evolve" or "replace"');
+    expect(prompt).toContain(
+      'Stay local. Do not use patch mode for broad schema redesigns, value-only updates, or requests that clearly need a brand-new workflow.'
+    );
     expect(prompt).toContain(
       'insert-node, move-node, wrap-nodes, replace-node, remove-node, append-content'
     );
@@ -79,6 +85,9 @@ describe('view-patching prompts', () => {
     expect(message).toContain('live browser UI');
     expect(message).toContain('"viewId": "invoice"');
     expect(message).toContain('"version": "7"');
+    expect(message).toContain(
+      'Stay within localized structural edits. Do not return value-only state updates or a full next view here.'
+    );
     expect(message).toContain('Node index:');
     expect(message).toContain('"path": "details/body"');
     expect(message).toContain('Compact full tree snapshot:');
