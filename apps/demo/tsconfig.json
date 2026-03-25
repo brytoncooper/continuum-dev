@@ -21,19 +21,13 @@
       "path": "../../packages/protocol"
     },
     {
-      "path": "../../packages/vercel-ai-sdk-adapter"
-    },
-    {
       "path": "../../packages/core"
     },
     {
+      "path": "../../packages/vercel-ai-sdk-adapter"
+    },
+    {
       "path": "../../packages/starter-kit-ai"
-    },
-    {
-      "path": "../../packages/starter-kit"
-    },
-    {
-      "path": "../../packages/session"
     },
     {
       "path": "../../packages/react"
@@ -45,7 +39,7 @@
       "path": "../../packages/ai-engine"
     },
     {
-      "path": "../../packages/ai-connect"
+      "path": "../../packages/starter-kit"
     }
   ]
 }
