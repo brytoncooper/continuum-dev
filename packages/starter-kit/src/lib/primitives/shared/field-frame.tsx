@@ -5,6 +5,7 @@ import {
   useStarterKitStyle,
 } from '../../style-config.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
+import { useFieldProposalPlacement } from '../../proposals/field-proposal-placement-context.js';
 import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
 import { streamedNodeMotionStyle } from './motion.js';
 
@@ -78,8 +79,30 @@ export function FieldFrame({
   children: ReactNode;
 }) {
   const Root = as;
+  const proposalPlacement = useFieldProposalPlacement();
+  const showProposal = Boolean(
+    nodeId &&
+      hasSuggestion &&
+      onAcceptSuggestion &&
+      onRejectSuggestion
+  );
 
-  return (
+  const proposalBlock =
+    showProposal && onAcceptSuggestion && onRejectSuggestion ? (
+      <StarterKitFieldProposal
+        title={label ?? 'Suggestion'}
+        hasSuggestion={Boolean(hasSuggestion)}
+        currentValue={currentValue}
+        suggestionValue={suggestionValue}
+        currentLabel="Current value"
+        nextLabel="Suggested"
+        bannerVariant={proposalPlacement === 'adjacent' ? 'popover' : 'card'}
+        onAccept={onAcceptSuggestion}
+        onReject={onRejectSuggestion}
+      />
+    ) : null;
+
+  const inner = (
     <Root
       style={{
         ...wrapStyle,
@@ -120,18 +143,49 @@ export function FieldFrame({
       >
         {children}
       </div>
-      {nodeId && hasSuggestion && onAcceptSuggestion && onRejectSuggestion ? (
-        <StarterKitFieldProposal
-          title={label ?? 'Field suggestion'}
-          hasSuggestion={Boolean(hasSuggestion)}
-          currentValue={currentValue}
-          suggestionValue={suggestionValue}
-          currentLabel="Current value"
-          nextLabel="AI suggestion"
-          onAccept={onAcceptSuggestion}
-          onReject={onRejectSuggestion}
-        />
-      ) : null}
+      {proposalPlacement === 'below' ? proposalBlock : null}
     </Root>
   );
+
+  if (proposalPlacement === 'adjacent' && showProposal) {
+    return (
+      <div
+        className="continuum-adjacent-proposal-anchor"
+        style={{
+          position: 'relative',
+          display: 'grid',
+          minWidth: 0,
+        }}
+      >
+        <style>
+          {`
+            .continuum-adjacent-proposal-anchor:hover .continuum-adjacent-proposal-panel,
+            .continuum-adjacent-proposal-anchor:focus-within .continuum-adjacent-proposal-panel {
+              opacity: 1;
+              pointer-events: auto;
+            }
+          `}
+        </style>
+        {inner}
+        <div
+          className="continuum-adjacent-proposal-panel"
+          data-continuum-adjacent-proposal-panel="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            zIndex: 2,
+            maxWidth: 'min(320px, 100%)',
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: 'opacity 120ms ease-out',
+          }}
+        >
+          {proposalBlock}
+        </div>
+      </div>
+    );
+  }
+
+  return inner;
 }

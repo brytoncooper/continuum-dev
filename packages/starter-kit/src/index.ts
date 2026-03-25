@@ -36,6 +36,11 @@ export {
   scalarFieldDisplayString,
 } from './lib/primitives/shared/node.js';
 export * from './lib/proposals/conflict-banner.js';
+export {
+  FieldProposalPlacementProvider,
+  useFieldProposalPlacement,
+} from './lib/proposals/field-proposal-placement-context.js';
+export type { FieldProposalPlacement } from './lib/proposals/field-proposal-placement-context.js';
 export * from './lib/proposals/field-proposal.js';
 export * from './lib/proposals/restore-badge.js';
 export * from './lib/proposals/restore-review-card.js';

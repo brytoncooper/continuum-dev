@@ -17,6 +17,7 @@ export function StarterKitFieldProposal({
   nextLabel,
   onAccept,
   onReject,
+  bannerVariant = 'card',
 }: {
   title: string;
   hasSuggestion: boolean;
@@ -26,6 +27,7 @@ export function StarterKitFieldProposal({
   nextLabel?: string;
   onAccept: () => void;
   onReject: () => void;
+  bannerVariant?: 'card' | 'popover';
 }) {
   if (!hasSuggestion) {
     return null;
@@ -39,6 +41,7 @@ export function StarterKitFieldProposal({
       nextValue={stringifyValue(suggestionValue)}
       nextLabel={nextLabel}
       tone="proposal"
+      variant={bannerVariant}
       onAccept={onAccept}
       onReject={onReject}
     />
