@@ -9,9 +9,11 @@ import {
   type ContinuumChatAttachment,
   type ContinuumExecutionAdapter,
   type ContinuumExecutionContext,
+  type ContinuumExecutionEvent,
   type ContinuumExecutionFinalResult,
   type ContinuumExecutionRequest,
   type ContinuumViewAuthoringFormat,
+  type StreamContinuumExecutionArgs,
 } from '@continuum-dev/ai-engine';
 import type {
   PromptAddon,
@@ -23,6 +25,11 @@ import type {
   ContinuumVercelAiSdkExecutionTraceData,
   ContinuumVercelAiSdkMessage,
 } from './lib/types.js';
+
+export type StreamContinuumExecutionFn = (
+  args: StreamContinuumExecutionArgs
+) => AsyncGenerator<ContinuumExecutionEvent, ContinuumExecutionFinalResult>;
+
 export interface VercelAiSdkContinuumExecutionAdapterOptions {
   label?: string;
   model?: LanguageModel;
@@ -50,6 +57,7 @@ export interface WriteContinuumExecutionToUiMessageWriterArgs {
   emitViewPreviews?: boolean;
   viewPreviewThrottleMs?: number;
   viewStreamMode?: SessionStreamMode;
+  streamContinuumExecution?: StreamContinuumExecutionFn;
 }
 export interface CreateContinuumUiMessageStreamArgs
   extends Omit<WriteContinuumExecutionToUiMessageWriterArgs, 'writer'> {
@@ -73,6 +81,7 @@ export interface CreateContinuumVercelAiSdkRouteHandlerOptions {
   defaultMode?: PromptMode;
   defaultAuthoringFormat?: ContinuumViewAuthoringFormat;
   defaultViewStreamMode?: SessionStreamMode;
+  streamContinuumExecution?: StreamContinuumExecutionFn;
 }
 export type ContinuumVercelAiSdkRouteRequestBody =
   ContinuumVercelAiSdkRequestBody & {

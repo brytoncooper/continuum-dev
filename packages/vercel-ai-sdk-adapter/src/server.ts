@@ -20,7 +20,7 @@ import type {
 import {
   buildDetachedFieldHints,
   parseJson,
-  streamContinuumExecution,
+  streamContinuumExecution as defaultStreamContinuumExecution,
   type ContinuumChatAttachment,
   type ContinuumExecutionAdapter,
   type ContinuumExecutionContext,
@@ -30,6 +30,7 @@ import {
   type ContinuumExecutionResponse,
   type ContinuumExecutionTraceEntry,
   type ContinuumViewAuthoringFormat,
+  type StreamContinuumExecutionArgs,
   type ViewPatchOperation,
 } from '@continuum-dev/ai-engine';
 import type {
@@ -72,6 +73,7 @@ export interface WriteContinuumExecutionToUiMessageWriterArgs {
   emitViewPreviews?: boolean;
   viewPreviewThrottleMs?: number;
   viewStreamMode?: SessionStreamMode;
+  streamContinuumExecution?: StreamContinuumExecutionFn;
 }
 
 export interface CreateContinuumUiMessageStreamArgs
@@ -97,6 +99,7 @@ export interface CreateContinuumVercelAiSdkRouteHandlerOptions {
   defaultMode?: PromptMode;
   defaultAuthoringFormat?: ContinuumViewAuthoringFormat;
   defaultViewStreamMode?: SessionStreamMode;
+  streamContinuumExecution?: StreamContinuumExecutionFn;
 }
 
 export type ContinuumVercelAiSdkRouteRequestBody =
@@ -112,6 +115,10 @@ interface WriteExecutionEventResult {
 function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
+
+export type StreamContinuumExecutionFn = (
+  args: StreamContinuumExecutionArgs
+) => AsyncGenerator<ContinuumExecutionEvent, ContinuumExecutionFinalResult>;
 
 const MAX_CONVERSATION_CONTEXT_CHARS = 12000;
 
@@ -917,7 +924,9 @@ export function createVercelAiSdkContinuumExecutionAdapter(
 export async function writeContinuumExecutionToUiMessageWriter(
   args: WriteContinuumExecutionToUiMessageWriterArgs
 ): Promise<ContinuumExecutionFinalResult> {
-  const iterator = streamContinuumExecution({
+  const stream =
+    args.streamContinuumExecution ?? defaultStreamContinuumExecution;
+  const iterator = stream({
     adapter: args.adapter,
     instruction: args.instruction,
     context: args.context,
@@ -962,6 +971,7 @@ export function createContinuumUiMessageStream(
           authoringFormat: args.authoringFormat,
           autoApplyView: args.autoApplyView,
           viewStreamMode: args.viewStreamMode,
+          streamContinuumExecution: args.streamContinuumExecution,
         });
 
         writeChunk(writer, {
@@ -1079,6 +1089,7 @@ export function createContinuumVercelAiSdkRouteHandler(
       emitViewPreviews: body.continuum?.emitViewPreviews,
       viewPreviewThrottleMs: body.continuum?.viewPreviewThrottleMs,
       viewStreamMode: options.defaultViewStreamMode,
+      streamContinuumExecution: options.streamContinuumExecution,
     });
 
     return createUIMessageStreamResponse({
