@@ -39,7 +39,7 @@ export async function* runPatchPhase(
       detachedFields: env.detachedFields,
       conversationSummary: env.conversationSummary || undefined,
     }),
-    'Planner-selected localized targets:',
+    'Selected localized targets:',
     JSON.stringify(env.selectedTargets, null, 2),
   ];
   if (env.integrationBinding.trim().length > 0) {

@@ -1,4 +1,4 @@
-import { buildReferenceExecutionPlan } from '../reference-execution-plan.js';
+import { resolveOssExecutionPlan } from '../resolve-oss-execution-plan.js';
 import { normalizeError } from './trace/normalize-error.js';
 import type {
   ContinuumExecutionEvent,
@@ -17,31 +17,22 @@ export async function* streamContinuumExecution(
   const env = createStreamContinuumExecutionEnv(args);
 
   try {
-    if (env.autoApplyView) {
-      yield {
-        kind: 'status',
-        status:
-          'Choosing a reference Continuum execution path (no LLM planner). For premium planning, use @continuum-cloud/ai-execution.',
-        level: 'info',
-      };
-
-      env.executionPlan = buildReferenceExecutionPlan({
-        autoApplyView: env.autoApplyView,
-        instruction: env.args.instruction,
-        currentView: env.currentView,
-        patchTargets: env.patchTargets,
-        stateTargets: env.stateTargets,
-        requestedMode: env.args.mode,
-        availableExecutionModes: env.availableExecutionModes,
-      });
-    }
+    env.executionPlan = resolveOssExecutionPlan({
+      executionPlan: env.args.executionPlan,
+      executionMode: env.args.executionMode,
+      authoringPromptMode: env.args.mode,
+      availableExecutionModes: env.availableExecutionModes,
+      stateTargets: env.stateTargets,
+      patchTargets: env.patchTargets,
+      currentView: env.currentView,
+    });
 
     env.integrationBinding = '';
 
     yield {
       kind: 'status',
-      status: `Reference executor chose ${env.executionPlan.mode} mode${
-        env.executionPlan.reason ? `: ${env.executionPlan.reason}.` : '.'
+      status: `OSS execution chose ${env.executionPlan.mode} mode${
+        env.executionPlan.reason ? `: ${env.executionPlan.reason}` : '.'
       }`,
       level: 'info',
     };

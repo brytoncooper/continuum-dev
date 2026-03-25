@@ -100,15 +100,13 @@ export function createStreamContinuumExecutionEnv(
   });
 
   const executionPlan: SelectedExecutionPlan = {
-    mode: availableExecutionModes[0] ?? 'view',
+    mode: 'view',
     fallback: 'view',
     authoringMode:
       promptMode === 'create-view' || promptMode === 'evolve-view'
         ? promptMode
         : undefined,
-    reason: autoApplyView
-      ? 'reference executor pending'
-      : 'view generation requested',
+    reason: 'OSS default: full view generation (resolved in stream).',
     targetNodeIds: [],
     targetSemanticKeys: [],
     validation: 'accepted',
