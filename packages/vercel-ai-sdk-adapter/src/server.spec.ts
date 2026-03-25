@@ -266,47 +266,93 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
   it('still emits localized patch parts when the patch plan is valid', async () => {
     const chunks: Array<Record<string, unknown>> = [];
 
-    const result = await writeContinuumExecutionToUiMessageWriter({
-      writer: {
-        write(chunk) {
-          chunks.push(chunk as Record<string, unknown>);
-        },
-      } as never,
-      adapter: createPatchExecutionAdapter(),
-      executionMode: 'patch',
-      instruction: 'Add a phone field below email.',
-      context: {
-        currentView: {
-          viewId: 'loan_form',
-          version: '1',
-          nodes: [
+    const currentView = {
+      viewId: 'loan_form',
+      version: '1',
+      nodes: [
+        {
+          id: 'loan_root',
+          type: 'group',
+          children: [
             {
-              id: 'loan_root',
-              type: 'group',
-              children: [
-                {
-                  id: 'email',
-                  type: 'field',
-                  key: 'email',
-                  label: 'Email',
-                  dataType: 'string',
-                },
-              ],
+              id: 'email',
+              type: 'field',
+              key: 'email',
+              label: 'Email',
+              dataType: 'string',
             },
           ],
         },
-        currentData: {},
-      },
-      authoringFormat: 'line-dsl',
-    });
-
-    expect(result).toMatchObject({
+      ],
+    };
+    const patchPlan = {
       mode: 'patch',
-      level: 'success',
-    });
-    expect(chunks.some((chunk) => chunk.type === 'data-continuum-patch')).toBe(
-      true
-    );
+      operations: [
+        {
+          kind: 'insert-node',
+          parentId: 'loan_root',
+          position: { afterId: 'email' },
+          node: {
+            id: 'phone',
+            type: 'field',
+            key: 'phone',
+            label: 'Phone',
+            dataType: 'string',
+          },
+        },
+      ],
+    } as const;
+
+    const streamSpy = vi
+      .spyOn(aiEngine, 'streamContinuumExecution')
+      .mockImplementation((() =>
+        (async function* () {
+          yield {
+            kind: 'patch',
+            currentView,
+            patchPlan,
+          } as never;
+
+          return {
+            mode: 'patch',
+            source: 'Fake AI SDK',
+            status:
+              'Applied localized Continuum patch operations from Fake AI SDK.',
+            level: 'success',
+            trace: [],
+            currentView,
+            patchPlan,
+            parsed: patchPlan,
+          } as never;
+        })()) as typeof aiEngine.streamContinuumExecution);
+
+    try {
+      const result = await writeContinuumExecutionToUiMessageWriter({
+        writer: {
+          write(chunk) {
+            chunks.push(chunk as Record<string, unknown>);
+          },
+        } as never,
+        adapter: createPatchExecutionAdapter(),
+        executionMode: 'patch',
+        instruction: 'Add a phone field below email.',
+        context: {
+          currentView,
+          currentData: {},
+        },
+        authoringFormat: 'line-dsl',
+      });
+
+      expect(result).toMatchObject({
+        mode: 'patch',
+        level: 'success',
+      });
+      expect(
+        chunks.some((chunk) => chunk.type === 'data-continuum-patch')
+      ).toBe(true);
+    } finally {
+      streamSpy.mockRestore();
+    }
   });
 
   it('downgrades zero-mutation patch streams to a warning instead of final success', async () => {
