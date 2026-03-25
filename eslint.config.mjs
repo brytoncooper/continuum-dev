@@ -168,20 +168,6 @@ export default [
               ],
             },
             {
-              sourceTag: 'scope:demo',
-              onlyDependOnLibsWithTags: [
-                'scope:contract',
-                'scope:protocol',
-                'scope:session',
-                'scope:core',
-                'scope:react',
-                'scope:ai-engine',
-                'scope:starter-kit',
-                'scope:starter-kit-ai',
-                'scope:vercel-ai-sdk-adapter',
-              ],
-            },
-            {
               sourceTag: 'scope:starter-app',
               onlyDependOnLibsWithTags: [
                 'scope:contract',
@@ -331,12 +317,6 @@ export default [
     ],
     rules: {
       'max-params': ['warn', { max: 4 }],
-    },
-  },
-  {
-    files: ['apps/demo/vite.config.ts', 'apps/demo/src/docs/docs-content.ts'],
-    rules: {
-      '@nx/enforce-module-boundaries': 'off',
     },
   },
   {
