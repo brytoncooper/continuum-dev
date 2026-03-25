@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type PromptMode,
   VIEW_DEFINITION_OUTPUT_CONTRACT,
@@ -19,6 +20,11 @@ import {
 import { viewPassesPreviewQualityGate } from '../preview/preview-quality-gate.js';
 import { finalizeGeneratedView } from '../preview/view-finalize.js';
 import { repairGeneratedView } from '../preview/view-repair.js';
+import {
+  buildViewEvaluationErrors,
+  evaluateRuntimeViewTransition,
+} from '../evaluation/runtime-view-evaluator.js';
+import { createNoopResult } from '../trace/noop-result.js';
 import { normalizeError } from '../trace/normalize-error.js';
 import { runGenerate, toTraceEntry } from '../trace/trace.js';
 import type {
@@ -28,8 +34,18 @@ import type {
   ContinuumExecutionResponse,
 } from '../../types.js';
 import type { StreamContinuumExecutionEnv } from '../stream-execution-types.js';
+import type { ViewEvolutionDiagnostics } from '@continuum-dev/protocol';
 
 const DEFAULT_VIEW_PREVIEW_THROTTLE_MS = 600;
+
+function buildRegisteredIntentIds(
+  registered: StreamContinuumExecutionEnv['registeredActions']
+): ReadonlySet<string> | undefined {
+  if (!registered || Object.keys(registered).length === 0) {
+    return undefined;
+  }
+  return new Set(Object.keys(registered));
+}
 
 export async function* runViewPhase(
   env: StreamContinuumExecutionEnv,
@@ -196,6 +212,7 @@ export async function* runViewPhase(
 
   let finalView: ViewDefinition | null = null;
   let validationErrors: string[] = [];
+  let viewEvolutionDiagnostics: ViewEvolutionDiagnostics | undefined;
 
   if (parsedView) {
     try {
@@ -250,6 +267,113 @@ export async function* runViewPhase(
     );
   }
 
+  if (env.currentView) {
+    let evaluation = evaluateRuntimeViewTransition({
+      currentView: env.currentView,
+      nextView: finalView,
+      currentData: env.currentData,
+      detachedFields: env.detachedFields,
+      registeredIntentIds: buildRegisteredIntentIds(env.registeredActions),
+      rejectOptions:
+        nextPromptMode === 'create-view'
+          ? { ignoreReplacementRatio: true }
+          : undefined,
+    });
+    viewEvolutionDiagnostics = evaluation.diagnostics;
+
+    if (evaluation.rejectionReason) {
+      env.args.onEditTrace?.({
+        traceId: randomUUID(),
+        phase: 'view',
+        priorViewId: env.currentView.viewId,
+        instruction: env.args.instruction,
+        scopedBrief: env.scopedEditBrief,
+        accepted: false,
+        diagnostics: viewEvolutionDiagnostics,
+        rejectionReason: evaluation.rejectionReason,
+      });
+
+      yield {
+        kind: 'status',
+        status:
+          'The generated view failed runtime continuity evaluation, so Continuum is repairing it before apply.',
+        level: 'warning',
+      };
+
+      const repairedView = await repairGeneratedView({
+        adapter: env.args.adapter,
+        trace: env.trace,
+        authoringFormat: env.authoringFormat,
+        instruction: env.args.instruction,
+        mode: nextPromptMode,
+        addons: env.args.addons,
+        currentView: env.currentView,
+        detachedFields: env.detachedFields,
+        issues: env.issues,
+        validationErrors:
+          viewEvolutionDiagnostics
+            ? buildViewEvaluationErrors(viewEvolutionDiagnostics)
+            : [evaluation.rejectionReason],
+        integrationBinding:
+          env.integrationBinding.trim().length > 0
+            ? env.integrationBinding
+            : undefined,
+        attachments: env.chatAttachments,
+      });
+
+      if (!repairedView) {
+        return createNoopResult({
+          source: env.args.adapter.label,
+          status:
+            'View update could not be applied after runtime evaluation retry.',
+          reason: evaluation.rejectionReason,
+          requestedMode: 'view',
+          trace: env.trace,
+        });
+      }
+
+      evaluation = evaluateRuntimeViewTransition({
+        currentView: env.currentView,
+        nextView: repairedView,
+        currentData: env.currentData,
+        detachedFields: env.detachedFields,
+        registeredIntentIds: buildRegisteredIntentIds(env.registeredActions),
+        rejectOptions:
+          nextPromptMode === 'create-view'
+            ? { ignoreReplacementRatio: true }
+            : undefined,
+      });
+      viewEvolutionDiagnostics = evaluation.diagnostics;
+
+      if (evaluation.rejectionReason) {
+        return createNoopResult({
+          source: env.args.adapter.label,
+          status:
+            'View update could not be applied; runtime evaluation failed.',
+          reason: evaluation.rejectionReason,
+          requestedMode: 'view',
+          trace: env.trace,
+        });
+      }
+
+      finalView = evaluation.appliedState.view;
+    } else {
+      finalView = evaluation.appliedState.view;
+    }
+  }
+
+  if (env.currentView) {
+    env.args.onEditTrace?.({
+      traceId: randomUUID(),
+      phase: 'view',
+      priorViewId: env.currentView.viewId,
+      instruction: env.args.instruction,
+      scopedBrief: env.scopedEditBrief,
+      accepted: true,
+      diagnostics: viewEvolutionDiagnostics,
+    });
+  }
+
   yield {
     kind: 'view-final',
     view: finalView,
@@ -263,5 +387,6 @@ export async function* runViewPhase(
     trace: env.trace,
     view: finalView,
     parsed: finalView,
+    viewEvolutionDiagnostics,
   };
 }

@@ -1,10 +1,15 @@
+import { randomUUID } from 'node:crypto';
+import type { ViewDefinition } from '@continuum-dev/core';
+import type { ViewEvolutionDiagnostics } from '@continuum-dev/protocol';
 import { parseJson } from '../../../view-guardrails/index.js';
 import {
+  applyPatchPlanToView,
   buildPatchSystemPrompt,
   buildPatchUserMessage,
   normalizeViewPatchPlan,
   VIEW_PATCH_OUTPUT_CONTRACT,
 } from '../../../view-patching/index.js';
+import { evaluateRuntimeViewTransition } from '../evaluation/runtime-view-evaluator.js';
 import { looksLikeStructuralEditInstruction } from '../instruction/instruction-heuristics.js';
 import { createNoopResult } from '../trace/noop-result.js';
 import { runGenerate } from '../trace/trace.js';
@@ -14,6 +19,15 @@ import type {
   ContinuumExecutionRequest,
 } from '../../types.js';
 import type { StreamContinuumExecutionEnv } from '../stream-execution-types.js';
+
+function buildRegisteredIntentIds(
+  registered: StreamContinuumExecutionEnv['registeredActions']
+): ReadonlySet<string> | undefined {
+  if (!registered || Object.keys(registered).length === 0) {
+    return undefined;
+  }
+  return new Set(Object.keys(registered));
+}
 
 export async function* runPatchPhase(
   env: StreamContinuumExecutionEnv
@@ -27,7 +41,7 @@ export async function* runPatchPhase(
   }
 
   const patchRetryFeedback =
-    'The previous JSON did not yield usable patch operations. Retry with the smallest valid localized edit plan. If you choose mode="patch", return a non-empty operations array using only supported operation kinds and valid existing node ids from the index. If a localized patch is unsafe, return mode="full" with fullStrategy="evolve" or "replace" and no operations.';
+    'The previous JSON did not yield usable patch operations. Retry with the smallest valid localized edit plan: return {"operations":[...]} with a non-empty operations array using only supported operation kinds and valid existing node ids from the index. If a localized patch is unsafe, return {"operations":[]} and optionally a short reason.';
 
   const patchMessageSections = [
     buildPatchUserMessage({
@@ -67,7 +81,9 @@ export async function* runPatchPhase(
   let parsedPatch = normalizedPatch.plan;
 
   if (!parsedPatch) {
-    const firstOp = Array.isArray((rawPatchValue as { operations?: unknown })?.operations)
+    const firstOp = Array.isArray(
+      (rawPatchValue as { operations?: unknown })?.operations
+    )
       ? (rawPatchValue as { operations: unknown[] }).operations[0]
       : null;
     const opKeys =
@@ -89,12 +105,11 @@ export async function* runPatchPhase(
       : null;
   const rawHadEmptyPatchOperations =
     rawPatchPlan &&
-    rawPatchPlan.mode === 'patch' &&
     Array.isArray(rawPatchPlan.operations) &&
     rawPatchPlan.operations.length === 0;
 
   const patchLooksEmpty =
-    (parsedPatch?.mode === 'patch' && parsedPatch.operations.length === 0) ||
+    (parsedPatch !== null && parsedPatch.operations.length === 0) ||
     rawHadEmptyPatchOperations === true;
 
   if (
@@ -122,11 +137,130 @@ export async function* runPatchPhase(
     parsedPatch = normalizedPatch.plan;
   }
 
-  if (
-    parsedPatch &&
-    parsedPatch.mode === 'patch' &&
-    parsedPatch.operations.length > 0
-  ) {
+  const emitEditTrace = (
+    accepted: boolean,
+    diagnostics: ViewEvolutionDiagnostics | undefined,
+    rejectionReason?: string
+  ) => {
+    env.args.onEditTrace?.({
+      traceId: randomUUID(),
+      phase: 'patch',
+      priorViewId: currentView.viewId,
+      instruction: env.args.instruction,
+      scopedBrief: env.scopedEditBrief,
+      accepted,
+      diagnostics,
+      rejectionReason,
+    });
+  };
+
+  const evaluateAppliedPatch = (
+    priorView: ViewDefinition,
+    plan: NonNullable<typeof parsedPatch>
+  ):
+    | {
+        ok: true;
+        nextView: ViewDefinition;
+        diagnostics: ViewEvolutionDiagnostics;
+      }
+    | { ok: false; reason: string; diagnostics?: ViewEvolutionDiagnostics } => {
+    const nextView = applyPatchPlanToView(priorView, plan);
+    if (!nextView) {
+      return {
+        ok: false,
+        reason: 'Patch operations did not apply to the current view.',
+      };
+    }
+    const evaluation = evaluateRuntimeViewTransition({
+      currentView: priorView,
+      nextView,
+      currentData: env.currentData,
+      detachedFields: env.detachedFields,
+      registeredIntentIds: buildRegisteredIntentIds(env.registeredActions),
+    });
+    if (evaluation.rejectionReason) {
+      return {
+        ok: false,
+        reason: evaluation.rejectionReason,
+        diagnostics: evaluation.diagnostics,
+      };
+    }
+    return {
+      ok: true,
+      nextView: evaluation.appliedState.view,
+      diagnostics: evaluation.diagnostics!,
+    };
+  };
+
+  if (parsedPatch && parsedPatch.operations.length > 0) {
+    let evalResult = evaluateAppliedPatch(currentView, parsedPatch);
+    if (!evalResult.ok && evalResult.diagnostics) {
+      yield {
+        kind: 'status',
+        status:
+          'Patch rejected by runtime evaluation; retrying once with diagnostics feedback.',
+        level: 'info',
+      };
+      const diagnosticRetryRequest: ContinuumExecutionRequest = env.attach({
+        ...patchRequest,
+        userMessage: `${patchUserMessageBase}\n\n${patchRetryFeedback}\n\nRuntime diagnostics (JSON):\n${JSON.stringify(
+          evalResult.diagnostics
+        )}`,
+      });
+      patchResponse = await runGenerate(
+        env.args.adapter,
+        diagnosticRetryRequest,
+        env.trace
+      );
+      rawPatchValue =
+        patchResponse.json ?? parseJson<unknown>(patchResponse.text);
+      normalizedPatch = normalizeViewPatchPlan(rawPatchValue);
+      parsedPatch = normalizedPatch.plan;
+      if (parsedPatch && parsedPatch.operations.length > 0) {
+        evalResult = evaluateAppliedPatch(currentView, parsedPatch);
+      } else {
+        emitEditTrace(false, evalResult.diagnostics, evalResult.reason);
+        yield {
+          kind: 'status',
+          status:
+            'Patch retry after runtime rejection did not yield a usable plan.',
+          level: 'warning',
+        };
+        return createNoopResult({
+          source: env.args.adapter.label,
+          status:
+            'Patch update could not be applied after runtime evaluation retry.',
+          reason:
+            normalizedPatch.reason ??
+            'Patch mode did not yield a usable localized update.',
+          requestedMode: 'patch',
+          trace: env.trace,
+        });
+      }
+    }
+
+    if (!evalResult.ok) {
+      emitEditTrace(
+        false,
+        evalResult.diagnostics,
+        evalResult.reason
+      );
+      yield {
+        kind: 'status',
+        status: evalResult.reason,
+        level: 'warning',
+      };
+      return createNoopResult({
+        source: env.args.adapter.label,
+        status: 'Patch update could not be applied; runtime evaluation failed.',
+        reason: evalResult.reason,
+        requestedMode: 'patch',
+        trace: env.trace,
+      });
+    }
+
+    emitEditTrace(true, evalResult.diagnostics);
+
     yield {
       kind: 'patch',
       currentView,
@@ -142,18 +276,13 @@ export async function* runPatchPhase(
       currentView,
       patchPlan: parsedPatch,
       parsed: parsedPatch,
+      viewEvolutionDiagnostics: evalResult.diagnostics,
     };
   }
 
   const status = 'Patch update could not be applied; no changes were made.';
   const reason =
-    normalizedPatch.reason ??
-    (parsedPatch?.mode === 'full'
-      ? parsedPatch.reason?.trim() ||
-        (parsedPatch.fullStrategy === 'replace'
-          ? 'Patch response requested a full view replacement instead of localized operations.'
-          : 'Patch response requested full view regeneration instead of localized operations.')
-      : 'Patch mode did not yield a usable localized update.');
+    normalizedPatch.reason ?? 'Patch mode did not yield a usable localized update.';
 
   yield {
     kind: 'status',

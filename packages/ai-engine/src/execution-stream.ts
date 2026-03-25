@@ -1,4 +1,5 @@
 export { createStreamContinuumExecutionEnv } from './lib/execution/stream/stream-execution-types.js';
+export { resolveOssExecutionPlan } from './lib/execution/resolve-oss-execution-plan.js';
 export type {
   SelectedExecutionPlan,
   StreamContinuumExecutionEnv,

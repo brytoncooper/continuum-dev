@@ -3,7 +3,12 @@ import type {
   NodeValue,
   ViewDefinition,
 } from '@continuum-dev/core';
-import type { ActionRegistration } from '@continuum-dev/protocol';
+import type {
+  ActionRegistration,
+  ContinuumEditExemplarTrace,
+  ScopedEditBrief,
+  ViewEvolutionDiagnostics,
+} from '@continuum-dev/protocol';
 import type {
   DetachedFieldHint,
   PromptAddon,
@@ -222,6 +227,17 @@ export interface StreamContinuumExecutionArgs {
    * `0` to emit on every distinct parsed snapshot (maximum SSE volume).
    */
   viewPreviewThrottleMs?: number;
+  /**
+   * Optional scoped edit contract from a host or premium planner. OSS does not
+   * infer this; it is forwarded into traces and future prompt wiring only.
+   */
+  scopedEditBrief?: ScopedEditBrief;
+  /**
+   * Optional hook for persisting accepted or rejected edit exemplars (product
+   * or cloud). Invoked after runtime evaluation for explicit patch/transform
+   * paths when diagnostics are available.
+   */
+  onEditTrace?: (trace: ContinuumEditExemplarTrace) => void;
 }
 
 export interface ContinuumExecutionTraceEntry {
@@ -254,6 +270,7 @@ export interface ContinuumPatchExecutionFinalResult
   currentView: ViewDefinition;
   patchPlan: ViewPatchPlan;
   parsed: ViewPatchPlan;
+  viewEvolutionDiagnostics?: ViewEvolutionDiagnostics;
 }
 
 export interface ContinuumViewExecutionFinalResult
@@ -261,6 +278,7 @@ export interface ContinuumViewExecutionFinalResult
   mode: 'view';
   view: ViewDefinition;
   parsed: ViewDefinition;
+  viewEvolutionDiagnostics?: ViewEvolutionDiagnostics;
 }
 
 export interface ContinuumTransformExecutionFinalResult
@@ -272,6 +290,7 @@ export interface ContinuumTransformExecutionFinalResult
     view: ViewDefinition;
     transformPlan: ContinuumTransformPlan;
   };
+  viewEvolutionDiagnostics?: ViewEvolutionDiagnostics;
 }
 
 export interface ContinuumNoopExecutionFinalResult

@@ -16,6 +16,7 @@ describe('continuum execution fallback behavior', () => {
               type: 'field',
               dataType: 'string',
               key: 'lead.email',
+              semanticKey: 'lead.email',
               label: 'Email',
             },
           ],
@@ -38,6 +39,7 @@ describe('continuum execution fallback behavior', () => {
                   type: 'field',
                   dataType: 'string',
                   key: 'lead.budget',
+                  semanticKey: 'lead.budget',
                   label: 'Budget',
                 },
               },
@@ -68,7 +70,6 @@ describe('continuum execution fallback behavior', () => {
     ]);
     expect(result).toMatchObject({
       patchPlan: {
-        mode: 'patch',
         operations: [
           expect.objectContaining({
             kind: 'insert-node',
@@ -230,6 +231,7 @@ describe('continuum execution fallback behavior', () => {
               type: 'field',
               dataType: 'string',
               key: 'lead.email',
+              semanticKey: 'lead.email',
               label: 'Email',
             },
           ],
@@ -262,6 +264,7 @@ describe('continuum execution fallback behavior', () => {
                   type: 'field',
                   dataType: 'string',
                   key: 'lead.budget',
+                  semanticKey: 'lead.budget',
                   label: 'Budget',
                 },
               },
@@ -293,7 +296,6 @@ describe('continuum execution fallback behavior', () => {
     ).toBe(2);
     expect(result).toMatchObject({
       patchPlan: {
-        mode: 'patch',
         operations: [
           expect.objectContaining({
             kind: 'insert-node',
@@ -322,6 +324,7 @@ describe('continuum execution fallback behavior', () => {
                   type: 'field',
                   dataType: 'string',
                   key: 'first_name',
+                  semanticKey: 'person.firstName',
                   label: 'First name',
                 },
                 {
@@ -329,6 +332,7 @@ describe('continuum execution fallback behavior', () => {
                   type: 'field',
                   dataType: 'string',
                   key: 'last_name',
+                  semanticKey: 'person.lastName',
                   label: 'Last name',
                 },
               ],
@@ -448,7 +452,7 @@ group id="tax_form"
         return {
           text: `view viewId="tax-form" version="1"
 group id="tax_form" label="Tax form"
-  field id="ssn" key="tax.ssn" label="Social Security number" dataType="string"`,
+  field id="ssn" key="tax.ssn" semanticKey="tax.ssn" label="Social Security number" dataType="string"`,
         };
       }
 
@@ -654,7 +658,7 @@ group id="root" label="Hello"`,
         return {
           text: `view viewId="lead-form" version="2"
 group id="profile"
-  field id="email" key="lead.email" label="Email" dataType="string"`,
+  field id="email" key="lead.email" semanticKey="lead.email" label="Email" dataType="string"`,
         };
       }
 
@@ -677,6 +681,136 @@ group id="profile"
     expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
       'view',
     ]);
+  });
+
+  it('rejects explicit patch edits that detach populated data', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              semanticKey: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'patch') {
+        return {
+          text: JSON.stringify({
+            mode: 'patch',
+            operations: [
+              {
+                kind: 'remove-node',
+                nodeId: 'email',
+              },
+            ],
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Remove the email field.',
+      executionMode: 'patch',
+      context: {
+        currentView,
+        currentData: {
+          'profile/email': {
+            value: 'jordan@example.com',
+            isDirty: true,
+          },
+        },
+      },
+    });
+
+    expect(
+      generate.mock.calls.filter(([request]) => request.mode === 'patch').length
+    ).toBe(2);
+    expect(result).toMatchObject({
+      mode: 'noop',
+      requestedMode: 'patch',
+      reason: 'Runtime evaluation rejected the generated view transition.',
+    });
+  });
+
+  it('routes explicit view generation through runtime evaluation before acceptance', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '1',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'email',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.email',
+              semanticKey: 'lead.email',
+              label: 'Email',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'view' || request.mode === 'repair') {
+        return {
+          text: `view viewId="lead-form" version="2"
+group id="profile"`,
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Redesign the form.',
+      executionMode: 'view',
+      context: {
+        currentView,
+        currentData: {
+          'profile/email': {
+            value: 'jordan@example.com',
+            isDirty: true,
+          },
+        },
+      },
+    });
+
+    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
+      'view',
+      'repair',
+    ]);
+    expect(result).toMatchObject({
+      mode: 'noop',
+      requestedMode: 'view',
+      reason: 'Runtime evaluation rejected the generated view transition.',
+    });
   });
 
   it('throttles view-preview events when viewPreviewThrottleMs is high', async () => {

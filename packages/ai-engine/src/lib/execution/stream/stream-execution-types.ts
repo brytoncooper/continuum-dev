@@ -14,6 +14,7 @@ import {
 } from '../../view-patching/index.js';
 import { inferPromptMode } from './instruction/instruction-heuristics.js';
 import { mergeRequestAttachments } from './trace/trace.js';
+import type { ScopedEditBrief } from '@continuum-dev/protocol';
 import type {
   ContinuumExecutionContext,
   ContinuumExecutionRequest,
@@ -63,6 +64,7 @@ export interface StreamContinuumExecutionEnv {
   executionPlan: SelectedExecutionPlan;
   integrationBinding: string;
   selectedTargets: string[];
+  scopedEditBrief?: ScopedEditBrief;
 }
 
 export function createStreamContinuumExecutionEnv(
@@ -136,5 +138,6 @@ export function createStreamContinuumExecutionEnv(
     executionPlan,
     integrationBinding: '',
     selectedTargets: [],
+    scopedEditBrief: args.scopedEditBrief,
   };
 }
