@@ -207,6 +207,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
         },
       } as never,
       adapter: createTransformExecutionAdapter(),
+      executionMode: 'transform',
       instruction: 'Make first name and last name into full name.',
       context: {
         currentView: {
@@ -272,6 +273,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter/server', () => {
         },
       } as never,
       adapter: createPatchExecutionAdapter(),
+      executionMode: 'patch',
       instruction: 'Add a phone field below email.',
       context: {
         currentView: {

@@ -26,6 +26,8 @@ import {
   type ContinuumExecutionContext,
   type ContinuumExecutionEvent,
   type ContinuumExecutionFinalResult,
+  type ContinuumExecutionMode,
+  type ContinuumExecutionPlan,
   type ContinuumExecutionRequest,
   type ContinuumExecutionResponse,
   type ContinuumExecutionTraceEntry,
@@ -66,6 +68,8 @@ export interface WriteContinuumExecutionToUiMessageWriterArgs {
   instruction: string;
   context?: ContinuumExecutionContext;
   mode?: PromptMode;
+  executionMode?: ContinuumExecutionMode;
+  executionPlan?: ContinuumExecutionPlan;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
@@ -931,10 +935,14 @@ export async function writeContinuumExecutionToUiMessageWriter(
     instruction: args.instruction,
     context: args.context,
     mode: args.mode,
+    executionMode: args.executionMode,
+    executionPlan: args.executionPlan,
     addons: args.addons,
     outputContract: args.outputContract,
     authoringFormat: args.authoringFormat,
     autoApplyView: args.autoApplyView,
+    emitViewPreviews: args.emitViewPreviews,
+    viewPreviewThrottleMs: args.viewPreviewThrottleMs,
   });
 
   let next = await iterator.next();
@@ -966,10 +974,14 @@ export function createContinuumUiMessageStream(
           instruction: args.instruction,
           context: args.context,
           mode: args.mode,
+          executionMode: args.executionMode,
+          executionPlan: args.executionPlan,
           addons: args.addons,
           outputContract: args.outputContract,
           authoringFormat: args.authoringFormat,
           autoApplyView: args.autoApplyView,
+          emitViewPreviews: args.emitViewPreviews,
+          viewPreviewThrottleMs: args.viewPreviewThrottleMs,
           viewStreamMode: args.viewStreamMode,
           streamContinuumExecution: args.streamContinuumExecution,
         });
@@ -1079,6 +1091,8 @@ export function createContinuumVercelAiSdkRouteHandler(
       instruction,
       context,
       mode: body.continuum?.mode ?? options.defaultMode,
+      executionMode: body.continuum?.executionMode,
+      executionPlan: body.continuum?.executionPlan,
       addons: body.continuum?.addons,
       outputContract: body.continuum?.outputContract,
       authoringFormat:

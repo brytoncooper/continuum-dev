@@ -1,5 +1,7 @@
 import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
 import type {
+  ContinuumExecutionMode,
+  ContinuumExecutionPlan,
   ContinuumIntegrationCatalog,
   ContinuumRegisteredActions,
   ContinuumViewAuthoringFormat,
@@ -14,6 +16,8 @@ import type {
 export interface ContinuumVercelAiSdkRequestOptions {
   instruction?: string;
   mode?: PromptMode;
+  executionMode?: ContinuumExecutionMode;
+  executionPlan?: ContinuumExecutionPlan;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
