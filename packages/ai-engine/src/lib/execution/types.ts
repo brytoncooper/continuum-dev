@@ -11,6 +11,7 @@ import type {
   PromptOutputContract,
 } from '@continuum-dev/prompts';
 import type { ContinuumStateUpdate } from '../execution-targets/index.js';
+import type { ContinuumExecutionMode, ContinuumExecutionPlan } from './planner-types.js';
 import type { ContinuumViewAuthoringFormat } from '../view-authoring/index.js';
 import type { ViewPatchPlan } from '../view-patching/index.js';
 
@@ -190,7 +191,22 @@ export interface StreamContinuumExecutionArgs {
   adapter: ContinuumExecutionAdapter;
   instruction: string;
   context?: ContinuumExecutionContext;
+  /**
+   * View authoring prompt mode (`create-view`, `evolve-view`, etc.). Does not
+   * select execution phase; use {@link executionMode} or {@link executionPlan}
+   * for state/patch/transform/view routing.
+   */
   mode?: PromptMode;
+  /**
+   * Explicit OSS execution phase. Omitted means default full view generation.
+   * Ignored when {@link executionPlan} is set.
+   */
+  executionMode?: ContinuumExecutionMode;
+  /**
+   * Explicit execution plan (advanced). Takes precedence over
+   * {@link executionMode}.
+   */
+  executionPlan?: ContinuumExecutionPlan;
   addons?: PromptAddon[];
   outputContract?: PromptOutputContract;
   authoringFormat?: ContinuumViewAuthoringFormat;
