@@ -41,6 +41,14 @@ function getChangedNodeIds(
   return changed;
 }
 
+function readCommittedSnapshot(session: Session): ContinuitySnapshot | null {
+  const fn = session.getCommittedSnapshot;
+  if (typeof fn === 'function') {
+    return fn.call(session);
+  }
+  return session.getSnapshot();
+}
+
 export interface ContinuumStore {
   getSnapshot(): ContinuitySnapshot | null;
   getCommittedSnapshot(): ContinuitySnapshot | null;
@@ -57,7 +65,7 @@ export interface ContinuumStore {
 
 export function createContinuumStore(session: Session): ContinuumStore {
   let snapshot = session.getSnapshot();
-  let committedSnapshot = session.getCommittedSnapshot();
+  let committedSnapshot = readCommittedSnapshot(session);
   let streams = session.getStreams?.() ?? [];
   const snapshotListeners = new Set<Listener>();
   const streamListeners = new Set<Listener>();
@@ -69,7 +77,7 @@ export function createContinuumStore(session: Session): ContinuumStore {
   const cleanupSnapshot = session.onSnapshot((nextSnapshot) => {
     const previousSnapshot = snapshot;
     snapshot = nextSnapshot;
-    committedSnapshot = session.getCommittedSnapshot();
+    committedSnapshot = readCommittedSnapshot(session);
 
     notifyListeners(snapshotListeners);
     notifyListeners(diagnosticsListeners);
