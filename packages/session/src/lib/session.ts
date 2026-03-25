@@ -105,6 +105,11 @@ export function deserialize(data: unknown, options?: SessionOptions): Session {
   if (options?.enableRestoreReviews !== undefined) {
     internal.restoreReviewsEnabled = options.enableRestoreReviews;
   }
+  if (options?.actions) {
+    for (const [id, entry] of Object.entries(options.actions)) {
+      internal.actionRegistry.set(id, entry);
+    }
+  }
   const cleanupPersistence = options?.persistence
     ? attachPersistence(internal, {
         ...options.persistence,

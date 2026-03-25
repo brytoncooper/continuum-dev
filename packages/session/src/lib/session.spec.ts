@@ -1295,6 +1295,30 @@ describe('Session Ledger', () => {
         value: 'legacy',
       });
     });
+
+    it('deserialize re-registers actions from options', async () => {
+      const session = createSession();
+      session.pushView(
+        makeView([{ id: 'save', type: 'action', intentId: 'save.intent', label: 'Save' }])
+      );
+
+      const restored = deserialize(session.serialize(), {
+        actions: {
+          'save.intent': {
+            registration: { label: 'Save' },
+            handler: async () => ({ success: true, data: 'ok' }),
+          },
+        },
+      });
+
+      expect(restored.getRegisteredActions()).toEqual({
+        'save.intent': { label: 'Save' },
+      });
+      await expect(restored.dispatchAction('save.intent', 'save')).resolves.toEqual({
+        success: true,
+        data: 'ok',
+      });
+    });
   });
 
   describe('checkpoint stack and rewind', () => {
