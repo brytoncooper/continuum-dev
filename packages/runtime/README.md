@@ -1,314 +1,330 @@
 # @continuum-dev/runtime
 
-**A deterministic reconciliation engine for AI-generated interfaces.**
-
-Website: [continuumstack.dev](https://continuumstack.dev)
-GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
-
-[![npm version](https://badge.fury.io/js/@continuum-dev%2Fruntime.svg)](https://badge.fury.io/js/@continuum-dev%2Fruntime)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## The Ephemerality Gap
-
-The **Ephemerality Gap** is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-
-In a traditional app, UI structure is mostly stable. A field keeps the same identity, state lives in a predictable place, and preserving user input is straightforward.
-
-In generative UI, the model can change the structure itself:
-
-- a field gets renamed
-- a field moves under a new container
-- a top-level node becomes part of a collection template
-- a schema changes shape between pushes
-
-The user is still expressing the same intent, but the interface that used to hold that intent has changed underneath them.
-
-That is the Ephemerality Gap. `@continuum-dev/runtime` exists to close it.
-
-## What This Package Does
-
-`@continuum-dev/runtime` accepts:
-
-- a `newView`
-- a `priorView`
-- a `priorData` snapshot
-- runtime `options`
-
-It returns the next canonical snapshot plus an explanation of what happened during reconciliation.
-
-Instead of guessing, the runtime applies deterministic rules for:
-
-- carrying values forward when identity is still defensible
-- migrating values when schema changes are explicitly supported
-- detaching values when carry would be unsafe
-- restoring detached values when compatible structure returns
-- surfacing issues when the new view introduces ambiguity or invalid state
-
-This package is pure TypeScript, framework-agnostic, and side-effect free inside reconciliation.
-
 ```bash
 npm install @continuum-dev/runtime
 ```
 
-## Upgrade Note (0.3.x to Next)
+## Why It Exists
 
-- Reconcile call form is object-shaped: `reconcile({ newView, priorView, priorData, options })`.
-- Migration strategy callbacks now prefer a context object argument.
-- Legacy positional migration callbacks remain supported for backward compatibility.
+Generated and server-driven UIs change structure over time.
 
-Upgrade references:
+A field can move under a new container, get renamed, or come back later in a slightly different shape. When that happens, users still expect their intent to survive. They do not care that the UI tree changed.
 
-- Upgrade and API delta notes (private maintainer documentation repository)
+`@continuum-dev/runtime` exists to close that gap. It carries forward user-entered state when continuity is defensible, detaches state when carry would be unsafe, and restores detached state when compatible structure returns.
 
-## Why Reconciliation Matters
+## How It Works
 
-Suppose a user typed an email into a field keyed as `user_email`. On the next model push, that field is moved under a new layout group and gets a different node ID.
+The runtime always compares three things:
 
-Without reconciliation, the old node disappears, the new node mounts, and the user's input is lost.
+- the next view,
+- the prior view,
+- the prior canonical data snapshot.
 
-With Continuum runtime, the value can survive because the engine reconciles the **meaning** of the field across structural change, not just its old raw ID.
+From there it uses fixed rules:
 
-## Quick Start
+1. match by scoped id,
+2. then by unique `semanticKey`,
+3. then by scoped `key`.
 
-The API is object-shaped:
+If a match is safe, it carries the value. If a node changed shape and you provided a migration strategy, it migrates the value. If carry would be unsafe, it detaches the value instead of forcing it into the wrong node. If compatible structure appears again later, that detached value can be restored.
 
-```typescript
-import { reconcile } from '@continuum-dev/runtime';
+Every structural update returns:
 
-const priorView = {
-  viewId: 'v1',
-  version: '1.0',
-  nodes: [{ id: 'random_id_1', key: 'user_email', type: 'field' }],
-};
+- the next canonical snapshot,
+- `diffs` describing what changed,
+- `resolutions` explaining how each node was handled,
+- `issues` describing ambiguity, validation, or safety boundaries.
 
-const priorData = {
-  values: {
-    random_id_1: { value: 'alice@example.com' },
-  },
-  lineage: {
-    timestamp: 100,
-    sessionId: 'session_123',
-    viewId: 'v1',
-    viewVersion: '1.0',
-  },
-};
+## What It Is
 
-const newView = {
-  viewId: 'v2',
-  version: '2.0',
+`@continuum-dev/runtime` is a headless TypeScript runtime for view continuity.
+
+Most users only need these entrypoints:
+
+```ts
+import {
+  applyContinuumNodeValueWrite,
+  applyContinuumViewUpdate,
+  decideContinuumNodeValueWrite,
+  reconcile,
+} from '@continuum-dev/runtime';
+```
+
+The canonical snapshot shape is:
+
+- `values`
+- `lineage`
+- optional `valueLineage`
+- optional `detachedValues`
+
+Legacy view-only fields such as `viewContext` are not part of the runtime contract.
+
+## Simplest Way To Use It
+
+Most apps should start with `applyContinuumViewUpdate(...)` for structural changes and `applyContinuumNodeValueWrite(...)` for user edits.
+
+Keep these four things in your app state:
+
+- the current `view`,
+- the current canonical `data`,
+- a stable `sessionId`,
+- a monotonic clock or timestamp source.
+
+### Minimal Flow
+
+```ts
+import {
+  applyContinuumNodeValueWrite,
+  applyContinuumViewUpdate,
+} from '@continuum-dev/runtime';
+
+// Keep the latest rendered view and canonical runtime snapshot.
+let view = null;
+let data = null;
+
+// Use one stable session id and a monotonic timestamp source.
+const sessionId = 'session-1';
+let tick = 0;
+const now = () => ++tick;
+
+// First structural mount: no prior view or data yet.
+const firstView = {
+  viewId: 'profile',
+  version: '1',
   nodes: [
     {
-      id: 'layout_group',
-      type: 'group',
-      children: [{ id: 'new_id_99', key: 'user_email', type: 'field' }],
+      id: 'email',
+      type: 'field',
+      dataType: 'string',
+      semanticKey: 'person.email',
     },
   ],
 };
 
-const result = reconcile({
-  newView,
-  priorView,
-  priorData,
-  options: {},
+// `mounted` contains the runtime-ready result of the first mount:
+// the normalized view, canonical data snapshot, and reconciliation metadata.
+const mounted = applyContinuumViewUpdate({
+  baseView: view,
+  baseData: data,
+  nextView: firstView,
+  sessionId,
+  clock: now,
 });
 
-console.log(result.reconciledState.values['layout_group/new_id_99']);
-console.log(result.diffs);
-console.log(result.resolutions);
-console.log(result.issues);
-```
+// Persist the returned canonical state.
+view = mounted.view;
+data = mounted.data;
 
-## What `reconcile()` Returns
+// User input writes directly into canonical snapshot state.
+const typed = applyContinuumNodeValueWrite({
+  view,
+  data,
+  nodeId: 'email',
+  value: { value: 'alice@example.com', isDirty: true },
+  sessionId,
+  timestamp: now(),
+  interactionId: 'typing-1',
+});
 
-Every run returns a `ReconciliationResult`:
-
-```typescript
-interface ReconciliationResult {
-  reconciledState: DataSnapshot;
-  diffs: StateDiff[];
-  issues: ReconciliationIssue[];
-  resolutions: ReconciliationResolution[];
+if (typed.kind === 'applied') {
+  data = typed.data;
 }
+
+// Later the UI structure changes, but the semantic meaning stays the same.
+const nextView = {
+  viewId: 'profile',
+  version: '2',
+  nodes: [
+    {
+      id: 'contact',
+      type: 'group',
+      children: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          semanticKey: 'person.email',
+        },
+      ],
+    },
+  ],
+};
+
+const updated = applyContinuumViewUpdate({
+  baseView: view,
+  baseData: data,
+  nextView,
+  sessionId,
+  clock: now,
+});
+
+// Persist the new view and reconciled data for the next render/update cycle.
+view = updated.view;
+data = updated.data;
 ```
 
-- `reconciledState` is the snapshot you persist and render next.
-- `diffs` records what changed.
-- `resolutions` explains how each node in the new view was resolved.
-- `issues` reports ambiguity, safety boundaries, and validation problems.
+### Normal Runtime Order
 
-For integrations, that inspectability matters almost as much as the carry logic itself.
+The important mental model is:
 
-## How Matching Works
+1. start with your current `view` and `data`,
+2. apply a structural update with `applyContinuumViewUpdate(...)`,
+3. persist the returned `view` and `data`,
+4. apply direct user writes against that latest persisted state,
+5. persist the returned `data`,
+6. use that latest `view` and `data` as the inputs to the next structural update.
 
-In a full transition, Continuum does not use fuzzy heuristics. It uses fixed precedence:
+In other words, each runtime call produces the state that the next runtime call should start from.
 
-1. scoped `id`
-2. unique `semanticKey`
-3. scoped `key`
+### About `clock`
 
-Important details:
+The runtime uses timestamps to keep lineage ordered over time.
 
-- Matching is path-aware, not just raw local ID matching.
-- Semantic-key matching is only used when the semantic key is unique on both sides.
-- `semanticKey` is the reshape-safe continuity contract for stateful nodes.
-- `key` remains a scoped data-binding signal, not a substitute for `semanticKey` during structural moves.
-- If carry would be unsafe, the runtime keeps the value in `detachedValues` instead of forcing it into the wrong node.
-- If a compatible node reappears later, that detached value can be restored.
+That matters because the snapshot is not just current values. It also records when a structural update or direct write happened.
 
-This is how the runtime preserves continuity without pretending uncertain matches are safe.
+For structural updates:
 
-## The Three Runtime Branches
+- `applyContinuumViewUpdate(...)` accepts `clock: () => number`
+- the first mount needs a clock because there is no prior lineage timestamp yet
+- later structural updates can derive the next timestamp from `priorData.lineage.timestamp + 1` if you omit `clock`
+- even so, using one consistently is usually easier to reason about
 
-`reconcile()` always takes exactly one branch.
+For direct writes:
 
-### 1. Initial snapshot (no prior data)
+- `applyContinuumNodeValueWrite(...)` requires a numeric `timestamp`
+- the simplest pattern is to use the same time source for both structural updates and direct writes
 
-Used when `priorData === null`.
+The safest clock is monotonic, meaning it only moves forward.
 
-- Initializes state from the new view.
-- Emits added outcomes for the new nodes.
-- Requires `options.clock`, because there is no prior lineage timestamp to advance.
+Good choices:
 
-### 2. Prior data without prior view
+- a simple in-memory counter for demos or client-only flows
+- a server-issued sequence number
+- a database revision number
+- any app-level counter that guarantees each new event gets a larger number than the last one
 
-Used when `priorData !== null` and `priorView === null`.
+Simple example:
 
-- Emits `NO_PRIOR_VIEW`.
-- Can copy prior values only by exact scoped node ids when `allowPriorDataWithoutPriorView` is enabled.
-- Does not attempt key or semantic-key matching in this mode.
+```ts
+let tick = 0;
+const now = () => ++tick;
+```
 
-### 3. Full Transition
+This is why the minimal flow uses `now()` for both:
 
-Used when both `priorView` and `priorData` exist.
+- `clock: now` during structural updates
+- `timestamp: now()` during direct writes
 
-- Builds deterministic context and lookup state.
-- Resolves each new node as added, carried, migrated, detached, restored, or collection-reconciled.
-- Detects removed nodes and preserves their values as detached state.
-- Applies same-push restore and semantic-key move transforms.
-- Assembles the final snapshot and issues.
+That gives every runtime event a clear ordering.
 
-## Key Guarantees
+### What Is Required
 
-The runtime is designed around explicit, inspectable guarantees:
+For the normal runtime path you need:
 
-- Same inputs produce the same outputs for a fixed timestamp source.
-- Type-incompatible transitions do not blindly carry old values into new nodes.
-- Migration failures do not crash reconciliation; they surface as issues and fall back deterministically.
-- Detached values are preserved instead of silently discarded.
-- Compatible reappearance can restore detached state.
-- Collection normalization and constraint handling are deterministic.
-- Validation issues are emitted as structured runtime issues.
+- `sessionId`
+  - used in lineage
+- `clock` for `applyContinuumViewUpdate(...)`
+  - required on first mount, and recommended on later structural updates so event ordering stays explicit
+- `timestamp` for `applyContinuumNodeValueWrite(...)`
+  - required because direct writes update lineage
+- the previous `view` and `data`
+  - required if you want continuity across structural changes
 
-## Migration Strategies
+### What To Persist
 
-When a node hash changes and you want a deliberate data transformation, provide migration strategies through `ReconciliationOptions`.
+After each call, persist:
 
-```typescript
-import { reconcile } from '@continuum-dev/runtime';
+- the returned `view`,
+- the returned canonical `data`.
+
+If you care about auditability or debugging, also inspect:
+
+- `issues`
+- `diffs`
+- `resolutions`
+
+## Other Options
+
+### Pure Structural Reconciliation
+
+If you already manage view patching yourself and want the low-level engine, use `reconcile(...)` directly.
+
+```ts
+let tick = 0;
+const now = () => ++tick;
 
 const result = reconcile({
   newView,
   priorView,
   priorData,
   options: {
-    migrationStrategies: {
-      status: ({ priorValue }) => {
-        const typedValue = priorValue as { value: string };
-        return { value: typedValue.value.toUpperCase() };
-      },
-    },
-    strategyRegistry: {
-      stringToArray: ({ priorValue }) => {
-        const typedValue = priorValue as { value: string };
-        return { value: [typedValue.value] };
-      },
-    },
+    clock: now,
   },
 });
 ```
 
-The exported `MigrationStrategy` type is context-shaped: `({ nodeId, priorNode, newNode, priorValue }) => unknown`.
+`reconcile(...)` is pure structural reconciliation. It does not patch views for you.
 
-## Public API Surface
+### Patch Or Stream A View
 
-### Root import (contract boundary)
+If your view arrives in pieces, use `@continuum-dev/runtime/view-stream`:
 
-```typescript
-import {
-  reconcile,
-  applyContinuumViewUpdate,
-  applyContinuumNodeValueWrite,
-  decideContinuumNodeValueWrite,
-} from '@continuum-dev/runtime';
-```
+- `patch`
+- `insert-node`
+- `move-node`
+- `wrap-nodes`
+- `replace-node`
+- `remove-node`
+- `append-content`
 
-The root entry exposes `reconcile`, the structural and value-write entrypoints above, shared protocol constants (`ISSUE_CODES`, `VIEW_DIFFS`, and related), and runtime types from `src/lib/types.ts`. Low-level view patch mechanics are internal to the package; structural changes should go through `applyContinuumViewUpdate` or streamed parts via `applyContinuumViewStreamPart` on the `view-stream` subpath.
+The normal pattern is:
 
-Root type exports include the reconcile contract (`ReconciliationOptions`, `ReconcileInput`, `ReconciliationIssue`, `ReconciliationResolution`, `StateDiff`) plus the boundary input and result types for `applyContinuumViewUpdate`, `applyContinuumNodeValueWrite`, and `decideContinuumNodeValueWrite`.
+1. apply one streamed part with `applyContinuumViewStreamPart(...)`,
+2. feed the resulting `view` into `applyContinuumViewUpdate(...)`.
 
-### Explicit subpaths
+### Transform During A Structural Update
 
-```typescript
-import { validateNodeValue } from '@continuum-dev/runtime/validator';
-import {
-  collectCanonicalNodeIds,
-  resolveNodeLookupEntry,
-} from '@continuum-dev/runtime/node-lookup';
-import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
-import {
-  applyContinuumNodeValueWrite,
-  decideContinuumNodeValueWrite,
-} from '@continuum-dev/runtime/value-write';
-import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
-import { findRestoreCandidates } from '@continuum-dev/runtime/restore-candidates';
-```
+`applyContinuumViewUpdate(...)` also accepts `transformPlan`.
 
-`resolveNodeLookupEntry` accepts canonical ids and also accepts a bare `node.id` when that id uniquely identifies one node. It returns `null` when the node cannot be resolved or when the bare id is ambiguous.
+Use this when reconciliation should happen first, but you also want a guided post-reconcile reshape such as merging source fields into a new target field.
 
-`applyContinuumViewStreamPart` is the public streamed-structure helper. It applies progressive structural parts, including `append-content`, and returns `{ view, affectedNodeIds, incrementalHint? }`.
+### Programmatic Or Non-User Edits
 
-### Reconcile Signature
+Use `decideContinuumNodeValueWrite(...)` before applying a non-user write.
 
-```typescript
-function reconcile(input: ReconcileInput): ReconciliationResult;
-```
+It returns:
 
-### Important Types
+- `apply`
+  - safe to write immediately
+- `proposal`
+  - the current value is protected by `isDirty` or `isSticky`
+- `unknown-node`
+  - the target node could not be resolved
 
-`ReconciliationOptions`
+This is useful for AI suggestions, autofill, or system-authored edits that should not silently overwrite user input.
 
-```typescript
-interface ReconciliationOptions {
-  allowPartialRestore?: boolean;
-  allowPriorDataWithoutPriorView?: boolean;
-  migrationStrategies?: Record<string, MigrationStrategy>;
-  strategyRegistry?: Record<string, MigrationStrategy>;
-  clock?: () => number;
-}
-```
+### Validation, Lookup, And Diagnostics
 
-`ReconciliationResolution`
+Explicit subpaths are available for narrower needs:
 
-```typescript
-interface ReconciliationResolution {
-  nodeId: string;
-  priorId: string | null;
-  matchedBy: 'id' | 'semanticKey' | 'key' | null;
-  priorType: string | null;
-  newType: string;
-  resolution: DataResolution;
-  priorValue: unknown;
-  reconciledValue: unknown;
-}
-```
+- `@continuum-dev/runtime/validator`
+  - `validateNodeValue`
+- `@continuum-dev/runtime/node-lookup`
+  - canonical id lookup helpers
+- `@continuum-dev/runtime/canonical-snapshot`
+  - canonical snapshot sanitization
+- `@continuum-dev/runtime/restore-candidates`
+  - heuristic suggestions for detached value restore targets
+- `@continuum-dev/runtime/view-evolution`
+  - diagnostics for AI-authored or automated view edits
 
 ## Internal Docs
 
-The package README describes the supported contract.
+If you are maintaining or extending the runtime, these docs go deeper into the implementation:
 
-These deeper documents explain implementation details and maintenance-level behavior:
-
-- Runtime comprehensive reference (private maintainer documentation repository)
+- [Runtime boundaries](./src/lib/runtime-boundaries/README.md)
+- [Restore candidates](./src/lib/restore-candidates/README.md)
+- [View evolution](./src/lib/view-evolution/README.md)
 - [Reconcile orchestration](./src/lib/reconcile/README.md)
 - [Behavior guarantees](./src/lib/reconcile/behavior-guarantees.md)
 - [Semantic key moves](./src/lib/reconcile/semantic-moves/README.md)
@@ -322,16 +338,166 @@ These deeper documents explain implementation details and maintenance-level beha
 - [View traversal](./src/lib/reconciliation/view-traversal/README.md)
 - [Validator](./src/lib/validator/README.md)
 
-Those docs are for understanding how the runtime works internally. They are not a promise that every internal module is a stable public integration surface.
+## Related Packages
 
-## Ecosystem
+- `@continuum-dev/contract` defines the view and snapshot model the runtime works with.
+- `@continuum-dev/session` adds session orchestration around runtime behavior.
+- `@continuum-dev/react` and `@continuum-dev/angular` bind the runtime model to UI frameworks.
 
-This package is the core reconciliation engine in the Continuum stack.
+## Dictionary Contract
 
-- `@continuum-dev/session` adds stateful session management around streamed UI pushes.
-- `@continuum-dev/react` provides React bindings and rendering utilities.
-- `@continuum-dev/angular` provides Angular bindings and directives.
+### Core Terms
+
+- `view`
+  - the current UI structure you render
+- `data`
+  - the canonical runtime snapshot for that view
+- `priorView`
+  - the previous rendered view
+- `priorData`
+  - the previous canonical snapshot
+- `lineage`
+  - snapshot-level metadata such as `timestamp`, `sessionId`, `viewId`, and `viewVersion`
+- `valueLineage`
+  - per-node update metadata such as `lastUpdated`
+- `detachedValues`
+  - values the runtime preserved but could not safely attach to a current node
+- `diffs`
+  - change records describing what changed between states
+- `resolutions`
+  - per-node records explaining how the runtime handled each node
+- `issues`
+  - warnings, errors, or info emitted during processing
+
+### Canonical Snapshot Fields
+
+```ts
+type DataSnapshot = {
+  values: Record<string, NodeValue>;
+  lineage: {
+    timestamp: number;
+    sessionId: string;
+    viewId?: string;
+    viewVersion?: string;
+    viewHash?: string;
+    lastInteractionId?: string;
+  };
+  valueLineage?: Record<string, ValueLineage>;
+  detachedValues?: Record<string, DetachedValue>;
+};
+```
+
+### `ReconciliationResolution.resolution`
+
+These are the exact values you can see in `result.resolutions[*].resolution`:
+
+```ts
+'added' | 'carried' | 'migrated' | 'detached' | 'restored'
+```
+
+- `added`
+  - the node is new and started fresh
+- `carried`
+  - the prior value was safely carried forward
+- `migrated`
+  - the value changed through migration or deterministic reshape behavior
+- `detached`
+  - the runtime refused unsafe carry and preserved the old value separately
+- `restored`
+  - a detached value was reattached to a compatible node
+
+### `StateDiff.type`
+
+These are the exact values you can see in `result.diffs[*].type`:
+
+```ts
+'added' | 'removed' | 'migrated' | 'type-changed' | 'restored'
+```
+
+### `ReconciliationIssue.severity`
+
+These are the exact values you can see in `result.issues[*].severity`:
+
+```ts
+'error' | 'warning' | 'info'
+```
+
+### `ReconciliationResolution.matchedBy`
+
+These are the exact values you can see in `result.resolutions[*].matchedBy`:
+
+```ts
+'id' | 'semanticKey' | 'key' | null
+```
+
+### `AppliedContinuumViewState.strategy`
+
+These are the exact values returned by `applyContinuumViewUpdate(...)`:
+
+```ts
+'full' | 'incremental'
+```
+
+- `full`
+  - normal reconcile-driven structural update
+- `incremental`
+  - presentation-content fast path
+
+### `ContinuumNodeValueWriteDecision.kind`
+
+These are the exact values returned by `decideContinuumNodeValueWrite(...)`:
+
+```ts
+'apply' | 'proposal' | 'unknown-node'
+```
+
+### `ApplyContinuumNodeValueWriteResult.kind`
+
+These are the exact values returned by `applyContinuumNodeValueWrite(...)`:
+
+```ts
+'applied' | 'unknown-node'
+```
+
+### `ApplyContinuumViewStreamPartResult.incrementalHint`
+
+Current runtime value:
+
+```ts
+'presentation-content'
+```
+
+This is returned only for append-only presentation updates that can use the incremental structural fast path.
+
+### Issue Codes
+
+These are the stable issue code values exported by the runtime:
+
+```ts
+'NO_PRIOR_DATA'
+| 'NO_PRIOR_VIEW'
+| 'TYPE_MISMATCH'
+| 'NODE_REMOVED'
+| 'MIGRATION_FAILED'
+| 'UNVALIDATED_CARRY'
+| 'VALIDATION_FAILED'
+| 'UNKNOWN_NODE'
+| 'DUPLICATE_NODE_ID'
+| 'DUPLICATE_NODE_KEY'
+| 'VIEW_CHILD_CYCLE_DETECTED'
+| 'VIEW_MAX_DEPTH_EXCEEDED'
+| 'COLLECTION_CONSTRAINT_VIOLATED'
+| 'SCOPE_COLLISION'
+| 'SEMANTIC_KEY_MISSING_STATEFUL'
+| 'SEMANTIC_KEY_CHURN'
+| 'VIEW_REPLACEMENT_RATIO_HIGH'
+| 'DETACHED_FIELD_GROWTH'
+| 'CONTINUITY_LOSS'
+| 'ORPHANED_ACTION_INTENT'
+| 'LAYOUT_DEPTH_EXPLOSION'
+| 'COLLECTION_TEMPLATE_INVALID'
+```
 
 ## License
 
-MIT © Bryton Cooper
+MIT

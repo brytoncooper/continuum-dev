@@ -1,10 +1,10 @@
 # Migrator Architecture
 
-The migrator resolves node-value transitions when a node hash changes across
-view versions, while preserving reconciliation outcomes and strict
-deterministic behavior.
+The migrator resolves node-value transitions when a matched node changes hash across view versions.
 
-Public entrypoint:
+It is an internal runtime module used by node and collection reconciliation.
+
+## Public Entrypoint
 
 - `reconciliation/migrator/index.ts`
 
@@ -14,89 +14,73 @@ Internal implementation:
 
 ## Import Boundary
 
-- Application code and reconciliation modules should import from
-  `../migrator/index.js`.
-- Internal implementation files under `migrator/` are private and intentionally
-  not part of the public API.
-- ESLint deep-import restrictions enforce this boundary.
+- callers inside runtime should import from `../migrator/index.js`
+- internal files under `migrator/` are private implementation details
 
 ## API Surface
 
 - `attemptMigration(...)`
-  - preferred: object input `MigrationAttemptInput`
-  - supported legacy: positional parameters
+  - preferred call: `attemptMigration({ nodeId, priorNode, newNode, priorValue, options })`
+  - legacy call: `attemptMigration(nodeId, priorNode, newNode, priorValue, options)`
 - `MigrationAttemptResult`
   - `{ kind: 'migrated'; value: unknown }`
   - `{ kind: 'none' }`
   - `{ kind: 'error'; error: unknown }`
 
-## Deterministic Resolution Model
+## Resolution Precedence
 
-Precedence order is fixed:
+Migration selection is deterministic and ordered:
 
 1. explicit per-node strategy from `options.migrationStrategies[nodeId]`
 2. first matching direct rule in `newNode.migrations`
-3. deterministic BFS chain through declared migration rules
+3. shortest registered BFS chain through `newNode.migrations`
 4. `none`
 
-The same inputs produce the same route selection and output shape.
+Direct and chained rule execution require:
 
-## Data Flow
+- `priorNode.hash`
+- `newNode.hash`
+- `newNode.migrations`
+- `options.strategyRegistry`
 
-```mermaid
-flowchart TD
-  callerNodeResolver[resolveHashChangedNode] --> migratorApi[attemptMigration]
-  callerCollectionResolver[resolveMigratedItems] --> migratorApi
+If those prerequisites are missing, the migrator returns `{ kind: 'none' }`.
 
-  migratorApi --> explicitCheck[explicitStrategyLookup]
-  explicitCheck -->|hit| migratedResult[migrated]
-  explicitCheck -->|miss| rulePreconditions[hashAndRegistryChecks]
+## Strategy Signatures
 
-  rulePreconditions -->|fail| noneResult[none]
-  rulePreconditions -->|pass| directRuleCheck[firstDirectRuleMatch]
+The exported `MigrationStrategy` type is context-shaped:
 
-  directRuleCheck -->|hit| directExecute[executeDirectStrategy]
-  directRuleCheck -->|miss| chainPathSearch[findMigrationPathBFS]
-
-  chainPathSearch -->|noPath| noneResult
-  chainPathSearch -->|pathFound| chainExecute[executeChainStepByStep]
-
-  directExecute --> resultMapping[resultKindMapping]
-  chainExecute --> resultMapping
-  resultMapping --> migratedResult
-  resultMapping --> errorResult[error]
+```ts
+type MigrationStrategy = (context: {
+  nodeId: string;
+  priorNode: ViewNode;
+  newNode: ViewNode;
+  priorValue: unknown;
+}) => unknown;
 ```
+
+For backward compatibility, the runtime still detects and invokes older positional strategies when possible.
 
 ## Chain Determinism Guarantees
 
-- BFS traversal preserves insertion order of migration rules.
-- Equal-length path ties resolve by declaration order in `newNode.migrations`.
-- Cycle handling is stable via `seen` tracking.
-- Max path length is hard-limited to `10`.
-- Each step receives:
-  - `priorValue` from previous step output
-  - `priorNode.hash` set to current route hash
-  - `newNode.hash` set to step target hash
-
-## Typed Object Contracts
-
-- `MigrationAttemptInput`
-  - `nodeId`
-  - `priorNode`
-  - `newNode`
-  - `priorValue`
-  - `options`
-- `MigrationStrategyContext`
-  - context-style strategy invocation contract
-- `MigrationStrategy`
-  - context-style callback signature only
+- BFS traversal preserves declaration order from `newNode.migrations`
+- equal-length path ties resolve by declaration order
+- cycle handling is stable through `seen` tracking
+- maximum chain depth is `10`
+- each chain step receives the previous step output as `priorValue`
 
 ## Failure Semantics
 
-- Missing rules or registry strategy: `{ kind: 'none' }`
-- No reachable chain path: `{ kind: 'none' }`
-- Strategy throw: `{ kind: 'error', error }`
-- Successful execution: `{ kind: 'migrated', value }`
+- missing explicit strategy or reachable rule path -> `{ kind: 'none' }`
+- thrown strategy error -> `{ kind: 'error', error }`
+- successful execution -> `{ kind: 'migrated', value }`
 
-This contract is relied on by node and collection reconciliation callers to
-emit deterministic warning behavior and fallback resolution.
+The migrator never throws strategy failures back to callers directly.
+
+## Callers
+
+Primary callers:
+
+- `node-resolver/resolve-hash-changed-node.ts`
+- `collection-resolver/reconcile-collection-value.ts`
+
+Those callers decide how migration failures surface in runtime issues and fallback behavior.

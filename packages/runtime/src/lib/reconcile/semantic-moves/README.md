@@ -1,102 +1,101 @@
 # Semantic Key Moves
 
-This module applies cross-level value migration after normal node resolution. It handles moves between top-level nodes and nodes inside collection templates when semantic identity is preserved.
+This module applies post-resolution value moves between top-level nodes and collection-template nodes when semantic identity survives but location changes across levels.
+
+It is an internal reconcile stage, not a public package boundary.
 
 ## When This Runs
 
-`applySemanticKeyMoves` runs in the full transition path after:
+`applySemanticKeyMoves` runs only in the full transition path, after:
 
-1. Per-node resolution
-2. Removed-node detection
-3. Same-push detach/restore rewrite
+1. per-node resolution,
+2. removed-node detection,
+3. same-push detach-to-restore rewriting.
 
-It does not run for the no-prior-data branch or the prior-data-without-prior-view branch.
+It does not run for fresh snapshots or prior-data-without-prior-view reconciliation.
 
-## Location Model
+## What It Looks At
 
-Semantic-key locations are collected from both prior and new view trees:
+The stage collects semantic-key locations from both prior and next view trees.
 
-- `level: "top"` for nodes outside collection templates
-- `level: "collection"` for nodes inside collection templates
-- For collection locations:
-  - `outerCollectionId`: indexed ID of the topmost containing collection
-  - `pathChain`: nested template path chain used for read/write traversal
+Each location is tagged as:
+
+- `level: "top"`
+- `level: "collection"`
+
+Collection locations also carry:
+
+- `outerCollectionId`
+- `pathChain`
+
+The planner only considers moves across levels:
+
+- top -> collection
+- collection -> top
+
+It does not handle top -> top or collection -> collection migration.
 
 ## Planning Rules
 
-Two planners produce migration intents:
+Two planners produce move intents:
 
-- `planTopToCollectionMoves(priorLocations,newLocations)`
-  - source: prior top-level semantic location
-  - target: new collection semantic location
-- `planCollectionToTopMoves(priorLocations,newLocations)`
-  - source: prior collection semantic location
-  - target: new top-level semantic location
+- `planTopToCollectionMoves(priorLocations, newLocations)`
+- `planCollectionToTopMoves(priorLocations, newLocations)`
 
-An intent is planned only when all required gates pass:
+An intent is created only when:
 
-- Source no longer has a unique same-type counterpart on the original level
-- Target exists as a unique same-type semantic match on the destination level
-- Collection intents also require valid `outerCollectionId` and non-empty `pathChain`
+- the source no longer has a unique same-type semantic match on its original level,
+- the destination has a unique same-type semantic match on the destination level,
+- collection moves have a valid `outerCollectionId`,
+- collection moves have a non-empty `pathChain`.
 
 ## Apply Behavior
 
-### Top to Collection
+### Top To Collection
 
 `applyTopToCollectionMoves`:
 
-1. Reads source value from `priorData.values[source.nodeId]`
-2. Updates each item in the target collection using `updateCollectionTargetValue`
-3. Writes updated collection value to `resolved.values[outerCollectionId]`
-4. Removes the source top-level value from `resolved.values`
-5. Emits one `migrated` diff per migrated collection node
+1. reads the source value from `priorData.values[source.nodeId]`,
+2. writes that value through the target collection path chain in `resolved.values[outerCollectionId]`,
+3. deletes the old top-level value from `resolved.values`,
+4. emits at most one `migrated` diff per affected outer collection.
 
-### Collection to Top
+### Collection To Top
 
 `applyCollectionToTopMoves`:
 
-1. Reads source value from the first item along `pathChain` using `readCollectionFirstItemValue`
-2. Clones extracted value into `resolved.values[target.nodeId]`
-3. Emits one `migrated` diff per migrated top-level target node
+1. reads the source value from the first item of the source collection path chain,
+2. clones that value into `resolved.values[target.nodeId]`,
+3. emits at most one `migrated` diff per affected top-level target node.
 
-Collection-to-top extraction intentionally uses the first item as deterministic selection behavior.
+Collection-to-top extraction intentionally uses the first item as the deterministic selection rule.
+
+## Important Limits
+
+This stage mutates:
+
+- `resolved.values`
+- `resolved.diffs`
+
+It does not create new resolution records and it does not update `valueLineage`.
+
+That means these moves are a targeted post-pass for preserving data shape, not a second full reconciliation cycle.
 
 ## Collection Lens Responsibilities
 
-- `updateCollectionTargetValue`: writes cloned source value across target path chain for all items
-- `readCollectionFirstItemValue`: reads first-item path-chain value from prior collection data
-- `writePathChain` / `readPathFromFirstItem`: recursive nested collection traversal
-- `normalizeCollectionState`: normalizes malformed collection shapes to safe defaults
+The collection-lens helpers provide the read and write mechanics used here:
 
-## Diagram
+- `updateCollectionTargetValue`
+- `readCollectionFirstItemValue`
+- `writePathChain`
+- `readPathFromFirstItem`
+- `normalizeCollectionState`
 
-```mermaid
-flowchart TD
-  start["applySemanticKeyMoves(ctx,priorData,resolved)"] --> collectPrior["collectSemanticKeyLocations(priorView.nodes)"]
-  collectPrior --> collectNew["collectSemanticKeyLocations(newView.nodes)"]
+## Test Anchors
 
-  collectNew --> planTopToCollection["planTopToCollectionMoves()"]
-  collectNew --> planCollectionToTop["planCollectionToTopMoves()"]
-
-  planTopToCollection --> applyTopToCollection["applyTopToCollectionMoves()"]
-  planCollectionToTop --> applyCollectionToTop["applyCollectionToTopMoves()"]
-
-  applyTopToCollection --> updateCollection["updateCollectionTargetValue()"]
-  applyTopToCollection --> emitCollectionDiff["push migratedDiff(collectionId)"]
-
-  applyCollectionToTop --> readFirstItem["readCollectionFirstItemValue()"]
-  applyCollectionToTop --> emitTopDiff["push migratedDiff(topNodeId)"]
-
-  updateCollection --> endNode["resolved.values and resolved.diffs updated"]
-  readFirstItem --> endNode
-  emitCollectionDiff --> endNode
-  emitTopDiff --> endNode
-```
-
-## Test Alignment
-
-Primary behavior coverage:
+Primary behavior coverage lives in:
 
 - `packages/runtime/src/lib/reconcile/semantic-key.spec.ts`
 - `packages/runtime/src/lib/reconcile/semantic-moves/semantic-key-move-planner.spec.ts`
 - `packages/runtime/src/lib/reconcile/collection-lens/collection-path-lens.spec.ts`
+
