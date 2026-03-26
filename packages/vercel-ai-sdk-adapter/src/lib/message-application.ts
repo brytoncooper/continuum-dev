@@ -1,7 +1,11 @@
 import { isDataUIPart } from 'ai';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
-import type { SessionStreamMode } from '@continuum-dev/core';
-import type { SessionStreamPart } from '@continuum-dev/core';
+import type {
+  SessionStream,
+  SessionStreamMode,
+  SessionStreamPart,
+} from '@continuum-dev/core';
+import { advanceContinuumViewVersion } from '@continuum-dev/protocol';
 import { createContinuumVercelAiSdkSessionAdapter } from './session-adapter.js';
 import { isContinuumVercelAiSdkDataPart } from './data-parts.js';
 import type {
@@ -12,6 +16,11 @@ import type {
   ContinuumVercelAiSdkSessionAdapter,
   ContinuumVercelAiSdkSessionLike,
 } from './types.js';
+import {
+  createPendingTurnStreams,
+  finalizeTurnStreams,
+  trackTurnStreamApplication,
+} from './stream-turn-tracking.js';
 
 type ApplicablePart =
   | ContinuumVercelAiSdkDataPart
@@ -43,7 +52,7 @@ function findOpenStream(
   sessionAdapter: ContinuumVercelAiSdkSessionAdapter,
   targetViewId: string,
   preferredMode?: SessionStreamMode
-): { streamId: string; mode: SessionStreamMode } | undefined {
+): SessionStream | undefined {
   const openStreams =
     sessionAdapter
       .getStreams?.()
@@ -64,10 +73,7 @@ function findOpenStream(
     return undefined;
   }
 
-  return {
-    streamId: selected.streamId,
-    mode: selected.mode,
-  };
+  return selected;
 }
 
 function resolveTargetViewId(
@@ -167,25 +173,92 @@ function normalizeStreamPart(
   }
 }
 
+function resolveMinorRevisionVersion(
+  application: ContinuumVercelAiSdkPartApplication,
+  sessionAdapter: ContinuumVercelAiSdkSessionAdapter,
+  existingStream?: SessionStream
+): string | null {
+  const existingVersion = existingStream?.previewView?.version?.trim();
+  if (existingVersion) {
+    return existingVersion;
+  }
+
+  const isMinorRevisionApplication =
+    application.kind === 'patch' ||
+    application.kind === 'insert-node' ||
+    application.kind === 'replace-node' ||
+    application.kind === 'remove-node' ||
+    application.kind === 'append-content' ||
+    (application.kind === 'view' && Boolean(application.transformPlan));
+
+  if (!isMinorRevisionApplication) {
+    return null;
+  }
+
+  const baseVersion =
+    sessionAdapter.getCommittedSnapshot()?.view.version ??
+    sessionAdapter.getSnapshot()?.view.version ??
+    null;
+  if (!baseVersion) {
+    return null;
+  }
+
+  return advanceContinuumViewVersion(baseVersion, 'minor');
+}
+
+function normalizeApplicationForStreamVersion(args: {
+  application: ContinuumVercelAiSdkPartApplication;
+  sessionAdapter: ContinuumVercelAiSdkSessionAdapter;
+  existingStream?: SessionStream;
+}): ContinuumVercelAiSdkPartApplication {
+  const nextMinorVersion = resolveMinorRevisionVersion(
+    args.application,
+    args.sessionAdapter,
+    args.existingStream
+  );
+  if (!nextMinorVersion) {
+    return args.application;
+  }
+
+  if (args.application.kind === 'patch') {
+    return {
+      ...args.application,
+      patch: {
+        ...args.application.patch,
+        version: nextMinorVersion,
+      },
+    };
+  }
+
+  if (args.application.kind === 'view' && args.application.transformPlan) {
+    return {
+      ...args.application,
+      view: {
+        ...args.application.view,
+        version: nextMinorVersion,
+      },
+    };
+  }
+
+  return args.application;
+}
+
 function applyThroughStreamingFoundation(
   application: ContinuumVercelAiSdkPartApplication,
   sessionAdapter: ContinuumVercelAiSdkSessionAdapter
 ): ContinuumVercelAiSdkPartApplication {
   if (
     typeof sessionAdapter.beginStream !== 'function' ||
-    typeof sessionAdapter.applyStreamPart !== 'function' ||
-    typeof sessionAdapter.commitStream !== 'function'
+    typeof sessionAdapter.applyStreamPart !== 'function'
   ) {
     return application;
   }
-
-  const streamPart = normalizeStreamPart(application);
   const targetViewId = resolveTargetViewId(application, sessionAdapter);
   const preferredStreamMode =
     'streamMode' in application
       ? application.streamMode ?? 'foreground'
       : 'foreground';
-  if (!streamPart || !targetViewId) {
+  if (!targetViewId) {
     return application;
   }
 
@@ -194,6 +267,16 @@ function applyThroughStreamingFoundation(
   const existingStream = shouldRestartStreamFromCommittedBase
     ? undefined
     : findOpenStream(sessionAdapter, targetViewId, preferredStreamMode);
+  const normalizedApplication = normalizeApplicationForStreamVersion({
+    application,
+    sessionAdapter,
+    existingStream,
+  });
+  const streamPart = normalizeStreamPart(normalizedApplication);
+  if (!streamPart) {
+    return application;
+  }
+
   const streamMode = existingStream?.mode ?? preferredStreamMode;
   let streamId = existingStream?.streamId;
   if (!streamId) {
@@ -211,23 +294,8 @@ function applyThroughStreamingFoundation(
 
   sessionAdapter.applyStreamPart(streamId, streamPart);
 
-  if (
-    application.kind !== 'status' &&
-    application.kind !== 'node-status' &&
-    ('transient' in application ? application.transient !== true : true)
-  ) {
-    const result = sessionAdapter.commitStream(streamId);
-    if (result.status !== 'committed') {
-      throw new Error(
-        `Continuum stream commit failed with status "${result.status}"${
-          result.reason ? `: ${result.reason}` : ''
-        }.`
-      );
-    }
-  }
-
   return {
-    ...application,
+    ...normalizedApplication,
     streamMode,
     streamId,
   } as ContinuumVercelAiSdkPartApplication;
@@ -482,7 +550,8 @@ export function applyContinuumVercelAiSdkMessage(
   session: ContinuumVercelAiSdkSessionAdapter | ContinuumVercelAiSdkSessionLike
 ): ContinuumVercelAiSdkPartApplication[] {
   const applications: ContinuumVercelAiSdkPartApplication[] = [];
-  const touchedStreamIds = new Set<string>();
+  const sessionAdapter = createContinuumVercelAiSdkSessionAdapter(session);
+  const pendingTurnStreams = createPendingTurnStreams();
 
   for (const part of message.parts) {
     if (!isDataUIPart(part) || !isContinuumVercelAiSdkDataPart(part)) {
@@ -491,37 +560,10 @@ export function applyContinuumVercelAiSdkMessage(
 
     const application = applyContinuumVercelAiSdkDataPart(part, session);
     applications.push(application);
-    if (
-      'streamId' in application &&
-      typeof application.streamId === 'string' &&
-      application.streamId.length > 0
-    ) {
-      touchedStreamIds.add(application.streamId);
-    }
+    trackTurnStreamApplication(application, sessionAdapter, pendingTurnStreams);
   }
 
-  const sessionAdapter = createContinuumVercelAiSdkSessionAdapter(session);
-  if (
-    typeof sessionAdapter.commitStream === 'function' &&
-    typeof sessionAdapter.getStreams === 'function'
-  ) {
-    for (const streamId of touchedStreamIds) {
-      const stream = sessionAdapter
-        .getStreams()
-        ?.find((candidate) => candidate.streamId === streamId);
-      if (!stream || stream.status !== 'open') {
-        continue;
-      }
-      const result = sessionAdapter.commitStream(streamId);
-      if (result.status !== 'committed') {
-        throw new Error(
-          `Continuum stream commit failed with status "${result.status}"${
-            result.reason ? `: ${result.reason}` : ''
-          }.`
-        );
-      }
-    }
-  }
+  finalizeTurnStreams(sessionAdapter, pendingTurnStreams, 'ready');
 
   return applications;
 }

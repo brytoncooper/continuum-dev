@@ -297,7 +297,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     expect(transientPatchApplication.kind).toBe('patch');
-    expect(session.getSnapshot()?.view.version).toBe('2');
+    expect(session.getSnapshot()?.view.version).toBe('1.1');
     expect(session.getCommittedSnapshot()?.view.version).toBe('1');
 
     const streamId =
@@ -312,7 +312,83 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
 
     adapter.commitStream?.(streamId);
 
-    expect(session.getCommittedSnapshot()?.view.version).toBe('2');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1.1');
+  });
+
+  it('keeps streamed patch chunks in the same assistant turn on one minor version', () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'loan-form',
+      version: '2',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [{ id: 'name', type: 'field', dataType: 'string' }],
+        },
+      ],
+    });
+    const adapter = createContinuumVercelAiSdkSessionAdapter(session);
+
+    const firstPatch = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkPatchDataChunk({
+        patch: {
+          viewId: 'loan-form',
+          version: '2.1',
+          operations: [
+            {
+              op: 'insert-node',
+              parentId: 'profile',
+              position: { afterId: 'name' },
+              node: {
+                id: 'email',
+                type: 'field',
+                dataType: 'string',
+              },
+            },
+          ],
+        },
+      }),
+      adapter
+    );
+
+    const secondPatch = applyContinuumVercelAiSdkDataPart(
+      createContinuumVercelAiSdkPatchDataChunk({
+        patch: {
+          viewId: 'loan-form',
+          version: '2.2',
+          operations: [
+            {
+              op: 'insert-node',
+              parentId: 'profile',
+              position: { afterId: 'email' },
+              node: {
+                id: 'phone',
+                type: 'field',
+                dataType: 'string',
+              },
+            },
+          ],
+        },
+      }),
+      adapter
+    );
+
+    const streamId =
+      'streamId' in firstPatch ? firstPatch.streamId : undefined;
+    expect(streamId).toBeTruthy();
+    expect(
+      'streamId' in secondPatch ? secondPatch.streamId : undefined
+    ).toBe(streamId);
+    expect(session.getSnapshot()?.view.version).toBe('2.1');
+
+    if (!streamId) {
+      throw new Error('Expected streamed patches to reuse a stream id');
+    }
+
+    adapter.commitStream?.(streamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.1');
   });
 
   it('keeps transient state chunks on render-only nodes out of committed state until commit', () => {
@@ -377,7 +453,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     });
   });
 
-  it('routes draft view chunks through a draft stream and commits only on the final draft part', () => {
+  it('routes draft view chunks through a draft stream and commits only when the turn finishes', () => {
     const session = createSession();
     session.pushView({
       viewId: 'drafted-view',
@@ -476,10 +552,15 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     expect(
       'streamId' in finalApplication ? finalApplication.streamId : undefined
     ).toBe(previewStreamId);
+    expect(session.getStreams()[0]?.status).toBe('open');
+    expect(session.getStreams()[0]?.mode).toBe('draft');
+    expect(session.getStreams()[0]?.previewView?.version).toBe('2');
+
+    adapter.commitStream?.(previewStreamId);
+
     expect(session.getSnapshot()?.view.version).toBe('2');
     expect(session.getCommittedSnapshot()?.view.version).toBe('2');
     expect(session.getStreams()[0]?.status).toBe('committed');
-    expect(session.getStreams()[0]?.mode).toBe('draft');
   });
 
   it('keeps transient status updates on the active draft stream instead of superseding it', () => {
@@ -705,6 +786,172 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     rendered.unmount();
   });
 
+  it('creates one committed checkpoint for multiple streamed mutations in a single assistant reply', async () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '2',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [{ id: 'name', type: 'field', dataType: 'string' }],
+        },
+      ],
+    });
+
+    const initialCheckpointCount = session.getCheckpoints().length;
+    let sendMessage:
+      | ReturnType<
+          typeof useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>
+        >['sendMessage']
+      | null = null;
+
+    function Probe() {
+      const chat = useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>({
+        session,
+        transport: {
+          async sendMessages() {
+            return createUIMessageStream<ContinuumVercelAiSdkMessage>({
+              execute: ({ writer }) => {
+                writer.write(
+                  createContinuumVercelAiSdkPatchDataChunk({
+                    patch: {
+                      viewId: 'streamed-view',
+                      version: '2.1',
+                      operations: [
+                        {
+                          op: 'insert-node',
+                          parentId: 'profile',
+                          position: { afterId: 'name' },
+                          node: {
+                            id: 'email',
+                            type: 'field',
+                            dataType: 'string',
+                            label: 'Email',
+                          },
+                        },
+                      ],
+                    },
+                  })
+                );
+                writer.write(
+                  createContinuumVercelAiSdkPatchDataChunk({
+                    patch: {
+                      viewId: 'streamed-view',
+                      version: '2.2',
+                      operations: [
+                        {
+                          op: 'insert-node',
+                          parentId: 'profile',
+                          position: { afterId: 'email' },
+                          node: {
+                            id: 'phone',
+                            type: 'field',
+                            dataType: 'string',
+                            label: 'Phone',
+                          },
+                        },
+                      ],
+                    },
+                  })
+                );
+              },
+            });
+          },
+          async reconnectToStream() {
+            return null;
+          },
+        },
+      });
+
+      sendMessage = chat.sendMessage;
+      return null;
+    }
+
+    const rendered = renderIntoDom(<Probe />);
+
+    await act(async () => {
+      await sendMessage?.({ text: 'Add contact fields' });
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    const profile = session.getSnapshot()?.view.nodes[0] as {
+      children: Array<{ id: string }>;
+    };
+    expect(profile.children.map((child) => child.id)).toEqual([
+      'name',
+      'email',
+      'phone',
+    ]);
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.1');
+    expect(session.getCheckpoints()).toHaveLength(initialCheckpointCount + 1);
+
+    rendered.unmount();
+  });
+
+  it('does not create a checkpoint for status-only assistant turns', async () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '1',
+      nodes: [],
+    });
+
+    const initialCheckpointCount = session.getCheckpoints().length;
+    let sendMessage:
+      | ReturnType<
+          typeof useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>
+        >['sendMessage']
+      | null = null;
+
+    function Probe() {
+      const chat = useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>({
+        session,
+        transport: {
+          async sendMessages() {
+            return createUIMessageStream<ContinuumVercelAiSdkMessage>({
+              execute: ({ writer }) => {
+                writer.write(
+                  createContinuumVercelAiSdkStatusDataChunk(
+                    {
+                      status: 'Thinking...',
+                      level: 'info',
+                    },
+                    { transient: true }
+                  )
+                );
+              },
+            });
+          },
+          async reconnectToStream() {
+            return null;
+          },
+        },
+      });
+
+      sendMessage = chat.sendMessage;
+      return null;
+    }
+
+    const rendered = renderIntoDom(<Probe />);
+
+    await act(async () => {
+      await sendMessage?.({ text: 'Just narrate progress' });
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
+    expect(session.getCheckpoints()).toHaveLength(initialCheckpointCount);
+    expect(
+      session.getStreams().some((stream) => stream.status === 'open')
+    ).toBe(false);
+
+    rendered.unmount();
+  });
+
   it('applies transient preview views before the stream finishes and commits the final view afterward', async () => {
     const session = createSession();
     session.pushView({
@@ -712,6 +959,7 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
       version: '1',
       nodes: [],
     });
+    const initialCheckpointCount = session.getCheckpoints().length;
 
     let sendMessage:
       | ReturnType<
@@ -800,6 +1048,83 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
 
     expect(session.getSnapshot()?.view.version).toBe('final');
     expect(session.getCommittedSnapshot()?.view.version).toBe('final');
+    expect(session.getCheckpoints()).toHaveLength(initialCheckpointCount + 1);
+
+    rendered.unmount();
+  });
+
+  it('abandons preview-only streams when the assistant turn errors', async () => {
+    const session = createSession();
+    session.pushView({
+      viewId: 'streamed-view',
+      version: '1',
+      nodes: [],
+    });
+
+    const initialCheckpointCount = session.getCheckpoints().length;
+    let sendMessage:
+      | ReturnType<
+          typeof useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>
+        >['sendMessage']
+      | null = null;
+
+    function Probe() {
+      const chat = useContinuumVercelAiSdkChat<ContinuumVercelAiSdkMessage>({
+        session,
+        onError: () => undefined,
+        transport: {
+          async sendMessages() {
+            return createUIMessageStream<ContinuumVercelAiSdkMessage>({
+              execute: async ({ writer }) => {
+                writer.write(
+                  createContinuumVercelAiSdkViewDataChunk(
+                    {
+                      view: {
+                        viewId: 'streamed-view',
+                        version: 'preview',
+                        nodes: [
+                          {
+                            id: 'name',
+                            type: 'field',
+                            dataType: 'string',
+                            label: 'Name',
+                          },
+                        ],
+                      },
+                    },
+                    { transient: true, id: 'preview-only' }
+                  )
+                );
+                throw new Error('stream failed');
+              },
+            });
+          },
+          async reconnectToStream() {
+            return null;
+          },
+        },
+      });
+
+      sendMessage = chat.sendMessage;
+      return null;
+    }
+
+    const rendered = renderIntoDom(<Probe />);
+
+    await act(async () => {
+      await sendMessage?.({ text: 'Start previewing and fail' }).catch(
+        () => undefined
+      );
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    expect(session.getSnapshot()?.view.version).toBe('1');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('1');
+    expect(session.getCheckpoints()).toHaveLength(initialCheckpointCount);
+    expect(
+      session.getStreams().some((stream) => stream.status === 'open')
+    ).toBe(false);
 
     rendered.unmount();
   });
@@ -926,10 +1251,10 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
     );
 
     expect(finalApplication.kind).toBe('view');
-    expect(
-      'streamId' in finalApplication ? finalApplication.streamId : undefined
-    ).not.toBe(previewStreamId);
-    expect(session.getCommittedSnapshot()?.view.version).toBe('4');
+    const finalStreamId =
+      'streamId' in finalApplication ? finalApplication.streamId : undefined;
+    expect(finalStreamId).not.toBe(previewStreamId);
+    expect(session.getCommittedSnapshot()?.view.version).toBe('3');
     expect(
       session.getSnapshot()?.data.values['tax_form/name_row/first_name']
     ).toEqual({
@@ -946,6 +1271,14 @@ describe('@continuum-dev/vercel-ai-sdk-adapter', () => {
       session.getStreams().find((stream) => stream.streamId === previewStreamId)
         ?.status
     ).toBe('superseded');
+
+    if (!finalStreamId) {
+      throw new Error('Expected final transform view to create a stream id');
+    }
+
+    adapter.commitStream?.(finalStreamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('3.1');
   });
 
   it('returns an ignored application instead of throwing when transform apply fails', () => {

@@ -11,6 +11,11 @@ import {
   interpretContinuumVercelAiSdkDataPart,
 } from './message-application.js';
 import { createContinuumVercelAiSdkSessionAdapter } from './session-adapter.js';
+import {
+  createPendingTurnStreams,
+  finalizeTurnStreams,
+  trackTurnStreamApplication,
+} from './stream-turn-tracking.js';
 import type {
   ContinuumVercelAiSdkMessage,
   ContinuumVercelAiSdkPartApplication,
@@ -96,7 +101,7 @@ export function useContinuumVercelAiSdkChat<
   );
   const appliedPartKeysRef = useRef<Set<string>>(new Set());
   const immediatelyAppliedTransientPartIdsRef = useRef<Set<string>>(new Set());
-  const pendingStreamIdsRef = useRef<Set<string>>(new Set());
+  const pendingTurnStreamsRef = useRef(createPendingTurnStreams());
   const [latestContinuumEvent, setLatestContinuumEvent] =
     useState<ContinuumVercelAiSdkPartApplication | null>(null);
   const [latestStatus, setLatestStatus] =
@@ -122,20 +127,11 @@ export function useContinuumVercelAiSdkChat<
             appliedPartKeysRef.current.add(part.id);
           }
 
-          if (
-            'streamId' in application &&
-            typeof application.streamId === 'string' &&
-            application.streamId.length > 0
-          ) {
-            const stream = continuumSession
-              .getStreams?.()
-              ?.find(
-                (candidate) => candidate.streamId === application.streamId
-              );
-            if (stream?.status === 'open') {
-              pendingStreamIdsRef.current.add(application.streamId);
-            }
-          }
+          trackTurnStreamApplication(
+            application,
+            continuumSession,
+            pendingTurnStreamsRef.current
+          );
 
           if (application.kind === 'status') {
             const nextStatus = {
@@ -171,7 +167,8 @@ export function useContinuumVercelAiSdkChat<
     if (chat.messages.length === 0) {
       appliedPartKeysRef.current.clear();
       immediatelyAppliedTransientPartIdsRef.current.clear();
-      pendingStreamIdsRef.current.clear();
+      pendingTurnStreamsRef.current.commitStreamIds.clear();
+      pendingTurnStreamsRef.current.previewStreamIds.clear();
       return;
     }
 
@@ -212,20 +209,11 @@ export function useContinuumVercelAiSdkChat<
           part,
           continuumSession
         );
-        if (
-          'streamId' in application &&
-          typeof application.streamId === 'string' &&
-          application.streamId.length > 0
-        ) {
-          const stream = continuumSession
-            .getStreams?.()
-            ?.find((candidate) => candidate.streamId === application.streamId);
-          if (stream?.status === 'open') {
-            pendingStreamIdsRef.current.add(application.streamId);
-          } else {
-            pendingStreamIdsRef.current.delete(application.streamId);
-          }
-        }
+        trackTurnStreamApplication(
+          application,
+          continuumSession,
+          pendingTurnStreamsRef.current
+        );
         if (application.kind === 'status') {
           setLatestStatus({
             status: application.status,
@@ -253,7 +241,10 @@ export function useContinuumVercelAiSdkChat<
   }, [chat.status]);
 
   useEffect(() => {
-    if (pendingStreamIdsRef.current.size === 0) {
+    if (
+      pendingTurnStreamsRef.current.commitStreamIds.size === 0 &&
+      pendingTurnStreamsRef.current.previewStreamIds.size === 0
+    ) {
       return;
     }
 
@@ -261,24 +252,11 @@ export function useContinuumVercelAiSdkChat<
       return;
     }
 
-    const streamIds = [...pendingStreamIdsRef.current];
-    pendingStreamIdsRef.current.clear();
-
-    for (const streamId of streamIds) {
-      const stream = continuumSession
-        .getStreams?.()
-        ?.find((candidate) => candidate.streamId === streamId);
-      if (!stream || stream.status !== 'open') {
-        continue;
-      }
-
-      if (chat.status === 'error') {
-        continuumSession.abortStream?.(streamId, 'AI stream ended with error');
-        continue;
-      }
-
-      continuumSession.commitStream?.(streamId);
-    }
+    finalizeTurnStreams(
+      continuumSession,
+      pendingTurnStreamsRef.current,
+      chat.status
+    );
   }, [chat.status, continuumSession]);
 
   return {
