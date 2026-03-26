@@ -7,6 +7,7 @@ import type { ViewLineDslNode } from './types.js';
 describe('view line dsl node definition builder', () => {
   it.each([
     ['7', '8'],
+    ['2.3', '3'],
     ['version9', 'version10'],
     ['draft', 'draft-next'],
   ])('bumps version %s to %s', (input, expected) => {

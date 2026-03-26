@@ -87,7 +87,7 @@ describe('applyPatchPlanToView', () => {
 
     expect(patched).toMatchObject({
       viewId: 'invoice',
-      version: '2',
+      version: '1.1',
     });
     expect(requireNode(patched as ViewDefinition, 'body')).toMatchObject({
       id: 'body',
@@ -98,9 +98,9 @@ describe('applyPatchPlanToView', () => {
   });
 
   it.each([
-    ['1', '2'],
-    ['v1', 'v2'],
-    ['release', 'release-next'],
+    ['1', '1.1'],
+    ['v1', 'v1.1'],
+    ['release', 'release.1'],
   ])(
     'bumps version %s to %s when a patch changes the tree',
     (version, expected) => {

@@ -211,7 +211,7 @@ describe('view generation apply helpers', () => {
     expect(applyView).toHaveBeenCalledTimes(1);
     expect(applyView.mock.calls[0][0]).toMatchObject({
       viewId: 'profile',
-      version: '2',
+      version: '1.1',
       nodes: [
         {
           id: 'profile_group',

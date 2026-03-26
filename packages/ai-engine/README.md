@@ -1,71 +1,130 @@
 # @continuum-dev/ai-engine
 
-Transport-agnostic Continuum **AI execution**: turn a user instruction into **state**, **patch**, **transform**, or **view** results. The OSS path **defaults to full view generation**; advanced callers pass **`executionMode`** or **`executionPlan`** (precedence: plan > mode > default). Prompts are **fixed per execution mode** and are not overridable on the public execution API.
+`@continuum-dev/ai-engine` is the headless Continuum package that turns a user instruction into Continuum-safe state updates, localized patches, transforms, or full view generation.
 
-## Features
+## Why This Exists
 
-- One pipeline for state / patch / transform / view across backends, agents, or apps
-- **Explicit OSS routing** — default view, or choose a mode/plan; no instruction-text heuristic that picks execution mode for you
-- Authoring helpers for **line-dsl**, **yaml**, and optional **view-json** (structured `ViewDefinition` JSON), plus parsers to `ViewDefinition`
-- State and patch **target catalogs** and parsing for model JSON replies
-- View **guardrails** and patch planning helpers
-- Optional **`applyContinuumExecutionFinalResult`** when you use a Continuum **session**
+Continuum needs a place where AI-driven edits can be planned, prompted, parsed, normalized, and checked against runtime continuity rules without being tied to a particular model provider, chat transport, or UI framework. This package is that place. It keeps the execution logic headless so the same engine can sit behind direct provider calls, server routes, or higher-level adapters.
 
-## Premium planner (private product)
+## How It Works
 
-The LLM **execution planner** (mode selection, integration binding, registered-action binding, and related orchestration prompts) ships in the private **`@continuum-cloud/ai-execution`** package. The OSS `runContinuumExecution` / `streamContinuumExecution` entrypoints intentionally do **not** call that planner.
+1. You give the engine an `instruction`, an execution adapter that can call a model, and optional Continuum context like `currentView`, `currentData`, detached fields, issues, integrations, actions, and attachments.
+2. The open-source runner resolves the execution path in this order: explicit `executionPlan`, else explicit `executionMode`, else the default full-view path.
+3. The engine runs the chosen phase with built-in prompts and parsers for that phase.
+4. Generated results are runtime-evaluated before acceptance. Invalid or unsafe view-like results may trigger repair or return a `noop`.
+5. You get a final result or a stream of execution events. If you have a Continuum session, you can apply the final result back into it.
 
-To use premium execution from **`@continuum-dev/vercel-ai-sdk-adapter`**, pass **`streamContinuumExecution`** from `@continuum-cloud/ai-execution` into `writeContinuumExecutionToUiMessageWriter`, `createContinuumUiMessageStream`, or `createContinuumVercelAiSdkRouteHandler`.
+## What It Is
 
-## Installation
+This package is a headless execution layer with:
+
+- session adapters for bridging a Continuum session into the engine
+- execution runners and event streaming
+- state-target and patch-target catalogs
+- view authoring helpers for `line-dsl`, `yaml`, and `view-json`
+- guardrails, patch helpers, and advanced execution subpaths
+
+It is not a model-provider catalog, a route adapter, or a chat UI layer.
+
+## Install
 
 ```bash
 npm install @continuum-dev/ai-engine
 ```
 
-This package already depends on `@continuum-dev/core`, `@continuum-dev/runtime`, `@continuum-dev/prompts`, and `@continuum-dev/protocol`. You usually do not install those separately, but you will still see types from `core` (for example `ViewDefinition`) in APIs.
+If you want a ready-made provider adapter instead of building `ContinuumExecutionAdapter` yourself, also install `@continuum-dev/ai-connect`.
 
-Most app integrations pair this package with:
+## Easiest Path
 
-- `@continuum-dev/react` or `@continuum-dev/starter-kit` for rendering and live session state
-- `@continuum-dev/session` when the app needs the explicit stateful spine
-- `@continuum-dev/vercel-ai-sdk-adapter` or `@continuum-dev/ai-connect` for the outer AI edge
+The simplest supported path is:
 
-## Quick start (session + model adapter)
-
-Typical integration: a **Continuum session adapter**, context from the session, an execution adapter from **`@continuum-dev/ai-connect`** (or your own — see below), then run and apply.
+1. wrap your Continuum session with `createContinuumSessionAdapter(...)`,
+2. build execution context from that session,
+3. run the engine,
+4. apply the final result back into the session.
 
 ```ts
 import {
   applyContinuumExecutionFinalResult,
   buildContinuumExecutionContext,
-  type ContinuumViewAuthoringFormat,
+  createContinuumSessionAdapter,
   runContinuumExecution,
 } from '@continuum-dev/ai-engine';
 import { createAiConnectContinuumExecutionAdapter } from '@continuum-dev/ai-connect';
 
-const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
+const continuumSession = createContinuumSessionAdapter(session);
 
 const result = await runContinuumExecution({
   adapter: createAiConnectContinuumExecutionAdapter(provider),
-  context: buildContinuumExecutionContext(session),
-  instruction: 'Refine the existing intake flow for mobile',
+  instruction: 'Refine the existing intake flow for mobile.',
+  // Build the current Continuum execution context from the live session.
+  context: buildContinuumExecutionContext(continuumSession),
+  // `mode` is prompt authoring mode. Omit `executionMode` to use the open-source default:
+  // full view generation.
   mode: 'evolve-view',
-  authoringFormat,
+  authoringFormat: 'line-dsl',
 });
 
-applyContinuumExecutionFinalResult(session, result);
+applyContinuumExecutionFinalResult(continuumSession, result);
 ```
 
-- `session` must be a `ContinuumSessionAdapter` (often via `createContinuumSessionAdapter` wrapping your session implementation).
-- `mode` is an optional **authoring** hint (`create-view`, `evolve-view`, …). It does **not** select execution routing; use **`executionMode`** or **`executionPlan`** when you need patch, state, or transform instead of the default full view.
-- `authoringFormat` is `'line-dsl'`, `'yaml'`, or `'view-json'`. Use **`view-json`** when you want JSON that matches the built-in `ViewDefinition` schema: the engine sets `outputContract` to that schema on the execution request (this is what `@continuum-dev/ai-connect` forwards to providers). `outputKind: 'json-object'` on the same request is a **hint for routing and traces**; it does not enforce structure without a transport that honors `outputContract`. View generation uses **`generate` only** for `view-json` (no incremental `streamText` previews). If the provider rejects the schema, ai-connect clients **retry once without** the contract and parse JSON from the reply text when possible; the response then includes `outputContractFallbackUsed: true` (surfaced on `ContinuumExecutionResponse` through the ai-connect execution adapter).
+Two important notes:
 
-## Bring your own LLM
+- `mode` is prompt authoring mode, usually `create-view` or `evolve-view`.
+- `executionMode` is actual open-source phase routing: `state`, `patch`, `transform`, or `view`.
 
-You do not need `@continuum-dev/ai-connect`. Implement `ContinuumExecutionAdapter` (see [Execution adapter](#execution-adapter)) and pass it to `runContinuumExecution`. You can build `context` yourself instead of `buildContinuumExecutionContext` when you are not using a Continuum session.
+If you do not pass `mode`, the engine infers `create-view` when there is no current view and `evolve-view` when there is one.
 
-Without a session, skip `applyContinuumExecutionFinalResult` and read `result.mode` plus fields like `updates`, `patchPlan`, `view`, or `transformPlan`, then persist or render them yourself.
+## Normal Execution Order
+
+1. The engine normalizes context, detached fields, and attachments.
+2. It resolves the execution path in this order: `executionPlan`, then `executionMode`, then default full view generation.
+3. It infers the authoring prompt mode if you did not supply one.
+4. `state` and `patch` can retry once with validation feedback when the first result is weak or unusable.
+5. `view` and `transform` results go through runtime continuity evaluation before acceptance.
+6. The final result is one of `state`, `patch`, `transform`, `view`, or `noop`.
+
+## Other Options
+
+### Choose the execution lane explicitly
+
+Use `executionMode` when you do not want the default full-view path.
+
+```ts
+const result = await runContinuumExecution({
+  adapter,
+  instruction: 'Add a phone field under email.',
+  executionMode: 'patch',
+  context: {
+    currentView,
+    currentData,
+  },
+});
+```
+
+- `executionMode: 'state'` is for value-only updates.
+- `executionMode: 'patch'` is for localized structural edits.
+- `executionMode: 'transform'` is for surgical schema evolution with transform metadata.
+- `executionMode: 'view'` is for explicit full view generation.
+
+### Stream events instead of waiting for the final result
+
+Use `streamContinuumExecution(...)` when you want incremental status, state, patch, or view-preview events.
+
+```ts
+for await (const event of streamContinuumExecution({
+  adapter,
+  instruction,
+  context,
+  authoringFormat: 'line-dsl',
+})) {
+  console.log(event.kind);
+}
+```
+
+### Bring your own execution adapter
+
+You do not need `@continuum-dev/ai-connect`. Implement `ContinuumExecutionAdapter` and pass it to the runner directly.
 
 ```ts
 import type {
@@ -73,7 +132,6 @@ import type {
   ContinuumExecutionRequest,
   ContinuumExecutionResponse,
 } from '@continuum-dev/ai-engine';
-import { runContinuumExecution } from '@continuum-dev/ai-engine';
 
 const adapter: ContinuumExecutionAdapter = {
   label: 'my-provider',
@@ -87,83 +145,94 @@ const adapter: ContinuumExecutionAdapter = {
     return { text };
   },
 };
-
-const result = await runContinuumExecution({
-  adapter,
-  instruction: 'Add a phone field below email',
-  context: { currentView: myView, currentData: myValues },
-  authoringFormat: 'line-dsl',
-});
-
-if (result.mode === 'view') {
-  await saveViewInMyApp(result.view);
-}
 ```
 
-## Execution adapter
+### Use pieces without the full runner
 
-The **execution adapter** is how this library talks to **any** language model. The package builds a `ContinuumExecutionRequest` for each step (system and user text, phase `mode`, output contract, temperature, optional attachments, abort signal, and so on). Your `generate(request)` calls the provider and returns `ContinuumExecutionResponse` — at least `text`, optionally `json`. One user instruction can produce **multiple** such requests.
+Examples:
 
-Give the adapter a short `label` for traces. Optionally implement `streamText` / `streamObject` if you want streaming; the engine uses them when available.
+- `buildContinuumStateTargetCatalog(...)`
+- `buildContinuumPatchTargetCatalog(...)`
+- `parseContinuumStateResponse(...)`
+- `parseViewAuthoringToViewDefinition(...)`
+- `normalizeViewDefinition(...)`
+- `buildPatchSystemPrompt(...)`
+- `buildPatchUserMessage(...)`
+- `normalizeViewPatchPlan(...)`
 
-This is **not** the same as `ContinuumSessionAdapter`: the **session** adapter is your Continuum form/session surface (current view, values, applying updates). The **execution** adapter is **only** model calls. Many apps use both.
+### Advanced subpaths
 
-Types: [`src/lib/execution/types.ts`](src/lib/execution/types.ts) (`ContinuumExecutionAdapter`, `ContinuumExecutionRequest`, `ContinuumExecutionResponse`, `ContinuumExecutionContext`, `ContinuumExecutionFinalResult`, `ContinuumExecutionEvent`).
+- `@continuum-dev/ai-engine/continuum-execution` exposes low-level shared planner helpers like `parseJson(...)` and semantic identity normalization.
+- `@continuum-dev/ai-engine/execution-stream` exposes phase runners and stream-environment construction for advanced composition.
 
-## How a run fits together
+The open-source package does not ship the private premium planner. If a private package wants planner-led routing, it can compose on top of these subpaths.
 
-**OSS:** without `executionMode` or `executionPlan`, the runner uses **view** generation. With an explicit mode or plan, it runs the matching phase pipeline. **Premium cloud** can inject **`streamContinuumExecution`** from `@continuum-cloud/ai-execution` for automatic planner-led routing. Each phase may call `adapter.generate` one or more times. You get a `ContinuumExecutionFinalResult` with a `trace` of requests and responses. With a session, `applyContinuumExecutionFinalResult` applies that result to the live session.
+## Dictionary Contract
 
-```mermaid
-flowchart LR
-  adapter[ExecutionAdapter]
-  run[runOrStream]
-  result[FinalResult]
-  apply[applyToSession]
+### Core literals
 
-  adapter --> run
-  run --> result
-  result --> apply
-```
+- `executionMode`: `'state' | 'patch' | 'transform' | 'view'`
+- `ContinuumExecutionPhase`: `'planner' | 'state' | 'patch' | 'transform' | 'view' | 'repair'`
+- `ContinuumExecutionOutputKind`: `'text' | 'json-object'`
+- `ContinuumViewAuthoringFormat`: `'line-dsl' | 'yaml' | 'view-json'`
+- `ContinuumExecutionStatusLevel`: `'info' | 'success' | 'warning' | 'error'`
+- `ContinuumChatAttachment.kind`: `'image' | 'file'`
 
-## Streaming
+### Final result modes
 
-- `runContinuumExecution` waits until the run finishes and returns the final result.
-- `streamContinuumExecution` yields `ContinuumExecutionEvent` values (status, previews, final view, errors, etc.) for incremental UIs. Shapes are defined next to `ContinuumExecutionEvent` in [`src/lib/execution/types.ts`](src/lib/execution/types.ts).
+- `state`
+- `patch`
+- `transform`
+- `view`
+- `noop`
 
-## API overview
+### Stream event kinds
 
-Public exports are declared in [`src/index.ts`](src/index.ts).
+- `status`
+- `state`
+- `patch`
+- `view-preview`
+- `view-final`
+- `error`
 
-| Area | Examples |
-| --- | --- |
-| Session | `ContinuumSessionAdapter`, `ContinuumSessionLike`, `createContinuumSessionAdapter` |
-| Execution | `runContinuumExecution`, `streamContinuumExecution`, `buildContinuumExecutionContext`, `applyContinuumExecutionFinalResult` |
-| Targets | `buildContinuumStateTargetCatalog`, `buildContinuumPatchTargetCatalog`, `parseContinuumStateResponse`, `evaluateStateResponseQuality` |
-| Types | `ContinuumExecutionMode`, `ContinuumExecutionPlan`, `ContinuumResolvedExecutionPlan` |
-| Guardrails | `normalizeViewDefinition`, `parseJson`, `isViewDefinition`, structural helpers |
-| Patching | Patch types, normalize/apply, prompts, context builders |
-| Authoring | Line DSL, YAML, `view-json/`; `parseViewAuthoringToViewDefinition`, `ContinuumViewAuthoringFormat` |
+### Resolved-plan validation values
 
-Internal pieces such as **view-generation** and **view-transforms** are not re-exported from the package root; they are used inside the execution pipeline. For the source layout, see [`src/lib/ARCHITECTURE.md`](src/lib/ARCHITECTURE.md).
+- `accepted`
+- `invalid-plan`
+- `state-unavailable`
+- `patch-unavailable`
+- `transform-unavailable`
+- `unknown-targets`
+- `missing-targets`
+- `partial-targets`
 
-## Using pieces without the full runner
+### Resolved-plan integration validation values
 
-Examples: `normalizeViewDefinition` / `parseJson` for safe JSON; `parseViewAuthoringToViewDefinition` for DSL/YAML/JSON text (optional `json` from the adapter when using `view-json`); `buildContinuumStateTargetCatalog` / `buildContinuumPatchTargetCatalog` for target lists; `buildPatchSystemPrompt`, `buildPatchUserMessage`, `normalizeViewPatchPlan` for custom patch flows.
+- `accepted`
+- `missing-endpoint`
+- `invalid-endpoint`
+- `missing-payload-keys`
+- `partial-payload-keys`
+- `not-applicable`
 
-## Subpath: `continuum-execution`
+### Common execution context fields
 
-`@continuum-dev/ai-engine/continuum-execution` exposes **shared planner primitives** used to build custom planners: JSON recovery helpers, semantic identity normalization, and related low-level utilities. It does **not** ship the premium LLM planner prompts.
+- `currentView`
+- `currentData`
+- `detachedFields`
+- `conversationSummary`
+- `issues`
+- `integrationCatalog`
+- `registeredActions`
+- `chatAttachments`
 
-## Subpath: `execution-stream`
+### Structured-output note
 
-`@continuum-dev/ai-engine/execution-stream` exposes **internal stream building blocks** (phase runners and stream environment construction) for advanced composition—for example wiring a private planner package that reuses the same phase implementations.
+- `outputKind` is only a hint about the expected response shape.
+- `outputContract` is the real structured-output contract when the transport supports it.
+- `view-json` uses the built-in `ViewDefinition` output contract and does not stream incremental text previews.
 
-## What this package is not
+## Source Notes
 
-It does not ship provider catalogs, framework route helpers, or chat UI wiring. `@continuum-dev/ai-connect` is shown above as one way to obtain an execution adapter; it is **not** a dependency of this package.
-
-## Contributing / source
-
-- [`src/lib/ARCHITECTURE.md`](src/lib/ARCHITECTURE.md) — map of `lib/*`, public vs internal modules, end-to-end flow
-- [`src/README.md`](src/README.md) — entry note when browsing `src/`
+- [`src/lib/ARCHITECTURE.md`](src/lib/ARCHITECTURE.md) maps the internal areas and their responsibilities.
+- [`src/README.md`](src/README.md) is the internal entry note when you are browsing the package source.
