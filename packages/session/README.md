@@ -1,442 +1,537 @@
-# ♾️ @continuum-dev/session
-
-**The Stateful Ledger for Generative UI.** Give your AI agents memory, conflict resolution, and time-travel capabilities.
-
-Website: [continuumstack.dev](https://continuumstack.dev)
-GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
-
-## Core Premise: The Ephemerality Gap
-
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
-
-[![npm version](https://badge.fury.io/js/@continuum-dev%2Fsession.svg)](https://badge.fury.io/js/@continuum-dev%2Fsession)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## The Problem: The User and the AI are Fighting
-
-Building a multi-turn Generative UI introduces a massive state management problem: **concurrency and conflict**.
-
-- **Data Clobbering:** The user is typing in a text field, but the AI suddenly pushes an updated view and tries to overwrite their in-progress input.
-- **Hallucinations:** The AI generates a broken layout or removes critical UI. You need deterministic undo.
-- **Persistence:** A user closes the tab and returns later. You need exact rehydration of generated view, user state, and timeline.
-
-Standard state managers are optimized for deterministic single-author UIs. They struggle when the UI schema itself mutates over time.
-
-## The Solution
-
-**Continuum Session** is a stateful lifecycle manager built on top of `@continuum-dev/runtime`. It converts a stream of AI view mutations and user interactions into a structured, event-sourced session ledger.
-
-It tracks event history, manages checkpoints, protects dirty user input with proposals, and serializes durable session state into a portable blob for resumable experiences.
-
-Streaming guide: [STREAMING.md](./STREAMING.md)
-
-Upgrade references:
-
-- Root upgrade guide and API delta (private maintainer documentation repository)
+# @continuum-dev/session
 
 ```bash
 npm install @continuum-dev/session
 ```
 
-Use this package directly when you want explicit control of the stateful continuity spine.
+## Why It Exists
 
-For most React apps, start with `@continuum-dev/react` or `@continuum-dev/starter-kit` and drop to `@continuum-dev/session` when you need to own persistence, actions, streams, or serialization boundaries yourself.
+`@continuum-dev/runtime` solves continuity for one structural update.
 
-## Core Capabilities
+`@continuum-dev/session` exists when you need continuity across a whole timeline.
 
-- ⏱️ **Time-Travel (Undo/Rewind):** Auto-checkpoints on `pushView()`, plus manual checkpoints and rewind support.
-- 🛡️ **Conflict Resolution (Proposals):** Dirty values are protected from AI overwrites by staging proposed values.
-- 💾 **Portable Persistence:** `serialize()` and `deserialize()` capture and restore full session state.
-- ⚡ **Action Registry:** Register and dispatch typed action handlers by intent id.
-- 📖 **Event-Sourced Timeline:** Interactions, intents, checkpoint boundaries, and reconciliation diagnostics are preserved.
+That means problems like:
 
----
+- keeping the latest view and canonical data together across many pushes,
+- protecting user input when AI or system updates arrive later,
+- checkpointing and rewinding state,
+- persisting a session and restoring it later,
+- rendering foreground stream updates before they are committed,
+- tracking pending intents, proposals, detached values, and restore reviews.
 
-## Quick Start
+If runtime is the stateless continuity engine, session is the stateful continuity manager built around it.
 
-```typescript
-import { createSession } from '@continuum-dev/session';
+## How It Works
 
-const session = createSession();
+Session keeps a mutable ledger around runtime reconciliation.
 
-session.pushView({
-  viewId: 'agent-form',
-  version: '1.0',
-  nodes: [{ id: 'field_1', key: 'username', type: 'field' }],
-});
+At a high level it tracks:
 
-session.updateState('field_1', { value: 'Alice' });
+- the committed `view` and canonical `data`,
+- the current render snapshot,
+- an interaction log,
+- pending intents and proposals,
+- checkpoints,
+- detached values,
+- optional stream overlays,
+- optional persistence wiring.
 
-const snapshot = session.getSnapshot();
-console.log(snapshot?.data.values['field_1'].value); // 'Alice'
-```
+The normal session loop is:
 
----
+1. create a session,
+2. push the first view,
+3. let users update node state,
+4. push later views as the UI changes,
+5. let session reconcile through `@continuum-dev/runtime`,
+6. optionally persist, rewind, stream, or dispatch actions.
 
-## Public API Reference
+On each non-transient `pushView(...)`, session:
 
-Import from the package root:
+- calls runtime reconciliation through `applyContinuumViewUpdate(...)`,
+- updates the committed snapshot,
+- records latest issues, diffs, and resolutions,
+- marks unresolved pending intents as stale when the stable view version changes,
+- creates an automatic checkpoint,
+- applies detached-value garbage collection,
+- revalidates focus against the current render tree.
 
-```typescript
+## What It Is
+
+`@continuum-dev/session` is a headless TypeScript session lifecycle manager built on top of `@continuum-dev/runtime`.
+
+It is the package you use when you want one object that owns:
+
+- structural pushes,
+- user updates,
+- session snapshots,
+- checkpoints,
+- persistence,
+- action dispatch,
+- streaming,
+- proposal and restore-review flows.
+
+Everything is exported from the package root. Most users start with:
+
+```ts
 import {
   createSession,
   deserialize,
   hydrateOrCreate,
-  type Session,
-  type SessionOptions,
 } from '@continuum-dev/session';
 ```
 
-### 1) Initialization and Lifecycle
+## Simplest Way To Use It
 
-#### `createSession(options?)`
+Most apps should start with:
 
-Creates a fresh session ledger.
+- `createSession(...)`
+- `session.pushView(view)`
+- `session.updateState(nodeId, value)`
+- `session.getSnapshot()`
 
-```typescript
-function createSession(options?: SessionOptions): Session;
-```
+### Minimal Flow
 
-#### `deserialize(data, options?)`
+```ts
+import { createSession } from '@continuum-dev/session';
 
-Restores a previously serialized session blob.
+// Optional: use a monotonic clock when you want deterministic ordering.
+let tick = 0;
+const now = () => ++tick;
 
-```typescript
-function deserialize(data: unknown, options?: SessionOptions): Session;
-```
+// Create one session object for the whole interaction timeline.
+const session = createSession({ clock: now });
 
-#### `hydrateOrCreate(options?)`
-
-Creates from persisted storage when available, otherwise creates a new session.
-
-```typescript
-function hydrateOrCreate(options?: SessionOptions): Session;
-```
-
-Persistence note:
-
-- When `options.persistence` is provided, snapshot writes are debounced by 200ms.
-- Pending writes are flushed on `beforeunload` so tab closes do not drop recent updates.
-- `SessionPersistenceOptions.maxBytes` enforces a payload size cap before writes.
-- `SessionPersistenceOptions.onError` receives `size_limit` and `storage_error` events.
-- Browser `storage` events are consumed for cross-tab session synchronization.
-
-#### `sessionFactory`
-
-DI-friendly factory object for session creation and deserialization.
-
-```typescript
-const sessionFactory: SessionFactory = { createSession, deserialize };
-```
-
-#### Subscriptions
-
-Listen to state and issue updates.
-
-```typescript
-const stopSnapshot = session.onSnapshot((snapshot) => {
-  // update UI
+// First push: this establishes the first committed snapshot.
+session.pushView({
+  viewId: 'profile',
+  version: '1',
+  nodes: [
+    {
+      id: 'email',
+      type: 'field',
+      dataType: 'string',
+      semanticKey: 'person.email',
+    },
+  ],
 });
 
-const stopStreams = session.onStreams((streams) => {
-  // inspect open/committed/aborted stream metadata
+// Read the current render snapshot.
+// Without streams, getSnapshot() and getCommittedSnapshot() are the same.
+let snapshot = session.getSnapshot();
+
+// User input updates canonical session data.
+session.updateState('email', {
+  value: 'alice@example.com',
+  isDirty: true,
 });
 
-const stopIssues = session.onIssues((issues) => {
-  // handle warnings/errors
-});
-```
-
-Snapshot listeners receive immutable top-level copies of `view` and `data`.
-
-`session.getSnapshot()` now returns the current renderable snapshot, which can include an active foreground stream. Use `session.getCommittedSnapshot()` when you need the last durable `{ view, data }` pair that has actually been committed.
-
-### 2) View and State Updates
-
-#### `session.pushView(view)`
-
-Pushes a new AI-generated view, runs reconciliation, updates detached values, marks stale pending intents on version change, and creates an auto-checkpoint.
-
-```typescript
-session.pushView({ viewId: 'form', version: '2.0', nodes: [] });
-```
-
-#### `session.updateState(nodeId, payload)`
-
-Records a data update interaction for a node.
-
-```typescript
-session.updateState('email', { value: 'test@example.com', isDirty: true });
-```
-
-#### `session.recordIntent(interaction)`
-
-Records a raw interaction event.
-
-```typescript
-session.recordIntent({
-  nodeId: 'email',
-  type: 'data-update',
-  payload: { value: 'test@example.com' },
-});
-```
-
-`recordIntent` clones incoming payload objects before storing them and deduplicates issues by `nodeId + code`.
-
-#### Focus APIs
-
-Focus is **not** part of `DataSnapshot`. It tracks which canonical node id is focused for UI orchestration (for example restoring focus after streamed view updates). After pushed or streamed view changes, focus is revalidated against the active render tree and clears if the node no longer resolves uniquely. Focus is not serialized. Scroll, zoom, and other layout state belong in local or app-level state, not the continuity snapshot.
-
-```typescript
-session.setFocusedNodeId('table_1');
-const id = session.getFocusedNodeId();
-
-session.onFocusChange((focusedNodeId) => {
-  // focusedNodeId is string | null
-});
-```
-
-#### Streaming APIs
-
-Use streaming when you want the session to render partial AI updates before the full response has finished.
-
-```typescript
-const stream = session.beginStream({
-  targetViewId: 'loan-intake',
-  source: 'ai',
-  mode: 'foreground',
-  baseViewVersion: session.getCommittedSnapshot()?.view.version ?? null,
-});
-
-session.applyStreamPart(stream.streamId, {
-  kind: 'patch',
-  patch: {
-    viewId: 'loan-intake',
-    version: '2.0',
-    operations: [
-      {
-        op: 'insert-node',
-        parentId: 'loan_group',
-        node: {
-          id: 'borrower_email',
+// Later the UI changes shape, but the same semantic field still exists.
+session.pushView({
+  viewId: 'profile',
+  version: '2',
+  nodes: [
+    {
+      id: 'contact',
+      type: 'group',
+      children: [
+        {
+          id: 'email',
           type: 'field',
           dataType: 'string',
+          semanticKey: 'person.email',
         },
-      },
-    ],
+      ],
+    },
+  ],
+});
+
+// The latest snapshot now reflects the reconciled state.
+snapshot = session.getSnapshot();
+
+// Optional: serialize the durable session state for later restore.
+const serialized = session.serialize();
+```
+
+### Normal Session Order
+
+The easiest mental model is:
+
+1. create the session once,
+2. push the first view before expecting a snapshot,
+3. read `getSnapshot()` or subscribe with `onSnapshot(...)`,
+4. apply user edits with `updateState(...)`,
+5. push later views with `pushView(...)`,
+6. use the latest session state as the input to the next turn,
+7. optionally serialize, persist, rewind, or stream.
+
+Each session call updates the state the next session call should build on.
+
+### `getSnapshot()` Versus `getCommittedSnapshot()`
+
+This distinction matters only when streams are active.
+
+- `getSnapshot()`
+  - the current renderable snapshot
+  - includes an active foreground stream overlay when one exists
+- `getCommittedSnapshot()`
+  - the last durable committed `{ view, data }` pair
+  - ignores open stream overlays
+
+If you are not using streams, they are effectively the same.
+
+### About `clock`
+
+Unlike runtime, session does not require you to pass a clock.
+
+If you omit it, session uses `Date.now`.
+
+You should know what the clock is used for, though, because session timestamps more than one thing:
+
+- session ids,
+- interaction timestamps,
+- intent queue times,
+- checkpoint timestamps,
+- stream timestamps,
+- proposal timestamps,
+- detached-value age checks,
+- restore approvals.
+
+For most apps:
+
+- `Date.now` is fine,
+- you can just call `createSession()` with no options.
+
+Use a custom monotonic clock when you want:
+
+- deterministic tests,
+- explicit event ordering,
+- app-level sequencing that does not depend on wall-clock time.
+
+Simple example:
+
+```ts
+let tick = 0;
+const now = () => ++tick;
+
+const session = createSession({ clock: now });
+```
+
+If you deserialize later and want to keep using the same kind of ordering, pass the same clock style to `deserialize(...)` or `hydrateOrCreate(...)`.
+
+### What Is Required
+
+For the normal session path you need:
+
+- a session created by `createSession(...)`,
+- a valid first view pushed with `pushView(...)`,
+- later view pushes if the UI structure changes,
+- `updateState(...)` or `recordIntent(...)` for ongoing input.
+
+Optional but common:
+
+- `clock`
+  - defaults to `Date.now`
+- `persistence`
+  - if you want automatic storage
+- `actions`
+  - if you want intent dispatch handlers
+
+### What To Persist
+
+The easiest manual persistence path is:
+
+- `const blob = session.serialize()`
+- `const restored = deserialize(blob, options?)`
+
+If you want automatic persistence, use `createSession({ persistence })` or `hydrateOrCreate({ persistence })`.
+
+## Other Options
+
+### Persistence And Hydration
+
+Manual persistence:
+
+```ts
+const blob = session.serialize();
+const restored = deserialize(blob);
+```
+
+Automatic persistence:
+
+```ts
+const session = hydrateOrCreate({
+  persistence: {
+    storage: localStorage,
+    key: 'loan_session',
   },
 });
-
-session.applyStreamPart(stream.streamId, {
-  kind: 'status',
-  status: 'Building borrower section',
-  level: 'info',
-});
-
-const result = session.commitStream(stream.streamId);
 ```
 
-Core rules:
+Current persistence behavior:
 
-- Only one live stream may target a given `targetViewId` unless you explicitly supersede it.
-- Only one foreground stream drives `getSnapshot()` at a time. Draft streams stay out of the render snapshot.
-- Richer normalized parts such as `insert-node`, `replace-node`, `remove-node`, `append-content`, and `node-status` are supported in addition to `view`, `patch`, `state`, and `status`.
-- Local input stays sacred. If a user types into a streamed node before commit, that value lives in the stream draft and wins over later AI updates.
-- AI `state` parts never clobber protected values. Dirty and sticky committed values become proposals instead.
-- Stream metadata is ephemeral. `serialize()`, checkpoints, and `getCommittedSnapshot()` stay durable-only.
+- writes are debounced by 200ms,
+- pending writes flush on `beforeunload`,
+- matching browser `storage` events can hydrate remote tab updates back into the active session,
+- persisted payloads use `formatVersion: 1`,
+- `maxBytes` can reject oversized writes before they hit storage,
+- `onError` receives `size_limit` or `storage_error`,
+- active stream overlays, focus, and action handlers are not serialized.
 
-There are two supported ingestion paths:
+If you restore with `deserialize(...)` or `hydrateOrCreate(...)` and still need actions, pass `actions` again in the options.
 
-- Structured transport parts, such as Vercel AI SDK `data-continuum-view`, `data-continuum-patch`, `data-continuum-state`, and `data-continuum-status`
-- Post-processed model text, where you parse DSL, YAML, JSON, or repaired text outside core and then normalize it into `SessionStreamPart`
+### Checkpoints And Rewind
 
-### 3) Anti-Clobbering with Proposals
+Session automatically creates checkpoints on non-transient `pushView(...)`.
 
-When a node has dirty user state and AI proposes a new value, Continuum stages the proposal instead of overwriting immediately.
+You can also manage them directly:
 
-#### `session.proposeValue(nodeId, value, source?)`
-
-```typescript
-session.proposeValue('email', { value: 'ai_guess@example.com' }, 'ai-agent');
+```ts
+const cp = session.checkpoint();
+session.rewind(cp.checkpointId);
+session.restoreFromCheckpoint(cp);
 ```
 
-#### `session.getPendingProposals()`
+Use these when you need undo, time-travel, or “return to a known good state” workflows.
 
-```typescript
+### Proposals Instead Of Clobbering
+
+Use proposals when an AI or system-authored value should not silently overwrite protected user state.
+
+```ts
+session.proposeValue('email', { value: 'ai@example.com' }, 'ai');
+
 const proposals = session.getPendingProposals();
-```
-
-#### `session.acceptProposal(nodeId)` / `session.rejectProposal(nodeId)`
-
-```typescript
 session.acceptProposal('email');
 session.rejectProposal('email');
 ```
 
-### 4) Time Travel with Checkpoints
+If the current value is clean, the proposal may apply immediately. If it is dirty or sticky, session stages it instead.
 
-#### `session.checkpoint()`
+### Streams
 
-Manually captures a checkpoint snapshot.
+Use streams when you want to show partial AI updates before they are committed.
 
-```typescript
-const cp = session.checkpoint();
+```ts
+const stream = session.beginStream({
+  targetViewId: 'profile',
+  mode: 'foreground',
+});
+
+session.applyStreamPart(stream.streamId, {
+  kind: 'append-content',
+  nodeId: 'intro',
+  text: ' world',
+});
+
+session.commitStream(stream.streamId);
 ```
 
-#### `session.rewind(checkpointId)`
+Important stream rules:
 
-Rewinds to a checkpoint id and truncates checkpoint history after that point.
+- foreground streams affect `getSnapshot()`,
+- draft streams do not affect `getSnapshot()`,
+- committed state does not change until `commitStream(...)`,
+- stale or aborted streams do not become durable state,
+- user edits made against render-only nodes can survive commit and can detach on abort.
 
-```typescript
-session.rewind(cp.checkpointId);
-```
+### Structural Push Options
 
-#### `session.restoreFromCheckpoint(checkpoint)`
+`pushView(view, options?)` supports advanced options through `SessionViewApplyOptions`:
 
-Restores to a checkpoint object without truncating the checkpoint stack.
+- `transformPlan`
+  - apply a runtime transform plan during reconciliation
+- `transient`
+  - update the session view/data without advancing stable timeline behavior such as auto-checkpointing
 
-```typescript
-session.restoreFromCheckpoint(cp);
-```
+### Intents And Actions
 
-#### `session.getCheckpoints()`
+If your UI emits semantic intents, use the intent and action APIs:
 
-```typescript
-const checkpoints = session.getCheckpoints();
-```
-
-### 5) Intents and Event Sourcing
-
-#### `session.submitIntent(intent)`
-
-Queue a pending user intent for AI/backend processing.
-
-```typescript
+```ts
 session.submitIntent({
   nodeId: 'submit_btn',
-  intentName: 'execute_search',
-  payload: { term: 'Continuum' },
+  intentName: 'submit_form',
+  payload: { source: 'user' },
 });
-```
 
-#### `session.getPendingIntents()`, `session.validateIntent(intentId)`, `session.cancelIntent(intentId)`
+session.registerAction(
+  'submit_form',
+  { label: 'Submit' },
+  async ({ snapshot }) => ({ success: true, data: snapshot.values })
+);
 
-```typescript
-const intents = session.getPendingIntents();
-session.validateIntent(intents[0].intentId);
-session.cancelIntent(intents[0].intentId);
-```
-
-#### `session.getEventLog()`
-
-```typescript
-const log = session.getEventLog();
-```
-
-### 6) Actions Registry
-
-Register handlers for semantic intent ids and dispatch them with full session context.
-
-#### `session.registerAction(intentId, registration, handler)`
-
-```typescript
-session.registerAction('submit_form', { label: 'Submit' }, async (context) => {
-  const response = await fetch('/api/submit', {
-    method: 'POST',
-    body: JSON.stringify(context.snapshot.values),
-  });
-  const data = await response.json();
-  context.session.updateState('status', { value: 'submitted' });
-  return { success: true, data };
-});
-```
-
-Handlers receive an `ActionContext` with:
-
-- `intentId` -- the dispatched intent identifier
-- `snapshot` -- current `DataSnapshot` at dispatch time
-- `nodeId` -- the node that triggered the action
-- `session` -- an `ActionSessionRef` for post-action mutations (`pushView`, `updateState`, `getSnapshot`, `proposeValue`)
-
-#### `session.dispatchAction(intentId, nodeId)`
-
-Returns a `Promise<ActionResult>`. Catches handler errors automatically.
-
-```typescript
-const result = await session.dispatchAction('submit_form', 'btn_submit');
-if (result.success) {
-  console.log('Submitted:', result.data);
-} else {
-  console.error('Failed:', result.error);
-}
-```
-
-If no handler is registered, a warning is logged and `{ success: false }` is returned.
-
-#### `session.executeIntent(intent)`
-
-Bridges the intent lifecycle and action dispatch in a single call: submits a pending intent, dispatches the registered action, and marks the intent as validated on success or cancelled on failure.
-
-```typescript
 const result = await session.executeIntent({
-  nodeId: 'btn_submit',
+  nodeId: 'submit_btn',
   intentName: 'submit_form',
   payload: { source: 'user' },
 });
 ```
 
-Also available:
+This gives you:
 
-- `session.unregisterAction(intentId)`
-- `session.getRegisteredActions()`
+- pending intent tracking,
+- validation/cancellation lifecycle,
+- handler registration,
+- dispatch against the current session snapshot.
 
-### 7) Teardown, Persistence, and Maintenance
+### Restore Reviews
 
-```typescript
-const blob = session.serialize();
-const detached = session.getDetachedValues();
-session.purgeDetachedValues();
+If restore reviews are enabled, session can surface possible destinations for detached values instead of only preserving them silently.
 
-session.reset();
-const final = session.destroy();
+```ts
+const reviews = session.getPendingRestoreReviews();
+session.acceptRestoreCandidate(detachedKey, targetNodeId, { kind: 'live' });
+session.rejectRestoreReview(detachedKey, { kind: 'live' });
 ```
 
-Persistence behavior:
+Restore reviews can target:
 
-- `serialize()` returns a JSON-safe payload with `formatVersion: 1`.
-- Automatic persistence writes are debounced (200ms) to reduce storage churn.
-- Pending writes are flushed on `beforeunload` to reduce data loss risk during tab close.
-- If `maxBytes` is exceeded, the write is skipped and `onError` is invoked.
-- Remote storage updates can rehydrate in-memory state for cross-tab continuity.
+- the live committed session,
+- or a draft stream scope.
 
-`destroy()` returns:
+### Listeners
 
-```typescript
-{ issues: ReconciliationIssue[] }
+You can subscribe to the moving parts you care about:
+
+```ts
+session.onSnapshot((snapshot) => {});
+session.onStreams((streams) => {});
+session.onIssues((issues) => {});
+session.onFocusChange((focusedNodeId) => {});
 ```
 
-### 8) Core Types
+## Internal Docs
 
-Primary exported types from `src/lib/types.ts`:
+If you are maintaining or extending the package, start here:
 
-- `Session`
-- `SessionOptions`
-- `SessionFactory`
-- `SessionPersistenceOptions`
-- `SessionPersistenceStorage`
+- [Session internals](./src/lib/session/README.md)
 
----
+## Related Packages
 
-## Architecture Context
+- `@continuum-dev/runtime` performs the structural reconciliation session builds on.
+- `@continuum-dev/contract` defines the canonical view and snapshot model.
+- `@continuum-dev/react` and `@continuum-dev/angular` can wrap session for framework-driven usage.
 
-`@continuum-dev/session` handles stateful timeline management and lifecycle orchestration. It delegates structural data reconciliation to `@continuum-dev/runtime` whenever a new view is pushed.
+## Dictionary Contract
 
-Framework bindings can wrap this package for UI-first usage:
+### Core Terms
 
-- `@continuum-dev/react`
-- `@continuum-dev/angular`
+- `session`
+  - the stateful object that owns the continuity timeline
+- `snapshot`
+  - the current renderable `{ view, data }`
+- `committed snapshot`
+  - the last durable `{ view, data }` pair
+- `event log`
+  - recorded interaction history
+- `pending intent`
+  - a queued semantic intent awaiting validation or cancellation
+- `proposal`
+  - a staged value that did not overwrite protected current state
+- `checkpoint`
+  - a durable restore point in the timeline
+- `stream`
+  - an in-progress overlay of partial updates
+- `detached value`
+  - preserved data that no longer has a safe active node
+- `restore review`
+  - a suggested target for reattaching a detached value
+
+### `PendingIntent.status`
+
+Exact values:
+
+```ts
+'pending' | 'validated' | 'stale' | 'cancelled'
+```
+
+### `Checkpoint.trigger`
+
+Exact values:
+
+```ts
+'auto' | 'manual'
+```
+
+### `SessionStream.mode`
+
+Exact values:
+
+```ts
+'foreground' | 'draft'
+```
+
+### `SessionStream.status`
+
+Exact values:
+
+```ts
+'open' | 'committed' | 'aborted' | 'stale' | 'superseded'
+```
+
+### `SessionStreamStatusLevel`
+
+Exact values:
+
+```ts
+'info' | 'success' | 'warning' | 'error'
+```
+
+### `DetachedRestoreScope.kind`
+
+Exact values:
+
+```ts
+'live' | 'draft'
+```
+
+### `DetachedRestoreReview.status`
+
+Exact values:
+
+```ts
+'waiting' | 'candidates' | 'approved'
+```
+
+### `Interaction.type`
+
+Exact exported values:
+
+```ts
+'data-update' | 'value-change' | 'view-context-change'
+```
+
+### `SessionViewApplyOptions`
+
+Current fields:
+
+```ts
+{
+  transient?: boolean;
+  transformPlan?: ContinuumTransformPlan;
+}
+```
+
+### `ActionResult`
+
+Current shape:
+
+```ts
+{
+  success: boolean;
+  data?: unknown;
+  error?: unknown;
+}
+```
+
+### `SessionPersistenceOptions.onError.reason`
+
+Exact values:
+
+```ts
+'size_limit' | 'storage_error'
+```
 
 ## License
 
-MIT © Bryton Cooper
+MIT

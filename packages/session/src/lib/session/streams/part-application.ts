@@ -1,8 +1,10 @@
 import type { SessionStreamPart } from '../../types.js';
+import type { ViewDefinition } from '@continuum-dev/contract';
 import {
   applyContinuumNodeValueWrite,
   decideContinuumNodeValueWrite,
 } from '@continuum-dev/runtime';
+import { advanceContinuumViewVersion } from '@continuum-dev/protocol';
 import { collectCanonicalNodeIds } from '@continuum-dev/runtime/node-lookup';
 import { applyContinuumViewStreamPart } from '@continuum-dev/runtime/view-stream';
 import type { SessionState } from '../state/index.js';
@@ -14,6 +16,101 @@ import {
   syncIssuesForStreamStateUpdate,
 } from './sync.js';
 import type { InternalSessionStreamState } from './types.js';
+
+function isStructuralRevisionPart(part: SessionStreamPart): boolean {
+  return (
+    part.kind === 'patch' ||
+    part.kind === 'insert-node' ||
+    part.kind === 'move-node' ||
+    part.kind === 'wrap-nodes' ||
+    part.kind === 'replace-node' ||
+    part.kind === 'remove-node' ||
+    part.kind === 'append-content'
+  );
+}
+
+function isTransformRevisionPart(part: SessionStreamPart): boolean {
+  return part.kind === 'view' && Boolean(part.transformPlan);
+}
+
+function hasPriorMinorRevisionPart(stream: InternalSessionStreamState): boolean {
+  return stream.parts.some(
+    (part) => isStructuralRevisionPart(part) || isTransformRevisionPart(part)
+  );
+}
+
+function shouldUseExplicitStructuralVersion(
+  part: Extract<
+    SessionStreamPart,
+    | { kind: 'patch' }
+    | { kind: 'insert-node' }
+    | { kind: 'move-node' }
+    | { kind: 'wrap-nodes' }
+    | { kind: 'replace-node' }
+    | { kind: 'remove-node' }
+    | { kind: 'append-content' }
+  >,
+  currentView: SessionState['currentView']
+): boolean {
+  if (
+    part.kind !== 'patch' ||
+    !currentView ||
+    typeof part.patch.version !== 'string'
+  ) {
+    return false;
+  }
+
+  return part.patch.version.trim().length > 0 && part.patch.version !== currentView.version;
+}
+
+function withMinorRevisionIfNeeded(args: {
+  stream: InternalSessionStreamState;
+  currentView: NonNullable<SessionState['currentView']>;
+  nextView: ReturnType<typeof applyContinuumViewStreamPart>['view'];
+  part: Extract<
+    SessionStreamPart,
+    | { kind: 'patch' }
+    | { kind: 'insert-node' }
+    | { kind: 'move-node' }
+    | { kind: 'wrap-nodes' }
+    | { kind: 'replace-node' }
+    | { kind: 'remove-node' }
+    | { kind: 'append-content' }
+  >;
+}) {
+  if (
+    args.nextView.version !== args.currentView.version ||
+    hasPriorMinorRevisionPart(args.stream) ||
+    shouldUseExplicitStructuralVersion(args.part, args.currentView)
+  ) {
+    return args.nextView;
+  }
+
+  return {
+    ...args.nextView,
+    version: advanceContinuumViewVersion(args.currentView.version, 'minor'),
+  };
+}
+
+function withTransformRevisionIfNeeded(args: {
+  stream: InternalSessionStreamState;
+  currentView: NonNullable<SessionState['currentView']>;
+  nextView: ViewDefinition;
+  part: Extract<SessionStreamPart, { kind: 'view' }>;
+}) {
+  if (
+    !args.part.transformPlan ||
+    args.nextView.version !== args.currentView.version ||
+    hasPriorMinorRevisionPart(args.stream)
+  ) {
+    return args.nextView;
+  }
+
+  return {
+    ...args.nextView,
+    version: advanceContinuumViewVersion(args.currentView.version, 'minor'),
+  };
+}
 
 function replaceIssuesForNode(
   issues: SessionState['issues'],
@@ -139,10 +236,19 @@ export function applyPartToOpenStream(
         );
       }
 
+      const nextView = stream.workingView
+        ? withTransformRevisionIfNeeded({
+            stream,
+            currentView: stream.workingView,
+            nextView: part.view,
+            part,
+          })
+        : part.view;
+
       const applied = reconcileViewUpdate(
         stream.workingView,
         stream.workingData,
-        part.view,
+        nextView,
         {
           clock: internal.clock,
           reconciliationOptions: internal.reconciliationOptions,
@@ -192,10 +298,16 @@ export function applyPartToOpenStream(
         currentView: workingView,
         part,
       });
+      const nextView = withMinorRevisionIfNeeded({
+        stream,
+        currentView: workingView,
+        nextView: next.view,
+        part,
+      });
       const applied = reconcileViewUpdate(
         stream.workingView,
         stream.workingData,
-        next.view,
+        nextView,
         {
           clock: internal.clock,
           reconciliationOptions: internal.reconciliationOptions,

@@ -502,6 +502,174 @@ describe('session streams subsystem', () => {
     });
   });
 
+  it('bumps streamed structural parts to a minor revision when they omit explicit versions', () => {
+    const session = createSession();
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'profile_group',
+            type: 'group',
+            children: [{ id: 'name', type: 'field', dataType: 'string' }],
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      )
+    );
+
+    const stream = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+
+    session.applyStreamPart(stream.streamId, {
+      kind: 'insert-node',
+      parentId: 'profile_group',
+      node: {
+        id: 'email',
+        type: 'field',
+        dataType: 'string',
+      },
+    });
+
+    expect(session.getSnapshot()?.view.version).toBe('2.1');
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2');
+
+    session.commitStream(stream.streamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.1');
+  });
+
+  it('bumps transform-only streamed view updates to a minor revision when the node tree is unchanged', () => {
+    const session = createSession();
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'company',
+            type: 'field',
+            dataType: 'string',
+            semanticKey: 'lead.company',
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      )
+    );
+
+    const stream = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+
+    session.applyStreamPart(stream.streamId, {
+      kind: 'view',
+      view: makeView(
+        [
+          {
+            id: 'company',
+            type: 'field',
+            dataType: 'string',
+            semanticKey: 'lead.company',
+          } as ViewNode,
+        ],
+        'profile',
+        '2'
+      ),
+      transformPlan: {
+        operations: [
+          {
+            kind: 'carry',
+            sourceNodeId: 'company',
+            targetNodeId: 'company',
+          },
+        ],
+      },
+    });
+
+    expect(session.getSnapshot()?.view.version).toBe('2.1');
+
+    session.commitStream(stream.streamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.1');
+  });
+
+  it('advances minor revisions across separate patch and transform stream updates', () => {
+    const session = createSession();
+    session.pushView(
+      makeView(
+        [
+          {
+            id: 'intro',
+            type: 'presentation',
+            contentType: 'text',
+            content: 'Hello',
+          },
+        ],
+        'profile',
+        '2'
+      )
+    );
+
+    const firstPatch = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+    session.applyStreamPart(firstPatch.streamId, {
+      kind: 'append-content',
+      nodeId: 'intro',
+      text: ' world',
+    });
+    session.commitStream(firstPatch.streamId);
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.1');
+
+    const secondPatch = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+    session.applyStreamPart(secondPatch.streamId, {
+      kind: 'insert-node',
+      parentId: null,
+      node: {
+        id: 'email',
+        type: 'field',
+        dataType: 'string',
+      },
+    });
+    session.commitStream(secondPatch.streamId);
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.2');
+
+    const currentView = session.getCommittedSnapshot()?.view;
+    if (!currentView) {
+      throw new Error('Expected a committed view before transform testing');
+    }
+
+    const transformStream = session.beginStream({
+      targetViewId: 'profile',
+      mode: 'foreground',
+    });
+    session.applyStreamPart(transformStream.streamId, {
+      kind: 'view',
+      view: {
+        ...structuredClone(currentView),
+        version: currentView.version,
+      },
+      transformPlan: {
+        operations: [
+          {
+            kind: 'carry',
+            sourceNodeId: 'intro',
+            targetNodeId: 'intro',
+          },
+        ],
+      },
+    });
+    session.commitStream(transformStream.streamId);
+
+    expect(session.getCommittedSnapshot()?.view.version).toBe('2.3');
+  });
+
   it('streams append-content updates without rebuilding committed state first', () => {
     const session = createSession();
     session.pushView(
