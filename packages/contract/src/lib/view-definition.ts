@@ -135,6 +135,10 @@ export interface GroupNode extends BaseNode {
    */
   columns?: number;
   /**
+   * Optional minimum width for each rendered child in grid-like layouts.
+   */
+  minItemWidth?: number;
+  /**
    * Child nodes in order.
    */
   children: ViewNode[];
@@ -165,6 +169,14 @@ export interface CollectionNode extends BaseNode {
    * Optional default payloads for initial items.
    */
   defaultValues?: Array<Record<string, unknown>>;
+  /**
+   * Optional number of collection items to render per row when space allows.
+   */
+  columns?: number;
+  /**
+   * Optional minimum width for each rendered collection item.
+   */
+  minItemWidth?: number;
 }
 
 /**
@@ -207,6 +219,14 @@ export interface PresentationNode extends BaseNode {
 export interface RowNode extends BaseNode {
   type: 'row';
   /**
+   * Optional preferred column count when the row needs to wrap.
+   */
+  columns?: number;
+  /**
+   * Optional minimum width for each rendered child.
+   */
+  minItemWidth?: number;
+  /**
    * Child nodes in order.
    */
   children: ViewNode[];
@@ -221,6 +241,10 @@ export interface GridNode extends BaseNode {
    * Explicit column count for grid layout.
    */
   columns?: number;
+  /**
+   * Optional minimum width for each rendered child.
+   */
+  minItemWidth?: number;
   /**
    * Child nodes in order.
    */

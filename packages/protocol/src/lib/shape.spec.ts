@@ -420,10 +420,12 @@ describe('protocol public shape', () => {
       ],
       'view-evolution.ts': [
         'ContinuumEditExemplarTrace',
+        'ContinuumViewRevisionMode',
         'ScopedEditBrief',
         'ViewEvolutionDiagnostic',
         'ViewEvolutionDiagnostics',
         'ViewEvolutionMetrics',
+        'advanceContinuumViewVersion',
       ],
     });
   });

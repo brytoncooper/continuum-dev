@@ -1,5 +1,32 @@
 import type { IssueCode, IssueSeverity } from './constants.js';
 
+export type ContinuumViewRevisionMode = 'major' | 'minor';
+
+export function advanceContinuumViewVersion(
+  version: string | null | undefined,
+  mode: ContinuumViewRevisionMode
+): string {
+  const normalized = typeof version === 'string' ? version.trim() : '';
+  if (normalized.length === 0) {
+    return '1';
+  }
+
+  const match = normalized.match(/^(.*?)(\d+)(?:\.(\d+))?$/);
+  if (match) {
+    const prefix = match[1] ?? '';
+    const major = Number(match[2]);
+    const minor = match[3] === undefined ? null : Number(match[3]);
+
+    if (mode === 'major') {
+      return `${prefix}${major + 1}`;
+    }
+
+    return `${prefix}${major}.${minor === null ? 1 : minor + 1}`;
+  }
+
+  return mode === 'major' ? `${normalized}-next` : `${normalized}.1`;
+}
+
 /**
  * One machine-readable finding from comparing two view revisions and optional
  * data snapshots during AI-authored structural edits.
