@@ -33,6 +33,7 @@ export interface StarterKitProviderChatBoxProps {
   submitLabel?: string;
   enableSuggestedPrompts?: boolean;
   suggestedPrompts?: string[];
+  showSuggestedPromptCopyButton?: boolean;
   onResult?: (result: AiConnectGenerateResult, parsed: unknown) => void;
   onError?: (error: Error) => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
@@ -53,6 +54,7 @@ export function StarterKitProviderChatBox({
   submitLabel = 'Run AI update',
   enableSuggestedPrompts = false,
   suggestedPrompts,
+  showSuggestedPromptCopyButton = true,
   onResult,
   onError,
   onSubmittingChange,
@@ -126,6 +128,7 @@ export function StarterKitProviderChatBox({
       copiedPrompt={copiedPrompt}
       enableSuggestedPrompts={enableSuggestedPrompts}
       suggestedPrompts={suggestedPrompts}
+      showSuggestedPromptCopyButton={showSuggestedPromptCopyButton}
       attachmentFiles={[]}
       addAttachmentFiles={() => undefined}
       removeAttachmentAt={() => undefined}

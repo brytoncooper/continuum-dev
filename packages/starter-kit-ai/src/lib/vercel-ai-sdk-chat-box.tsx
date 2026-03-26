@@ -22,6 +22,7 @@ export interface StarterKitVercelAiSdkChatBoxProps {
   submitDisabled?: boolean;
   enableSuggestedPrompts?: boolean;
   suggestedPrompts?: string[];
+  showSuggestedPromptCopyButton?: boolean;
   onError?: (error: Error) => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
 }
@@ -36,6 +37,7 @@ export function StarterKitVercelAiSdkChatBox({
   submitDisabled = false,
   enableSuggestedPrompts = false,
   suggestedPrompts,
+  showSuggestedPromptCopyButton = true,
   onError,
   onSubmittingChange,
 }: StarterKitVercelAiSdkChatBoxProps) {
@@ -55,6 +57,7 @@ export function StarterKitVercelAiSdkChatBox({
       submitDisabled={submitDisabled}
       enableSuggestedPrompts={enableSuggestedPrompts}
       suggestedPrompts={suggestedPrompts}
+      showSuggestedPromptCopyButton={showSuggestedPromptCopyButton}
       {...controller}
     />
   );

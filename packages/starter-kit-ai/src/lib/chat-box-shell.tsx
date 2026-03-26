@@ -22,6 +22,7 @@ export interface StarterKitChatBoxShellProps {
   copiedPrompt: string | null;
   enableSuggestedPrompts?: boolean;
   suggestedPrompts?: string[];
+  showSuggestedPromptCopyButton?: boolean;
   attachmentFiles: File[];
   addAttachmentFiles(files: FileList | null): void;
   removeAttachmentAt(index: number): void;
@@ -45,6 +46,7 @@ export function StarterKitChatBoxShell({
   copiedPrompt,
   enableSuggestedPrompts = false,
   suggestedPrompts,
+  showSuggestedPromptCopyButton = true,
   attachmentFiles,
   addAttachmentFiles,
   removeAttachmentAt,
@@ -260,13 +262,11 @@ export function StarterKitChatBoxShell({
               key={prompt}
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) auto',
+                gridTemplateColumns: showSuggestedPromptCopyButton
+                  ? 'minmax(0, 1fr) auto'
+                  : 'minmax(0, 1fr)',
                 alignItems: 'center',
                 gap: space.sm,
-                padding: `${space.sm}px ${space.md}px`,
-                borderRadius: radius.md,
-                border: `1px solid ${color.borderSoft}`,
-                background: color.surfaceMuted,
               }}
             >
               <button
@@ -275,37 +275,41 @@ export function StarterKitChatBoxShell({
                   setInstruction(prompt);
                 }}
                 style={{
-                  border: 'none',
-                  background: 'transparent',
+                  padding: `${space.sm}px ${space.md}px`,
+                  borderRadius: radius.md,
+                  border: `1px solid ${color.borderSoft}`,
+                  background: color.surfaceMuted,
                   textAlign: 'left',
                   cursor: 'pointer',
-                  padding: 0,
                   ...typography.small,
                   color: color.text,
+                  fontWeight: 600,
                 }}
               >
                 {prompt}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  copyPrompt(prompt);
-                }}
-                style={{
-                  boxSizing: 'border-box',
-                  height: 32,
-                  padding: `0 ${space.md}px`,
-                  borderRadius: radius.md,
-                  border: `1px solid ${color.border}`,
-                  background: color.surface,
-                  color: color.text,
-                  cursor: 'pointer',
-                  ...typography.small,
-                  fontWeight: 600,
-                }}
-              >
-                {copiedPrompt === prompt ? 'Copied' : 'Copy'}
-              </button>
+              {showSuggestedPromptCopyButton ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    copyPrompt(prompt);
+                  }}
+                  style={{
+                    boxSizing: 'border-box',
+                    height: 32,
+                    padding: `0 ${space.md}px`,
+                    borderRadius: radius.md,
+                    border: `1px solid ${color.border}`,
+                    background: color.surface,
+                    color: color.text,
+                    cursor: 'pointer',
+                    ...typography.small,
+                    fontWeight: 600,
+                  }}
+                >
+                  {copiedPrompt === prompt ? 'Copied' : 'Copy'}
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
