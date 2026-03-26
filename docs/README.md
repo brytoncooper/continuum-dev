@@ -1,10 +1,16 @@
-# Public documentation
+# Docs
 
-These guides ship with the SDK and appear in `@continuum-dev/developer-documentation` for integrators:
+These are the public top-level Continuum guides in this repository.
 
-- [Quick Start](QUICK_START.md)
-- [Integration Guide](INTEGRATION_GUIDE.md)
-- [AI Integration](AI_INTEGRATION.md)
-- [View Contract](VIEW_CONTRACT.md)
+Most users should start with one of these:
 
-Maintainer-only material (migration notes, reference app write-ups, validation policy, deep references) lives in the **private Continuum documentation** repository alongside this workspace.
+- [Quick Start](./QUICK_START.md)
+  - fastest path to a Continuum session with AI in a React app
+- [AI Integration Guide](./AI_INTEGRATION.md)
+  - choose between the direct provider lane and the Vercel AI SDK lane
+- [Integration Guide](./INTEGRATION_GUIDE.md)
+  - broader production patterns, package choices, persistence, and diagnostics
+- [View Contract Reference](./VIEW_CONTRACT.md)
+  - the view and data contract reference
+
+If you want a working repository example, see [`apps/starter`](../apps/starter/README.md). It follows the Vercel AI SDK path.

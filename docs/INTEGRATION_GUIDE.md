@@ -1,41 +1,56 @@
 # Integration Guide
 
-Production-oriented patterns for integrating Continuum by layer:
+Use this guide when you want the broader production picture around Continuum package choices, session flow, persistence, and AI integration.
 
-- `starter-kit` for the fastest React on-ramp
-- `react` plus `session` for headless React apps
-- `ai-engine` plus transport adapters for gen-UI and AI systems
-- `runtime` plus `session` when you want the lower-level continuity boundary
+If you only need the shortest path:
 
-This guide assumes you already understand the basics from [Quick Start](./QUICK_START.md).
+- fastest AI-connected session: [Quick Start](./QUICK_START.md)
+- existing Vercel AI SDK app: [AI Integration Guide](./AI_INTEGRATION.md)
 
-## The production mental model
+## Start By Choosing The Shallowest Lane
 
-Continuum works best when your app follows one simple rule:
+| If you need | Start with | Why |
+| --- | --- | --- |
+| Fastest React session with AI | `@continuum-dev/starter-kit-ai` | quickest shipped path with a renderer, session, and chat surface |
+| Existing Vercel AI SDK app with Continuum continuity | `@continuum-dev/vercel-ai-sdk-adapter` | keep your current transport and route shape |
+| Custom React UI with Continuum session semantics | `@continuum-dev/react` plus `@continuum-dev/session` | clearest headless React lane |
+| Direct control over reconciliation and snapshot contracts | `@continuum-dev/runtime` plus `@continuum-dev/session` | lowest-level continuity boundary |
 
-**Treat the current view as replaceable, but treat user intent as durable.**
+## The Normal Application Order
 
-In practice that means:
+Most successful Continuum apps follow this order:
 
-1. render from the active session snapshot
-2. accept new views from a server or model
-3. push those views through `session.pushView(view)`
-4. inspect issues, diffs, and resolutions after each push
-5. persist and rehydrate the session across reloads
+1. create or rehydrate a Continuum session
+2. mount the first view if no snapshot exists yet
+3. render from the current session snapshot
+4. accept new views or AI-generated changes through the same session
+5. inspect diagnostics and persist the session
 
-## 1. Choose your integration level
+That is the main mental model: render from session state, and feed changes back through the session.
 
-### Fastest lane: `@continuum-dev/starter-kit`
+## 1. Fastest Shipped Lane: `@continuum-dev/starter-kit-ai`
 
-Use this when you want a polished React surface quickly and you do not need built-in AI wrappers yet.
+Use this when you want the easiest path to a renderable Continuum app with AI.
+
+The recommended starting point is [Quick Start](./QUICK_START.md), which includes the provider setup and the initial view seed. The key shape is:
 
 ```tsx
 import {
   ContinuumProvider,
   ContinuumRenderer,
+  StarterKitProviderChatBox,
+  createAiConnectProviders,
   starterKitComponentMap,
   useContinuumSnapshot,
-} from '@continuum-dev/starter-kit';
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
+  include: ['openai'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
+  },
+});
 
 function Page() {
   const snapshot = useContinuumSnapshot();
@@ -51,23 +66,94 @@ export function App() {
       components={starterKitComponentMap}
       persist="localStorage"
     >
+      <StarterKitProviderChatBox providers={providers} />
       <Page />
     </ContinuumProvider>
   );
 }
 ```
 
-### Headless React lane: `@continuum-dev/react`
+Use the Vercel chat box instead when you want the same starter lane with a server-backed transport.
 
-Use this when you want Continuum's session model but your own components.
+## 2. Existing Vercel AI SDK Lane
+
+Use this when your app already has, or should have, a server-backed Vercel AI SDK route.
+
+The public pattern is:
+
+- send the current Continuum snapshot from the client
+- run Continuum execution on the server
+- let the client hook apply streamed Continuum parts back into session state
+
+Client:
+
+```tsx
+import { DefaultChatTransport } from 'ai';
+import { useContinuumSession } from '@continuum-dev/react';
+import {
+  buildContinuumVercelAiSdkRequestBody,
+  useContinuumVercelAiSdkChat,
+} from '@continuum-dev/vercel-ai-sdk-adapter';
+
+export function ContinuumChat() {
+  const session = useContinuumSession();
+
+  const chat = useContinuumVercelAiSdkChat({
+    session,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: () => {
+        const snapshot = session.getSnapshot();
+        return buildContinuumVercelAiSdkRequestBody({
+          currentView: snapshot?.view ?? null,
+          currentData: snapshot?.data.values ?? null,
+        });
+      },
+    }),
+  });
+
+  return (
+    <button
+      onClick={() =>
+        chat.sendMessage({ text: 'Refine the current form for mobile.' })
+      }
+    >
+      Send prompt
+    </button>
+  );
+}
+```
+
+Server:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import {
+  createContinuumVercelAiSdkRouteHandler,
+  createVercelAiSdkContinuumExecutionAdapter,
+} from '@continuum-dev/vercel-ai-sdk-adapter/server';
+
+export const POST = createContinuumVercelAiSdkRouteHandler({
+  adapter: createVercelAiSdkContinuumExecutionAdapter({
+    model: openai(process.env.OPENAI_MODEL ?? 'gpt-4o-mini'),
+  }),
+  defaultAuthoringFormat: 'line-dsl',
+});
+```
+
+Use the full walkthrough in [AI Integration Guide](./AI_INTEGRATION.md) when you want the complete lane explanation.
+
+## 3. Headless React Lane: `@continuum-dev/react`
+
+Use this when you want Continuum session behavior but your own component map and UI.
 
 ```tsx
 import {
   ContinuumProvider,
   ContinuumRenderer,
   useContinuumSnapshot,
+  type ContinuumNodeMap,
 } from '@continuum-dev/react';
-import type { ContinuumNodeMap } from '@continuum-dev/react';
 
 const nodeMap: ContinuumNodeMap = {
   field: FieldComponent,
@@ -93,126 +179,11 @@ export function App() {
 }
 ```
 
-### AI runtime stack: `@continuum-dev/ai-engine` plus the transport layer
+This is the right lane when you want React bindings and session semantics without starter-kit UI decisions.
 
-Use this when you already have a gen-UI or AI app and want the clearest path to Continuum as the runtime that stabilizes it.
+## 4. Accept New Views Through The Session
 
-```tsx
-import { DefaultChatTransport } from 'ai';
-import { useContinuumSession } from '@continuum-dev/react';
-import {
-  buildContinuumVercelAiSdkRequestBody,
-  useContinuumVercelAiSdkChat,
-} from '@continuum-dev/vercel-ai-sdk-adapter';
-
-export function CustomChat() {
-  const session = useContinuumSession();
-  const chat = useContinuumVercelAiSdkChat({
-    session,
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      body: () =>
-        buildContinuumVercelAiSdkRequestBody({
-          currentView: session.getSnapshot()?.view ?? null,
-          currentData: session.getSnapshot()?.data.values ?? null,
-        }),
-    }),
-  });
-
-  return (
-    <button
-      onClick={() =>
-        chat.sendMessage({ text: 'Refine the current form for mobile' })
-      }
-    >
-      Send prompt
-    </button>
-  );
-}
-```
-
-This explicit stack keeps the responsibilities clear:
-
-- `@continuum-dev/react` and `@continuum-dev/session` own the live app state
-- `@continuum-dev/ai-engine` owns **reference** execution routing, parsing, normalization, and apply behavior (the LLM planner for premium mode selection lives in private `@continuum-cloud/ai-execution`)
-- `@continuum-dev/vercel-ai-sdk-adapter` owns the Vercel AI SDK request and stream bridge
-- `@continuum-dev/ai-connect` is optional when you want built-in provider clients
-
-For server routes, keep your existing AI SDK handler and compose Continuum into the UI stream with `writeContinuumExecutionToUiMessageWriter(...)` from `@continuum-dev/vercel-ai-sdk-adapter/server`.
-
-### Optional thin wrappers: `@continuum-dev/starter-kit-ai`
-
-Use this when you already want `starter-kit` and you want prebuilt chat controls instead of building your own AI UI.
-
-```tsx
-import {
-  createAiConnectProviders,
-  ContinuumProvider,
-  ContinuumRenderer,
-  StarterKitProviderChatBox,
-  type ContinuumViewAuthoringFormat,
-  starterKitComponentMap,
-  useContinuumSnapshot,
-} from '@continuum-dev/starter-kit-ai';
-
-const providers = createAiConnectProviders({
-  include: ['openai', 'google'],
-  openai: {
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5',
-  },
-  google: {
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-  },
-});
-
-const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
-
-function Page() {
-  const snapshot = useContinuumSnapshot();
-  if (!snapshot?.view) {
-    return null;
-  }
-  return <ContinuumRenderer view={snapshot.view} />;
-}
-
-export function App() {
-  return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <StarterKitProviderChatBox
-        providers={providers}
-        mode="evolve-view"
-        authoringFormat={authoringFormat}
-      />
-      <Page />
-    </ContinuumProvider>
-  );
-}
-```
-
-These wrappers stay intentionally thin. The runtime behavior still lives in `@continuum-dev/ai-engine` (reference executor), `@continuum-dev/react`, `@continuum-dev/session`, and the transport layer underneath; optional premium execution streams may be injected from `@continuum-cloud/ai-execution`.
-
-### Convenience facades: `@continuum-dev/core` and `@continuum-dev/ai-core`
-
-Use these only when one dependency edge matters more than learning the leaf packages directly.
-
-- `@continuum-dev/core` re-exports the lower-level continuity spine
-- `@continuum-dev/ai-core` re-exports the headless AI stack
-
-They are useful for package ergonomics, but they are not the clearest place to learn the architecture.
-
-## 2. Accepting views from a server or model
-
-Before calling `pushView`, validate the basics:
-
-- the payload is an object
-- `viewId` exists
-- `version` exists
-- `nodes` is an array
-- duplicate node ids or semantic continuity mistakes are rejected
+Whether the next view comes from a server, a tool, or an AI result, push it through the same Continuum session.
 
 ```tsx
 import { useEffect } from 'react';
@@ -257,7 +228,9 @@ export function AgentListener({ agentUrl }: { agentUrl: string }) {
 }
 ```
 
-## 3. Persistence strategy
+The important rule is consistent across all lanes: if the structure changed, let the session reconcile it.
+
+## 5. Persistence Strategy
 
 For most React apps, start with provider-managed storage:
 
@@ -288,7 +261,7 @@ Use custom serialization only when you need:
 - server persistence
 - encrypted storage
 - cross-device resume
-- explicit session snapshot transport
+- explicit snapshot transport
 
 ```ts
 import { createSession, deserialize } from '@continuum-dev/session';
@@ -300,59 +273,9 @@ const restored = deserialize(blob);
 restored.destroy();
 ```
 
-## 4. Migrations for schema evolution
+## 6. Use Proposals For Suggested Values
 
-If shapes evolve but values should survive in transformed form, define migration strategies.
-
-```ts
-import { createSession } from '@continuum-dev/session';
-
-const session = createSession({
-  reconciliation: {
-    migrationStrategies: {
-      email: ({ priorValue }) => {
-        const old = priorValue as { value?: string };
-        return { value: (old.value ?? '').trim().toLowerCase() };
-      },
-    },
-    strategyRegistry: {
-      'normalize-phone': ({ priorValue }) => {
-        const old = priorValue as { value?: string };
-        return { value: (old.value ?? '').replace(/\D/g, '') };
-      },
-    },
-  },
-});
-```
-
-## 5. Actions and intent execution
-
-Action handlers can read the current snapshot and update session state as part of a workflow.
-
-```ts
-import { createSession } from '@continuum-dev/session';
-
-const session = createSession({
-  actions: {
-    submit_form: {
-      registration: { label: 'Submit Form' },
-      handler: async (context) => {
-        const res = await fetch('/api/submit', {
-          method: 'POST',
-          body: JSON.stringify(context.snapshot.values),
-        });
-        const data = await res.json();
-        context.session.updateState('status', { value: 'submitted' });
-        return { success: true, data };
-      },
-    },
-  },
-});
-```
-
-## 6. Conflict handling and proposals
-
-When AI or remote systems suggest values while the user is editing, prefer proposals over direct overwrite.
+When AI or remote systems suggest values while the user is editing, prefer proposals over blind overwrite.
 
 ```tsx
 import {
@@ -386,9 +309,11 @@ export function EmailConflictBanner() {
 }
 ```
 
-## 7. Diagnostics and operational visibility
+That preserves user intent better than treating AI output as authoritative state.
 
-Inspect diagnostics after every view push:
+## 7. Inspect Diagnostics
+
+Inspect diagnostics after every important view update:
 
 ```tsx
 import { useContinuumDiagnostics } from '@continuum-dev/react';
@@ -415,22 +340,21 @@ export function DiagnosticsPanel() {
 }
 ```
 
-## 8. Production checklist
+If continuity is part of your product promise, these diagnostics are part of your product surface too.
 
-1. Keep `viewId` stable for a logical workflow.
+## 8. Production Checklist
+
+1. Keep `viewId` stable for one logical workflow.
 2. Change `version` when the structure changes.
-3. Keep semantic continuity metadata stable when meaning is unchanged.
-4. Validate payload shape before `pushView`.
-5. Reject duplicate ids and blocking structural issues.
-6. Inspect issues and resolutions after every push.
-7. Use proposals for AI-suggested values instead of overwriting active edits.
-8. Persist sessions so users can survive refresh and long-running workflows.
-9. Add migration strategies only where shape changes truly need transformation.
+3. Keep continuity metadata stable when meaning is unchanged.
+4. Always feed structural changes back through the session.
+5. Validate incoming views before `pushView(...)`.
+6. Persist sessions so users survive refresh and long-running work.
+7. Use proposals for AI-suggested values.
+8. Inspect issues, resolutions, and diffs after important updates.
 
-## 9. Related guides
+## Related Guides
 
 - [Quick Start](./QUICK_START.md)
 - [AI Integration Guide](./AI_INTEGRATION.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)
-
-Reference app walkthroughs and migration guides live in the private Continuum documentation repository.

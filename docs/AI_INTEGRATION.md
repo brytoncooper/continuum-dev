@@ -1,213 +1,155 @@
 # AI Integration Guide
 
-How to wire AI into Continuum without losing the layering:
+If you want AI plus Continuum, start by choosing a lane.
 
-- `@continuum-dev/react` and `@continuum-dev/session` for the renderable runtime state
-- `@continuum-dev/ai-engine` for headless execution (**default full view**; optional **`executionMode`** / **`executionPlan`**), authoring, parsing, normalization, and apply helpers
-- `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK transport path
-- `@continuum-dev/ai-connect` for built-in provider factories and model catalogs
-- `@continuum-dev/starter-kit-ai` for optional thin starter-oriented chat wrappers
-- `@continuum-dev/ai-core` only when you explicitly want a convenience facade after you understand the stack
+Most users should not begin from `ai-engine` alone. They usually want one of these two public paths:
 
-The public story should stay simple:
+| Lane | Use it when | Start with |
+| --- | --- | --- |
+| Direct provider lane | you want the fastest AI-connected Continuum session in React | `@continuum-dev/starter-kit-ai` and [Quick Start](./QUICK_START.md) |
+| Vercel AI SDK lane | you already have, or want, a server-backed Vercel AI SDK route | `@continuum-dev/vercel-ai-sdk-adapter` |
 
-- learn the system from the explicit layers
-- use thin wrappers only when they genuinely reduce work
-- treat convenience facades as package ergonomics, not as the architecture itself
+## The Core Rule
 
-## The core principle
+AI should not overwrite raw Continuum session state directly.
 
-The model should author **view changes**, not mutate Continuum session internals directly.
+The normal public flow is:
 
-The safest loop looks like this:
+1. build AI context from the current Continuum session
+2. generate a Continuum result
+3. check or normalize that result
+4. apply it back through the local session
+5. let the renderer re-render from the new snapshot
 
-```text
-instruction
-  -> OSS: explicit executionMode / executionPlan, or default full view generation
-   (premium: inject streamContinuumExecution for automatic planner routing)
-  -> run the selected phase (state / patch / transform / view)
-  -> parse into ViewDefinition or typed updates
-  -> normalize and validate
-  -> repair once when malformed
-  -> apply into the active session
+That is how Continuum protects continuity instead of treating AI output like blind state replacement.
+
+## Lane 1: Fastest Path To A Session With AI
+
+Use this lane when you want the smallest setup and you are comfortable with a direct provider-backed browser path.
+
+Packages:
+
+- `@continuum-dev/starter-kit-ai`
+- `react`
+- `react-dom`
+
+Install:
+
+```bash
+npm install @continuum-dev/starter-kit-ai react react-dom
 ```
 
-## Responsibilities by package
-
-### `@continuum-dev/react` and `@continuum-dev/session`
-
-Use these packages when you need the live Continuum session that views, diagnostics, streams, and user edits flow through. For serious custom integrations, this is the clearest runtime surface to pair with AI execution.
-
-### `@continuum-dev/ai-engine`
-
-Use this package when you want the shared headless contract:
-
-- execution (`runContinuumExecution` / `streamContinuumExecution`) with **OSS default** full **view** generation, or explicit **`executionMode`** / **`executionPlan`**; **no** public prompt overrides (prompts are fixed per mode inside the library)
-- the private **LLM planner** path ships in **`@continuum-cloud/ai-execution`** and is wired via **`streamContinuumExecution`** injection on adapters and routes
-- authoring format types
-- prompt builders and parsers (for internal use and custom flows; not a substitute for `executionMode` / `executionPlan` on the high-level runner)
-- patch and state target catalogs
-- normalization, guardrails, and apply helpers
-
-### `@continuum-dev/vercel-ai-sdk-adapter`
-
-Use this package when Vercel AI SDK is your transport layer. It owns:
-
-- client-side session/message application
-- request-body helpers for `currentView` and `currentData`
-- server-side writer helpers that emit Continuum `data-*` parts into AI SDK UI streams
-
-Optional **`streamContinuumExecution`** injection forwards premium execution from `@continuum-cloud/ai-execution` when you own that private package.
-
-It should not own prompt policy, repair policy, auth, storage, tools, or your main AI SDK route architecture.
-
-### `@continuum-dev/ai-connect`
-
-Use this package when you want provider factories, registry helpers, or model catalogs without tying them to a specific UI.
-
-### `@continuum-dev/starter-kit-ai`
-
-Use this package only when you already want `starter-kit` and you want thin chat wrappers such as `StarterKitProviderChatBox` or `StarterKitVercelAiSdkChatBox`.
-
-### `@continuum-dev/ai-core`
-
-Use this package when a single dependency edge is more valuable to you than learning the leaf packages directly. It is a convenience facade, not the recommended place to learn the architecture.
-
-## The preferred authoring formats
-
-`ai-engine` supports:
-
-- `line-dsl`
-- `yaml`
-
-If you do nothing, the shared engine defaults to:
-
-```ts
-const authoringFormat = 'line-dsl';
-```
-
-`line-dsl` is the default because it gives the model a smaller, more opinionated shape to produce than raw JSON. YAML is still supported, but it is the alternate authoring format, not the default mental model.
-
-## The authoring principles
-
-These are the ideas the shared engine teaches the model:
-
-- return only Continuum authoring output, not prose
-- prefer patching existing views over replacing whole workflows
-- preserve semantic continuity when meaning is unchanged
-- use stable semantic metadata when continuity matters
-- preserve existing node types and section structure unless the instruction truly requires change
-- use `defaultValue` and `defaultValues` for prefilling instead of reshaping layout
-- treat detached fields as recoverable continuity hints, not disposable history
-- prefer simple, valid structures over ambitious, brittle ones
-
-### `line-dsl` shape
-
-Example:
-
-```text
-view viewId="patient_checkin" version="2"
-group id="checkin" label="Urgent Care Check-In"
-  field id="full_name" key="full_name" label="Full name" dataType="string"
-  row id="contact_row"
-    field id="phone" key="phone" label="Phone" dataType="string"
-    date id="birth_date" key="birth_date" label="Date of birth"
-  action id="submit_checkin" intentId="submit_checkin.submit" label="Submit"
-```
-
-## Patch mode is part of the philosophy
-
-Patch mode exists to make safe incremental evolution easier when you **choose** it (`executionMode: 'patch'` or an explicit plan). The OSS runner does **not** infer patch vs view from free-form instruction text.
-
-- prefer patch mode when updating existing node props
-- prefer local container patches for layout tweaks
-- switch to full view generation when patching is unsafe or the workflow is truly changing
-- preserve semantic continuity and detached continuity during patch decisions
-
-## Using the headless engine directly
-
-```ts
-import {
-  applyContinuumExecutionFinalResult,
-  buildContinuumExecutionContext,
-  type ContinuumViewAuthoringFormat,
-  runContinuumExecution,
-} from '@continuum-dev/ai-engine';
-import { createAiConnectContinuumExecutionAdapter } from '@continuum-dev/ai-connect';
-
-const authoringFormat: ContinuumViewAuthoringFormat = 'line-dsl';
-
-const result = await runContinuumExecution({
-  adapter: createAiConnectContinuumExecutionAdapter(provider),
-  context: buildContinuumExecutionContext(session),
-  instruction: 'Refine the existing intake flow for mobile',
-  mode: 'evolve-view',
-  authoringFormat,
-});
-
-applyContinuumExecutionFinalResult(session, result);
-```
-
-## Provider-backed starter lane
-
-If you want the fewest moving parts for hosted providers, compose `ai-connect`, `starter-kit-ai`, and the slim starter preset:
+Minimal app:
 
 ```tsx
+import { useEffect } from 'react';
 import {
-  createAiConnectProviders,
-  getAiConnectModelCatalog,
+  ContinuumProvider,
+  ContinuumRenderer,
   StarterKitProviderChatBox,
+  createAiConnectProviders,
+  starterKitComponentMap,
+  useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
 } from '@continuum-dev/starter-kit-ai';
 
 const providers = createAiConnectProviders({
-  include: ['openai', 'google'],
+  include: ['openai'],
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5',
-  },
-  google: {
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
   },
 });
 
-const models = getAiConnectModelCatalog(providers);
+const initialView: ViewDefinition = {
+  viewId: 'profile',
+  version: '1',
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      label: 'Profile',
+      children: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          label: 'Email',
+        },
+      ],
+    },
+  ],
+};
 
-export function AiControls() {
+function Screen() {
+  const session = useContinuumSession();
+  const snapshot = useContinuumSnapshot();
+
+  useEffect(() => {
+    if (!session.getSnapshot()) {
+      session.pushView(initialView);
+    }
+  }, [session]);
+
+  if (!snapshot?.view) {
+    return null;
+  }
+
   return (
     <>
       <StarterKitProviderChatBox
         providers={providers}
-        models={models}
-        mode="evolve-view"
-        authoringFormat="line-dsl"
+        title="Ask Continuum AI"
       />
+      <ContinuumRenderer view={snapshot.view} />
     </>
   );
 }
-```
 
-## Vercel AI SDK lane
-
-If Vercel AI SDK is your transport, keep the transport and swap in Continuum as the runtime that consumes typed stream parts.
-
-```tsx
-import { DefaultChatTransport } from 'ai';
-import { StarterKitVercelAiSdkChatBox } from '@continuum-dev/starter-kit-ai';
-
-export function VercelLane() {
+export function App() {
   return (
-    <StarterKitVercelAiSdkChatBox
-      chatOptions={{
-        transport: new DefaultChatTransport({
-          api: '/api/chat',
-        }),
-      }}
-    />
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
+      <Screen />
+    </ContinuumProvider>
   );
 }
 ```
 
-Or drop lower and use the raw hook with the explicit packages:
+What this lane does for you:
+
+- `StarterKitProviderChatBox` reads the active Continuum session from React context
+- `useProviderChatController(...)` builds execution context from that live session
+- `@continuum-dev/ai-engine` runs the instruction
+- successful results apply back into the same session by default
+
+Use this lane for the fastest start, demos, and controlled environments. If you do not want provider credentials in the browser, move to the Vercel AI SDK lane.
+
+## Lane 2: Keep Your Vercel AI SDK App
+
+Use this lane when:
+
+- you already have a Vercel AI SDK chat route
+- you want a server-backed transport boundary
+- you want file attachment support in the chat flow
+- you want Continuum updates streamed into the same AI SDK message flow
+
+### 1. Install
+
+```bash
+npm install @continuum-dev/vercel-ai-sdk-adapter ai react
+```
+
+Then add your model provider package on the server, for example:
+
+```bash
+npm install @ai-sdk/openai
+```
+
+### 2. Send The Current Continuum Snapshot From The Client
 
 ```tsx
 import { DefaultChatTransport } from 'ai';
@@ -217,138 +159,149 @@ import {
   useContinuumVercelAiSdkChat,
 } from '@continuum-dev/vercel-ai-sdk-adapter';
 
-export function CustomChat() {
+export function ContinuumChat() {
   const session = useContinuumSession();
+
   const chat = useContinuumVercelAiSdkChat({
     session,
     transport: new DefaultChatTransport({
       api: '/api/chat',
-      body: () =>
-        buildContinuumVercelAiSdkRequestBody({
-          currentView: session.getSnapshot()?.view ?? null,
-          currentData: session.getSnapshot()?.data.values ?? null,
-        }),
+      body: () => {
+        const snapshot = session.getSnapshot();
+        return buildContinuumVercelAiSdkRequestBody({
+          currentView: snapshot?.view ?? null,
+          currentData: snapshot?.data.values ?? null,
+          continuum: {
+            mode: 'evolve-view',
+            authoringFormat: 'line-dsl',
+          },
+        });
+      },
     }),
   });
 
   return (
     <button
-      onClick={() => chat.sendMessage({ text: 'Add a co-applicant section' })}
+      onClick={() =>
+        chat.sendMessage({ text: 'Add a phone field under Email.' })
+      }
     >
-      Send prompt
+      Send
     </button>
   );
 }
 ```
 
-If you prefer one dependency edge after you understand the stack, `@continuum-dev/ai-core` re-exports the same headless path.
+Important details:
 
-Composable server route:
+- always send the `currentView` your UI is rendering now
+- always send the canonical `currentData` for that view
+- `useContinuumVercelAiSdkChat(...)` auto-applies Continuum parts into the session by default
+
+### 3. Add The Server Route
 
 ```ts
-import {
-  convertToModelMessages,
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-  streamText,
-} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import {
+  createContinuumVercelAiSdkRouteHandler,
   createVercelAiSdkContinuumExecutionAdapter,
-  writeContinuumExecutionToUiMessageWriter,
 } from '@continuum-dev/vercel-ai-sdk-adapter/server';
 
-export async function POST(request: Request) {
-  const body = await request.json();
-  const model = openai('gpt-5');
-  const result = streamText({
-    model,
-    messages: convertToModelMessages(body.messages),
-  });
-
-  const stream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      writer.merge(result.toUIMessageStream());
-      await writeContinuumExecutionToUiMessageWriter({
-        writer,
-        adapter: createVercelAiSdkContinuumExecutionAdapter({ model }),
-        instruction: body.continuum?.instruction,
-        context: {
-          currentView: body.currentView,
-          currentData: body.currentData,
-        },
-      });
-    },
-  });
-
-  return createUIMessageStreamResponse({ stream });
-}
+export const POST = createContinuumVercelAiSdkRouteHandler({
+  adapter: createVercelAiSdkContinuumExecutionAdapter({
+    model: openai(process.env.OPENAI_MODEL ?? 'gpt-4o-mini'),
+  }),
+  defaultAuthoringFormat: 'line-dsl',
+});
 ```
 
-## Prompting guidance that matches the engine
+That helper already does the server wiring that is easy to get wrong:
 
-Good instructions:
+- reads the POST body
+- builds `ContinuumExecutionContext`
+- resolves the instruction from `continuum.instruction` or the latest user message text
+- falls back to `Use the attached file(s) to inform your response.` when the latest user message only has attachments
+- runs `@continuum-dev/ai-engine`
+- writes `data-continuum-*` parts into the AI SDK stream
 
-- "Add a co-applicant section while preserving existing semantic keys."
-- "Refine layout for mobile but keep the same workflow."
-- "Prefill this form with the provided patient data."
-- "Bring back the allergy field in the medications section."
+### 4. Know The Vercel Lane Order
 
-Less helpful instructions:
+1. the client sends chat `messages` plus Continuum snapshot fields
+2. the server builds Continuum execution context from that body
+3. `@continuum-dev/ai-engine` runs and emits Continuum result events
+4. the server writes those events as `data-continuum-*` parts
+5. `useContinuumVercelAiSdkChat(...)` applies those parts into the local session
+6. your renderer re-renders from the updated session snapshot
 
-- "Rebuild this whole thing from scratch."
-- "Change everything but keep all state."
-- "Rename whatever you want."
+That is the core timeline to keep in mind: request body in, Continuum parts out, local session updated.
 
-## Correction loops should still be format-first
+## What Actually Gets Applied Into The Session
 
-When a candidate is malformed, the repair path should still follow the same authoring principles.
+This is the important safety model behind both lanes.
 
-The correction loop feeds the model:
+### Structural AI changes
 
-- the current view
-- detached field hints
-- validation errors
-- runtime errors
+- full view, transform, and patch-style results are evaluated before acceptance
+- successful structural results are then applied through the Continuum session
+- when possible, the session streaming foundation is used first
+- otherwise the session falls back to normal local apply methods such as `applyView(...)`
 
-And asks for:
+### AI value changes
 
-- a corrected next view
-- preserved unchanged semantics
-- valid authoring output in the same format
+- value-only results are not treated as raw session overwrites
+- the apply helpers use the session streaming foundation when available
+- otherwise they fall back to proposal-safe session behavior such as `proposeValue(...)`
 
-## Audit after every apply
+So the normal public path is not "AI directly overwrites the session." It is "AI produces a result that the Continuum session then applies."
 
-Even with strong authoring guidance, every generated view should still be audited after apply:
+## If You Want A Custom UI Instead Of Shipped Chat Boxes
+
+Start from the headless path:
+
+- `@continuum-dev/react`
+- `@continuum-dev/session`
+- `@continuum-dev/ai-engine`
+- `@continuum-dev/ai-connect` or `@continuum-dev/vercel-ai-sdk-adapter`
+
+Example:
 
 ```ts
-const issues = session.getIssues();
-const resolutions = session.getResolutions();
-const diffs = session.getDiffs();
+import {
+  applyContinuumExecutionFinalResult,
+  buildContinuumExecutionContext,
+  createContinuumSessionAdapter,
+  runContinuumExecution,
+} from '@continuum-dev/ai-engine';
+import { createAiConnectContinuumExecutionAdapter } from '@continuum-dev/ai-connect';
+
+const continuumSession = createContinuumSessionAdapter(session);
+
+const result = await runContinuumExecution({
+  adapter: createAiConnectContinuumExecutionAdapter(provider),
+  instruction: 'Refine this form for mobile.',
+  context: buildContinuumExecutionContext(continuumSession),
+  mode: 'evolve-view',
+  authoringFormat: 'line-dsl',
+});
+
+applyContinuumExecutionFinalResult(continuumSession, result);
 ```
 
-Recommended policy:
+Use this when you want the execution behavior without the shipped starter chat UI.
 
-- retry when validation or runtime errors exist
-- retry when detached count is unexpectedly high
-- accept when only expected warnings remain
+## Common Gotchas
 
-## AI shipping checklist
+- `mode` and `executionMode` are different.
+  `mode` is prompt authoring mode. `executionMode` is explicit execution routing.
+- `StarterKitVercelAiSdkChatBox` does not take `session` in `chatOptions`.
+  It reads the active Continuum session from provider context.
+- The direct provider lane is the fastest path, not the safest server boundary.
+- The Vercel lane is the right path when you want attachment files in the shipped chat flow.
+- If you are using the Vercel lane, send the current view and canonical data every time.
 
-1. Keep `starter-kit` slim and free of provider or planner logic.
-2. Put planning, parsing, normalization, and apply behavior in `ai-engine`.
-3. Put provider factories and model catalogs in `ai-connect`.
-4. Use `starter-kit-ai` only for thin UI wrappers.
-5. Keep Vercel AI SDK transport-only.
-   Continuum-specific request and writer helpers belong in `@continuum-dev/vercel-ai-sdk-adapter`.
-6. Patch when a local incremental change is safe.
-7. Only fall back to full regeneration when patching is unsafe or the workflow truly changes.
-8. Inspect issues and resolutions after every AI-generated apply.
-
-## Related guides
+## Related Docs
 
 - [Quick Start](./QUICK_START.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
-- [View Contract Reference](./VIEW_CONTRACT.md)
-
-Reference app walkthroughs and migration guides live in the private Continuum documentation repository.
+- [`@continuum-dev/starter-kit-ai`](../packages/starter-kit-ai/README.md)
+- [`@continuum-dev/vercel-ai-sdk-adapter`](../packages/vercel-ai-sdk-adapter/README.md)

@@ -1,66 +1,111 @@
 # Quick Start
 
-Get a working Continuum app on screen fast, then learn how view updates preserve user state.
+Get a Continuum session on screen and wire it to AI with the fewest moving parts.
 
-This guide uses `@continuum-dev/starter-kit`, which is now the slim preset layer for rendering, hooks, styles, and session tooling.
+This guide is the fastest shipped path:
 
-## Run the same flow in this repository
+- React app
+- `@continuum-dev/starter-kit-ai`
+- one Continuum session
+- one direct provider-backed AI chat box
 
-The [`apps/starter`](../apps/starter) app follows this guide and adds the Vercel AI SDK path: `useContinuumVercelAiSdkChat`, a `POST /api/chat` handler from `@continuum-dev/vercel-ai-sdk-adapter/server`, and OpenAI via `@ai-sdk/openai`. See [`apps/starter/README.md`](../apps/starter/README.md) for env vars.
+If you already have a server boundary or an existing Vercel AI SDK app, skip to [AI Integration Guide](./AI_INTEGRATION.md).
 
-```bash
-npm run starter
-```
-
-That serves **http://localhost:4305/** (root path `/`).
-
-## What you will build
+## What You Will Build
 
 By the end of this guide you will have:
 
 - a React app wrapped in `ContinuumProvider`
-- a rendered `ViewDefinition`
-- local persistence across refresh
-- a view update that preserves matching user data
+- a mounted `ViewDefinition`
+- local session persistence across refresh
+- an AI instruction box that updates that same Continuum session
 
-## 1. Install the fastest path
+## 1. Install The Fastest Path
 
-```bash
-npm install @continuum-dev/starter-kit react
-```
-
-Use the starter kit if you want:
-
-- a default component map
-- ready-to-use primitives
-- Continuum React hooks from the same package surface
-- built-in style APIs
-- session tooling like `StarterKitSessionWorkbench`
-
-If you want a fully headless React setup instead, install:
+Use any React 18 app scaffold you like, then install:
 
 ```bash
-npm install @continuum-dev/react @continuum-dev/core react
+npm install @continuum-dev/starter-kit-ai react react-dom
 ```
 
-If you expect to add AI to a custom system later, start by learning the explicit stack instead of a convenience facade:
+For the example below, add:
 
-```bash
-npm install @continuum-dev/react @continuum-dev/session @continuum-dev/ai-engine react
-```
+- `VITE_OPENAI_API_KEY`
+- optional `VITE_OPENAI_MODEL`
 
-Then add `@continuum-dev/vercel-ai-sdk-adapter` or `@continuum-dev/ai-connect` for your transport or provider path. If you already know you want one dependency edge, `@continuum-dev/ai-core` re-exports that stack as a convenience facade.
+This guide uses the direct provider lane because it is the smallest honest setup. If you do not want provider credentials in the browser, use the Vercel AI SDK lane in [AI Integration Guide](./AI_INTEGRATION.md).
 
-## 2. Wrap your app
-
-Create your app shell with `ContinuumProvider`.
+## 2. Paste A Minimal App
 
 ```tsx
+import { useEffect } from 'react';
 import {
   ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitProviderChatBox,
+  createAiConnectProviders,
   starterKitComponentMap,
-} from '@continuum-dev/starter-kit';
-import { Page } from './Page';
+  useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
+  include: ['openai'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
+  },
+});
+
+const initialView: ViewDefinition = {
+  viewId: 'profile',
+  version: '1',
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      label: 'Profile',
+      children: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          label: 'Email',
+          placeholder: 'you@example.com',
+        },
+      ],
+    },
+  ],
+};
+
+function Screen() {
+  const session = useContinuumSession();
+  const snapshot = useContinuumSnapshot();
+
+  useEffect(() => {
+    if (!session.getSnapshot()) {
+      // First mount: create the initial Continuum session snapshot.
+      session.pushView(initialView);
+    }
+  }, [session]);
+
+  if (!snapshot?.view) {
+    // Nothing renders until the session has an active view snapshot.
+    return null;
+  }
+
+  return (
+    <>
+      <StarterKitProviderChatBox
+        providers={providers}
+        title="Ask Continuum AI"
+        description="Successful AI results apply back into this same session."
+      />
+      <ContinuumRenderer view={snapshot.view} />
+    </>
+  );
+}
 
 export default function App() {
   return (
@@ -68,285 +113,77 @@ export default function App() {
       components={starterKitComponentMap}
       persist="localStorage"
     >
-      <Page />
+      <Screen />
     </ContinuumProvider>
   );
 }
 ```
 
-Why this matters:
+## 3. Understand The Runtime Order
 
-- `components={starterKitComponentMap}` gives you a default renderer immediately
-- `persist="localStorage"` makes the session survive refresh automatically
+This is the order that matters:
 
-## 3. Push your first view
+1. `ContinuumProvider` creates or rehydrates the active session.
+2. `session.pushView(initialView)` mounts the first view if nothing was restored.
+3. `ContinuumRenderer` renders the current `snapshot.view`.
+4. `StarterKitProviderChatBox` reads the same live session.
+5. When you submit an instruction, `@continuum-dev/ai-engine` builds context from the current session.
+6. The AI result is checked, then applied back into that same session.
+7. The renderer re-renders from the updated snapshot.
 
-Create a simple `ViewDefinition` and render it from session state.
+That is the key mental model: the AI lane does not bypass the local Continuum session. It works through it.
 
-```tsx
-import { useEffect } from 'react';
-import {
-  ContinuumRenderer,
-  useContinuumSession,
-  useContinuumSnapshot,
-  type ViewDefinition,
-} from '@continuum-dev/starter-kit';
+## 4. Know Why `clock` Is Not In This Path
 
-const initialView: ViewDefinition = {
-  viewId: 'profile-form',
-  version: '1',
-  nodes: [
-    {
-      id: 'profile',
-      type: 'group',
-      key: 'profile',
-      label: 'Profile',
-      children: [
-        {
-          id: 'name',
-          type: 'field',
-          dataType: 'string',
-          key: 'name',
-          label: 'Name',
-        },
-        {
-          id: 'email',
-          type: 'field',
-          dataType: 'string',
-          key: 'email',
-          label: 'Email',
-        },
-        {
-          id: 'agree',
-          type: 'field',
-          dataType: 'boolean',
-          key: 'agree',
-          label: 'Agree to terms',
-        },
-      ],
-    },
-  ],
-};
+You do not need to supply a clock in this quick-start path because:
 
-export function Page() {
-  const session = useContinuumSession();
-  const snapshot = useContinuumSnapshot();
+- `starter-kit-ai` sits on top of `react`, `session`, and `runtime`
+- the session layer owns the runtime timeline details for you
+- the lower-level `clock` concern only shows up when you work directly with the runtime boundary APIs
 
-  useEffect(() => {
-    if (!snapshot) {
-      session.pushView(initialView);
-    }
-  }, [session, snapshot]);
+If you later drop down to `@continuum-dev/runtime`, see the runtime package README for the explicit clock contract.
 
-  if (!snapshot?.view) {
-    return null;
-  }
+## 5. Add Optional Session Debugging
 
-  return <ContinuumRenderer view={snapshot.view} />;
-}
-```
-
-At this point:
-
-- the view is live
-- state updates go into the active Continuum session
-- refresh will rehydrate the session from storage
-
-## 4. Update the view without losing user data
-
-When your backend or AI sends a new version, push it into the same session:
+If you want rewind, checkpoints, restore review, and proposal review UI while you learn the system:
 
 ```tsx
-session.pushView({
-  viewId: 'profile-form',
-  version: '2',
-  nodes: [
-    {
-      id: 'profile',
-      type: 'group',
-      key: 'profile',
-      label: 'Profile',
-      children: [
-        {
-          id: 'full_name',
-          type: 'field',
-          dataType: 'string',
-          key: 'name',
-          label: 'Full Name',
-        },
-        {
-          id: 'email',
-          type: 'field',
-          dataType: 'string',
-          key: 'email',
-          label: 'Email',
-        },
-        {
-          id: 'phone',
-          type: 'field',
-          dataType: 'string',
-          key: 'phone',
-          label: 'Phone',
-        },
-        {
-          id: 'agree',
-          type: 'field',
-          dataType: 'boolean',
-          key: 'agree',
-          label: 'Agree to terms',
-        },
-      ],
-    },
-  ],
-});
+import { StarterKitSessionWorkbench } from '@continuum-dev/starter-kit-ai';
+
+<StarterKitSessionWorkbench initialView={initialView} />
 ```
 
-What happens here:
+## 6. If You Need A Server Boundary Instead
 
-- the `name` value carries to `full_name` because the semantic key is still `name`
-- `email` and `agree` keep their data
-- `phone` starts empty because it is new
+The direct provider lane is the fastest path, but it is not the only path.
 
-## 5. Inspect what happened
+Use the Vercel AI SDK lane when you want:
 
-Continuum exposes diagnostics for every push:
+- a server-backed route
+- streamed Continuum updates
+- file attachment handling
+- provider credentials kept off the client
 
-```tsx
-import { useContinuumDiagnostics } from '@continuum-dev/starter-kit';
+That path is documented in [AI Integration Guide](./AI_INTEGRATION.md) and backed by `@continuum-dev/vercel-ai-sdk-adapter`.
 
-export function DiagnosticsPanel() {
-  const { issues, resolutions, checkpoints } = useContinuumDiagnostics();
+## 7. Run The Repository Example
 
-  return (
-    <pre>
-      {JSON.stringify(
-        {
-          issueCount: issues.length,
-          resolutionCount: resolutions.length,
-          checkpointCount: checkpoints.length,
-        },
-        null,
-        2
-      )}
-    </pre>
-  );
-}
-```
+The repository example app follows the Vercel AI SDK lane, not the direct provider lane from this quick start.
 
-## 6. Rewind to an earlier checkpoint
+- app: [`apps/starter`](../apps/starter/README.md)
+- guides it follows: [AI Integration Guide](./AI_INTEGRATION.md) and [Integration Guide](./INTEGRATION_GUIDE.md)
 
-Every `pushView` creates an auto-checkpoint.
-
-```tsx
-import {
-  useContinuumDiagnostics,
-  useContinuumSession,
-} from '@continuum-dev/starter-kit';
-
-export function UndoButton() {
-  const session = useContinuumSession();
-  const { checkpoints } = useContinuumDiagnostics();
-
-  return (
-    <button
-      onClick={() => {
-        const previous = checkpoints[checkpoints.length - 2];
-        if (previous) {
-          session.rewind(previous.checkpointId);
-        }
-      }}
-    >
-      Undo last view change
-    </button>
-  );
-}
-```
-
-## 7. Add actions
-
-Action nodes can trigger registered handlers by `intentId`.
-
-```tsx
-import { useEffect } from 'react';
-import {
-  useContinuumAction,
-  useContinuumSession,
-} from '@continuum-dev/starter-kit';
-
-export function RegisterActions() {
-  const session = useContinuumSession();
-
-  useEffect(() => {
-    session.registerAction('submit', { label: 'Submit' }, async (context) => {
-      await fetch('/api/submit', {
-        method: 'POST',
-        body: JSON.stringify(context.snapshot.values),
-      });
-      return { success: true };
-    });
-  }, [session]);
-
-  return null;
-}
-```
-
-## 8. Optional: add AI later
-
-The rendering lane stays slim on purpose. If you want built-in AI UI later, add the optional packages instead of pulling AI wiring from `starter-kit` itself.
+From the repository root:
 
 ```bash
-npm install @continuum-dev/starter-kit-ai
+npm run build:release-packages
+npm run starter
 ```
 
-```tsx
-import {
-  createAiConnectProviders,
-  getAiConnectModelCatalog,
-  StarterKitProviderChatBox,
-  StarterKitSessionWorkbench,
-} from '@continuum-dev/starter-kit-ai';
+## 8. What To Read Next
 
-const providers = createAiConnectProviders({
-  include: ['openai', 'google'],
-  openai: {
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5',
-  },
-  google: {
-    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
-  },
-});
-
-const models = getAiConnectModelCatalog(providers);
-
-export function AiControls() {
-  return (
-    <>
-      <StarterKitProviderChatBox
-        providers={providers}
-        models={models}
-        mode="evolve-view"
-      />
-      <StarterKitSessionWorkbench initialView={initialView} />
-    </>
-  );
-}
-```
-
-If you want custom AI UI instead of starter wrappers, move to the explicit AI runtime stack:
-
-```bash
-npm install @continuum-dev/react @continuum-dev/session @continuum-dev/ai-engine react
-```
-
-Add `@continuum-dev/vercel-ai-sdk-adapter` for the Vercel AI SDK path or `@continuum-dev/ai-connect` for built-in provider clients. If you prefer one convenience package after you understand the layers, `@continuum-dev/ai-core` is still available.
-
-## 9. What to read next
-
-- [Starter Kit README](../packages/starter-kit/README.md)
-- [Starter Kit AI README](../packages/starter-kit-ai/README.md)
-- [Integration Guide](INTEGRATION_GUIDE.md)
-- [AI Integration Guide](AI_INTEGRATION.md)
-- [View Contract Reference](VIEW_CONTRACT.md)
-
-Reference app walkthroughs and migration guides for maintainers live in the private Continuum documentation repository.
+- [AI Integration Guide](./AI_INTEGRATION.md)
+- [Integration Guide](./INTEGRATION_GUIDE.md)
+- [`@continuum-dev/starter-kit-ai`](../packages/starter-kit-ai/README.md)
+- [`@continuum-dev/vercel-ai-sdk-adapter`](../packages/vercel-ai-sdk-adapter/README.md)
+- [View Contract Reference](./VIEW_CONTRACT.md)
