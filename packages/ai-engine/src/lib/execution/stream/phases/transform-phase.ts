@@ -1,6 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import type { ViewDefinition } from '@continuum-dev/core';
-import type { ViewEvolutionDiagnostics } from '@continuum-dev/protocol';
+import {
+  advanceContinuumViewVersion,
+  type ViewEvolutionDiagnostics,
+} from '@continuum-dev/protocol';
 import { parseJson } from '../../../view-guardrails/index.js';
 import {
   applyPatchPlanToView,
@@ -14,6 +16,7 @@ import {
 import {
   evaluateRuntimeViewTransition,
 } from '../evaluation/runtime-view-evaluator.js';
+import { createExecutionTraceId } from '../trace/create-trace-id.js';
 import { createNoopResult } from '../trace/noop-result.js';
 import { runGenerate } from '../trace/trace.js';
 import type {
@@ -29,6 +32,32 @@ function buildRegisteredIntentIds(
     return undefined;
   }
   return new Set(Object.keys(registered));
+}
+
+function ensureTransformVersion(
+  currentView: ViewDefinition,
+  nextView: ViewDefinition | null,
+  hasTransformPlan: boolean
+): ViewDefinition {
+  if (nextView && nextView.version !== currentView.version) {
+    return nextView;
+  }
+
+  if (nextView) {
+    return {
+      ...nextView,
+      version: advanceContinuumViewVersion(currentView.version, 'minor'),
+    };
+  }
+
+  if (hasTransformPlan) {
+    return {
+      ...currentView,
+      version: advanceContinuumViewVersion(currentView.version, 'minor'),
+    };
+  }
+
+  return currentView;
 }
 
 export async function* runTransformPhase(
@@ -112,11 +141,15 @@ export async function* runTransformPhase(
       });
     }
 
-    const finalTransformView = nextView ?? currentView;
     const transformPlan =
       continuityOperations.length > 0
         ? { operations: continuityOperations }
         : undefined;
+    const finalTransformView = ensureTransformVersion(
+      currentView,
+      nextView,
+      Boolean(transformPlan)
+    );
 
     let viewEvolutionDiagnostics: ViewEvolutionDiagnostics | undefined;
     if (nextView || transformPlan) {
@@ -134,7 +167,7 @@ export async function* runTransformPhase(
       viewEvolutionDiagnostics = evaluation.diagnostics;
       if (evaluation.rejectionReason) {
         env.args.onEditTrace?.({
-          traceId: randomUUID(),
+          traceId: createExecutionTraceId(),
           phase: 'transform',
           priorViewId: currentView.viewId,
           instruction: env.args.instruction,
@@ -162,7 +195,7 @@ export async function* runTransformPhase(
     }
 
     env.args.onEditTrace?.({
-      traceId: randomUUID(),
+      traceId: createExecutionTraceId(),
       phase: 'transform',
       priorViewId: currentView.viewId,
       instruction: env.args.instruction,

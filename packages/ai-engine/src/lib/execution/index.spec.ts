@@ -412,6 +412,9 @@ group id="tax_form"
     ]);
     expect(result).toMatchObject({
       mode: 'transform',
+      view: {
+        version: '2.1',
+      },
       transformPlan: {
         operations: [
           {
@@ -419,6 +422,81 @@ group id="tax_form"
             sourceNodeIds: ['first_name', 'last_name'],
             targetNodeId: 'full_name',
             strategyId: 'concat-space',
+          },
+        ],
+      },
+    });
+  });
+
+  it('bumps transform-only executions to a minor revision even when the structure is unchanged', async () => {
+    const currentView = {
+      viewId: 'lead-form',
+      version: '2',
+      nodes: [
+        {
+          id: 'profile',
+          type: 'group',
+          children: [
+            {
+              id: 'company',
+              type: 'field',
+              dataType: 'string',
+              key: 'lead.company',
+              semanticKey: 'lead.company',
+              label: 'Company',
+            },
+          ],
+        },
+      ],
+    } as const;
+
+    const generate = vi.fn(async (request) => {
+      if (request.mode === 'transform') {
+        return {
+          text: JSON.stringify({
+            continuityOperations: [
+              {
+                kind: 'carry',
+                sourceNodeId: 'company',
+                targetNodeId: 'company',
+              },
+            ],
+          }),
+        };
+      }
+
+      throw new Error(`Unexpected execution phase: ${request.mode}`);
+    });
+
+    const result = await runContinuumExecution({
+      adapter: {
+        label: 'test-adapter',
+        generate,
+      },
+      instruction: 'Keep the company value on the current field.',
+      executionMode: 'transform',
+      context: {
+        currentView,
+        currentData: {
+          'profile/company': { value: 'Acme Corp', isDirty: true },
+        },
+      },
+    });
+
+    expect(generate.mock.calls.map(([request]) => request.mode)).toEqual([
+      'transform',
+    ]);
+    expect(result).toMatchObject({
+      mode: 'transform',
+      view: {
+        version: '2.1',
+      },
+      transformPlan: {
+        operations: [
+          {
+            kind: 'carry',
+            sourceNodeId: 'company',
+            targetNodeId: 'company',
           },
         ],
       },

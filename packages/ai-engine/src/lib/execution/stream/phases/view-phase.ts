@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import {
   type PromptMode,
   VIEW_DEFINITION_OUTPUT_CONTRACT,
@@ -24,6 +23,7 @@ import {
   buildViewEvaluationErrors,
   evaluateRuntimeViewTransition,
 } from '../evaluation/runtime-view-evaluator.js';
+import { createExecutionTraceId } from '../trace/create-trace-id.js';
 import { createNoopResult } from '../trace/noop-result.js';
 import { normalizeError } from '../trace/normalize-error.js';
 import { runGenerate, toTraceEntry } from '../trace/trace.js';
@@ -283,7 +283,7 @@ export async function* runViewPhase(
 
     if (evaluation.rejectionReason) {
       env.args.onEditTrace?.({
-        traceId: randomUUID(),
+        traceId: createExecutionTraceId(),
         phase: 'view',
         priorViewId: env.currentView.viewId,
         instruction: env.args.instruction,
@@ -364,7 +364,7 @@ export async function* runViewPhase(
 
   if (env.currentView) {
     env.args.onEditTrace?.({
-      traceId: randomUUID(),
+      traceId: createExecutionTraceId(),
       phase: 'view',
       priorViewId: env.currentView.viewId,
       instruction: env.args.instruction,

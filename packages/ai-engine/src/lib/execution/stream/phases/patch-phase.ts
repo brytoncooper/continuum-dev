@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { ViewDefinition } from '@continuum-dev/core';
 import type { ViewEvolutionDiagnostics } from '@continuum-dev/protocol';
 import { parseJson } from '../../../view-guardrails/index.js';
@@ -11,6 +10,7 @@ import {
 } from '../../../view-patching/index.js';
 import { evaluateRuntimeViewTransition } from '../evaluation/runtime-view-evaluator.js';
 import { looksLikeStructuralEditInstruction } from '../instruction/instruction-heuristics.js';
+import { createExecutionTraceId } from '../trace/create-trace-id.js';
 import { createNoopResult } from '../trace/noop-result.js';
 import { runGenerate } from '../trace/trace.js';
 import type {
@@ -143,7 +143,7 @@ export async function* runPatchPhase(
     rejectionReason?: string
   ) => {
     env.args.onEditTrace?.({
-      traceId: randomUUID(),
+      traceId: createExecutionTraceId(),
       phase: 'patch',
       priorViewId: currentView.viewId,
       instruction: env.args.instruction,
