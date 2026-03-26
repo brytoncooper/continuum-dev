@@ -1,135 +1,83 @@
-# ♾️ @continuum-dev/react
-
-**Build interfaces that can change at runtime without hand-building the continuity layer yourself.**
-
-Website: [continuumstack.dev](https://continuumstack.dev)
-GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
-
-## Core Premise: The Ephemerality Gap
-
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
-
-Most React apps are written with one giant assumption: **the UI shape is basically fixed.**
-
-That works great right up until your app starts doing things like:
-
-- generating UI from AI output
-- assembling screens from schemas
-- rebuilding flows from workflow state
-- streaming new layouts mid-session
-- rendering dynamic forms that need persistence, undo, and conflict handling
-
-At that point, the hard part is no longer just rendering data.
-
-The hard part becomes:
-
-- keeping user input attached to changing UI
-- preserving state across structural changes
-- preventing system updates from clobbering in-progress edits
-- wiring nested collections without inventing a weird local-state framework
-- recovering safely when generated nodes are incomplete, invalid, or unexpected
-
-That is the hole Continuum fills.
-
-`@continuum-dev/react` is the headless React layer for **Continuum**: a system for building interfaces that evolve at runtime while still feeling stable, stateful, and production-grade.
-
-It is the point where the lower-level Continuum model exposed through `@continuum-dev/core` turns into a real user experience.
-
-You bring your own components.  
-Continuum handles the continuity layer underneath.
-
----
-
-## The "ohhhh" moment
-
-### Without Continuum
-
-Your app receives a new UI shape.
-
-Now you need custom logic for:
-
-- mapping changing nodes back to live state
-- preserving user edits across view updates
-- hydrating and persisting dynamic session state
-- resolving user edits vs system updates
-- handling nested collection item state
-- preventing one broken dynamic node from blanking the whole screen
-
-That usually starts as "just a few helpers" and quietly turns into a strange in-house framework.
-
-### With Continuum
-
-You:
-
-- push a new `ViewDefinition`
-- render it through your React component map
-- read and update node state with hooks
-- persist and hydrate the session
-- resolve conflicts and suggestions when needed
-- get collections, diagnostics, fallbacks, and per-node error isolation built in
-
-Same React.  
-Same design system.  
-Way less glue code.
-
----
-
-## What Continuum actually is
-
-Continuum splits the problem into clear layers:
-
-- `@continuum-dev/core` bundles the lower-level contract, runtime, and session layers
-- `@continuum-dev/react` renders that model into React
-
-This package is the React binding.
-
-It does **not** replace your design system.  
-It does **not** force a visual style.  
-It does **not** own your app shell.
-
-It gives you a better runtime model for interfaces that are not fully static.
-
----
-
-## Why this feels different
-
-### It renders change, not just data
-
-Most libraries help you render a structure once.
-
-Continuum is built for cases where the structure itself evolves during the session. The job is not just to render the latest tree. The job is to keep the interface usable while that tree changes.
-
-### It is built to stay fast as views grow
-
-`@continuum-dev/react` uses an external-store fan-out model powered by `useSyncExternalStore`.
-
-In practice, that means updates stay focused: components subscribe to specific session state instead of forcing broad rerenders across the whole dynamic view.
-
-### It fails safer
-
-Every rendered node is wrapped in `NodeErrorBoundary`.
-
-If one dynamic component blows up because a generated node is malformed or unexpected, the rest of the screen can keep working.
-
-### It stays headless
-
-Continuum provides structure, reconciliation, and session wiring.  
-You keep full control over components, branding, styling, and UX.
-
----
-
-## Install
+# @continuum-dev/react
 
 ```bash
 npm install @continuum-dev/react @continuum-dev/core react
 ```
 
-Peer dependency: `react >= 18`.
+## Why It Exists
 
-## 60-second example
+`@continuum-dev/core` gives you the Continuum model and session behavior, but a React app still needs a provider, a renderer, and subscription-friendly hooks.
 
-This example maps your design system components to dynamic node types and renders a live Continuum view.
+`@continuum-dev/react` exists so you can render changing Continuum views with your own React components without rebuilding:
+
+- session bootstrapping and hydration
+- focused subscriptions for node values, snapshots, streams, and diagnostics
+- collection item scoping
+- fallback rendering for unknown node types
+- per-node error isolation
+
+If Continuum is the continuity engine, `@continuum-dev/react` is the headless React binding that turns it into a normal component tree.
+
+## How It Works
+
+- `ContinuumProvider` creates or hydrates a Continuum session through `@continuum-dev/core` and wraps it in a React-friendly external store.
+- `ContinuumRenderer` walks a `ViewDefinition` tree and resolves each node through your `components` map.
+- Rendered node components receive `value`, `onChange`, `definition`, `nodeId`, and optional streaming or collection props.
+- Hooks such as `useContinuumState`, `useContinuumSnapshot`, `useContinuumDiagnostics`, and `useContinuumStreaming` subscribe to focused slices of session state.
+- Writes go back through the session, which updates the underlying snapshot and then fans those updates back out through the provider store.
+- Optional persistence uses the session layer, not a separate React state cache.
+
+### Normal React Order
+
+1. mount `ContinuumProvider`
+2. hydrate an existing session or push the first view
+3. read the active snapshot
+4. render `snapshot.view` through `ContinuumRenderer`
+5. let components call `onChange` or hooks to write canonical node values
+6. let the session emit the next snapshot, streams, issues, and checkpoints
+7. optionally persist the session ledger to browser storage
+
+## What It Is
+
+`@continuum-dev/react` is a headless React binding package over `@continuum-dev/core`.
+
+Import everything from the package root:
+
+```ts
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  useContinuumSession,
+  useContinuumSnapshot,
+  useContinuumState,
+  type ContinuumNodeMap,
+  type ContinuumNodeProps,
+} from '@continuum-dev/react';
+```
+
+The public root export includes:
+
+- `ContinuumProvider`
+- `ContinuumRenderer`
+- all public hooks
+- `NodeErrorBoundary`
+- `FallbackComponent`
+- advanced React context exports
+- `ContinuumNodeProps`, `ContinuumNodeMap`, `ContinuumProviderProps`, and related types
+
+There are no public subpath imports.
+
+## Simplest Way To Use It
+
+Most apps only need this path:
+
+1. define a `ContinuumNodeMap`
+2. wrap your subtree in `ContinuumProvider`
+3. push the first `ViewDefinition` into the session if nothing was hydrated
+4. render the live `snapshot.view` through `ContinuumRenderer`
+5. let node components read `value` and write through `onChange`
+
+### Minimal Flow
 
 ```tsx
 import { useEffect } from 'react';
@@ -146,25 +94,24 @@ import {
 const components: ContinuumNodeMap = {
   field: ({ value, onChange, definition }: ContinuumNodeProps) => (
     <label style={{ display: 'grid', gap: 6 }}>
-      <span>{definition.label ?? definition.key ?? definition.id}</span>
+      <span>{definition.id}</span>
       <input
         value={typeof value?.value === 'string' ? value.value : ''}
-        onChange={(e) =>
-          onChange({
-            value: e.target.value,
-            isDirty: true,
-          } as NodeValue)
+        onChange={(event) =>
+          // Writes the next canonical node value into the active session.
+          onChange({ value: event.target.value, isDirty: true } as NodeValue)
         }
       />
     </label>
   ),
   group: ({ children }: ContinuumNodeProps) => (
+    // Container nodes render their Continuum children through your layout.
     <section style={{ display: 'grid', gap: 12 }}>{children}</section>
   ),
 };
 
 const initialView: ViewDefinition = {
-  viewId: 'demo',
+  viewId: 'profile',
   version: '1',
   nodes: [
     {
@@ -175,8 +122,6 @@ const initialView: ViewDefinition = {
           id: 'email',
           type: 'field',
           dataType: 'string',
-          key: 'user.email',
-          label: 'Email',
         },
       ],
     },
@@ -189,307 +134,254 @@ function Screen() {
 
   useEffect(() => {
     if (!session.getSnapshot()) {
+      // First mount: seed the session with the first view version.
       session.pushView(initialView);
     }
   }, [session]);
 
   if (!snapshot?.view) {
+    // Nothing to render until the session has an active snapshot.
     return null;
   }
 
+  // Always render the current live view from the session snapshot.
   return <ContinuumRenderer view={snapshot.view} />;
 }
 
 export function App() {
   return (
-    <ContinuumProvider components={components} persist="localStorage">
-      <main>
-        <h1>Profile</h1>
-        <Screen />
-      </main>
+    <ContinuumProvider components={components}>
+      <Screen />
     </ContinuumProvider>
   );
 }
 ```
 
----
+### What Is Required
 
-## Mental model
+- React 18 or newer
+- a `ContinuumProvider`
+- a component map entry for each node `type` you expect to render, or a `default` fallback
+- an initial `ViewDefinition`
+- components that can accept `ContinuumNodeProps`
 
-There are three big ideas behind this package.
+## Other Options
 
-1. You render views, not hardcoded screens.  
-   The renderer walks a `ViewDefinition` tree and resolves each node through your component map.
+### Persistence And Hydration
 
-2. State lives in the session.  
-   Your components read current values from the active Continuum session and write updates back into it.
+Use provider persistence when the React subtree should resume from browser storage.
 
-3. Dynamic interfaces need production behavior.  
-   Persistence, diagnostics, conflict handling, collection state, fallbacks, and recovery are core parts of the model.
+- `persist` supports `false`, `'localStorage'`, and `'sessionStorage'`
+- `storageKey` changes the storage key; the default is `continuum_session`
+- `maxPersistBytes` skips oversized writes
+- `onPersistError` receives `size_limit` and `storage_error`
+- `useContinuumHydrated()` tells you whether the provider found a persisted payload key when it started
 
----
-
-## How it works
-
-```mermaid
-flowchart LR
-  subgraph Core["@continuum-dev/core"]
-    Session["Session"]
-    Persist["hydrateOrCreate\npersistence + hydration"]
-    Events["snapshots\nstreams\ndiagnostics"]
-  end
-
-  subgraph React["@continuum-dev/react"]
-    Provider["ContinuumProvider"]
-    Store["ContinuumStore"]
-    Contexts["ContinuumContext\nContinuumRenderSnapshotContext\nContinuumRenderScopeContext"]
-    Hooks["hooks/\nstate\nsnapshots\nstreams\nfocus\ndiagnostics\nrestore\nsuggestions\nactions"]
-    Renderer["renderer/\nContinuumRenderer\nNodeRenderer"]
-    Components["your component map"]
-  end
-
-  Persist --> Provider
-  Provider --> Session
-  Session --> Events
-  Events --> Store
-  Store --> Contexts
-  Contexts --> Hooks
-  Contexts --> Renderer
-  Hooks -->|"read / write"| Session
-  Renderer -->|"definition\nnodeId\nvalue\nstreaming props\nchildren"| Components
-```
-
-`ContinuumProvider` bootstraps the session and the subscription store.  
-Hooks read and write session state through that store.  
-`ContinuumRenderer` turns a `ViewDefinition` tree into your actual React components.
-
----
-
-## Core API
-
-### `ContinuumProvider`
-
-`ContinuumProvider` creates and owns a Continuum session for a React subtree. It can:
-
-- create a fresh session
-- hydrate from storage
-- expose session and internal store through context
-- persist updates back to storage
-- stay stable through React Strict Mode replay behavior
+Example:
 
 ```tsx
-<ContinuumProvider components={components} persist="localStorage">
+<ContinuumProvider
+  components={components}
+  persist="localStorage"
+  storageKey="profile-session"
+  maxPersistBytes={100_000}
+  onPersistError={(error) => {
+    console.error(error);
+  }}
+>
   <App />
 </ContinuumProvider>
 ```
 
-#### Props
+### State, Snapshots, And Session Access
 
-| Prop              | Type                                          | Description                                                         |
-| ----------------- | --------------------------------------------- | ------------------------------------------------------------------- |
-| `components`      | `ContinuumNodeMap`                            | Required map of node type to React component.                       |
-| `persist`         | `'localStorage' \| 'sessionStorage' \| false` | Optional browser storage strategy.                                  |
-| `storageKey`      | `string`                                      | Optional storage key. Default: `continuum_session`.                 |
-| `maxPersistBytes` | `number`                                      | Optional max serialized payload size before persistence is skipped. |
-| `onPersistError`  | `(error: ContinuumPersistError) => void`      | Optional callback for `size_limit` and `storage_error`.             |
-| `sessionOptions`  | `SessionOptions`                              | Optional session configuration passed to hydration/creation.        |
-| `children`        | `React.ReactNode`                             | React subtree rendered inside the provider.                         |
+Use these hooks when mapped node components or app-level UI need direct access to Continuum state:
 
-### `ContinuumRenderer`
+- `useContinuumState(nodeId)`
+  - reads and writes one canonical node value
+- `useContinuumSnapshot()`
+  - returns the current live `ContinuitySnapshot`
+- `useContinuumCommittedSnapshot()`
+  - returns the last committed snapshot during foreground streaming
+- `useContinuumSession()`
+  - returns the full session API
+- `useContinuumFocus(nodeId)`
+  - reads and writes session-level focus state for one canonical node id
 
-Renders a `ViewDefinition` tree through your component map.
+Canonical node ids are the same flat ids used by Continuum data:
 
-```tsx
-<ContinuumRenderer view={snapshot.view} />
-```
+- top-level field `email`
+  - `email`
+- nested field inside `profile`
+  - `profile/email`
 
-#### Props
+### Diagnostics, Conflicts, Suggestions, And Actions
 
-| Prop               | Type                           | Description                                                                       |
-| ------------------ | ------------------------------ | --------------------------------------------------------------------------------- |
-| `view`             | `ViewDefinition`               | Required view tree to render.                                                     |
-| `snapshotOverride` | `ContinuitySnapshot \| null`   | Optional non-destructive preview snapshot used instead of the live store values.  |
-| `renderScope`      | `DetachedRestoreScope \| null` | Optional live/draft scope marker used by restore-review flows and draft previews. |
+Use these hooks when the UI needs more than basic state reads and writes:
 
-#### What it does
+- `useContinuumDiagnostics()`
+  - returns `issues`, `diffs`, `resolutions`, and `checkpoints`
+- `useContinuumConflict(nodeId)`
+  - returns pending proposal state plus `accept()` and `reject()`
+- `useContinuumSuggestions()`
+  - scans current node values for active suggestions and exposes `acceptAll()` and `rejectAll()`
+- `useContinuumAction(intentId)`
+  - dispatches a registered action and tracks `isDispatching` and `lastResult`
 
-- resolves node components by `definition.type`
-- falls back to `components.default` if provided
-- otherwise uses built-in `FallbackComponent`
-- wraps each node in `NodeErrorBoundary`
-- supports hidden nodes
-- supports nested container nodes
-- supports built-in collection behavior
-- supports preview rendering through `snapshotOverride` and `renderScope`
-- passes canonical scoped `nodeId` values to your components
-- passes suggestion and streaming props when those states are active
+### Collections
 
-### Hooks
+Collection rendering is built into `ContinuumRenderer`.
 
-#### `useContinuumState(nodeId)`
+- the collection node renders through your mapped `collection` component
+- collection root components receive `canAdd`, `canRemove`, `onAdd`, and `onRemove`
+- template root components receive `itemIndex`, `canRemove`, and `onRemove`
+- item children automatically read and write item-scoped values through the collection node
+- the renderer does not inject wrapper elements or control markup for you
 
-Primary hook for data-bearing components.
+### Streams, Preview Rendering, And Restore Review Flows
 
-```ts
-const [value, setValue] = useContinuumState('user_email');
-```
+Use these APIs when the rendered tree can change while the session is live:
 
-#### `useContinuumConflict(nodeId)`
+- `useContinuumStreams()`
+  - returns raw session stream metadata
+- `useContinuumStreaming()`
+  - returns `streams`, `activeStream`, and `isStreaming` for foreground streams
+- rendered node components receive `isStreaming`, `buildState`, and `streamStatus` when a foreground stream touches that node or subtree
+- `snapshotOverride` changes which snapshot data `ContinuumRenderer` reads from
+- `renderScope` controls where writes go while rendering that snapshot, usually `{ kind: 'live' }` or `{ kind: 'draft', streamId }`
+- `useContinuumRestoreReviews()` and `useContinuumRestoreCandidates(nodeId)` help drive detached-value restore review UI
 
-Use this when system proposals should not overwrite in-progress user edits automatically.
+### Fallbacks And Error Isolation
 
-```ts
-const { hasConflict, proposal, accept, reject } =
-  useContinuumConflict('user_email');
-```
+Dynamic trees are not always clean. This package fails safer in two ways:
 
-#### `useContinuumDiagnostics()`
+- node resolution order is `components[definition.type]`, then `components.default`, then `FallbackComponent`
+- every rendered node is wrapped in `NodeErrorBoundary`
 
-Returns timeline and reconciliation metadata:
+`FallbackComponent` shows the unknown type, an editable best-effort input, and the raw node definition for diagnostics.
 
-- `issues`
-- `diffs`
-- `resolutions`
-- `checkpoints`
-
-```ts
-const { issues, checkpoints } = useContinuumDiagnostics();
-```
-
-#### `useContinuumFocus(nodeId)`
-
-Returns whether this canonical node is the session focus and a setter. Focus is **not** stored on `DataSnapshot`; it is session-level state for UI orchestration (for example restoring focus after streamed view updates). The session revalidates focus against the active render tree after pushed or streamed view changes and clears it if the node disappears. Scroll, zoom, and expansion belong in local or app-level state. In development, calling this inside a collection item scope logs a warning because focus is not supported for collection item nodes.
-
-```ts
-const [isFocused, setFocused] = useContinuumFocus('table');
-```
-
-#### `useContinuumSession()`
-
-Returns the active session for full session API access.
-
-```ts
-const session = useContinuumSession();
-```
-
-#### `useContinuumSnapshot()`
-
-Subscribes to the full current `ContinuitySnapshot`.
-
-```ts
-const snapshot = useContinuumSnapshot();
-```
-
-Snapshot identity is stabilized when the underlying `view` and `data` references have not changed.
-
-#### `useContinuumCommittedSnapshot()`
-
-Subscribes to the latest durable committed snapshot rather than the most recent in-flight snapshot.
-
-```ts
-const committed = useContinuumCommittedSnapshot();
-```
-
-#### `useContinuumStreams()`
-
-Returns the current raw stream metadata array from the active session store.
-
-```ts
-const streams = useContinuumStreams();
-```
-
-#### `useContinuumStreaming()`
-
-Returns foreground-stream convenience state for renderer-style UIs.
-
-```ts
-const { streams, activeStream, isStreaming } = useContinuumStreaming();
-```
-
-#### `useContinuumHydrated()`
-
-Indicates whether provider initialization came from persisted storage.
-
-```ts
-const hydrated = useContinuumHydrated();
-```
-
-#### `useContinuumSuggestions()`
-
-Scans current snapshot values for suggestions and provides accept-all / reject-all actions.
-
-```ts
-const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
-```
-
-#### `useContinuumRestoreReviews()`
-
-Returns pending detached-value restore reviews for live and draft scopes.
-
-```ts
-const reviews = useContinuumRestoreReviews();
-```
-
-#### `useContinuumRestoreCandidates(nodeId)`
-
-Returns restore candidates for one node inside the current render scope.
-
-```ts
-const candidates = useContinuumRestoreCandidates('user_email');
-```
-
-#### `useContinuumAction(intentId)`
-
-Handles action dispatch with built-in loading and result state.
-
-```ts
-const { dispatch, isDispatching, lastResult } =
-  useContinuumAction('submit_form');
-```
-
-When multiple dispatches overlap, `isDispatching` and `lastResult` reflect the latest in-flight dispatch.
-
-Example action component:
-
-```tsx
-function SubmitButton({ definition }: ContinuumNodeProps) {
-  const intentId = definition.intentId ?? '';
-  const { dispatch, isDispatching, lastResult } = useContinuumAction(intentId);
-
-  return (
-    <div>
-      <button disabled={isDispatching} onClick={() => dispatch(definition.id)}>
-        {isDispatching ? 'Working...' : definition.label}
-      </button>
-      {lastResult && <span>{lastResult.success ? 'Done' : 'Failed'}</span>}
-    </div>
-  );
-}
-```
-
-#### Advanced context exports
+### Advanced Exports
 
 Most apps only need `ContinuumProvider`, `ContinuumRenderer`, and the hooks.
-If you are building custom preview or restore-review tooling, the package also exports:
+
+If you are building custom tooling, the package also exports:
 
 - `ContinuumContext`
 - `ContinuumRenderSnapshotContext`
 - `ContinuumRenderScopeContext`
+- `NodeStateScopeContext`
+- `FallbackComponent`
+- `NodeErrorBoundary`
 
----
+## Related Packages
 
-## The node contract
+- `@continuum-dev/core`
+  - the headless facade below React
+- `@continuum-dev/session`
+  - use this directly when you need lower-level session timeline or persistence control outside React
+- `@continuum-dev/starter-kit`
+  - an opinionated UI layer built on top of `@continuum-dev/react`
 
-Each component in your `components` map receives this prop shape:
+## Dictionary Contract
+
+### Core Terms
+
+- `component map`
+  - the object that maps Continuum node `type` values to React components
+- `canonical node id`
+  - the flat data id used by Continuum, such as `email` or `profile/email`
+- `live snapshot`
+  - the current `{ view, data }` pair from the active session
+- `committed snapshot`
+  - the last durable snapshot before an in-flight foreground stream finishes
+- `render scope`
+  - the target scope for writes while rendering, usually live or a specific draft stream
+- `hydrated`
+  - a provider startup where a persisted storage key was already present
+
+### Public Root Exports
 
 ```ts
-import type { NodeValue, ViewNode } from '@continuum-dev/core';
+ContinuumProvider
+ContinuumRenderer
+useContinuumAction
+useContinuumConflict
+useContinuumDiagnostics
+useContinuumFocus
+useContinuumHydrated
+useContinuumRestoreCandidates
+useContinuumRestoreReviews
+useContinuumSession
+useContinuumCommittedSnapshot
+useContinuumSnapshot
+useContinuumState
+useContinuumStreaming
+useContinuumStreams
+useContinuumSuggestions
+ContinuumContext
+ContinuumRenderScopeContext
+ContinuumRenderSnapshotContext
+NodeStateScopeContext
+NodeErrorBoundary
+FallbackComponent
+```
 
-interface ContinuumNodeProps<T = NodeValue> {
-  value: T | undefined;
+### `ContinuumProviderProps`
+
+```ts
+{
+  components: ContinuumNodeMap;
+  persist?: 'sessionStorage' | 'localStorage' | false;
+  storageKey?: string;
+  maxPersistBytes?: number;
+  onPersistError?: (error: ContinuumPersistError) => void;
+  sessionOptions?: SessionOptions;
+  children: React.ReactNode;
+}
+```
+
+### `ContinuumRendererProps`
+
+```ts
+{
+  view: ViewDefinition;
+  snapshotOverride?: ContinuitySnapshot | null;
+  renderScope?: DetachedRestoreScope | null;
+}
+```
+
+### `ContinuumPersistError.reason`
+
+```ts
+'size_limit' | 'storage_error'
+```
+
+### `DetachedRestoreScope.kind`
+
+```ts
+'live' | 'draft'
+```
+
+### `ContinuumNodeBuildState`
+
+```ts
+'building' | 'ready' | 'committed' | 'error'
+```
+
+### `ContinuumNodeStreamStatus.level`
+
+```ts
+'info' | 'success' | 'warning' | 'error'
+```
+
+### `ContinuumNodeProps`
+
+```ts
+{
+  value: NodeValue | undefined;
   hasSuggestion?: boolean;
   suggestionValue?: unknown;
-  onChange: (value: T) => void;
+  onChange: (value: NodeValue) => void;
   definition: ViewNode;
   nodeId?: string;
   isStreaming?: boolean;
@@ -503,195 +395,6 @@ interface ContinuumNodeProps<T = NodeValue> {
   [prop: string]: unknown;
 }
 ```
-
-`nodeId` is the canonical scoped id used by the renderer.  
-For nested nodes, it can look like `group/field`.
-
-Collection renderers may also pass props like `canAdd`, `canRemove`, `onAdd`, `onRemove`, and `itemIndex` through the open-ended prop slot.
-
----
-
-## Example: conflict UI
-
-```tsx
-import { useContinuumConflict } from '@continuum-dev/react';
-
-function EmailConflict({ nodeId }: { nodeId: string }) {
-  const { hasConflict, proposal, accept, reject } =
-    useContinuumConflict(nodeId);
-
-  if (!hasConflict) {
-    return null;
-  }
-
-  return (
-    <div>
-      <div>Suggested value: {String(proposal?.value ?? '')}</div>
-      <button onClick={accept}>Accept</button>
-      <button onClick={reject}>Reject</button>
-    </div>
-  );
-}
-```
-
-## Example: suggestion banner
-
-```tsx
-import { useContinuumSuggestions } from '@continuum-dev/react';
-
-function SuggestionBanner() {
-  const { hasSuggestions, acceptAll, rejectAll } = useContinuumSuggestions();
-
-  if (!hasSuggestions) {
-    return null;
-  }
-
-  return (
-    <div>
-      <span>Suggested updates are available.</span>
-      <button onClick={acceptAll}>Accept all</button>
-      <button onClick={rejectAll}>Reject all</button>
-    </div>
-  );
-}
-```
-
-## Example: undo with checkpoints
-
-```tsx
-import {
-  useContinuumDiagnostics,
-  useContinuumSession,
-} from '@continuum-dev/react';
-
-function UndoButton() {
-  const session = useContinuumSession();
-  const { checkpoints } = useContinuumDiagnostics();
-
-  const undo = () => {
-    const previous = checkpoints[checkpoints.length - 2];
-    if (previous) {
-      session.rewind(previous.checkpointId);
-    }
-  };
-
-  return <button onClick={undo}>Undo last change</button>;
-}
-```
-
----
-
-## Collections
-
-`@continuum-dev/react` includes built-in collection node support:
-
-- initial item creation from `minItems`
-- add behavior constrained by `maxItems`
-- remove behavior constrained by `minItems`
-- scoped item state storage
-- default template values
-- canonical nested ids for collection children
-- headless control wiring through your own collection components
-
-Collection controls are now passed as props to your mapped components:
-
-- collection root components receive `onAdd`, `canAdd`, `onRemove`, and `canRemove`
-- template root components receive `itemIndex`, `onRemove`, and `canRemove`
-- no renderer-owned wrapper elements or `data-continuum-*` control attributes are injected
-
-This keeps collection behavior built in while letting your design system fully own the markup and styles.
-
----
-
-## Fallbacks and failure isolation
-
-Dynamic interfaces are messy in real production environments. This package is designed to fail more safely.
-
-### Unknown node types
-
-Node resolution order:
-
-1. `components[definition.type]`
-2. `components.default`
-3. built-in `FallbackComponent`
-
-The fallback renders:
-
-- unknown node type information
-- editable text input when possible
-- raw node definition for diagnostics
-
-### Per-node error boundaries
-
-Every rendered node is wrapped in `NodeErrorBoundary`.
-
-If one component crashes while rendering a dynamic node, sibling regions can keep working.
-When a later rerender provides recoverable children, the boundary resets and the node can render again.
-
----
-
-## Persistence behavior
-
-When `persist` is enabled, provider-level session persistence supports:
-
-- hydration on provider creation
-- persistence writes through the session layer
-- optional payload size limits with `maxPersistBytes`
-- optional `onPersistError` callback for:
-  - `size_limit`
-  - `storage_error`
-
-Supported storage targets:
-
-- `localStorage`
-- `sessionStorage`
-
-Example:
-
-```tsx
-<ContinuumProvider
-  components={components}
-  persist="localStorage"
-  maxPersistBytes={100_000}
-  onPersistError={(error) => {
-    console.error(error);
-  }}
->
-  <App />
-</ContinuumProvider>
-```
-
----
-
-## When to use this package
-
-`@continuum-dev/react` is a strong fit when UI can change during a session and is driven by:
-
-- AI output
-- schemas
-- workflows
-- server-driven definitions
-- dynamic internal tools
-- resumable multi-step experiences
-- long-lived interfaces where persistence and history matter
-
-If your UI is fully static and your state model is simple, you may not need Continuum.
-
----
-
-## Ecosystem
-
-Continuum packages:
-
-- `@continuum-dev/core`: lower-level contract, runtime, and session facade
-- `@continuum-dev/react`: React bindings and renderer
-- `@continuum-dev/starter-kit`: opinionated primitives and proposal UI built on top of React
-
----
-
-## In one sentence
-
-If React is your UI engine, `@continuum-dev/react` is the layer that lets dynamic, evolving interfaces stop feeling fragile.
 
 ## License
 

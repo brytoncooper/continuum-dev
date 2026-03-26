@@ -36,6 +36,7 @@
     "**/*.d.ts",
     "**/*.d.ts.map",
     "README.md",
+    "QUICK_START.md",
     "LICENSE*"
   ],
   "dependencies": {

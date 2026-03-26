@@ -1,26 +1,24 @@
 # @continuum-dev/core
 
-Website: [continuumstack.dev](https://continuumstack.dev)
-GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
+`@continuum-dev/core` is the convenience entrypoint for the lower-level Continuum model stack.
 
-## Core Premise: The Ephemerality Gap
+## Why This Exists
 
-The Ephemerality Gap is the mismatch between ephemeral, regenerating interfaces and durable user intent.
-Continuum keeps UI structure and user state separate, then uses deterministic reconciliation so user intent survives schema changes.
+Some apps and framework bindings want one dependency edge for the lower-level Continuum spine instead of naming `contract`, `runtime`, and `session` separately. `core` exists for that case. It shortens imports when you already know you want the whole lower-level model stack together.
 
-`@continuum-dev/core` is the convenience entrypoint for the Continuum runtime spine.
+## How It Works
 
-It re-exports the public surface from:
+`@continuum-dev/core` does not add a new runtime layer. It re-exports the root public APIs of:
 
 - `@continuum-dev/contract`
 - `@continuum-dev/runtime`
 - `@continuum-dev/session`
 
-The runtime package keeps a small **root** API (`reconcile`, structural and value-write entrypoints, shared protocol constants, and core types). Helpers such as validation, node lookup, streamed view parts, and restore-candidate search are published on explicit `@continuum-dev/runtime/...` subpaths. Core does not narrow that layout: anything those packages export remains available through core, but understanding `@continuum-dev/runtime` on its own makes the contract clearer than treating core as the definition of “what runtime is.”
+So when you import from `core`, you are still using those same packages and behaviors.
 
-Use core when you want one dependency edge for the lower-level Continuum model, or when other framework bindings should depend on the runtime spine without naming each package separately.
+## What It Is
 
-Do not start here just because the package list is shorter. `@continuum-dev/runtime` and `@continuum-dev/session` are the clearer place to learn the lower-level continuity model.
+This package is a convenience facade over the lower-level Continuum model packages. It is not the owner of the architecture, and it does not redefine what contract, runtime, or session mean.
 
 ## Install
 
@@ -28,13 +26,9 @@ Do not start here just because the package list is shorter. `@continuum-dev/runt
 npm install @continuum-dev/core
 ```
 
-## What it includes
+## Easiest Path
 
-- View and data contracts
-- Reconciliation engine exports
-- Session lifecycle and persistence APIs
-
-## Example
+Use `core` when you want contracts, reconciliation, and session lifecycle from one package.
 
 ```ts
 import { createSession, type ViewDefinition } from '@continuum-dev/core';
@@ -44,15 +38,71 @@ const session = createSession();
 const view: ViewDefinition = {
   viewId: 'profile',
   version: '1',
-  nodes: [{ id: 'email', type: 'field', dataType: 'string' }],
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      children: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          label: 'Email',
+        },
+      ],
+    },
+  ],
 };
 
+// `pushView` still goes through the Continuum runtime reconciliation path.
 session.pushView(view);
+
+// Value writes still go through the session interaction model.
+session.updateState('profile/email', {
+  value: 'ada@example.com',
+  isDirty: true,
+});
 ```
 
-## Related docs
+## Other Options
+
+### Learn the lower-level boundaries directly
+
+Use the leaf packages when you want the clearest package story:
+
+- `@continuum-dev/contract` for view and data contracts
+- `@continuum-dev/runtime` for stateless reconciliation
+- `@continuum-dev/session` for the stateful session spine
+
+### Import leaf subpaths directly when you need them
+
+`core` only re-exports package roots. It does not replace leaf subpaths like:
+
+- `@continuum-dev/runtime/view-stream`
+- `@continuum-dev/runtime/node-lookup`
+- `@continuum-dev/runtime/restore-candidates`
+
+If you need those, import the leaf subpath itself.
+
+## Dictionary Contract
+
+`@continuum-dev/core` adds no new literals or runtime behavior of its own. Its contract is the union of the root exports of:
+
+- `@continuum-dev/contract`
+- `@continuum-dev/runtime`
+- `@continuum-dev/session`
+
+That means:
+
+- contract types like `ViewDefinition` and `NodeValue` come through `core`
+- root runtime helpers come through `core`
+- root session APIs like `createSession(...)` come through `core`
+- leaf subpaths do not
+
+## Related Docs
 
 - [Root README](../../README.md)
-- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
+- [Contract README](../contract/README.md)
 - [Runtime README](../runtime/README.md)
 - [Session README](../session/README.md)
+- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
