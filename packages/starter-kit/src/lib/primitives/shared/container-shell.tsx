@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useLayoutEffect, useRef } from 'react';
-import { color, control, radius, space, type } from '../../tokens.js';
+import { color, radius, space, type } from '../../tokens.js';
 import {
   starterKitDefaultStyles,
   useStarterKitStyle,
@@ -28,7 +28,7 @@ const itemMetaStyle: CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: space.md,
-  minHeight: control.height,
+  minHeight: 28,
 };
 
 const itemLabelStyle: CSSProperties = {
@@ -36,7 +36,13 @@ const itemLabelStyle: CSSProperties = {
   color: color.textSoft,
 };
 
-function useStreamingContainerMotion(nodeId?: string) {
+function useStreamingContainerMotion({
+  nodeId,
+  enabled,
+}: {
+  nodeId?: string;
+  enabled: boolean;
+}) {
   const shellRef = useRef<HTMLElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const hasAnimatedInRef = useRef(false);
@@ -49,6 +55,7 @@ function useStreamingContainerMotion(nodeId?: string) {
     const content = contentRef.current;
 
     if (
+      !enabled ||
       !element ||
       !content ||
       typeof window === 'undefined' ||
@@ -75,7 +82,7 @@ function useStreamingContainerMotion(nodeId?: string) {
       cleanupTimeoutRef.current = window.setTimeout(() => {
         settleHeight();
         cleanupTimeoutRef.current = null;
-      }, 540);
+      }, 340);
     };
 
     const readContainerChromeHeight = () => {
@@ -122,7 +129,7 @@ function useStreamingContainerMotion(nodeId?: string) {
     };
 
     element.style.transition =
-      'opacity 420ms cubic-bezier(0.2, 0.72, 0.18, 1), height 540ms cubic-bezier(0.2, 0.72, 0.18, 1)';
+      'opacity 220ms cubic-bezier(0.2, 0.72, 0.18, 1), height 320ms cubic-bezier(0.2, 0.72, 0.18, 1)';
 
     const observer = new ResizeObserver(() => {
       if (!hasAnimatedInRef.current) {
@@ -160,7 +167,7 @@ function useStreamingContainerMotion(nodeId?: string) {
         rafRef.current = null;
       }
     };
-  }, [nodeId]);
+  }, [enabled, nodeId]);
 
   return { shellRef, contentRef };
 }
@@ -168,7 +175,7 @@ function useStreamingContainerMotion(nodeId?: string) {
 function hierarchyStyle(depth: number, isItem: boolean): CSSProperties {
   if (isItem) {
     return {
-      padding: space.md,
+      padding: space.sm + 2,
       borderRadius: radius.md,
       background: color.surface,
       border: `1px solid ${color.borderSoft}`,
@@ -177,15 +184,15 @@ function hierarchyStyle(depth: number, isItem: boolean): CSSProperties {
 
   if (depth === 0) {
     return {
-      padding: space.xl,
-      borderRadius: radius.lg,
+      padding: space.md,
+      borderRadius: radius.md,
       background: color.surface,
-      border: `1px solid ${color.border}`,
+      border: `1px solid ${color.borderSoft}`,
     };
   }
 
   return {
-    paddingLeft: depth === 1 ? space.lg : space.md,
+    paddingLeft: depth === 1 ? space.md : space.sm,
     borderLeft: `1px solid ${depth === 1 ? color.border : color.borderSoft}`,
   };
 }
@@ -215,7 +222,10 @@ export function ContainerShell({
 }) {
   const depth = nodeDepth(nodeId);
   const isItem = typeof itemIndex === 'number';
-  const { shellRef, contentRef } = useStreamingContainerMotion(nodeId);
+  const { shellRef, contentRef } = useStreamingContainerMotion({
+    nodeId,
+    enabled: isItem || depth <= 1,
+  });
   const removeButtonStyle = useStarterKitStyle(
     'itemRemoveButton',
     starterKitDefaultStyles.itemRemoveButton
@@ -224,6 +234,7 @@ export function ContainerShell({
     'itemIconRemoveButton',
     starterKitDefaultStyles.itemIconRemoveButton
   );
+  const contentGap = isItem ? space.sm : space.md;
 
   const removeButton = canRemove ? (
     <button
@@ -256,7 +267,7 @@ export function ContainerShell({
         ref={contentRef}
         style={{
           display: 'grid',
-          gap: space.md,
+          gap: contentGap,
           minWidth: 0,
         }}
       >

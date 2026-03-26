@@ -1,8 +1,9 @@
 import type {
+  Checkpoint,
+  ContinuitySnapshot,
   DetachedRestoreReview,
   DetachedRestoreScope,
   NodeValue,
-  ViewDefinition,
   ViewNode,
 } from '@continuum-dev/core';
 import type { StarterKitSessionSnapshot } from './session-adapter.js';
@@ -48,17 +49,18 @@ export interface RestoreReviewSection {
   items: RestoreReviewItem[];
 }
 
-export interface StarterKitCheckpointPreview {
+export interface StarterKitTimelineEntry {
   id: string;
   label: string;
   trigger: 'auto' | 'manual';
   timestamp: number;
-  snapshot: {
-    view: ViewDefinition;
-  };
+  snapshot: ContinuitySnapshot;
 }
 
-export type StarterKitCheckpointOption = StarterKitCheckpointPreview;
+export type StarterKitTimelinePreview = StarterKitTimelineEntry;
+export type StarterKitTimelineOption = StarterKitTimelineEntry;
+export type StarterKitCheckpointPreview = StarterKitTimelinePreview;
+export type StarterKitCheckpointOption = StarterKitTimelineOption;
 
 function readDefaultValue(node: ViewNode): unknown {
   return (node as unknown as Record<string, unknown>).defaultValue;
@@ -214,35 +216,49 @@ export function buildProposalItems(args: {
   });
 }
 
-export function buildCheckpointOptions(
-  checkpoints: Array<{
-    checkpointId: string;
-    trigger: 'auto' | 'manual';
-    timestamp: number;
-    snapshot: {
-      view: ViewDefinition;
-    };
-  }>
-): StarterKitCheckpointOption[] {
+function formatTimelineLabel(snapshot: ContinuitySnapshot): string {
+  const version = snapshot.view.version.trim();
+  return version.length > 0 ? version : snapshot.view.viewId;
+}
+
+export function buildTimelineEntries(
+  checkpoints: Array<
+    Pick<Checkpoint, 'checkpointId' | 'trigger' | 'timestamp' | 'snapshot'>
+  >
+): StarterKitTimelineEntry[] {
   return checkpoints.map((checkpoint) => ({
     id: checkpoint.checkpointId,
-    label: `${checkpoint.snapshot.view.viewId}@${checkpoint.snapshot.view.version}`,
+    label: formatTimelineLabel(checkpoint.snapshot),
     trigger: checkpoint.trigger,
     timestamp: checkpoint.timestamp,
     snapshot: checkpoint.snapshot,
   }));
 }
 
-export function getCurrentCheckpointId(
-  checkpointOptions: StarterKitCheckpointOption[]
+export function buildCheckpointOptions(
+  checkpoints: Array<
+    Pick<Checkpoint, 'checkpointId' | 'trigger' | 'timestamp' | 'snapshot'>
+  >
+): StarterKitCheckpointOption[] {
+  return buildTimelineEntries(checkpoints);
+}
+
+export function getCurrentTimelineId(
+  timelineEntries: StarterKitTimelineEntry[]
 ): string | undefined {
-  if (checkpointOptions.length === 0) {
+  if (timelineEntries.length === 0) {
     return undefined;
   }
 
-  return checkpointOptions.reduce((latest, checkpoint) =>
-    checkpoint.timestamp > latest.timestamp ? checkpoint : latest
+  return timelineEntries.reduce((latest, checkpoint) =>
+    checkpoint.timestamp >= latest.timestamp ? checkpoint : latest
   ).id;
+}
+
+export function getCurrentCheckpointId(
+  checkpointOptions: StarterKitCheckpointOption[]
+): string | undefined {
+  return getCurrentTimelineId(checkpointOptions);
 }
 
 function scopeSortKey(scope: DetachedRestoreScope): number {

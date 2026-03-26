@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { NodeValue, ViewDefinition } from '@continuum-dev/core';
 import {
-  useContinuumDiagnostics,
   useContinuumSession,
   useContinuumSnapshot,
   useContinuumRestoreReviews,
 } from '@continuum-dev/react';
 import {
-  buildCheckpointOptions,
   buildProposalItems,
   buildRestoreReviewSections,
   collectDefaultSeeds,
   collectNodeMeta,
-  getCurrentCheckpointId,
   shouldApplySeed,
   type StarterKitCheckpointOption,
   type StarterKitCheckpointPreview,
@@ -22,15 +19,7 @@ import {
   createStarterKitSessionAdapter,
   type StarterKitSessionLike,
 } from './session-adapter.js';
-
-interface StarterKitDiagnosticCheckpoint {
-  checkpointId: string;
-  trigger: 'auto' | 'manual';
-  timestamp: number;
-  snapshot: {
-    view: ViewDefinition;
-  };
-}
+import { useStarterKitTimeline } from './use-starter-kit-timeline.js';
 
 export interface UseSessionWorkbenchArgs {
   initialView: ViewDefinition;
@@ -81,10 +70,15 @@ export function useSessionWorkbench(
   );
   const snapshot = useContinuumSnapshot();
   const restoreReviews = useContinuumRestoreReviews();
-  const diagnostics = useContinuumDiagnostics() as {
-    checkpoints: StarterKitDiagnosticCheckpoint[];
-  };
-  const [selectedCheckpointId, setSelectedCheckpointId] = useState('');
+  const timeline = useStarterKitTimeline();
+  const {
+    clearPreview: clearTimelinePreview,
+    currentEntryId,
+    entries: timelineEntries,
+    previewEntry,
+    rewindSelected,
+    setSelectedEntryId,
+  } = timeline;
 
   const activeView = snapshot?.view ?? args.initialView;
   const nodeMetaById = useMemo(
@@ -112,27 +106,10 @@ export function useSessionWorkbench(
     () => buildRestoreReviewSections(restoreReviews),
     [restoreReviews]
   );
-  const checkpointOptions = useMemo(
-    () => buildCheckpointOptions(diagnostics.checkpoints),
-    [diagnostics.checkpoints]
-  );
-  const currentCheckpointId = useMemo(
-    () => getCurrentCheckpointId(checkpointOptions),
-    [checkpointOptions]
-  );
   const rewindCheckpointOptions = useMemo(
     () =>
-      checkpointOptions.filter(
-        (checkpoint) => checkpoint.id !== currentCheckpointId
-      ),
-    [checkpointOptions, currentCheckpointId]
-  );
-  const selectedCheckpoint = useMemo(
-    () =>
-      rewindCheckpointOptions.find(
-        (checkpoint) => checkpoint.id === selectedCheckpointId
-      ),
-    [rewindCheckpointOptions, selectedCheckpointId]
+      timelineEntries.filter((checkpoint) => checkpoint.id !== currentEntryId),
+    [currentEntryId, timelineEntries]
   );
   const seeds = useMemo(
     () => collectDefaultSeeds(activeView.nodes),
@@ -160,65 +137,38 @@ export function useSessionWorkbench(
   }, [seeds, sessionAdapter, snapshot]);
 
   useEffect(() => {
-    if (!selectedCheckpointId) {
-      args.onCheckpointPreviewRequest?.(null);
-      return;
-    }
-
-    if (!selectedCheckpoint) {
-      setSelectedCheckpointId('');
-      args.onCheckpointPreviewRequest?.(null);
-      return;
-    }
-
-    args.onCheckpointPreviewRequest?.({
-      id: selectedCheckpoint.id,
-      label: selectedCheckpoint.label,
-      trigger: selectedCheckpoint.trigger,
-      timestamp: selectedCheckpoint.timestamp,
-      snapshot: {
-        view: selectedCheckpoint.snapshot.view,
-      },
-    });
-  }, [args, selectedCheckpoint, selectedCheckpointId]);
+    args.onCheckpointPreviewRequest?.(previewEntry ?? null);
+  }, [args.onCheckpointPreviewRequest, previewEntry]);
 
   useEffect(() => {
-    setSelectedCheckpointId('');
-    args.onCheckpointPreviewRequest?.(null);
-  }, [args.clearCheckpointPreviewSignal, args.onCheckpointPreviewRequest]);
+    clearTimelinePreview();
+  }, [args.clearCheckpointPreviewSignal, clearTimelinePreview]);
 
   function reset(): void {
     sessionAdapter.reset();
     sessionAdapter.applyView(args.initialView);
-    setSelectedCheckpointId('');
-    args.onCheckpointPreviewRequest?.(null);
+    clearTimelinePreview();
     args.onAfterSessionReset?.();
   }
 
   function rewindSelectedCheckpoint(): void {
-    if (!selectedCheckpoint) {
-      return;
-    }
-    sessionAdapter.rewind(selectedCheckpoint.id);
-    setSelectedCheckpointId('');
-    args.onCheckpointPreviewRequest?.(null);
+    rewindSelected();
   }
 
   function clearPreview(): void {
-    setSelectedCheckpointId('');
-    args.onCheckpointPreviewRequest?.(null);
+    clearTimelinePreview();
   }
 
   return {
     activeView,
     sessionId: sessionAdapter.sessionId,
-    checkpointsCount: diagnostics.checkpoints.length,
+    checkpointsCount: timelineEntries.length,
     proposalItems,
     restoreReviewSections,
-    selectedCheckpointId,
-    setSelectedCheckpointId,
+    selectedCheckpointId: previewEntry?.id ?? '',
+    setSelectedCheckpointId: setSelectedEntryId,
     rewindCheckpointOptions,
-    selectedCheckpoint,
+    selectedCheckpoint: previewEntry,
     reset,
     acceptProposal: sessionAdapter.acceptProposal,
     rejectProposal: sessionAdapter.rejectProposal,

@@ -4,12 +4,20 @@ import { control, space } from '../../tokens.js';
 
 const compactViewportQuery = '(max-width: 680px)';
 
-export function responsiveGridColumns(columns: number, minWidth = 240) {
-  if (columns <= 1) {
+export function responsiveGridColumns(
+  columns: number,
+  minWidth = 220,
+  gap: number = space.md
+) {
+  const safeColumns = Math.max(1, Math.floor(columns));
+
+  if (safeColumns <= 1) {
     return 'minmax(0, 1fr)';
   }
 
-  return `repeat(auto-fit, minmax(min(100%, ${minWidth}px), 1fr))`;
+  const totalGap = gap * (safeColumns - 1);
+
+  return `repeat(auto-fit, minmax(min(100%, max(${minWidth}px, calc((100% - ${totalGap}px) / ${safeColumns}))), 1fr))`;
 }
 
 export function useCompactViewport(query = compactViewportQuery): boolean {

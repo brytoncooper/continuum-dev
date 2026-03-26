@@ -1,41 +1,85 @@
 # @continuum-dev/starter-kit
 
-The fastest way to get Continuum on screen in a React app.
-
-Website: [continuumstack.dev](https://continuumstack.dev)  
-GitHub: [brytoncooper/continuum-dev](https://github.com/brytoncooper/continuum-dev)
-
-Continuum itself is intentionally headless. The starter kit is the slim preset layer on top of it.
-
-It gives you:
-
-- ready-to-use primitives for common Continuum node types
-- a default component map
-- proposal and restore-review UI helpers
-- style customization hooks for the shipped primitives
-- React hook re-exports for the common session APIs
-- `StarterKitSessionWorkbench` for timeline and session inspection
-
-## Install
-
 ```bash
-npm install @continuum-dev/starter-kit react
+npm install @continuum-dev/starter-kit react react-dom
 ```
 
-Upgrade references:
+## Why It Exists
 
-- Root upgrade guide, Starter Kit AI migration notes, and API delta (private maintainer documentation repository)
+Continuum is intentionally headless.
 
-## Use the starter kit when
+That is powerful, but it also means a new React user otherwise has to assemble:
 
-- you want the fastest possible React integration
-- you want to render real `ViewDefinition` payloads immediately
-- you do not want to build your own component map first
-- you want session tooling and a polished default UI surface
+- a component map
+- baseline field and layout components
+- proposal and restore-review UI
+- starter styling
+- some session inspection tooling
 
-If you want a fully headless React integration instead, start with `@continuum-dev/react`.
+`@continuum-dev/starter-kit` exists to make the fastest honest React path feel small.
 
-## Fastest possible example
+It gives you a ready-to-use starter surface on top of `@continuum-dev/react` so you can render real Continuum views immediately, then customize only the parts you actually want to own.
+
+## How It Works
+
+- it reuses `ContinuumProvider` and `ContinuumRenderer` from `@continuum-dev/react`
+- `starterKitComponentMap` maps common node `type` strings to shipped starter primitives
+- those primitives read common view metadata like labels, descriptions, placeholders, options, and layout hints
+- `StarterKitStyleProvider` lets you override stable style slots without rewriting the primitives
+- proposal, suggestion, and restore-review UI all read from the same Continuum session state
+- `StarterKitSessionWorkbench` layers timeline preview, rewind, reset, and review UI on top of the live session
+
+### Normal Starter Kit Order
+
+1. mount `ContinuumProvider` with `starterKitComponentMap`
+2. hydrate or push the first view
+3. render the active snapshot through `ContinuumRenderer`
+4. optionally wrap the subtree in `StarterKitStyleProvider`
+5. optionally add proposal UI or `StarterKitSessionWorkbench`
+6. override individual map entries only where your app needs custom rendering
+
+## What It Is
+
+`@continuum-dev/starter-kit` is an opinionated React starter layer over `@continuum-dev/react` and `@continuum-dev/core`.
+
+Import everything from the package root:
+
+```ts
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  starterKitComponentMap,
+  useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
+} from '@continuum-dev/starter-kit';
+```
+
+The public root export includes:
+
+- all of `@continuum-dev/core`
+- `ContinuumProvider` and `ContinuumRenderer`
+- the common starter re-exported hooks
+- `starterKitComponentMap`
+- starter primitives
+- proposal and restore-review components
+- tokens and style helpers
+- `StarterKitSessionWorkbench` and `useStarterKitTimeline`
+
+There are no public subpath imports.
+
+For lower-level React-only APIs like the advanced render contexts or the raw streaming hooks, import from `@continuum-dev/react` directly.
+
+## Simplest Way To Use It
+
+Most apps only need one path:
+
+1. use `starterKitComponentMap`
+2. mount `ContinuumProvider`
+3. push the first `ViewDefinition` if nothing was hydrated
+4. render `snapshot.view`
+
+### Minimal Flow
 
 ```tsx
 import { useEffect } from 'react';
@@ -48,79 +92,121 @@ import {
   type ViewDefinition,
 } from '@continuum-dev/starter-kit';
 
-const view: ViewDefinition = {
-  viewId: 'profile-form',
+const initialView: ViewDefinition = {
+  viewId: 'profile',
   version: '1',
   nodes: [
     {
       id: 'profile',
       type: 'group',
-      key: 'profile',
       label: 'Profile',
       children: [
         {
-          id: 'name',
+          id: 'email',
           type: 'field',
           dataType: 'string',
-          key: 'name',
-          label: 'Name',
+          label: 'Email',
+          placeholder: 'you@example.com',
         },
       ],
     },
   ],
 };
 
-function Page() {
+function Screen() {
   const session = useContinuumSession();
   const snapshot = useContinuumSnapshot();
 
   useEffect(() => {
-    if (!snapshot) {
-      session.pushView(view);
+    if (!session.getSnapshot()) {
+      // First mount: seed the session with the initial Continuum view.
+      session.pushView(initialView);
     }
-  }, [session, snapshot]);
+  }, [session]);
 
   if (!snapshot?.view) {
+    // Nothing renders until the session has an active snapshot.
     return null;
   }
 
+  // The starter map handles the actual field and layout primitives.
   return <ContinuumRenderer view={snapshot.view} />;
 }
 
 export function App() {
   return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <Page />
+    <ContinuumProvider components={starterKitComponentMap}>
+      <Screen />
     </ContinuumProvider>
   );
 }
 ```
 
-## What this package exports
+### What Is Required
 
-The starter kit gives you one package surface for the most common rendering and session tasks:
+- React 18 or newer
+- `react-dom` 18 or newer
+- a `ContinuumProvider`
+- `starterKitComponentMap` or your own map that starts from it
+- an initial `ViewDefinition`
 
-- `ContinuumProvider` and `ContinuumRenderer`
-- common hooks such as `useContinuumSession`, `useContinuumSnapshot`, and diagnostics hooks
-- `starterKitComponentMap`
-- starter primitives and shared field helpers
-- proposal and restore-review UI
-- `StarterKitStyleProvider` and default style tokens
-- `StarterKitSessionWorkbench`
+## Other Options
 
-## Styling the shipped primitives
+### Quick Start Guide
 
-The primitives ship with stable defaults. Override the exposed style slots with `StarterKitStyleProvider`.
+For the shortest copy-paste setup path, see [QUICK_START.md](./QUICK_START.md).
+
+### Override The Default Map
+
+You do not need to choose between "all starter kit" and "no starter kit".
+
+You can start from the shipped map and replace only the entries you want:
+
+```ts
+const components = {
+  ...starterKitComponentMap,
+  field: MyField,
+  action: MyActionButton,
+};
+```
+
+### Starter Node Vocabulary
+
+The default map includes these keys:
+
+```ts
+'field'
+'select'
+'toggle'
+'date'
+'textarea'
+'radio-group'
+'slider'
+'action'
+'presentation'
+'group'
+'row'
+'grid'
+'collection'
+'default'
+```
+
+Important detail:
+
+- `field`, `group`, `row`, `grid`, `collection`, `action`, and `presentation` line up with the standard Continuum render tree
+- `select`, `toggle`, `date`, `textarea`, `radio-group`, and `slider` are starter-kit renderer conventions layered on top of Continuum
+
+That means the starter kit can render those type strings out of the box, but they are not additional node variants defined by `@continuum-dev/contract` itself.
+
+### Styling
+
+Use `StarterKitStyleProvider` when you want to keep the shipped primitives but change their surface styling.
 
 ```tsx
 import {
-  ContinuumProvider,
-  ContinuumRenderer,
   StarterKitStyleProvider,
   starterKitComponentMap,
+  ContinuumProvider,
 } from '@continuum-dev/starter-kit';
 
 export function App() {
@@ -129,115 +215,141 @@ export function App() {
       styles={{
         fieldControl: { borderRadius: 10 },
         actionButton: { background: '#0f172a' },
-        suggestionsActionButton: { borderRadius: 999 },
       }}
     >
-      <ContinuumProvider
-        components={starterKitComponentMap}
-        persist="localStorage"
-      >
-        <ContinuumRenderer view={view} />
+      <ContinuumProvider components={starterKitComponentMap}>
+        <Screen />
       </ContinuumProvider>
     </StarterKitStyleProvider>
   );
 }
 ```
 
-Supported slots:
+### Proposal And Restore UI
 
-- `fieldControl`
-- `sliderInput`
-- `actionButton`
-- `collectionAddButton`
-- `itemRemoveButton`
-- `itemIconRemoveButton`
-- `conflictActionButton`
-- `suggestionsActionButton`
+The package also exports ready-to-use UI helpers for:
 
-## Session workbench
+- field-level proposals
+- suggestion bars
+- restore badges
+- restore-review cards
+- conflict banners
 
-`StarterKitSessionWorkbench` stays in this package because it is session tooling, not provider-specific AI UI.
+Use these when you want starter-kit UI around Continuum proposals and detached-value restoration instead of building that UI from scratch.
 
-The **Reset** control clears Continuum session state and reapplies `initialView`. That does not remove other client state (for example a Vercel AI SDK chat transcript). Use optional `onAfterSessionReset` for companion resets—typical pattern: increment a React `key` on the chat subtree so `useChat` remounts empty. See TSDoc on `StarterKitSessionWorkbenchProps`.
+### Session Workbench And Timeline
 
-```tsx
-import { StarterKitSessionWorkbench } from '@continuum-dev/starter-kit';
+`StarterKitSessionWorkbench` is the starter-kit debugging and review surface for:
 
-export function DebugPanel() {
-  return <StarterKitSessionWorkbench initialView={view} />;
-}
+- reset
+- timeline preview
+- rewind
+- proposal review
+- restore review
+
+`useStarterKitTimeline()` gives you the same timeline model without the shipped panel UI.
+
+One important reset detail:
+
+- the workbench reset clears and reapplies the Continuum session state
+- it does not clear unrelated client state outside Continuum, such as a separate chat transcript store
+
+### Lower-Level Escape Hatches
+
+Use the lower layers directly when you need them:
+
+- `@continuum-dev/react`
+  - for fully headless React bindings and advanced renderer hooks
+- `@continuum-dev/session`
+  - for lower-level session control outside the starter surface
+- `@continuum-dev/starter-kit-ai`
+  - for the optional AI chat UI layer on top of starter-kit
+
+## Related Packages
+
+- `@continuum-dev/react`
+  - the headless React layer below the starter kit
+- `@continuum-dev/starter-kit-ai`
+  - optional AI chat UI wrappers above the starter kit
+- `@continuum-dev/core`
+  - the headless model, runtime, and session facade re-exported here
+
+## Dictionary Contract
+
+### Core Terms
+
+- `starter map`
+  - the shipped `starterKitComponentMap`
+- `starter primitive`
+  - one of the built-in field, layout, action, or content React components
+- `style slot`
+  - a named override target for `StarterKitStyleProvider`
+- `session workbench`
+  - the shipped timeline and review panel for the active Continuum session
+
+### Default Component Map Keys
+
+```ts
+'field'
+'select'
+'toggle'
+'date'
+'textarea'
+'radio-group'
+'slider'
+'action'
+'presentation'
+'group'
+'row'
+'grid'
+'collection'
+'default'
 ```
 
-## Optional AI UI now lives in `@continuum-dev/starter-kit-ai`
+### `StarterKitStyleSlot`
 
-The starter kit no longer exports provider factories, prompt helpers, or chat wrappers directly.
-
-Use these packages together when you want the higher-level AI lane:
-
-- `@continuum-dev/starter-kit` for rendering and session tooling
-- `@continuum-dev/starter-kit-ai` for thin chat wrappers
-- `@continuum-dev/ai-connect` for provider factories and model catalogs
-- `@continuum-dev/ai-engine` for headless planning, authoring, parsing, normalization, and apply helpers
-
-Example:
-
-```tsx
-import {
-  createAiConnectProviders,
-  getAiConnectModelCatalog,
-  ContinuumProvider,
-  ContinuumRenderer,
-  StarterKitSessionWorkbench,
-  StarterKitProviderChatBox,
-  starterKitComponentMap,
-} from '@continuum-dev/starter-kit-ai';
-
-const providers = createAiConnectProviders({
-  include: ['openai'],
-  openai: {
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: 'gpt-5',
-  },
-});
-
-const models = getAiConnectModelCatalog(providers);
-
-export function App() {
-  return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <StarterKitProviderChatBox
-        providers={providers}
-        models={models}
-        mode="evolve-view"
-      />
-      <StarterKitSessionWorkbench initialView={view} />
-      <ContinuumRenderer view={view} />
-    </ContinuumProvider>
-  );
-}
+```ts
+'fieldControl'
+'sliderInput'
+'actionButton'
+'collectionAddButton'
+'itemRemoveButton'
+'itemIconRemoveButton'
+'conflictActionButton'
+'suggestionsActionButton'
 ```
 
-## When not to use this package
+### Starter Kit-Specific Root Exports
 
-Do not start with the starter kit if:
+```ts
+starterKitComponentMap
+StarterKitStyleProvider
+starterKitDefaultStyles
+StarterKitSessionWorkbench
+useStarterKitTimeline
+ActionButton
+Presentation
+UnknownNode
+DateInput
+RadioGroupInput
+SelectInput
+SliderInput
+TextareaInput
+TextInput
+ToggleInput
+CollectionSection
+GridSection
+GroupSection
+RowSection
+ConflictBanner
+FieldProposalPlacementProvider
+useFieldProposalPlacement
+StarterKitFieldProposal
+StarterKitFieldRestoreBadge
+RestoreReviewCard
+StarterKitSuggestionsBar
+```
 
-- you need a completely custom rendering system immediately
-- you do not want opinionated primitives in the bundle
-- you are integrating at the session or transport level rather than the React preset layer
+## License
 
-In those cases, start with `@continuum-dev/ai-core` for the headless AI lane, or drop to the lower-level packages directly if you want fully explicit dependencies.
-In those cases, start with `@continuum-dev/react` for headless React rendering, then add `@continuum-dev/ai-engine` plus the transport layer you need. Reach for `@continuum-dev/ai-core` only if you explicitly want a convenience facade.
-
-## Related docs
-
-- [Root README](../../README.md)
-- [Quick Start](../../docs/QUICK_START.md)
-- [Integration Guide](../../docs/INTEGRATION_GUIDE.md)
-- [AI Integration Guide](../../docs/AI_INTEGRATION.md)
-- [Starter Kit AI README](../starter-kit-ai/README.md)
-- [AI Engine README](../ai-engine/README.md)
-
-Reference app walkthroughs and migration guides live in the private maintainer documentation repository.
+MIT

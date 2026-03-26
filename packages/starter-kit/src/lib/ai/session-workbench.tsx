@@ -13,24 +13,34 @@ import { StarterKitSuggestionsBar } from '../proposals/suggestions-bar.js';
 import {
   formatTimestamp,
   type StarterKitCheckpointPreview,
+  type StarterKitTimelinePreview,
 } from './session-workbench-model.js';
 import { useSessionWorkbench } from './use-session-workbench.js';
 
-export type { StarterKitCheckpointPreview } from './session-workbench-model.js';
+export type {
+  StarterKitCheckpointPreview,
+  StarterKitTimelinePreview,
+} from './session-workbench-model.js';
 
 export interface StarterKitSessionWorkbenchProps {
   initialView: ViewDefinition;
   resetLabel?: string;
   showInlineCheckpointPreview?: boolean;
+  showInlineTimelinePreview?: boolean;
+  showTimelineControls?: boolean;
   onCheckpointPreviewRequest?: (
     checkpoint: StarterKitCheckpointPreview | null
   ) => void;
+  onTimelinePreviewRequest?: (
+    timeline: StarterKitTimelinePreview | null
+  ) => void;
   clearCheckpointPreviewSignal?: number;
+  clearTimelinePreviewSignal?: number;
   /**
    * Runs **after** the workbench reset button finishes Continuum work, in this order:
    * 1. `session.reset()` — clears committed view/data, streams, checkpoints, proposals, etc.
    * 2. `applyView(initialView)` — restores the baseline view.
-   * 3. Checkpoint preview UI is cleared.
+   * 3. Timeline preview UI is cleared.
    * 4. **Then** this callback runs.
    *
    * Continuum does **not** clear separate UI state (e.g. a Vercel AI SDK `useChat` message list).
@@ -44,10 +54,20 @@ export function StarterKitSessionWorkbench({
   initialView,
   resetLabel = 'Reset form',
   showInlineCheckpointPreview = true,
+  showInlineTimelinePreview,
+  showTimelineControls = true,
   onCheckpointPreviewRequest,
+  onTimelinePreviewRequest,
   clearCheckpointPreviewSignal,
+  clearTimelinePreviewSignal,
   onAfterSessionReset,
 }: StarterKitSessionWorkbenchProps) {
+  const showInlinePreview =
+    showInlineTimelinePreview ?? showInlineCheckpointPreview;
+  const previewRequestHandler =
+    onTimelinePreviewRequest ?? onCheckpointPreviewRequest;
+  const clearPreviewSignal =
+    clearTimelinePreviewSignal ?? clearCheckpointPreviewSignal;
   const {
     sessionId,
     checkpointsCount,
@@ -66,8 +86,8 @@ export function StarterKitSessionWorkbench({
     clearPreview,
   } = useSessionWorkbench({
     initialView,
-    onCheckpointPreviewRequest,
-    clearCheckpointPreviewSignal,
+    onCheckpointPreviewRequest: previewRequestHandler,
+    clearCheckpointPreviewSignal: clearPreviewSignal,
     onAfterSessionReset,
   });
 
@@ -101,7 +121,8 @@ export function StarterKitSessionWorkbench({
           {resetLabel}
         </button>
         <span style={{ ...typography.small, color: color.textMuted }}>
-          Session: {sessionId.slice(0, 8)} | Checkpoints: {checkpointsCount}
+          Session: {sessionId.slice(0, 8)} | Timeline snapshots:{' '}
+          {checkpointsCount}
         </span>
       </div>
 
@@ -163,7 +184,7 @@ export function StarterKitSessionWorkbench({
           }}
         >
           <div style={{ ...typography.small, color: color.textMuted }}>
-            Field checkpoints
+            Field proposals
           </div>
           <div style={{ ...typography.small, color: color.textSoft }}>
             Review each AI proposal before applying it to the live form.
@@ -188,7 +209,7 @@ export function StarterKitSessionWorkbench({
         </div>
       ) : null}
 
-      {rewindCheckpointOptions.length > 0 ? (
+      {showTimelineControls && rewindCheckpointOptions.length > 0 ? (
         <div
           style={{
             display: 'grid',
@@ -200,10 +221,10 @@ export function StarterKitSessionWorkbench({
           }}
         >
           <span style={{ ...typography.small, color: color.textMuted }}>
-            Checkpoint preview
+            Timeline preview
           </span>
           <span style={{ ...typography.small, color: color.textSoft }}>
-            Select a checkpoint to preview it before rewinding.
+            Select a timeline entry to preview it before rewinding.
           </span>
           <select
             value={selectedCheckpointId}
@@ -219,7 +240,7 @@ export function StarterKitSessionWorkbench({
               setSelectedCheckpointId(event.target.value);
             }}
           >
-            <option value="">Select checkpoint to preview</option>
+            <option value="">Select timeline entry</option>
             {rewindCheckpointOptions
               .slice()
               .reverse()
@@ -230,7 +251,7 @@ export function StarterKitSessionWorkbench({
               ))}
           </select>
 
-          {selectedCheckpoint && showInlineCheckpointPreview ? (
+          {selectedCheckpoint && showInlinePreview ? (
             <div
               style={{
                 display: 'grid',
@@ -245,11 +266,12 @@ export function StarterKitSessionWorkbench({
                 Previewing {selectedCheckpoint.label}
               </div>
               <div style={{ ...typography.small, color: color.textMuted }}>
-                {selectedCheckpoint.trigger.toUpperCase()} checkpoint from{' '}
+                {selectedCheckpoint.trigger.toUpperCase()} snapshot from{' '}
                 {formatTimestamp(selectedCheckpoint.timestamp)}
               </div>
               <ContinuumRenderer
                 view={selectedCheckpoint.snapshot.view}
+                snapshotOverride={selectedCheckpoint.snapshot}
                 renderScope={null}
               />
               <div
@@ -279,7 +301,7 @@ export function StarterKitSessionWorkbench({
                     rewindSelectedCheckpoint();
                   }}
                 >
-                  Rewind to this checkpoint
+                  Rewind to this timeline entry
                 </button>
                 <button
                   type="button"
@@ -298,7 +320,7 @@ export function StarterKitSessionWorkbench({
                     clearPreview();
                   }}
                 >
-                  Cancel preview
+                  Cancel timeline preview
                 </button>
               </div>
             </div>

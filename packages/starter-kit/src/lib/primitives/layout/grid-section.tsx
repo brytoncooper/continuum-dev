@@ -1,11 +1,16 @@
 import type { ContinuumNodeProps } from '@continuum-dev/react';
 import { space } from '../../tokens.js';
 import { ContainerShell } from '../shared/container-shell.js';
-import { nodeDescription, nodeLabel, readNodeProp } from '../shared/node.js';
-import { responsiveGridColumns } from '../shared/responsive-layout.js';
+import { nodeDescription, nodeLabel, nodeNumberProp } from '../shared/node.js';
+import {
+  responsiveGridColumns,
+  useCompactViewport,
+} from '../shared/responsive-layout.js';
 
 export function GridSection(props: ContinuumNodeProps) {
-  const columns = readNodeProp<number>(props.definition, 'columns') ?? 2;
+  const isCompact = useCompactViewport();
+  const columns = nodeNumberProp(props.definition, 'columns', 2);
+  const minItemWidth = nodeNumberProp(props.definition, 'minItemWidth', 180);
 
   return (
     <ContainerShell
@@ -17,8 +22,10 @@ export function GridSection(props: ContinuumNodeProps) {
       onRemove={props.onRemove as (() => void) | undefined}
       layoutStyle={{
         display: 'grid',
-        gridTemplateColumns: responsiveGridColumns(columns),
-        gap: space.lg,
+        gridTemplateColumns: isCompact
+          ? 'minmax(0, 1fr)'
+          : responsiveGridColumns(columns, minItemWidth, space.md),
+        gap: space.md,
         alignItems: 'start',
       }}
     >

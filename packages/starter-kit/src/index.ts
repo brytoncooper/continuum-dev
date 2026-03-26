@@ -59,5 +59,15 @@ export type {
 export { StarterKitSessionWorkbench } from './lib/ai/session-workbench.js';
 export type {
   StarterKitCheckpointPreview,
+  StarterKitTimelinePreview,
   StarterKitSessionWorkbenchProps,
 } from './lib/ai/session-workbench.js';
+export {
+  useStarterKitTimeline,
+  type UseStarterKitTimelineResult,
+} from './lib/ai/use-starter-kit-timeline.js';
+export type {
+  StarterKitCheckpointOption,
+  StarterKitTimelineEntry,
+  StarterKitTimelineOption,
+} from './lib/ai/session-workbench-model.js';

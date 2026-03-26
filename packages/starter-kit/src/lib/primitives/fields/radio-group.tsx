@@ -3,7 +3,10 @@ import type { ContinuumNodeProps } from '@continuum-dev/react';
 import type { CSSProperties } from 'react';
 import { color, radius, space, type } from '../../tokens.js';
 import { FieldFrame } from '../shared/field-frame.js';
-import { useCompactViewport } from '../shared/responsive-layout.js';
+import {
+  responsiveGridColumns,
+  useCompactViewport,
+} from '../shared/responsive-layout.js';
 import {
   nodeDescription,
   nodeLabel,
@@ -79,7 +82,16 @@ export function RadioGroupInput({
         } as NodeValue);
       }}
     >
-      <div style={{ display: 'grid', gap: space.sm }}>
+      <div
+        style={{
+          display: 'grid',
+          gap: space.sm,
+          gridTemplateColumns:
+            options.length > 2
+              ? responsiveGridColumns(2, 180)
+              : 'minmax(0, 1fr)',
+        }}
+      >
         {options.map((option, index) => (
           <label
             key={nodeOptionKey(option, index)}

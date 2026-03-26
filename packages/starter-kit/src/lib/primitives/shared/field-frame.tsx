@@ -11,14 +11,14 @@ import { streamedNodeMotionStyle } from './motion.js';
 
 const wrapStyle: CSSProperties = {
   display: 'grid',
-  gap: space.sm,
+  gap: 4,
   minWidth: 0,
   boxSizing: 'border-box',
 };
 
 const labelRowStyle: CSSProperties = {
   display: 'grid',
-  gap: space.xs,
+  gap: 2,
 };
 
 const labelLineStyle: CSSProperties = {
@@ -81,10 +81,7 @@ export function FieldFrame({
   const Root = as;
   const proposalPlacement = useFieldProposalPlacement();
   const showProposal = Boolean(
-    nodeId &&
-      hasSuggestion &&
-      onAcceptSuggestion &&
-      onRejectSuggestion
+    nodeId && hasSuggestion && onAcceptSuggestion && onRejectSuggestion
   );
 
   const proposalBlock =
@@ -175,7 +172,7 @@ export function FieldFrame({
             top: 0,
             right: 0,
             zIndex: 2,
-            maxWidth: 'min(320px, 100%)',
+            maxWidth: 'min(280px, 100%)',
             opacity: 0,
             pointerEvents: 'none',
             transition: 'opacity 120ms ease-out',

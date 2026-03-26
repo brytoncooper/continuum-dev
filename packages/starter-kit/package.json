@@ -38,6 +38,7 @@
     "**/*.d.mts",
     "**/*.d.ts.map",
     "README.md",
+    "QUICK_START.md",
     "LICENSE*"
   ],
   "peerDependencies": {
