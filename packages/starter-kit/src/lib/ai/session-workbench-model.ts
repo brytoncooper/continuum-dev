@@ -6,6 +6,7 @@ import type {
   NodeValue,
   ViewNode,
 } from '@continuum-dev/core';
+import { isProtectedNodeValue } from '@continuum-dev/core';
 import type { StarterKitSessionSnapshot } from './session-adapter.js';
 
 export interface DefaultSeed {
@@ -109,6 +110,10 @@ export function shouldApplySeed(
   }
 
   if (current.isDirty) {
+    return false;
+  }
+
+  if (isProtectedNodeValue(current)) {
     return false;
   }
 
@@ -275,13 +280,15 @@ export function buildRestoreReviewSections(
   reviews: DetachedRestoreReview[]
 ): RestoreReviewSection[] {
   const sections = new Map<RestoreReviewSection['id'], RestoreReviewSection>();
-  const sortedReviews = [...reviews].sort((left, right) => {
-    const scopeOrder = scopeSortKey(left.scope) - scopeSortKey(right.scope);
-    if (scopeOrder !== 0) {
-      return scopeOrder;
-    }
-    return left.reviewId.localeCompare(right.reviewId);
-  });
+  const sortedReviews = reviews
+    .filter((review) => review.status !== 'waiting')
+    .sort((left, right) => {
+      const scopeOrder = scopeSortKey(left.scope) - scopeSortKey(right.scope);
+      if (scopeOrder !== 0) {
+        return scopeOrder;
+      }
+      return left.reviewId.localeCompare(right.reviewId);
+    });
 
   for (const review of sortedReviews) {
     const sectionId = sectionIdForScope(review.scope);

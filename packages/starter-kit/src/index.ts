@@ -42,6 +42,7 @@ export {
 } from './lib/proposals/field-proposal-placement-context.js';
 export type { FieldProposalPlacement } from './lib/proposals/field-proposal-placement-context.js';
 export * from './lib/proposals/field-proposal.js';
+export { FloatingFieldProposal } from './lib/proposals/floating-field-proposal.js';
 export * from './lib/proposals/restore-badge.js';
 export * from './lib/proposals/restore-review-card.js';
 export * from './lib/proposals/suggestions-bar.js';

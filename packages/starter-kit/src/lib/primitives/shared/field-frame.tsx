@@ -4,6 +4,7 @@ import {
   starterKitDefaultStyles,
   useStarterKitStyle,
 } from '../../style-config.js';
+import { FloatingFieldProposal } from '../../proposals/floating-field-proposal.js';
 import { StarterKitFieldProposal } from '../../proposals/field-proposal.js';
 import { useFieldProposalPlacement } from '../../proposals/field-proposal-placement-context.js';
 import { StarterKitFieldRestoreBadge } from '../../proposals/restore-badge.js';
@@ -83,9 +84,10 @@ export function FieldFrame({
   const showProposal = Boolean(
     nodeId && hasSuggestion && onAcceptSuggestion && onRejectSuggestion
   );
+  const useFloatingProposals = proposalPlacement === 'floating';
 
   const proposalBlock =
-    showProposal && onAcceptSuggestion && onRejectSuggestion ? (
+    showProposal && onAcceptSuggestion && onRejectSuggestion && !useFloatingProposals ? (
       <StarterKitFieldProposal
         title={label ?? 'Suggestion'}
         hasSuggestion={Boolean(hasSuggestion)}
@@ -98,6 +100,52 @@ export function FieldFrame({
         onReject={onRejectSuggestion}
       />
     ) : null;
+
+  const proposalFloat =
+    showProposal && onAcceptSuggestion && onRejectSuggestion && useFloatingProposals ? (
+      <FloatingFieldProposal
+        hasSuggestion={Boolean(hasSuggestion)}
+        suggestionValue={suggestionValue}
+        onAccept={onAcceptSuggestion}
+        onReject={onRejectSuggestion}
+      />
+    ) : null;
+
+  const controlSection =
+    useFloatingProposals && proposalFloat ? (
+      <div
+        style={{
+          position: 'relative',
+          isolation: 'isolate',
+        }}
+      >
+        <div
+          data-continuum-animated-child="control"
+          style={streamedNodeMotionStyle(nodeId, 'content')}
+        >
+          {children}
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            bottom: '100%',
+            marginBottom: 6,
+            zIndex: 25,
+            pointerEvents: 'auto',
+          }}
+        >
+          {proposalFloat}
+        </div>
+      </div>
+    ) : (
+      <div
+        data-continuum-animated-child="control"
+        style={streamedNodeMotionStyle(nodeId, 'content')}
+      >
+        {children}
+      </div>
+    );
 
   const inner = (
     <Root
@@ -134,12 +182,7 @@ export function FieldFrame({
           ) : null}
         </div>
       ) : null}
-      <div
-        data-continuum-animated-child="control"
-        style={streamedNodeMotionStyle(nodeId, 'content')}
-      >
-        {children}
-      </div>
+      {controlSection}
       {proposalPlacement === 'below' ? proposalBlock : null}
     </Root>
   );
