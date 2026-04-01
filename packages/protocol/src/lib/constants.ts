@@ -86,6 +86,10 @@ export const INTERACTION_TYPES = {
   DATA_UPDATE: 'data-update',
   VALUE_CHANGE: 'value-change',
   VIEW_CONTEXT_CHANGE: 'view-context-change',
+  VALUE_REVIEW: 'value-review',
+  VALUE_LOCK: 'value-lock',
+  VALUE_UNLOCK: 'value-unlock',
+  VALUE_SUBMIT: 'value-submit',
 } as const;
 
 /**

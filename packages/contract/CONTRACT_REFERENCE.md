@@ -343,7 +343,10 @@ interface NodeValue<T = unknown> {
   value: T;
   suggestion?: T;
   isDirty?: boolean;
-  isSticky?: boolean;
+  protection?: {
+    owner: 'ai' | 'user';
+    stage: 'flexible' | 'reviewed' | 'locked' | 'submitted';
+  };
   isValid?: boolean;
 }
 ```
@@ -356,7 +359,7 @@ Field meanings:
   - optional proposed alternative value
 - `isDirty`
   - optional marker that a user has edited the value
-- `isSticky`
+- `protection`
   - optional marker that the value should be protected from silent replacement
 - `isValid`
   - optional stored validation status
@@ -364,7 +367,7 @@ Field meanings:
 Notes:
 
 - the contract package stores metadata but does not enforce behavior around it
-- current runtime and session layers give `suggestion`, `isDirty`, and `isSticky` their continuity semantics
+- current runtime and session layers give `suggestion`, `isDirty`, and `protection` their continuity semantics
 
 ## Collection State
 

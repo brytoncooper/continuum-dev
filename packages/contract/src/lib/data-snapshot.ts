@@ -21,6 +21,28 @@ export interface DataSnapshot {
   detachedValues?: Record<string, DetachedValue>;
 }
 
+export type ValueProtectionOwner = 'ai' | 'user';
+
+export type ValueProtectionStage =
+  | 'flexible'
+  | 'reviewed'
+  | 'locked'
+  | 'submitted';
+
+/**
+ * Explicit ownership and overwrite policy for one semantic value.
+ */
+export interface ValueProtection {
+  /**
+   * The actor who currently owns this value's protection policy.
+   */
+  owner: ValueProtectionOwner;
+  /**
+   * The current hardening stage for this value.
+   */
+  stage: ValueProtectionStage;
+}
+
 /**
  * Wraps a node's data payload with collaboration and validation metadata.
  * Designed to safely merge AI suggestions without overwriting dirty user state.
@@ -41,9 +63,9 @@ export interface NodeValue<T = unknown> {
    */
   isDirty?: boolean;
   /**
-   * True if this value should be protected from silent AI overwrites.
+   * Explicit owner/stage metadata for non-dirty value protection.
    */
-  isSticky?: boolean;
+  protection?: ValueProtection;
   /**
    * True if the value currently passes the ViewDefinition's constraints.
    */
@@ -68,6 +90,121 @@ export interface CollectionNodeState {
    * Ordered collection item states.
    */
   items: CollectionItemState[];
+}
+
+export function isCollectionNodeState(
+  value: unknown
+): value is CollectionNodeState {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as { items?: unknown };
+  return Array.isArray(candidate.items);
+}
+
+/**
+ * Returns true when the current value must not be silently overwritten.
+ */
+export function isProtectedNodeValue(
+  value:
+    | {
+        isDirty?: boolean;
+        protection?: ValueProtection;
+      }
+    | null
+    | undefined
+): boolean {
+  if (!value) {
+    return false;
+  }
+
+  if (value.isDirty === true) {
+    return true;
+  }
+
+  const stage = value.protection?.stage;
+  return (
+    stage === 'reviewed' || stage === 'locked' || stage === 'submitted'
+  );
+}
+
+/**
+ * Maps nested collection item values while preserving other collection shape.
+ */
+export function mapNestedCollectionValues(
+  value: unknown,
+  mapper: (value: NodeValue, currentValue?: NodeValue) => NodeValue,
+  currentValue?: unknown
+): unknown {
+  if (!isCollectionNodeState(value)) {
+    return value;
+  }
+
+  const currentItems = isCollectionNodeState(currentValue)
+    ? currentValue.items
+    : [];
+
+  return {
+    items: value.items.map((item, itemIndex) => {
+      const nextValues: Record<string, NodeValue> = {};
+      const values = item?.values ?? {};
+      const currentItemValues = currentItems[itemIndex]?.values ?? {};
+
+      for (const [nodeId, nodeValue] of Object.entries(values)) {
+        nextValues[nodeId] = mapper(nodeValue, currentItemValues[nodeId]);
+      }
+
+      return {
+        values: nextValues,
+      };
+    }),
+  } satisfies CollectionNodeState;
+}
+
+function cloneProtection(
+  protection: ValueProtection | undefined
+): ValueProtection | undefined {
+  return protection ? { ...protection } : undefined;
+}
+
+/**
+ * Normalizes a node value so protection metadata is explicit and consistent.
+ */
+export function normalizeNodeValueProtection(
+  value: NodeValue,
+  currentValue?: NodeValue
+): NodeValue {
+  const normalized = structuredClone(value) as NodeValue;
+  normalized.value = mapNestedCollectionValues(
+    normalized.value,
+    (nestedValue, currentNestedValue) =>
+      normalizeNodeValueProtection(nestedValue, currentNestedValue),
+    currentValue?.value
+  );
+
+  if (normalized.isDirty === true) {
+    const preservedStage = currentValue?.protection?.stage;
+    normalized.protection = {
+      owner: 'user',
+      stage:
+        preservedStage === 'locked' || preservedStage === 'submitted'
+          ? preservedStage
+          : 'flexible',
+    };
+    return normalized;
+  }
+
+  if (normalized.protection) {
+    normalized.protection = cloneProtection(normalized.protection);
+    return normalized;
+  }
+
+  normalized.protection = {
+    owner: 'ai',
+    stage: 'flexible',
+  };
+  return normalized;
 }
 
 /**

@@ -26,16 +26,22 @@ function slugId(repoPath) {
 
 const PUBLIC_DOCS = [
   {
+    file: 'AI_INTEGRATION.md',
+    label: 'AI Integration Guide',
+    groupId: 'ai-engine',
+    groupLabel: '@continuum-dev/ai-engine',
+  },
+  {
+    file: 'HOW_CONTINUITY_DECISIONS_WORK.md',
+    label: 'How Continuity Decisions Work',
+    groupId: 'runtime',
+    groupLabel: '@continuum-dev/runtime',
+  },
+  {
     file: 'QUICK_START.md',
     label: 'Quick Start',
     groupId: 'starter-kit',
     groupLabel: '@continuum-dev/starter-kit',
-  },
-  {
-    file: 'VIEW_CONTRACT.md',
-    label: 'View Contract Reference',
-    groupId: 'contract',
-    groupLabel: '@continuum-dev/contract',
   },
   {
     file: 'INTEGRATION_GUIDE.md',
@@ -44,12 +50,21 @@ const PUBLIC_DOCS = [
     groupLabel: '@continuum-dev/react',
   },
   {
-    file: 'AI_INTEGRATION.md',
-    label: 'AI Integration Guide',
-    groupId: 'ai-engine',
-    groupLabel: '@continuum-dev/ai-engine',
+    file: 'VIEW_CONTRACT.md',
+    label: 'View Contract Reference',
+    groupId: 'contract',
+    groupLabel: '@continuum-dev/contract',
   },
 ];
+
+const TOP_LEVEL_DOCUMENT_ORDER = new Map([
+  ['docs/AI_INTEGRATION.md', 0],
+  ['docs/HOW_CONTINUITY_DECISIONS_WORK.md', 1],
+  ['docs/QUICK_START.md', 2],
+  ['docs/INTEGRATION_GUIDE.md', 3],
+  ['docs/VIEW_CONTRACT.md', 4],
+  ['README.md', 5],
+]);
 
 const PACKAGE_DOCUMENTS = [
   {
@@ -203,6 +218,13 @@ function main() {
   }
 
   documents.sort((a, b) => {
+    const aTopLevelOrder =
+      TOP_LEVEL_DOCUMENT_ORDER.get(a.repoPath) ?? Number.MAX_SAFE_INTEGER;
+    const bTopLevelOrder =
+      TOP_LEVEL_DOCUMENT_ORDER.get(b.repoPath) ?? Number.MAX_SAFE_INTEGER;
+    if (aTopLevelOrder !== bTopLevelOrder) {
+      return aTopLevelOrder - bTopLevelOrder;
+    }
     const g = a.groupLabel.localeCompare(b.groupLabel);
     if (g !== 0) return g;
     return a.repoPath.localeCompare(b.repoPath);
