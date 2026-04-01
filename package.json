@@ -3,7 +3,6 @@
   "version": "0.4.0-alpha.1",
   "license": "MIT",
   "scripts": {
-    "starter": "nx run starter:serve",
     "build:release-packages": "node scripts/build-release-packages.mjs && node scripts/sync-workspace-entrypoints.mjs",
     "sync:workspace-entrypoints": "node scripts/sync-workspace-entrypoints.mjs",
     "prepare:dist-packages": "node scripts/prepare-dist-packages.mjs",
