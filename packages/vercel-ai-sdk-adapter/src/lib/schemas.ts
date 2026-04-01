@@ -7,7 +7,12 @@ const nodeValueSchema = z
     value: z.unknown(),
     suggestion: z.unknown().optional(),
     isDirty: z.boolean().optional(),
-    isSticky: z.boolean().optional(),
+    protection: z
+      .object({
+        owner: z.enum(['ai', 'user']),
+        stage: z.enum(['flexible', 'reviewed', 'locked', 'submitted']),
+      })
+      .optional(),
     isValid: z.boolean().optional(),
   })
   .passthrough();
