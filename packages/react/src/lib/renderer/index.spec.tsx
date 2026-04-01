@@ -21,6 +21,16 @@ import { ContinuumRenderer } from './index.js';
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function readStringNodeValue(value: NodeValue | undefined): string {
   if (typeof value?.value === 'string') return value.value;
   return '';
@@ -558,6 +568,7 @@ describe('renderer', () => {
           items: [{ values: { 'row/name': { value: 'draft' } } }],
         },
         isDirty: true,
+        protection: userFlexibleProtection,
       });
       rendered.unmount();
     });
@@ -1536,6 +1547,7 @@ describe('renderer', () => {
       expect(cv?.value.items).toHaveLength(2);
       expect(cv?.value.items[1].values['row/name']).toEqual({
         value: 'edited-name',
+        protection: aiFlexibleProtection,
       });
       rendered.unmount();
     });
@@ -1909,7 +1921,10 @@ describe('renderer', () => {
 
       const session = requireSession(capturedSession);
       const snapshot = session.getSnapshot();
-      expect(snapshot?.data.values['leaf']).toEqual({ value: 'clicked' });
+      expect(snapshot?.data.values['leaf']).toEqual({
+        value: 'clicked',
+        protection: aiFlexibleProtection,
+      });
       rendered.unmount();
     });
 
@@ -1966,6 +1981,7 @@ describe('renderer', () => {
       expect(snapshot?.data.values['leaf']).toEqual({
         value: 'user value',
         suggestion: 'ai suggestion',
+        protection: aiFlexibleProtection,
       });
 
       rendered.unmount();

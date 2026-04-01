@@ -15,6 +15,11 @@ import type { Session } from '@continuum-dev/session';
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
 const simpleView: ViewDefinition = {
   viewId: 'v1',
   version: '1',
@@ -182,6 +187,7 @@ describe('notifyListeners (via store subscriptions)', () => {
     expect(thirdListener).toHaveBeenCalledTimes(2);
     expect(store!.getSnapshot()?.data.values?.['f1']).toEqual({
       value: 'after-update',
+      protection: aiFlexibleProtection,
     });
     expect(deliveryOrder).toEqual([
       'throw',
@@ -838,7 +844,10 @@ describe('createContinuumStore (via context capture)', () => {
       session!.updateState('f1', { value: 'hello' });
     });
 
-    expect(store!.getNodeValue('f1')).toEqual({ value: 'hello' });
+    expect(store!.getNodeValue('f1')).toEqual({
+      value: 'hello',
+      protection: aiFlexibleProtection,
+    });
     unmount();
   });
 

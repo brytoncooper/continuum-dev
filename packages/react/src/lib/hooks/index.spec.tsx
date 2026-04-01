@@ -24,6 +24,16 @@ import {
 } from '../context/index.js';
 import type { NodeValue, ViewDefinition } from '@continuum-dev/contract';
 
+const aiReviewedProtection = {
+  owner: 'ai',
+  stage: 'reviewed',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function requireSession<T>(value: T | null): T {
   if (!value) {
     throw new Error('Expected session to be captured');
@@ -100,7 +110,7 @@ describe('useContinuumSuggestions', () => {
     expect(getByTestId('has-suggestions').textContent).toBe('true');
   });
 
-  it('acceptAll updates values and clears suggestions and sets isDirty', () => {
+  it('acceptAll updates values and marks them reviewed', () => {
     let capturedSession: ReturnType<typeof useContinuumSession> | null = null;
     let suggestionsHook: ReturnType<typeof useContinuumSuggestions> | null =
       null;
@@ -152,11 +162,13 @@ describe('useContinuumSuggestions', () => {
     );
     expect(snapshot.data.values['f1']).toEqual({
       value: 'Jonathan',
-      isDirty: true,
+      suggestion: undefined,
+      protection: aiReviewedProtection,
     });
     expect(snapshot.data.values['f2']).toEqual({
       value: 'Doherty',
-      isDirty: true,
+      suggestion: undefined,
+      protection: aiReviewedProtection,
     });
   });
 
@@ -213,8 +225,15 @@ describe('useContinuumSuggestions', () => {
     expect(snapshot.data.values['f1']).toEqual({
       value: 'John',
       isDirty: true,
+      suggestion: undefined,
+      protection: userFlexibleProtection,
     });
-    expect(snapshot.data.values['f2']).toEqual({ value: 'Doe', isDirty: true });
+    expect(snapshot.data.values['f2']).toEqual({
+      value: 'Doe',
+      isDirty: true,
+      suggestion: undefined,
+      protection: userFlexibleProtection,
+    });
   });
 });
 
@@ -254,7 +273,11 @@ describe('useContinuumState', () => {
     });
 
     expect(getByTestId('val').textContent).toBe('hello');
-    expect(hookState).toEqual({ value: 'hello', isDirty: true });
+    expect(hookState).toEqual({
+      value: 'hello',
+      isDirty: true,
+      protection: userFlexibleProtection,
+    });
     expect(renderCount).toBeGreaterThan(1);
   });
 });
@@ -1302,7 +1325,11 @@ describe('useContinuumState additional', () => {
 
     expect(
       requireSession(capturedSession).getSnapshot()?.data.values['f1']
-    ).toEqual({ value: 'test', isDirty: true });
+    ).toEqual({
+      value: 'test',
+      isDirty: true,
+      protection: userFlexibleProtection,
+    });
   });
 
   it('triggers re-render on value change', () => {

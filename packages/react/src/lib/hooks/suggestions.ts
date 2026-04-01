@@ -1,5 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import type { NodeValue } from '@continuum-dev/core';
+import {
+  mapNestedCollectionValues,
+  type NodeValue,
+} from '@continuum-dev/core';
 import { useRequiredContinuumContext } from './provider.js';
 
 /**
@@ -40,6 +43,67 @@ export function useContinuumSuggestions(): {
     getSnapshot
   );
 
+  const applyReviewedSuggestion = useCallback((nodeVal: NodeValue): NodeValue => {
+    const next = {
+      ...nodeVal,
+      value: nodeVal.suggestion,
+      suggestion: undefined,
+      protection: {
+        owner: 'ai' as const,
+        stage: 'reviewed' as const,
+      },
+    } as NodeValue;
+    delete next.isDirty;
+
+    next.value = mapNestedCollectionValues(next.value, (nestedValue) => {
+      const reviewedNestedValue = {
+        ...nestedValue,
+        suggestion: undefined,
+        protection: {
+          owner: 'ai',
+          stage: 'reviewed',
+        },
+      } as NodeValue;
+      delete reviewedNestedValue.isDirty;
+      return reviewedNestedValue;
+    });
+
+    return next;
+  }, []);
+
+  const rejectSuggestion = useCallback((nodeVal: NodeValue): NodeValue => {
+    const shouldReviewCurrent =
+      nodeVal.isDirty !== true &&
+      (nodeVal.protection?.owner ?? 'ai') === 'ai' &&
+      (nodeVal.protection?.stage ?? 'flexible') === 'flexible';
+
+    const next = {
+      ...nodeVal,
+      suggestion: undefined,
+      ...(shouldReviewCurrent
+        ? {
+            protection: {
+              owner: 'ai' as const,
+              stage: 'reviewed' as const,
+            },
+          }
+        : {}),
+    } as NodeValue;
+
+    if (shouldReviewCurrent) {
+      next.value = mapNestedCollectionValues(next.value, (nestedValue) => ({
+        ...nestedValue,
+        suggestion: undefined,
+        protection: {
+          owner: 'ai',
+          stage: 'reviewed',
+        },
+      }));
+    }
+
+    return next;
+  }, []);
+
   const acceptAll = useCallback(() => {
     const snap = store.getSnapshot();
     if (!snap || !snap.data) {
@@ -48,15 +112,10 @@ export function useContinuumSuggestions(): {
     for (const key of Object.keys(snap.data.values)) {
       const nodeVal = snap.data.values[key];
       if (nodeVal?.suggestion !== undefined) {
-        session.updateState(key, {
-          ...nodeVal,
-          value: nodeVal.suggestion,
-          suggestion: undefined,
-          isDirty: true,
-        } as NodeValue);
+        session.updateState(key, applyReviewedSuggestion(nodeVal));
       }
     }
-  }, [session, store]);
+  }, [applyReviewedSuggestion, session, store]);
 
   const rejectAll = useCallback(() => {
     const snap = store.getSnapshot();
@@ -66,13 +125,10 @@ export function useContinuumSuggestions(): {
     for (const key of Object.keys(snap.data.values)) {
       const nodeVal = snap.data.values[key];
       if (nodeVal?.suggestion !== undefined) {
-        session.updateState(key, {
-          ...nodeVal,
-          suggestion: undefined,
-        } as NodeValue);
+        session.updateState(key, rejectSuggestion(nodeVal));
       }
     }
-  }, [session, store]);
+  }, [rejectSuggestion, session, store]);
 
   return {
     hasSuggestions,

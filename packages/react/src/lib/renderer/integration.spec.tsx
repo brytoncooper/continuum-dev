@@ -68,6 +68,16 @@ const componentMap = {
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function renderIntoDom(element: ReactElement) {
   const container = document.createElement('div');
   document.body.appendChild(container);
@@ -126,6 +136,7 @@ describe('react integration', () => {
     const hydratedSnapshot = snapshot as ContinuitySnapshot | null;
     expect(hydratedSnapshot?.data.values['field']).toEqual({
       value: 'from-storage',
+      protection: aiFlexibleProtection,
     });
     view.unmount();
   });
@@ -898,6 +909,7 @@ describe('react integration', () => {
     expect(collectionNode.value.items).toHaveLength(3);
     expect(collectionNode.value.items[2].values['address-item/city']).toEqual({
       value: 'Tokyo',
+      protection: aiFlexibleProtection,
     });
 
     const removeButton = rendered.container.querySelector(
@@ -2750,7 +2762,11 @@ describe('renderer node routing integration', () => {
     });
     expect(
       requireSession(capturedSession).getSnapshot()?.data.values['editme']
-    ).toEqual({ value: 'clicked', isDirty: true });
+    ).toEqual({
+      value: 'clicked',
+      isDirty: true,
+      protection: userFlexibleProtection,
+    });
     rendered.unmount();
   });
 
@@ -3902,7 +3918,11 @@ describe('hook flows integration', () => {
     });
     expect(
       requireSession(capturedSession).getSnapshot()?.data.values['f1']
-    ).toEqual({ value: 'written', isDirty: true });
+    ).toEqual({
+      value: 'written',
+      isDirty: true,
+      protection: userFlexibleProtection,
+    });
     rendered.unmount();
   });
 
@@ -4467,7 +4487,11 @@ describe('hook flows integration', () => {
     ] as NodeValue | undefined;
     expect(f1?.value).toBe('suggested');
     expect(f1?.suggestion).toBeUndefined();
-    expect(f1?.isDirty).toBe(true);
+    expect(f1?.isDirty).toBeUndefined();
+    expect(f1?.protection).toEqual({
+      owner: 'ai',
+      stage: 'reviewed',
+    });
     rendered.unmount();
   });
 

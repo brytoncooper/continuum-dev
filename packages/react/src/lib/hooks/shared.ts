@@ -35,7 +35,8 @@ export function shallowNodeValueEqual(
   return (
     left.value === right.value &&
     left.isDirty === right.isDirty &&
-    left.isSticky === right.isSticky &&
+    left.protection?.owner === right.protection?.owner &&
+    left.protection?.stage === right.protection?.stage &&
     left.isValid === right.isValid &&
     left.suggestion === right.suggestion
   );

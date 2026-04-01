@@ -37,7 +37,9 @@ export function normalizeCollectionNodeValue(
   const metadata = value
     ? {
         ...(value.isDirty !== undefined ? { isDirty: value.isDirty } : {}),
-        ...(value.isSticky !== undefined ? { isSticky: value.isSticky } : {}),
+        ...(value.protection !== undefined
+          ? { protection: { ...value.protection } }
+          : {}),
         ...(value.isValid !== undefined ? { isValid: value.isValid } : {}),
       }
     : {};
