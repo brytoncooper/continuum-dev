@@ -161,7 +161,7 @@ flowchart TD
 - carries prior value when present
 - may apply default-value update when identity gate passes:
   - same id, or same semanticKey, or same key
-- dirty/sticky values get suggestion updates instead of overwrites
+- dirty or protected values get suggestion updates instead of overwrites
 - clean values may be overwritten by new default
 - emits carried resolution and optional migrated diff for default-update cases
 

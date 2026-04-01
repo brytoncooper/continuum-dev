@@ -1,6 +1,7 @@
 import type {
   DataSnapshot,
   NodeValue,
+  ValueProtection,
   ValueLineage,
   ViewDefinition,
 } from '@continuum-dev/contract';
@@ -112,18 +113,68 @@ function coerceToken(value: unknown): string {
   return '';
 }
 
+function readProtectionRank(
+  protection: ValueProtection | undefined
+): number {
+  switch (protection?.stage) {
+    case 'submitted':
+      return 4;
+    case 'locked':
+      return 3;
+    case 'reviewed':
+      return 2;
+    case 'flexible':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function deriveProtection(
+  sourceValues: NodeValue[]
+): ValueProtection | undefined {
+  let bestProtection: ValueProtection | undefined;
+
+  for (const sourceValue of sourceValues) {
+    if (!sourceValue.protection) {
+      continue;
+    }
+
+    if (
+      !bestProtection ||
+      readProtectionRank(sourceValue.protection) >
+        readProtectionRank(bestProtection)
+    ) {
+      bestProtection = { ...sourceValue.protection };
+    }
+  }
+
+  if (bestProtection) {
+    return bestProtection;
+  }
+
+  if (sourceValues.some((candidate) => candidate.isDirty === true)) {
+    return {
+      owner: 'user',
+      stage: 'flexible',
+    };
+  }
+
+  return undefined;
+}
+
 function buildDerivedNodeValue(
   value: unknown,
   sourceValues: NodeValue[]
 ): NodeValue {
+  const protection = deriveProtection(sourceValues);
+
   return {
     value,
     ...(sourceValues.some((candidate) => candidate.isDirty === true)
       ? { isDirty: true }
       : {}),
-    ...(sourceValues.some((candidate) => candidate.isSticky === true)
-      ? { isSticky: true }
-      : {}),
+    ...(protection ? { protection } : {}),
     ...(sourceValues.some((candidate) => candidate.isValid === false)
       ? { isValid: false }
       : {}),

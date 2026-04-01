@@ -2,7 +2,11 @@ import type {
   CollectionNode,
   CollectionNodeState,
   NodeValue,
+  ValueProtection,
   ViewNode,
+} from '@continuum-dev/contract';
+import {
+  isProtectedNodeValue,
 } from '@continuum-dev/contract';
 import { createInitialCollectionValue } from './defaults.js';
 
@@ -43,8 +47,10 @@ export function normalizeCollectionValue(
       ? { suggestion: normalizeState(nodeValue.suggestion) }
       : {}),
     ...(nodeValue.isDirty !== undefined ? { isDirty: nodeValue.isDirty } : {}),
-    ...(nodeValue.isSticky !== undefined
-      ? { isSticky: nodeValue.isSticky }
+    ...(nodeValue.protection !== undefined
+      ? {
+          protection: { ...(nodeValue.protection as ValueProtection) },
+        }
       : {}),
     ...(nodeValue.isValid !== undefined ? { isValid: nodeValue.isValid } : {}),
   };
@@ -71,7 +77,7 @@ export function hasProtectedItems(value: unknown): boolean {
 
   return items.some((item) =>
     Object.values(item.values ?? {}).some(
-      (nodeValue) => nodeValue.isDirty === true || nodeValue.isSticky === true
+      (nodeValue) => isProtectedNodeValue(nodeValue)
     )
   );
 }

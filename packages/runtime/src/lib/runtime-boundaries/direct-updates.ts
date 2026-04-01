@@ -1,6 +1,8 @@
 import {
   type DataSnapshot,
+  isProtectedNodeValue,
   type NodeValue,
+  normalizeNodeValueProtection,
   type ViewDefinition,
 } from '@continuum-dev/contract';
 
@@ -118,6 +120,8 @@ export function applyContinuumNodeValueWrite(
 
   const issues =
     input.validate === true ? validateNodeValue(lookup.node, input.value) : [];
+  const currentValue = next.values[lookup.canonicalId];
+  const normalizedValue = normalizeNodeValueWrite(input.value, currentValue);
 
   return {
     kind: 'applied',
@@ -132,7 +136,7 @@ export function applyContinuumNodeValueWrite(
       values: {
         ...next.values,
 
-        [lookup.canonicalId]: input.value,
+        [lookup.canonicalId]: normalizedValue,
       },
 
       lineage: {
@@ -213,5 +217,12 @@ function ensureSnapshot(
 }
 
 function isProtectedValue(value: NodeValue | undefined): boolean {
-  return Boolean(value?.isDirty || value?.isSticky);
+  return isProtectedNodeValue(value);
+}
+
+function normalizeNodeValueWrite(
+  value: NodeValue,
+  currentValue: NodeValue | undefined
+): NodeValue {
+  return normalizeNodeValueProtection(value, currentValue);
 }

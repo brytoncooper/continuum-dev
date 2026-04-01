@@ -58,7 +58,7 @@ Return kinds:
 - `unknown-node`
   - view is missing or the node cannot be resolved
 - `proposal`
-  - the current canonical value is protected by `isDirty` or `isSticky`
+  - the current canonical value is protected by `isDirty` or a non-flexible `protection.stage`
 - `apply`
   - the write can apply immediately
 

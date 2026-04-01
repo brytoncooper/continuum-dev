@@ -7,6 +7,16 @@ import {
 } from '../index.js';
 import { reconcile } from './reconcile/index.js';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 describe('runtime contract', () => {
   it('keeps helper surfaces off the root barrel', async () => {
     const root = await import('../index.js');
@@ -64,7 +74,10 @@ describe('runtime contract', () => {
 
     expect(result.kind).toBe('applied');
     if (result.kind === 'applied') {
-      expect(result.data.values['a']).toEqual({ value: 'new' });
+      expect(result.data.values['a']).toEqual({
+        value: 'new',
+        protection: aiFlexibleProtection,
+      });
       expect(result.data.lineage).toMatchObject({
         timestamp: 2,
         sessionId: 'sess',
@@ -194,6 +207,7 @@ describe('runtime contract', () => {
     expect(applied.data.values['a']).toEqual({
       value: 'typed',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
     expect('viewContext' in applied.data).toBe(false);
   });

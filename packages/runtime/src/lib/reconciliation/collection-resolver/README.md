@@ -163,7 +163,7 @@ Behavior in this module is intentionally order-stable and side-effect constraine
 - Type-mismatch guard short-circuits before defaults/migration work.
 - Path remap migration detection uses identity semantics (`values !== item.values`).
 - Default update detection is currently `JSON.stringify` comparison and is intentionally unchanged.
-- Protected prior items (`isDirty`/`isSticky`) retain value and route new defaults to `suggestion`.
+- Protected prior items (`isDirty` or non-flexible `protection.stage`) retain value and route new defaults to `suggestion`.
 
 ## Reconciliation Result Contract
 
@@ -201,5 +201,5 @@ When changing this module, preserve existing expectations for:
 
 - issue ordering and severity,
 - item ordering and constraint behavior,
-- metadata carry (`suggestion`, `isDirty`, `isSticky`, `isValid`),
+- metadata carry (`suggestion`, `isDirty`, `protection`, `isValid`),
 - migrated vs carried classification.

@@ -1,4 +1,4 @@
-import type { ViewNode } from '@continuum-dev/contract';
+import { isProtectedNodeValue, type ViewNode } from '@continuum-dev/contract';
 import type { ReconciliationContext } from '../../context/index.js';
 
 const CONTAINER_TYPES = new Set(['row', 'grid', 'group']);
@@ -32,9 +32,12 @@ export function areCompatibleContainerTypes(a: string, b: string): boolean {
 
 export function isProtectedValue(value: {
   isDirty?: boolean;
-  isSticky?: boolean;
+  protection?: {
+    owner: 'ai' | 'user';
+    stage: 'flexible' | 'reviewed' | 'locked' | 'submitted';
+  };
 }): boolean {
-  return value.isDirty === true || value.isSticky === true;
+  return isProtectedNodeValue(value);
 }
 
 export function hasNodeHashChanged(

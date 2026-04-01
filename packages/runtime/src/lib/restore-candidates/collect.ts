@@ -1,6 +1,7 @@
 import {
   getChildNodes,
   type DataSnapshot,
+  isProtectedNodeValue,
   type ViewNode,
 } from '@continuum-dev/contract';
 import type { RestoreNodeCandidate } from './types.js';
@@ -33,10 +34,17 @@ function isProtectedValue(value: unknown): boolean {
   if (
     value !== null &&
     typeof value === 'object' &&
-    !Array.isArray(value) &&
-    'isProtected' in value
+    !Array.isArray(value)
   ) {
-    return (value as { isProtected?: boolean }).isProtected === true;
+    return isProtectedNodeValue(
+      value as {
+        isDirty?: boolean;
+        protection?: {
+          owner: 'ai' | 'user';
+          stage: 'flexible' | 'reviewed' | 'locked' | 'submitted';
+        };
+      }
+    );
   }
   return false;
 }

@@ -3,6 +3,7 @@ import type {
   DetachedValue,
   NodeValue,
 } from '@continuum-dev/contract';
+import { normalizeNodeValueProtection } from '@continuum-dev/contract';
 import { collectDuplicateIssues } from '../context/index.js';
 import { ISSUE_CODES } from '@continuum-dev/protocol';
 import { reconcile } from '../reconcile/index.js';
@@ -24,16 +25,6 @@ function isCollectionState(
 
   const candidate = value as { items?: unknown };
   return Array.isArray(candidate.items);
-}
-
-function isPopulatedValue(value: unknown): boolean {
-  if (value === null || value === undefined) {
-    return false;
-  }
-  if (typeof value === 'string') {
-    return value.length > 0;
-  }
-  return true;
 }
 
 function stripSuggestionsFromNodeValue(nodeValue: NodeValue): NodeValue {
@@ -67,56 +58,12 @@ function stripSuggestionsFromNodeValue(nodeValue: NodeValue): NodeValue {
   return next;
 }
 
-function lockPopulatedValuesAsDirty(nodeValue: NodeValue): NodeValue {
-  const next = structuredClone(nodeValue) as NodeValue & {
-    value: unknown;
-    isSticky?: boolean;
-  };
-
-  const walkCollectionState = (state: unknown): void => {
-    if (!isCollectionState(state)) {
-      return;
-    }
-
-    for (const item of state.items) {
-      if (!item || typeof item !== 'object' || !item.values) {
-        continue;
-      }
-
-      const values = item.values;
-      for (const key of Object.keys(values)) {
-        const nested = values[key];
-        if (nested && typeof nested === 'object' && 'value' in nested) {
-          values[key] = lockPopulatedValuesAsDirty(nested as NodeValue);
-        }
-      }
-    }
-  };
-
-  if (isCollectionState(next.value)) {
-    walkCollectionState(next.value);
-    return next;
-  }
-
-  if (
-    next.isDirty !== true &&
-    next.isSticky !== true &&
-    isPopulatedValue(next.value)
-  ) {
-    next.isSticky = true;
-  }
-
-  return next;
-}
-
 function sanitizePriorDataForReconcile(priorData: DataSnapshot): DataSnapshot {
   const canonicalPriorData = sanitizeContinuumDataSnapshot(priorData)!;
   const sanitizedValues: Record<string, NodeValue> = {};
 
   for (const [nodeId, nodeValue] of Object.entries(canonicalPriorData.values)) {
-    sanitizedValues[nodeId] = lockPopulatedValuesAsDirty(
-      stripSuggestionsFromNodeValue(nodeValue)
-    );
+    sanitizedValues[nodeId] = stripSuggestionsFromNodeValue(nodeValue);
   }
 
   const sanitizedDetachedValues: Record<string, DetachedValue> = {};
@@ -149,6 +96,38 @@ function sanitizePriorDataForReconcile(priorData: DataSnapshot): DataSnapshot {
   }
 
   return sanitized;
+}
+
+function normalizeSnapshotProtection(data: DataSnapshot): DataSnapshot {
+  const normalizedValues: Record<string, NodeValue> = {};
+  for (const [nodeId, nodeValue] of Object.entries(data.values)) {
+    normalizedValues[nodeId] = normalizeNodeValueProtection(nodeValue);
+  }
+
+  const normalized: DataSnapshot = {
+    ...data,
+    values: normalizedValues,
+  };
+
+  if (data.detachedValues) {
+    const detachedValues: Record<string, DetachedValue> = {};
+    for (const [key, detached] of Object.entries(data.detachedValues)) {
+      const detachedValue =
+        detached.value &&
+        typeof detached.value === 'object' &&
+        'value' in (detached.value as Record<string, unknown>)
+          ? normalizeNodeValueProtection(detached.value as NodeValue)
+          : detached.value;
+
+      detachedValues[key] = {
+        ...detached,
+        value: detachedValue,
+      };
+    }
+    normalized.detachedValues = detachedValues;
+  }
+
+  return normalized;
 }
 
 function tryApplyPresentationIncrementalUpdate(
@@ -191,16 +170,20 @@ function tryApplyPresentationIncrementalUpdate(
   return {
     priorView: input.baseView,
     view: patchedView,
-    data: sanitizeContinuumDataSnapshot({
-      ...baseData,
-      lineage: {
-        ...baseData.lineage,
-        timestamp: input.clock ? input.clock() : baseData.lineage.timestamp + 1,
-        sessionId: input.sessionId,
-        viewId: patchedView.viewId,
-        viewVersion: patchedView.version,
-      },
-    })!,
+    data: sanitizeContinuumDataSnapshot(
+      normalizeSnapshotProtection({
+        ...baseData,
+        lineage: {
+          ...baseData.lineage,
+          timestamp: input.clock
+            ? input.clock()
+            : baseData.lineage.timestamp + 1,
+          sessionId: input.sessionId,
+          viewId: patchedView.viewId,
+          viewVersion: patchedView.version,
+        },
+      })
+    )!,
     issues: [
       ...(input.priorIssues ?? []),
       ...collectDuplicateIssues(patchedView.nodes),
@@ -247,13 +230,15 @@ export function applyContinuumViewUpdate(
     },
   });
 
-  let data: AppliedContinuumViewState['data'] = sanitizeContinuumDataSnapshot({
-    ...result.reconciledState,
-    lineage: {
-      ...result.reconciledState.lineage,
-      sessionId: input.sessionId,
-    },
-  })!;
+  let data: AppliedContinuumViewState['data'] = sanitizeContinuumDataSnapshot(
+    normalizeSnapshotProtection({
+      ...result.reconciledState,
+      lineage: {
+        ...result.reconciledState.lineage,
+        sessionId: input.sessionId,
+      },
+    })
+  )!;
   let diffs = result.diffs;
   let resolutions = result.resolutions;
   let issues = result.issues;
@@ -289,7 +274,7 @@ export function applyContinuumViewUpdate(
   return {
     priorView,
     view: patchedView,
-    data: sanitizeContinuumDataSnapshot(data)!,
+    data: sanitizeContinuumDataSnapshot(normalizeSnapshotProtection(data))!,
     issues,
     diffs,
     resolutions,

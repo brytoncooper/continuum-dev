@@ -7,6 +7,37 @@ import {
 import { applyContinuumViewStreamPart } from './stream-parts.js';
 import { applyContinuumViewUpdate } from './view-updates.js';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const aiReviewedProtection = {
+  owner: 'ai',
+  stage: 'reviewed',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
+function aiFlexible(value: unknown): Record<string, unknown> {
+  return { value, protection: aiFlexibleProtection };
+}
+
+function aiReviewed(value: unknown): Record<string, unknown> {
+  return { value, protection: aiReviewedProtection };
+}
+
+function userFlexible(value: unknown): Record<string, unknown> {
+  return {
+    value,
+    isDirty: true,
+    protection: userFlexibleProtection,
+  };
+}
+
 function makeView(
   nodes: ViewNode[],
   viewId = 'profile',
@@ -46,10 +77,7 @@ describe('runtime state operations', () => {
     expect(decision.kind).toBe('proposal');
     if (decision.kind === 'proposal') {
       expect(decision.canonicalId).toBe('email');
-      expect(decision.currentValue).toEqual({
-        value: 'user@example.com',
-        isDirty: true,
-      });
+      expect(decision.currentValue).toEqual(userFlexible('user@example.com'));
     }
   });
 
@@ -89,7 +117,7 @@ describe('runtime state operations', () => {
 
     expect(update.kind).toBe('applied');
     if (update.kind === 'applied') {
-      expect(update.data.values['name']).toEqual({ value: 'Avery' });
+      expect(update.data.values['name']).toEqual(aiFlexible('Avery'));
       expect(update.data.lineage).toMatchObject({
         sessionId: 'session-1',
         timestamp: 123,
@@ -230,20 +258,21 @@ describe('runtime state operations', () => {
 
     const baseData = {
       values: {
-        'profile/full_name': { value: 'Test This', isDirty: true },
-        'profile/email': { value: 'brytoncooper', isDirty: true },
+        'profile/full_name': userFlexible('Test This'),
+        'profile/email': userFlexible('brytoncooper'),
         'request/income_sources': {
           value: {
             items: [
               {
                 values: {
-                  type: { value: 'w2', isSticky: true },
-                  payer: { value: 'Employer name', isSticky: true },
-                  amount: { value: '65000', isSticky: true },
+                  type: aiReviewed('w2'),
+                  payer: aiReviewed('Employer name'),
+                  amount: aiReviewed('65000'),
                 },
               },
             ],
           },
+          protection: aiFlexibleProtection,
         },
       },
       lineage: {
@@ -298,14 +327,12 @@ describe('runtime state operations', () => {
       clock: () => 2,
     });
 
-    expect(applied.data.values['profile/full_name']).toEqual({
-      value: 'Test This',
-      isDirty: true,
-    });
-    expect(applied.data.values['profile/contact_row/email']).toEqual({
-      value: 'brytoncooper',
-      isDirty: true,
-    });
+    expect(applied.data.values['profile/full_name']).toEqual(
+      userFlexible('Test This')
+    );
+    expect(applied.data.values['profile/contact_row/email']).toEqual(
+      userFlexible('brytoncooper')
+    );
     expect(applied.data.values['request/income_sources']).toEqual(
       baseData.values['request/income_sources']
     );
@@ -341,8 +368,8 @@ describe('runtime state operations', () => {
 
     const baseData = {
       values: {
-        'tax_form/name_row/first_name': { value: 'Jordan', isDirty: true },
-        'tax_form/name_row/last_name': { value: 'Lee', isDirty: true },
+        'tax_form/name_row/first_name': userFlexible('Jordan'),
+        'tax_form/name_row/last_name': userFlexible('Lee'),
       },
       lineage: {
         timestamp: 1,
@@ -389,10 +416,9 @@ describe('runtime state operations', () => {
       },
     });
 
-    expect(applied.data.values['tax_form/full_name']).toEqual({
-      value: 'Jordan Lee',
-      isDirty: true,
-    });
+    expect(applied.data.values['tax_form/full_name']).toEqual(
+      userFlexible('Jordan Lee')
+    );
     expect(applied.data.detachedValues).toBeUndefined();
     expect(applied.resolutions).toContainEqual(
       expect.objectContaining({
@@ -427,8 +453,8 @@ describe('runtime state operations', () => {
 
     const baseData = {
       values: {
-        'profile/email': { value: 'jordan@example.com', isDirty: true },
-        'profile/phone': { value: '555-0100', isDirty: true },
+        'profile/email': userFlexible('jordan@example.com'),
+        'profile/phone': userFlexible('555-0100'),
       },
       lineage: {
         timestamp: 1,
@@ -467,14 +493,12 @@ describe('runtime state operations', () => {
       children: Array<{ id: string }>;
     };
     expect(profile.children.map((child) => child.id)).toEqual(['contact_row']);
-    expect(applied.data.values['profile/contact_row/email']).toEqual({
-      value: 'jordan@example.com',
-      isDirty: true,
-    });
-    expect(applied.data.values['profile/contact_row/phone']).toEqual({
-      value: '555-0100',
-      isDirty: true,
-    });
+    expect(applied.data.values['profile/contact_row/email']).toEqual(
+      userFlexible('jordan@example.com')
+    );
+    expect(applied.data.values['profile/contact_row/phone']).toEqual(
+      userFlexible('555-0100')
+    );
   });
 
   it('preserves dirty values when move-node relocates a stateful field with a stable semanticKey', () => {
@@ -500,7 +524,7 @@ describe('runtime state operations', () => {
 
     const baseData = {
       values: {
-        'profile/email': { value: 'jordan@example.com', isDirty: true },
+        'profile/email': userFlexible('jordan@example.com'),
       },
       lineage: {
         timestamp: 1,
@@ -535,9 +559,8 @@ describe('runtime state operations', () => {
       children: Array<{ id: string }>;
     };
     expect(contact.children.map((child) => child.id)).toEqual(['email']);
-    expect(applied.data.values['contact/email']).toEqual({
-      value: 'jordan@example.com',
-      isDirty: true,
-    });
+    expect(applied.data.values['contact/email']).toEqual(
+      userFlexible('jordan@example.com')
+    );
   });
 });

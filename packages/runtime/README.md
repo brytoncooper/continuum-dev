@@ -297,7 +297,7 @@ It returns:
 - `apply`
   - safe to write immediately
 - `proposal`
-  - the current value is protected by `isDirty` or `isSticky`
+  - the current value is protected by `isDirty` or a non-flexible `protection.stage`
 - `unknown-node`
   - the target node could not be resolved
 
