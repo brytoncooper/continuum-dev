@@ -2,14 +2,14 @@
 
 Get a Continuum session on screen and wire it to AI with the fewest moving parts.
 
-This guide is the fastest shipped path:
+This guide is the smallest honest local setup:
 
 - React app
 - `@continuum-dev/starter-kit-ai`
 - one Continuum session
 - one direct provider-backed AI chat box
 
-If you already have a server boundary or an existing Vercel AI SDK app, skip to [AI Integration Guide](./AI_INTEGRATION.md).
+If you already have a server boundary, an existing Vercel AI SDK app, or you want provider credentials off the client, start with [AI Integration Guide](./AI_INTEGRATION.md) instead.
 
 ## What You Will Build
 
@@ -20,7 +20,7 @@ By the end of this guide you will have:
 - local session persistence across refresh
 - an AI instruction box that updates that same Continuum session
 
-## 1. Install The Fastest Path
+## 1. Install The Smallest Local Path
 
 Use any React 18 app scaffold you like, then install:
 
@@ -166,23 +166,10 @@ Use the Vercel AI SDK lane when you want:
 
 That path is documented in [AI Integration Guide](./AI_INTEGRATION.md) and backed by `@continuum-dev/vercel-ai-sdk-adapter`.
 
-## 7. Run The Repository Example
-
-The repository example app follows the Vercel AI SDK lane, not the direct provider lane from this quick start.
-
-- app: [`apps/starter`](../apps/starter/README.md)
-- guides it follows: [AI Integration Guide](./AI_INTEGRATION.md) and [Integration Guide](./INTEGRATION_GUIDE.md)
-
-From the repository root:
-
-```bash
-npm run build:release-packages
-npm run starter
-```
-
-## 8. What To Read Next
+## 7. What To Read Next
 
 - [AI Integration Guide](./AI_INTEGRATION.md)
+- [How Continuity Decisions Work](./HOW_CONTINUITY_DECISIONS_WORK.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
 - [`@continuum-dev/starter-kit-ai`](../packages/starter-kit-ai/README.md)
 - [`@continuum-dev/vercel-ai-sdk-adapter`](../packages/vercel-ai-sdk-adapter/README.md)

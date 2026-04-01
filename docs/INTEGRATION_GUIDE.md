@@ -4,15 +4,16 @@ Use this guide when you want the broader production picture around Continuum pac
 
 If you only need the shortest path:
 
-- fastest AI-connected session: [Quick Start](./QUICK_START.md)
 - existing Vercel AI SDK app: [AI Integration Guide](./AI_INTEGRATION.md)
+- smallest honest local setup: [Quick Start](./QUICK_START.md)
+- continuity semantics in product terms: [How Continuity Decisions Work](./HOW_CONTINUITY_DECISIONS_WORK.md)
 
 ## Start By Choosing The Shallowest Lane
 
 | If you need | Start with | Why |
 | --- | --- | --- |
-| Fastest React session with AI | `@continuum-dev/starter-kit-ai` | quickest shipped path with a renderer, session, and chat surface |
 | Existing Vercel AI SDK app with Continuum continuity | `@continuum-dev/vercel-ai-sdk-adapter` | keep your current transport and route shape |
+| Fastest React session with AI | `@continuum-dev/starter-kit-ai` | quickest shipped path with a renderer, session, and chat surface |
 | Custom React UI with Continuum session semantics | `@continuum-dev/react` plus `@continuum-dev/session` | clearest headless React lane |
 | Direct control over reconciliation and snapshot contracts | `@continuum-dev/runtime` plus `@continuum-dev/session` | lowest-level continuity boundary |
 
@@ -28,54 +29,7 @@ Most successful Continuum apps follow this order:
 
 That is the main mental model: render from session state, and feed changes back through the session.
 
-## 1. Fastest Shipped Lane: `@continuum-dev/starter-kit-ai`
-
-Use this when you want the easiest path to a renderable Continuum app with AI.
-
-The recommended starting point is [Quick Start](./QUICK_START.md), which includes the provider setup and the initial view seed. The key shape is:
-
-```tsx
-import {
-  ContinuumProvider,
-  ContinuumRenderer,
-  StarterKitProviderChatBox,
-  createAiConnectProviders,
-  starterKitComponentMap,
-  useContinuumSnapshot,
-} from '@continuum-dev/starter-kit-ai';
-
-const providers = createAiConnectProviders({
-  include: ['openai'],
-  openai: {
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
-  },
-});
-
-function Page() {
-  const snapshot = useContinuumSnapshot();
-  if (!snapshot?.view) {
-    return null;
-  }
-  return <ContinuumRenderer view={snapshot.view} />;
-}
-
-export function App() {
-  return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <StarterKitProviderChatBox providers={providers} />
-      <Page />
-    </ContinuumProvider>
-  );
-}
-```
-
-Use the Vercel chat box instead when you want the same starter lane with a server-backed transport.
-
-## 2. Existing Vercel AI SDK Lane
+## 1. Existing Vercel AI SDK Lane
 
 Use this when your app already has, or should have, a server-backed Vercel AI SDK route.
 
@@ -142,6 +96,53 @@ export const POST = createContinuumVercelAiSdkRouteHandler({
 ```
 
 Use the full walkthrough in [AI Integration Guide](./AI_INTEGRATION.md) when you want the complete lane explanation.
+
+## 2. Fastest Shipped Lane: `@continuum-dev/starter-kit-ai`
+
+Use this when you want the easiest path to a renderable Continuum app with AI and you are comfortable with a direct provider-backed browser path.
+
+The recommended starting point is [Quick Start](./QUICK_START.md), which includes the provider setup and the initial view seed. The key shape is:
+
+```tsx
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitProviderChatBox,
+  createAiConnectProviders,
+  starterKitComponentMap,
+  useContinuumSnapshot,
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
+  include: ['openai'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
+  },
+});
+
+function Page() {
+  const snapshot = useContinuumSnapshot();
+  if (!snapshot?.view) {
+    return null;
+  }
+  return <ContinuumRenderer view={snapshot.view} />;
+}
+
+export function App() {
+  return (
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
+      <StarterKitProviderChatBox providers={providers} />
+      <Page />
+    </ContinuumProvider>
+  );
+}
+```
+
+Use the Vercel lane instead when you want a server-backed transport or provider credentials off the client.
 
 ## 3. Headless React Lane: `@continuum-dev/react`
 
@@ -355,6 +356,7 @@ If continuity is part of your product promise, these diagnostics are part of you
 
 ## Related Guides
 
-- [Quick Start](./QUICK_START.md)
+- [How Continuity Decisions Work](./HOW_CONTINUITY_DECISIONS_WORK.md)
 - [AI Integration Guide](./AI_INTEGRATION.md)
+- [Quick Start](./QUICK_START.md)
 - [View Contract Reference](./VIEW_CONTRACT.md)

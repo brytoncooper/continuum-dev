@@ -177,8 +177,8 @@ These rules are mandatory unless the user explicitly wants a design change.
 - If inner code needs the outside world, define or use an inner-friendly port and let an outer package implement it.
 - Data crossing inward should be shaped for the inner package, using contract-friendly DTOs and value objects rather
   than framework or vendor types.
-- Composition roots such as `starter-kit`, `starter-kit-ai`, and `apps/*` may wire concrete details together, but
-  they should not quietly absorb core business rules.
+- Composition roots such as `starter-kit`, `starter-kit-ai`, and downstream app surfaces may wire concrete details
+  together, but they should not quietly absorb core business rules.
 
 ## Public Surface Discipline
 
@@ -194,18 +194,15 @@ Agents should treat package exports as the contract consumers depend on.
 
 ## Repo Apps Versus Library Consumers
 
-Agents must keep a hard boundary between repo apps and published library consumers.
+Agents must keep a hard boundary between repo-local composition surfaces and published library consumers.
 
-- `apps/starter` is a repo app. It is allowed to consume workspace package source during local
-  development and integration testing.
-- The former `apps/demo` site now lives in **continuum-cloud**; it is not the canonical proof of npm-consumer behavior for `@continuum-dev/*`.
-- `apps/starter` is an internal experiment and integration harness, not the canonical proof of npm-consumer behavior.
+- This SDK repo currently ships no tracked repo app surface. Full product demos live in **continuum-cloud**.
 - The canonical proof of what downstream users get is the packed output from `dist/packages/*` after
   `build:release-packages`, `prepare:dist-packages`, and `verify:release-packages`.
-- Do not change package-root entry files, `exports`, or package architecture just to satisfy one repo app's local
-  Node execution path.
-- If a repo app needs special Node behavior, solve that inside `apps/*` with app-local bundling, server build, or
-  other app-specific wiring.
+- Do not change package-root entry files, `exports`, or package architecture just to satisfy one local composition
+  surface.
+- If a repo app is added here later and needs special Node behavior, solve that inside `apps/*` with app-local
+  bundling, server build, or other app-specific wiring.
 - When reasoning about package-consumer correctness, prefer the packed `dist` artifact and release verification over
   behavior observed through Vite aliases or source-only app resolution.
 - Root-level `*.js` / `*.mjs` entry files under `packages/<name>/` that re-export `../../dist/packages/...` are

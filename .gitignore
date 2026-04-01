@@ -59,4 +59,3 @@ vitest.config.*.timestamp*
 test-output
 
 
-apps/starter/.env

@@ -7,7 +7,8 @@ alwaysApply: true
 
 ## Absolutes
 
-- Treat `apps/demo` and `apps/starter` as **repo apps**, not as the canonical proof of what npm consumers get.
+- Full product demos live in **continuum-cloud**, not in this SDK repo.
+- If repo apps are added here later, treat them as **repo apps**, not as the canonical proof of what npm consumers get.
 - Repo apps may consume workspace package **source** through TypeScript paths, custom export conditions, Vite aliases,
   or other in-repo tooling.
 - Treat the packed contents under `dist/packages/*` after `build:release-packages`, `prepare:dist-packages`, and

@@ -1,13 +1,15 @@
 # AI Integration Guide
 
-If you want AI plus Continuum, start by choosing a lane.
+If you want AI plus Continuum in a real app, start with the Vercel AI SDK lane unless you specifically need the smallest local setup.
+
+Continuum is the trust layer for generative UI. The important rule is unchanged: AI should not overwrite raw Continuum session state directly.
 
 Most users should not begin from `ai-engine` alone. They usually want one of these two public paths:
 
 | Lane | Use it when | Start with |
 | --- | --- | --- |
-| Direct provider lane | you want the fastest AI-connected Continuum session in React | `@continuum-dev/starter-kit-ai` and [Quick Start](./QUICK_START.md) |
 | Vercel AI SDK lane | you already have, or want, a server-backed Vercel AI SDK route | `@continuum-dev/vercel-ai-sdk-adapter` |
+| Direct provider lane | you want the smallest honest local setup and are comfortable with browser provider credentials | `@continuum-dev/starter-kit-ai` and [Quick Start](./QUICK_START.md) |
 
 ## The Core Rule
 
@@ -21,114 +23,9 @@ The normal public flow is:
 4. apply it back through the local session
 5. let the renderer re-render from the new snapshot
 
-That is how Continuum protects continuity instead of treating AI output like blind state replacement.
+That is how Continuum protects continuity instead of treating AI output like blind state replacement. It is also how Continuum decides when to preserve, propose, detach, or restore state instead of silently forcing a bad overwrite.
 
-## Lane 1: Fastest Path To A Session With AI
-
-Use this lane when you want the smallest setup and you are comfortable with a direct provider-backed browser path.
-
-Packages:
-
-- `@continuum-dev/starter-kit-ai`
-- `react`
-- `react-dom`
-
-Install:
-
-```bash
-npm install @continuum-dev/starter-kit-ai react react-dom
-```
-
-Minimal app:
-
-```tsx
-import { useEffect } from 'react';
-import {
-  ContinuumProvider,
-  ContinuumRenderer,
-  StarterKitProviderChatBox,
-  createAiConnectProviders,
-  starterKitComponentMap,
-  useContinuumSession,
-  useContinuumSnapshot,
-  type ViewDefinition,
-} from '@continuum-dev/starter-kit-ai';
-
-const providers = createAiConnectProviders({
-  include: ['openai'],
-  openai: {
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
-  },
-});
-
-const initialView: ViewDefinition = {
-  viewId: 'profile',
-  version: '1',
-  nodes: [
-    {
-      id: 'profile',
-      type: 'group',
-      label: 'Profile',
-      children: [
-        {
-          id: 'email',
-          type: 'field',
-          dataType: 'string',
-          label: 'Email',
-        },
-      ],
-    },
-  ],
-};
-
-function Screen() {
-  const session = useContinuumSession();
-  const snapshot = useContinuumSnapshot();
-
-  useEffect(() => {
-    if (!session.getSnapshot()) {
-      session.pushView(initialView);
-    }
-  }, [session]);
-
-  if (!snapshot?.view) {
-    return null;
-  }
-
-  return (
-    <>
-      <StarterKitProviderChatBox
-        providers={providers}
-        title="Ask Continuum AI"
-      />
-      <ContinuumRenderer view={snapshot.view} />
-    </>
-  );
-}
-
-export function App() {
-  return (
-    <ContinuumProvider
-      components={starterKitComponentMap}
-      persist="localStorage"
-    >
-      <Screen />
-    </ContinuumProvider>
-  );
-}
-```
-
-What this lane does for you:
-
-- `StarterKitProviderChatBox` reads the active Continuum session from React context
-- `useProviderChatController(...)` builds execution context from that live session
-- `@continuum-dev/ai-engine` runs the instruction
-- successful results apply back into the same session by default
-
-Use this lane for the fastest start, demos, and controlled environments. If you do not want provider credentials in the browser, move to the Vercel AI SDK lane.
-
-## Lane 2: Keep Your Vercel AI SDK App
+## Lane 1: Keep Your Vercel AI SDK App
 
 Use this lane when:
 
@@ -235,6 +132,111 @@ That helper already does the server wiring that is easy to get wrong:
 
 That is the core timeline to keep in mind: request body in, Continuum parts out, local session updated.
 
+## Lane 2: Smallest Local Path With Built-In Chat
+
+Use this lane when you want the smallest honest local setup and you are comfortable with a direct provider-backed browser path.
+
+Packages:
+
+- `@continuum-dev/starter-kit-ai`
+- `react`
+- `react-dom`
+
+Install:
+
+```bash
+npm install @continuum-dev/starter-kit-ai react react-dom
+```
+
+Minimal app:
+
+```tsx
+import { useEffect } from 'react';
+import {
+  ContinuumProvider,
+  ContinuumRenderer,
+  StarterKitProviderChatBox,
+  createAiConnectProviders,
+  starterKitComponentMap,
+  useContinuumSession,
+  useContinuumSnapshot,
+  type ViewDefinition,
+} from '@continuum-dev/starter-kit-ai';
+
+const providers = createAiConnectProviders({
+  include: ['openai'],
+  openai: {
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
+  },
+});
+
+const initialView: ViewDefinition = {
+  viewId: 'profile',
+  version: '1',
+  nodes: [
+    {
+      id: 'profile',
+      type: 'group',
+      label: 'Profile',
+      children: [
+        {
+          id: 'email',
+          type: 'field',
+          dataType: 'string',
+          label: 'Email',
+        },
+      ],
+    },
+  ],
+};
+
+function Screen() {
+  const session = useContinuumSession();
+  const snapshot = useContinuumSnapshot();
+
+  useEffect(() => {
+    if (!session.getSnapshot()) {
+      session.pushView(initialView);
+    }
+  }, [session]);
+
+  if (!snapshot?.view) {
+    return null;
+  }
+
+  return (
+    <>
+      <StarterKitProviderChatBox
+        providers={providers}
+        title="Ask Continuum AI"
+      />
+      <ContinuumRenderer view={snapshot.view} />
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <ContinuumProvider
+      components={starterKitComponentMap}
+      persist="localStorage"
+    >
+      <Screen />
+    </ContinuumProvider>
+  );
+}
+```
+
+What this lane does for you:
+
+- `StarterKitProviderChatBox` reads the active Continuum session from React context
+- `useProviderChatController(...)` builds execution context from that live session
+- `@continuum-dev/ai-engine` runs the instruction
+- successful results apply back into the same session by default
+
+Use this lane for the fastest local evaluation, demos, and controlled environments. If you do not want provider credentials in the browser, or you already have a server boundary, move to the Vercel AI SDK lane.
+
 ## What Actually Gets Applied Into The Session
 
 This is the important safety model behind both lanes.
@@ -301,6 +303,7 @@ Use this when you want the execution behavior without the shipped starter chat U
 
 ## Related Docs
 
+- [How Continuity Decisions Work](./HOW_CONTINUITY_DECISIONS_WORK.md)
 - [Quick Start](./QUICK_START.md)
 - [Integration Guide](./INTEGRATION_GUIDE.md)
 - [`@continuum-dev/starter-kit-ai`](../packages/starter-kit-ai/README.md)

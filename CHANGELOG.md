@@ -74,17 +74,17 @@ All notable changes to this project will be documented in this file.
   - Session workbench UI component
   - Provider chat controller and chat box UI
 - **Data Snapshot Enhancements**:
-  - `isSticky` flag for protecting user-edited values from AI overwrites
+  - explicit value-protection metadata for protecting accepted or user-owned values from AI overwrites
   - Refined DataSnapshot types in contract
 - **Runtime Reconciliation Improvements**:
   - Collection path remapping when template structure changes
-  - Enhanced isSticky handling in reconciliation
+  - enhanced protection handling in reconciliation
   - Improved default value handling and protected values
 - **Session View Pusher**:
   - `pushView` with reconciliation, suggestion stripping, and detached-value GC
   - Auto-checkpoint and detached-value garbage collection
 - **React Integration**:
-  - isSticky support in hooks and renderer
+  - protection metadata support in hooks and renderer
 - **Demo App**:
   - AI live page and worker integration
 
