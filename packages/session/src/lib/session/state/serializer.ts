@@ -13,7 +13,7 @@ import type {
 import { sanitizeContinuumDataSnapshot } from '@continuum-dev/runtime/canonical-snapshot';
 import type { SessionState } from './session-state.js';
 
-const CURRENT_FORMAT_VERSION = 1;
+const CURRENT_FORMAT_VERSION = 2;
 
 function deepClone<T>(value: T): T {
   return structuredClone(value);
@@ -50,7 +50,7 @@ export function serializeSession(internal: SessionState): unknown {
 }
 
 interface SerializedSessionData {
-  formatVersion?: number;
+  formatVersion: number;
   sessionId: string;
   currentView: ViewDefinition | null;
   currentData: DataSnapshot | null;
@@ -138,10 +138,7 @@ function validateSerializedSessionData(
     throw new Error('Invalid serialized session: "sessionId" must be a string');
   }
 
-  if (
-    data.formatVersion !== undefined &&
-    typeof data.formatVersion !== 'number'
-  ) {
+  if (typeof data.formatVersion !== 'number') {
     throw new Error(
       'Invalid serialized session: "formatVersion" must be a number'
     );
@@ -162,8 +159,7 @@ function validateSerializedSessionData(
 /**
  * Deserializes a serialized session payload into internal session state.
  *
- * Accepts missing `formatVersion` for backward compatibility. When present,
- * only version `1` is supported.
+ * Requires `formatVersion` and only supports the current serialized shape.
  *
  * @param data Serialized payload object.
  * @param clock Clock source for resumed runtime operations.
@@ -182,10 +178,7 @@ export function deserializeToState(
   validateSerializedSessionData(data);
   const raw = data;
 
-  if (
-    raw.formatVersion !== undefined &&
-    raw.formatVersion !== CURRENT_FORMAT_VERSION
-  ) {
+  if (raw.formatVersion !== CURRENT_FORMAT_VERSION) {
     throw new Error(
       `Unsupported format version ${raw.formatVersion}. This runtime supports version ${CURRENT_FORMAT_VERSION}.`
     );

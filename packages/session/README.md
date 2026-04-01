@@ -305,7 +305,7 @@ session.acceptProposal('email');
 session.rejectProposal('email');
 ```
 
-If the current value is clean, the proposal may apply immediately. If it is dirty or sticky, session stages it instead.
+If the current value is clean, the proposal may apply immediately. If it is dirty or otherwise protected, session stages it instead.
 
 ### Streams
 

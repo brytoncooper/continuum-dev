@@ -7,6 +7,11 @@ import type {
 import { createSession, deserialize } from '../../session.js';
 import type { Session } from '../../types.js';
 
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function makeView(
   nodes: ViewNode[],
   viewId = 'view-1',
@@ -201,6 +206,7 @@ describe('session streams subsystem', () => {
     ).toEqual({
       value: 'second@example.com',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
   });
 
@@ -240,10 +246,15 @@ describe('session streams subsystem', () => {
     expect(session.getSnapshot()?.data.values['email']).toEqual({
       value: 'user@example.com',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
     expect(session.getPendingProposals()['email']).toMatchObject({
       proposedValue: { value: 'ai@example.com' },
-      currentValue: { value: 'user@example.com', isDirty: true },
+      currentValue: {
+        value: 'user@example.com',
+        isDirty: true,
+        protection: userFlexibleProtection,
+      },
     });
   });
 
@@ -265,6 +276,7 @@ describe('session streams subsystem', () => {
     expect(session.getSnapshot()?.data.values['name']).toEqual({
       value: 'typed',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
 
     session.commitStream(stream.streamId);
@@ -272,6 +284,7 @@ describe('session streams subsystem', () => {
     expect(session.getCommittedSnapshot()?.data.values['name']).toEqual({
       value: 'typed',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
   });
 
@@ -340,7 +353,11 @@ describe('session streams subsystem', () => {
     expect(session.getSnapshot()?.view.version).toBe('1');
     const detached = Object.values(session.getDetachedValues());
     expect(detached).toHaveLength(1);
-    expect(detached[0]?.value).toEqual({ value: 'typed', isDirty: true });
+    expect(detached[0]?.value).toEqual({
+      value: 'typed',
+      isDirty: true,
+      protection: userFlexibleProtection,
+    });
   });
 
   it('clears focus when a foreground stream removes the focused node', () => {

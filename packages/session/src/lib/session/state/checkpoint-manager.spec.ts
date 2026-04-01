@@ -8,6 +8,11 @@ import {
   rewind,
 } from './checkpoint-manager.js';
 
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function setupWithSnapshot(
   internal: ReturnType<typeof createEmptySessionState>
 ) {
@@ -58,7 +63,13 @@ describe('createManualCheckpoint', () => {
     const internal = createEmptySessionState('s', () => 5000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
-      values: { a: { value: undefined, isDirty: true, isSticky: true } },
+      values: {
+        a: {
+          value: undefined,
+          isDirty: true,
+          protection: userFlexibleProtection,
+        },
+      },
       lineage: { timestamp: 1000, sessionId: 's' },
     };
 
@@ -67,7 +78,9 @@ describe('createManualCheckpoint', () => {
     expect(cp.snapshot.data.values.a).toHaveProperty('value');
     expect(cp.snapshot.data.values.a.value).toBeUndefined();
     expect(cp.snapshot.data.values.a.isDirty).toBe(true);
-    expect(cp.snapshot.data.values.a.isSticky).toBe(true);
+    expect(cp.snapshot.data.values.a.protection).toEqual(
+      userFlexibleProtection
+    );
   });
 
   it('preserves Date values in checkpoint snapshots', () => {

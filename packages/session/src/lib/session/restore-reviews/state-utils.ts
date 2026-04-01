@@ -1,4 +1,8 @@
-import type { NodeValue, DataSnapshot } from '@continuum-dev/contract';
+import {
+  mapNestedCollectionValues,
+  type NodeValue,
+  type DataSnapshot,
+} from '@continuum-dev/contract';
 import type { ReconciliationIssue as SessionIssue } from '@continuum-dev/runtime';
 import type { SessionState } from '../state/index.js';
 import { cloneCheckpointSnapshot } from '../state/index.js';
@@ -10,14 +14,25 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function toAcceptedNodeValue(value: unknown): NodeValue {
   if (isRecord(value) && 'value' in value) {
-    const nextValue = structuredClone(value) as Record<string, unknown>;
+    const nextValue = structuredClone(value) as unknown as NodeValue & {
+      suggestion?: unknown;
+    };
+    nextValue.value = mapNestedCollectionValues(nextValue.value, (nestedValue) =>
+      toAcceptedNodeValue(nestedValue)
+    );
     delete nextValue.suggestion;
-    (nextValue as any).isDirty = true;
-    return nextValue as unknown as NodeValue;
+    nextValue.protection = {
+      owner: 'ai',
+      stage: 'reviewed',
+    };
+    return nextValue;
   }
   return {
     value,
-    isDirty: true,
+    protection: {
+      owner: 'ai',
+      stage: 'reviewed',
+    },
   } as NodeValue;
 }
 

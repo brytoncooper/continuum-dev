@@ -9,7 +9,7 @@ Continuum streaming now has a strict ownership split:
 
 - `session.getSnapshot()` returns the current render snapshot. When a foreground stream is open, this can include in-progress streamed UI.
 - `session.getCommittedSnapshot()` returns the last durable committed `{ view, data }` pair.
-- User input stays sacred in both cases. Dirty or sticky committed values become proposals instead of being overwritten by streamed AI values.
+- User input stays sacred in both cases. Dirty or otherwise protected committed values become proposals instead of being overwritten by streamed AI values.
 
 ## Stream Lifecycle
 

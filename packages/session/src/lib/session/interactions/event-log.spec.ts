@@ -3,6 +3,16 @@ import { createEmptySessionState } from '../state/index.js';
 import { recordIntent } from './event-log.js';
 import { ISSUE_CODES } from '@continuum-dev/protocol';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const aiReviewedProtection = {
+  owner: 'ai',
+  stage: 'reviewed',
+} as const;
+
 function setupWithView(internal: ReturnType<typeof createEmptySessionState>) {
   internal.currentView = {
     viewId: 's1',
@@ -41,7 +51,10 @@ describe('recordIntent', () => {
       payload: { value: 'updated' },
     });
 
-    expect(internal.currentData!.values['a']).toEqual({ value: 'updated' });
+    expect(internal.currentData!.values['a']).toEqual({
+      value: 'updated',
+      protection: aiFlexibleProtection,
+    });
   });
 
   it('updates valueLineage with lastUpdated and lastInteractionId', () => {
@@ -118,14 +131,14 @@ describe('recordIntent', () => {
   it('stores a cloned payload value', () => {
     const internal = createEmptySessionState('s', () => 5000);
     setupWithView(internal);
-    const payload = { value: 'hello', isSticky: true };
+    const payload = { value: 'hello', protection: aiReviewedProtection };
 
     recordIntent(internal, { nodeId: 'a', type: 'value-change', payload });
     payload.value = 'changed-after';
 
     expect(internal.currentData?.values['a']).toEqual({
       value: 'hello',
-      isSticky: true,
+      protection: aiReviewedProtection,
     });
   });
 

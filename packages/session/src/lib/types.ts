@@ -192,6 +192,15 @@ export interface SessionOptions {
   >;
 }
 
+export interface ProtectionChangeResult {
+  appliedNodeIds: string[];
+  blockedConflictNodeIds: string[];
+  preservedDirtyNodeIds: string[];
+  preservedLockedNodeIds: string[];
+  preservedSubmittedNodeIds: string[];
+  missingNodeIds: string[];
+}
+
 /**
  * Stateful session API for generative UI timelines.
  */
@@ -308,6 +317,22 @@ export interface Session {
    * Rejects and removes a staged proposal.
    */
   rejectProposal(nodeId: string): void;
+  /**
+   * Marks AI-owned flexible values as reviewed when there are no pending conflicts.
+   */
+  reviewValues(nodeIds: string[]): ProtectionChangeResult;
+  /**
+   * Explicitly locks current values and clears pending conflicts.
+   */
+  lockValues(nodeIds: string[]): ProtectionChangeResult;
+  /**
+   * Demotes AI-owned reviewed or locked values back to flexible.
+   */
+  unlockValues(nodeIds: string[]): ProtectionChangeResult;
+  /**
+   * Marks current values as submitted and clears pending conflicts.
+   */
+  submitValues(nodeIds: string[]): ProtectionChangeResult;
   /**
    * Returns staged proposals keyed by node id.
    */

@@ -3,6 +3,11 @@ import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createSession, deserialize } from './session.js';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
 function makeNode(
   overrides: Partial<ViewNode> & { id: string; type?: ViewNode['type'] }
 ): ViewNode {
@@ -47,7 +52,10 @@ describe('session hardening', () => {
     );
 
     session.rewind(checkpoint.checkpointId);
-    expect(session.getSnapshot()?.data.values.a).toEqual({ value: 'one' });
+    expect(session.getSnapshot()?.data.values.a).toEqual({
+      value: 'one',
+      protection: aiFlexibleProtection,
+    });
   });
 
   it('throws when manual checkpoint is created without a snapshot', () => {
@@ -79,7 +87,10 @@ describe('session hardening', () => {
     session.updateState('a', { value: 'new-a' });
 
     const values = session.getSnapshot()?.data.values ?? {};
-    expect(values.a).toEqual({ value: 'new-a' });
+    expect(values.a).toEqual({
+      value: 'new-a',
+      protection: aiFlexibleProtection,
+    });
     expect(values.b).toBeUndefined();
     expect(snapshots.length).toBeGreaterThanOrEqual(2);
   });
@@ -199,7 +210,10 @@ describe('session hardening', () => {
     serialized.currentData.values.a = { value: 'mutated' };
     serialized.eventLog.push({ type: 'tampered' });
 
-    expect(session.getSnapshot()?.data.values.a).toEqual({ value: 'safe' });
+    expect(session.getSnapshot()?.data.values.a).toEqual({
+      value: 'safe',
+      protection: aiFlexibleProtection,
+    });
     expect(session.getEventLog().some((item) => item.type === 'tampered')).toBe(
       false
     );
@@ -241,6 +255,7 @@ describe('session hardening', () => {
 
     expect(persisted?.snapshot.data.values.a).toEqual({
       value: 'at-checkpoint',
+      protection: aiFlexibleProtection,
     });
   });
 

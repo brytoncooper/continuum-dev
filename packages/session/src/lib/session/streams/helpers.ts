@@ -1,5 +1,6 @@
 import {
   getChildNodes,
+  isProtectedNodeValue,
   type NodeValue,
   type ViewNode,
 } from '@continuum-dev/contract';
@@ -103,7 +104,7 @@ export function resolveStreamNodeForCommittedUpdate(
 }
 
 export function isProtectedValue(value: NodeValue | undefined): boolean {
-  return Boolean(value?.isDirty || value?.isSticky);
+  return isProtectedNodeValue(value);
 }
 
 export function getOpenStreamForTargetViewId(

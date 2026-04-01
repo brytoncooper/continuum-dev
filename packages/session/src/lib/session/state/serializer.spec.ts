@@ -3,6 +3,16 @@ import { describe, it, expect } from 'vitest';
 import { createEmptySessionState } from './session-state.js';
 import { serializeSession, deserializeToState } from './serializer.js';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 describe('serializeSession', () => {
   it('returns a JSON-serializable object with formatVersion', () => {
     const internal = createEmptySessionState('my-session', () => 1000);
@@ -15,7 +25,7 @@ describe('serializeSession', () => {
     const serialized = serializeSession(internal) as Record<string, unknown>;
 
     expect(() => JSON.stringify(serialized)).not.toThrow();
-    expect(serialized.formatVersion).toBe(1);
+    expect(serialized.formatVersion).toBe(2);
     expect(serialized.sessionId).toBe('my-session');
   });
 
@@ -43,7 +53,13 @@ describe('serializeSession', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
-      values: { a: { value: undefined, isDirty: true, isSticky: true } },
+      values: {
+        a: {
+          value: undefined,
+          isDirty: true,
+          protection: userFlexibleProtection,
+        },
+      },
       lineage: { timestamp: 1000, sessionId: 's' },
     };
 
@@ -51,7 +67,11 @@ describe('serializeSession', () => {
       currentData: {
         values: Record<
           string,
-          { value?: unknown; isDirty?: boolean; isSticky?: boolean }
+          {
+            value?: unknown;
+            isDirty?: boolean;
+            protection?: typeof userFlexibleProtection;
+          }
         >;
       };
     };
@@ -59,7 +79,9 @@ describe('serializeSession', () => {
     expect(serialized.currentData.values.a).toHaveProperty('value');
     expect(serialized.currentData.values.a.value).toBeUndefined();
     expect(serialized.currentData.values.a.isDirty).toBe(true);
-    expect(serialized.currentData.values.a.isSticky).toBe(true);
+    expect(serialized.currentData.values.a.protection).toEqual(
+      userFlexibleProtection
+    );
   });
 
   it('preserves Date node values before persistence encoding', () => {
@@ -131,7 +153,7 @@ describe('deserializeToState', () => {
     const internal = createEmptySessionState('s', () => 1000);
     internal.currentView = { viewId: 's1', version: '1.0', nodes: [] };
     internal.currentData = {
-      values: { a: { value: 'hello' } },
+      values: { a: { value: 'hello', protection: aiFlexibleProtection } },
       lineage: { timestamp: 1000, sessionId: 's' },
     };
     const serialized = serializeSession(internal);
@@ -139,13 +161,16 @@ describe('deserializeToState', () => {
     const restored = deserializeToState(serialized, () => 2000);
 
     expect(restored.sessionId).toBe('s');
-    expect(restored.currentData!.values['a']).toEqual({ value: 'hello' });
+    expect(restored.currentData!.values['a']).toEqual({
+      value: 'hello',
+      protection: aiFlexibleProtection,
+    });
     expect(restored.clock()).toBe(2000);
     expect(restored.snapshotListeners.size).toBe(0);
     expect(restored.destroyed).toBe(false);
   });
 
-  it('throws when format version is too high', () => {
+  it('rejects unsupported format versions', () => {
     const data = {
       formatVersion: 999,
       sessionId: 's',
@@ -165,7 +190,7 @@ describe('deserializeToState', () => {
     );
   });
 
-  it('accepts data without formatVersion (legacy)', () => {
+  it('rejects data without formatVersion', () => {
     const data = {
       sessionId: 's',
       currentView: null,
@@ -179,13 +204,12 @@ describe('deserializeToState', () => {
       resolutions: [],
     };
 
-    const restored = deserializeToState(data, () => 0);
-
-    expect(restored.sessionId).toBe('s');
+    expect(() => deserializeToState(data, () => 0)).toThrow('formatVersion');
   });
 
   it('defaults missing arrays to empty', () => {
     const data = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: null,
       currentData: null,
@@ -202,6 +226,7 @@ describe('deserializeToState', () => {
 
   it('strips legacy viewContext when deserializing', () => {
     const data = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: { viewId: 's1', version: '1', nodes: [] },
       currentData: {
@@ -227,6 +252,7 @@ describe('deserializeToState', () => {
 
   it('strips legacy viewContext from checkpoint snapshots when deserializing', () => {
     const data = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: { viewId: 's1', version: '1', nodes: [] },
       currentData: null,
@@ -293,6 +319,7 @@ describe('deserializeToState', () => {
 
   it('throws when collection fields are not arrays', () => {
     const bad = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: null,
       currentData: null,
@@ -305,6 +332,7 @@ describe('deserializeToState', () => {
 
   it('throws when eventLog contains an invalid interaction type', () => {
     const bad = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: null,
       currentData: null,
@@ -341,6 +369,7 @@ describe('deserializeToState', () => {
       viewVersion: '1.0',
     }));
     const data = {
+      formatVersion: 2,
       sessionId: 's',
       currentView: null,
       currentData: null,

@@ -2,6 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { createSession } from '../session.js';
 import type { ViewDefinition, ViewNode } from '@continuum-dev/contract';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const aiReviewedProtection = {
+  owner: 'ai',
+  stage: 'reviewed',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
 function makeView(nodes: ViewNode[]): ViewDefinition {
   return { viewId: 'test-view', version: '1.0', nodes };
 }
@@ -27,6 +42,7 @@ describe('Pending Proposals', () => {
     expect(proposals['f1'].currentValue).toEqual({
       value: 'user-value',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
     expect(proposals['f1'].source).toBe('ai');
   });
@@ -46,28 +62,35 @@ describe('Pending Proposals', () => {
     expect(Object.keys(session.getPendingProposals())).toHaveLength(0);
     expect(session.getSnapshot()?.data.values['f1']).toEqual({
       value: 'ai-value',
+      protection: aiFlexibleProtection,
     });
   });
 
-  it('adds a proposal when proposeValue is called on a sticky field', () => {
+  it('adds a proposal when proposeValue is called on a reviewed field', () => {
     const session = createSession();
     session.pushView(
       makeView([{ id: 'f1', type: 'field', dataType: 'string' }])
     );
 
-    session.updateState('f1', { value: 'accepted-value', isSticky: true });
+    session.updateState('f1', {
+      value: 'accepted-value',
+      protection: aiReviewedProtection,
+    });
     session.proposeValue('f1', { value: 'ai-value' }, 'ai');
 
     expect(session.getPendingProposals()['f1']).toEqual({
       nodeId: 'f1',
       proposedValue: { value: 'ai-value' },
-      currentValue: { value: 'accepted-value', isSticky: true },
+      currentValue: {
+        value: 'accepted-value',
+        protection: aiReviewedProtection,
+      },
       proposedAt: expect.any(Number),
       source: 'ai',
     });
     expect(session.getSnapshot()?.data.values['f1']).toEqual({
       value: 'accepted-value',
-      isSticky: true,
+      protection: aiReviewedProtection,
     });
   });
 
@@ -86,7 +109,7 @@ describe('Pending Proposals', () => {
     expect(Object.keys(session.getPendingProposals())).toHaveLength(0);
     expect(session.getSnapshot()?.data.values['f1']).toEqual({
       value: 'ai-value',
-      isDirty: true, // Should retain dirty status so it doesn't get overwritten easily later
+      protection: aiReviewedProtection,
     });
   });
 
@@ -106,6 +129,7 @@ describe('Pending Proposals', () => {
     expect(session.getSnapshot()?.data.values['f1']).toEqual({
       value: 'user-value',
       isDirty: true,
+      protection: userFlexibleProtection,
     });
   });
 

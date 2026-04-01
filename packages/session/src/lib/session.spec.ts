@@ -7,6 +7,55 @@ import type {
 import { createSession, deserialize } from './session.js';
 import type { Session } from './types.js';
 
+const aiFlexibleProtection = {
+  owner: 'ai',
+  stage: 'flexible',
+} as const;
+
+const aiReviewedProtection = {
+  owner: 'ai',
+  stage: 'reviewed',
+} as const;
+
+const userFlexibleProtection = {
+  owner: 'user',
+  stage: 'flexible',
+} as const;
+
+function aiFlexible(
+  value: unknown,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    value,
+    protection: aiFlexibleProtection,
+    ...extra,
+  };
+}
+
+function aiReviewed(
+  value: unknown,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    value,
+    protection: aiReviewedProtection,
+    ...extra,
+  };
+}
+
+function userFlexible(
+  value: unknown,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    value,
+    isDirty: true,
+    protection: userFlexibleProtection,
+    ...extra,
+  };
+}
+
 function makeView(
   nodes: ViewNode[],
   viewId = 'view-1',
@@ -161,10 +210,7 @@ describe('Session Ledger', () => {
       session.pushView(viewV2);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({
-        value: 'hello',
-        isSticky: true,
-      });
+      expect(snapshot!.data.values['a']).toEqual(aiFlexible('hello'));
       expect(snapshot!.data.lineage.viewVersion).toBe('2.0');
     });
 
@@ -234,10 +280,9 @@ describe('Session Ledger', () => {
       });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot?.data.values['tax_form/full_name']).toEqual({
-        value: 'Jordan Lee',
-        isDirty: true,
-      });
+      expect(snapshot?.data.values['tax_form/full_name']).toEqual(
+        userFlexible('Jordan Lee')
+      );
       expect(session.getDetachedValues()).toEqual({});
     });
 
@@ -351,10 +396,9 @@ describe('Session Ledger', () => {
       );
       session.pushView(viewV2);
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'typed',
-        isDirty: true,
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        userFlexible('typed')
+      );
 
       const viewV3 = makeView(
         [makeNode({ id: 'a', defaultValue: 'B' })],
@@ -363,14 +407,12 @@ describe('Session Ledger', () => {
       );
       session.pushView(viewV3);
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'typed',
-        isDirty: true,
-        suggestion: 'B',
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        userFlexible('typed', { suggestion: 'B' })
+      );
     });
 
-    it('locks populated non-dirty values as sticky on next push so new defaults become suggestions', () => {
+    it('keeps AI-owned flexible defaults overwritable on next push', () => {
       const session = createSession();
       const viewV1 = makeView(
         [makeNode({ id: 'first_name', defaultValue: 'Alex' })],
@@ -386,14 +428,12 @@ describe('Session Ledger', () => {
       );
       session.pushView(viewV2);
 
-      expect(session.getSnapshot()?.data.values['first_name']).toEqual({
-        value: 'Alex',
-        isSticky: true,
-        suggestion: 'Jordan',
-      });
+      expect(session.getSnapshot()?.data.values['first_name']).toEqual(
+        aiFlexible('Jordan')
+      );
     });
 
-    it('does not lock empty string values as sticky, allowing new defaults to replace them', () => {
+    it('keeps empty AI defaults overwritable by later defaults', () => {
       const session = createSession();
       const viewV1 = makeView(
         [makeNode({ id: 'nickname', defaultValue: '' })],
@@ -409,12 +449,12 @@ describe('Session Ledger', () => {
       );
       session.pushView(viewV2);
 
-      expect(session.getSnapshot()?.data.values['nickname']).toEqual({
-        value: 'J',
-      });
+      expect(session.getSnapshot()?.data.values['nickname']).toEqual(
+        aiFlexible('J')
+      );
     });
 
-    it('locks populated collection item field values as sticky on next push', () => {
+    it('keeps collection item defaults flexible on the next push', () => {
       const session = createSession();
       const viewV1 = makeView(
         [
@@ -472,7 +512,18 @@ describe('Session Ledger', () => {
               items?: Array<{
                 values?: Record<
                   string,
-                  { value: unknown; isDirty?: boolean; isSticky?: boolean }
+                  {
+                    value: unknown;
+                    isDirty?: boolean;
+                    protection?: {
+                      owner: 'ai' | 'user';
+                      stage:
+                        | 'flexible'
+                        | 'reviewed'
+                        | 'locked'
+                        | 'submitted';
+                    };
+                  }
                 >;
               }>;
             };
@@ -482,13 +533,10 @@ describe('Session Ledger', () => {
           }
         | undefined;
 
-      expect(itemsNode?.value?.items?.[0]?.values?.['row/name']).toEqual({
-        value: 'A',
-        isSticky: true,
-      });
-      expect(itemsNode?.suggestion?.items?.[0]?.values?.['row/name']).toEqual({
-        value: 'B',
-      });
+      expect(itemsNode?.value?.items?.[0]?.values?.['row/name']).toEqual(
+        aiFlexible('B')
+      );
+      expect(itemsNode?.suggestion).toBeUndefined();
     });
 
     it('clears stale nested collection suggestions on pushView and computes fresh collection suggestions', () => {
@@ -746,7 +794,7 @@ describe('Session Ledger', () => {
       });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({ value: 'updated' });
+      expect(snapshot!.data.values['a']).toEqual(aiFlexible('updated'));
     });
 
     it('recordIntent sets lastInteractionId on data lineage', () => {
@@ -778,7 +826,7 @@ describe('Session Ledger', () => {
       session.updateState('a', { value: 'shorthand' });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({ value: 'shorthand' });
+      expect(snapshot!.data.values['a']).toEqual(aiFlexible('shorthand'));
 
       const log = session.getEventLog();
       expect(log).toHaveLength(1);
@@ -886,9 +934,9 @@ describe('Session Ledger', () => {
     it('proposeValue applies immediately when existing value is not dirty', () => {
       session.proposeValue('a', { value: 'ai-next' }, 'ai');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'ai-next',
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        aiFlexible('ai-next')
+      );
       expect(session.getPendingProposals()).toEqual({});
     });
 
@@ -900,30 +948,28 @@ describe('Session Ledger', () => {
       const proposal = session.getPendingProposals()['a'];
       expect(proposal).toBeDefined();
       expect(proposal?.proposedValue).toEqual({ value: 'ai-next' });
-      expect(proposal?.currentValue).toEqual({ value: 'typed', isDirty: true });
+      expect(proposal?.currentValue).toEqual(userFlexible('typed'));
       expect(proposal?.source).toBe('ai');
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'typed',
-        isDirty: true,
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        userFlexible('typed')
+      );
     });
 
-    it('proposeValue creates a pending proposal when existing value is sticky', () => {
-      session.updateState('a', { value: 'accepted', isSticky: true });
+    it('proposeValue creates a pending proposal when existing value is reviewed', () => {
+      session.updateState('a', {
+        value: 'accepted',
+        protection: aiReviewedProtection,
+      });
 
       session.proposeValue('a', { value: 'ai-next' }, 'ai');
 
       const proposal = session.getPendingProposals()['a'];
       expect(proposal).toBeDefined();
       expect(proposal?.proposedValue).toEqual({ value: 'ai-next' });
-      expect(proposal?.currentValue).toEqual({
-        value: 'accepted',
-        isSticky: true,
-      });
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'accepted',
-        isSticky: true,
-      });
+      expect(proposal?.currentValue).toEqual(aiReviewed('accepted'));
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        aiReviewed('accepted')
+      );
     });
 
     it('acceptProposal applies proposed value and clears proposal', () => {
@@ -932,10 +978,9 @@ describe('Session Ledger', () => {
 
       session.acceptProposal('a');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'ai-next',
-        isDirty: true,
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        aiReviewed('ai-next')
+      );
       expect(session.getPendingProposals()).toEqual({});
     });
 
@@ -945,10 +990,9 @@ describe('Session Ledger', () => {
 
       session.rejectProposal('a');
 
-      expect(session.getSnapshot()?.data.values['a']).toEqual({
-        value: 'typed',
-        isDirty: true,
-      });
+      expect(session.getSnapshot()?.data.values['a']).toEqual(
+        userFlexible('typed')
+      );
       expect(session.getPendingProposals()).toEqual({});
     });
   });
@@ -971,7 +1015,7 @@ describe('Session Ledger', () => {
       expect(cp.checkpointId).toBeDefined();
       expect(cp.sessionId).toBe(session.sessionId);
       expect(cp.snapshot).toBeDefined();
-      expect(cp.snapshot.data.values['a']).toEqual({ value: 'world' });
+      expect(cp.snapshot.data.values['a']).toEqual(aiFlexible('world'));
       expect(cp.eventIndex).toBe(2);
       expect(cp.timestamp).toBeDefined();
     });
@@ -986,7 +1030,7 @@ describe('Session Ledger', () => {
       session.restoreFromCheckpoint(cp);
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({ value: 'world' });
+      expect(snapshot!.data.values['a']).toEqual(aiFlexible('world'));
     });
 
     it('restored session preserves event log up to checkpoint event index', () => {
@@ -1009,7 +1053,9 @@ describe('Session Ledger', () => {
       session.updateState('a', { value: 'after-restore' });
 
       const snapshot = session.getSnapshot();
-      expect(snapshot!.data.values['a']).toEqual({ value: 'after-restore' });
+      expect(snapshot!.data.values['a']).toEqual(
+        aiFlexible('after-restore')
+      );
       expect(session.getEventLog()).toHaveLength(2);
     });
 
@@ -1027,7 +1073,7 @@ describe('Session Ledger', () => {
       expect(
         (snapshots[0] as { data: { values: Record<string, unknown> } }).data
           .values['a']
-      ).toEqual({ value: 'hello' });
+      ).toEqual(aiFlexible('hello'));
     });
 
     it('restoreFromCheckpoint notifies issue listeners', () => {
@@ -1240,9 +1286,9 @@ describe('Session Ledger', () => {
       const restored = deserialize(serialized);
 
       expect(restored.sessionId).toBe(session.sessionId);
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({
-        value: 'hello',
-      });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual(
+        aiFlexible('hello')
+      );
     });
 
     it('round-trip serialize/deserialize produces identical snapshot', () => {
@@ -1261,7 +1307,7 @@ describe('Session Ledger', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
       const serialized = session.serialize() as Record<string, unknown>;
-      expect(serialized.formatVersion).toBe(1);
+      expect(serialized.formatVersion).toBe(2);
     });
 
     it('deserialize rejects unknown formatVersion', () => {
@@ -1274,26 +1320,24 @@ describe('Session Ledger', () => {
       expect(() => deserialize(blob)).toThrow();
     });
 
-    it('deserialize accepts formatVersion 1', () => {
+    it('deserialize rejects outdated formatVersion 1', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'hello' });
-      const restored = deserialize(session.serialize());
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({
-        value: 'hello',
-      });
+      const blob = {
+        ...(session.serialize() as Record<string, unknown>),
+        formatVersion: 1,
+      };
+      expect(() => deserialize(blob)).toThrow('Unsupported format version');
     });
 
-    it('deserialize handles legacy blobs without formatVersion', () => {
+    it('deserialize rejects blobs without formatVersion', () => {
       const session = createSession();
       session.pushView(makeView([makeNode({ id: 'a' })]));
       session.updateState('a', { value: 'legacy' });
       const blob = session.serialize() as Record<string, unknown>;
       delete blob.formatVersion;
-      const restored = deserialize(blob);
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({
-        value: 'legacy',
-      });
+      expect(() => deserialize(blob)).toThrow('formatVersion');
     });
 
     it('deserialize re-registers actions from options', async () => {
@@ -1341,9 +1385,9 @@ describe('Session Ledger', () => {
 
       const checkpoints = session.getCheckpoints();
       expect(checkpoints).toHaveLength(1);
-      expect(checkpoints[0].snapshot.data.values['a']).toEqual({
-        value: 'typed',
-      });
+      expect(checkpoints[0].snapshot.data.values['a']).toEqual(
+        aiFlexible('typed')
+      );
     });
 
     it('each pushView adds a new checkpoint', () => {
@@ -1366,10 +1410,9 @@ describe('Session Ledger', () => {
       const checkpoints = session.getCheckpoints();
       expect(checkpoints[0].snapshot.view.viewId).toBe('s1');
       expect(checkpoints[1].snapshot.view.viewId).toBe('s2');
-      expect(checkpoints[1].snapshot.data.values['a']).toEqual({
-        value: 'hello',
-        isSticky: true,
-      });
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual(
+        aiFlexible('hello')
+      );
     });
 
     it('rewind restores session to a prior checkpoint', () => {
@@ -1385,10 +1428,9 @@ describe('Session Ledger', () => {
       session.rewind(checkpoints[1].checkpointId);
 
       expect(session.getSnapshot()!.view.viewId).toBe('s2');
-      expect(session.getSnapshot()!.data.values['a']).toEqual({
-        value: 'hello',
-        isSticky: true,
-      });
+      expect(session.getSnapshot()!.data.values['a']).toEqual(
+        aiFlexible('hello')
+      );
 
       session.rewind(session.getCheckpoints()[0].checkpointId);
       expect(session.getSnapshot()!.view.viewId).toBe('s1');
@@ -1410,9 +1452,9 @@ describe('Session Ledger', () => {
       session.rewind(checkpoints[0].checkpointId);
 
       expect(session.getSnapshot()!.view.viewId).toBe('s1');
-      expect(session.getSnapshot()!.data.values['loan_type']).toEqual({
-        value: 'mortgage',
-      });
+      expect(session.getSnapshot()!.data.values['loan_type']).toEqual(
+        aiFlexible('mortgage')
+      );
     });
 
     it('rewind trims the checkpoint stack to the rewound point', () => {
@@ -1477,13 +1519,12 @@ describe('Session Ledger', () => {
       restored.rewind(checkpoints[1].checkpointId);
 
       expect(restored.getSnapshot()!.view.viewId).toBe('s2');
-      expect(restored.getSnapshot()!.data.values['a']).toEqual({
-        value: 'before',
-        isSticky: true,
-      });
-      expect(restored.getSnapshot()!.data.values['b']).toEqual({
-        value: 'after',
-      });
+      expect(restored.getSnapshot()!.data.values['a']).toEqual(
+        aiFlexible('before')
+      );
+      expect(restored.getSnapshot()!.data.values['b']).toEqual(
+        aiFlexible('after')
+      );
     });
 
     it('auto-checkpoint captures data updates made before next pushView', () => {
@@ -1493,10 +1534,9 @@ describe('Session Ledger', () => {
       session.pushView(makeView([makeNode({ id: 'a' })], 's2', '2'));
 
       const checkpoints = session.getCheckpoints();
-      expect(checkpoints[1].snapshot.data.values['a']).toEqual({
-        value: 'typed',
-        isSticky: true,
-      });
+      expect(checkpoints[1].snapshot.data.values['a']).toEqual(
+        aiFlexible('typed')
+      );
     });
   });
 
@@ -1582,10 +1622,9 @@ describe('Session Ledger', () => {
 
       session.pushView(makeView([root], 's2', '2'));
 
-      expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual({
-        value: 'nested',
-        isSticky: true,
-      });
+      expect(session.getSnapshot()!.data.values['root/mid/deep']).toEqual(
+        aiFlexible('nested')
+      );
     });
 
     it('updateState and recordIntent throw after destroy', () => {
